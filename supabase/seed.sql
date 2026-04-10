@@ -1,0 +1,2 @@
+-- Intentionally empty for now.
+-- Add local-only test data here when we start exercising chat, clans, and leaderboards.

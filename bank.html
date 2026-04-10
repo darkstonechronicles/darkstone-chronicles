@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="el">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Darkstone Chronicles - Bank</title>
+  <link rel="stylesheet" href="style.css"/>
+</head>
+<body>
+  <div id="hudRoot"></div>
+
+  <div id="mainLayout">
+    <div id="leftPanel">
+      <h1>Bank</h1>
+
+      <div style="display:flex;justify-content:center;padding:12px 10px;border-radius:14px;border:1px solid rgba(199,155,68,.28);background:linear-gradient(180deg, rgba(255,245,210,.05), rgba(255,255,255,.01) 30%, rgba(0,0,0,.10) 100%),linear-gradient(180deg, #1c2028 0%, #12151c 100%);box-shadow:0 0 0 1px rgba(0,0,0,.42),0 14px 28px rgba(0,0,0,.22),inset 0 1px 0 rgba(255,255,255,.05),inset 0 -1px 0 rgba(0,0,0,.28);max-width:900px;margin:0 auto 12px;">
+        <div style="width:100%;max-width:700px;display:grid;grid-template-columns:120px max-content 1px 1fr;gap:14px;align-items:start;">
+          <div id="bankFilterList" style="display:flex;flex-direction:column;gap:8px;"></div>
+          <div id="bankGrid" style="display:grid;grid-template-columns:repeat(6,40px);gap:4px;justify-content:center;padding:4px;width:max-content;max-width:100%;"></div>
+          <div style="width:1px;align-self:stretch;background:linear-gradient(180deg, rgba(199,155,68,.06), rgba(199,155,68,.42) 18%, rgba(199,155,68,.42) 82%, rgba(199,155,68,.06));"></div>
+          <div id="bankPreview" style="min-height:220px;display:flex;align-items:center;justify-content:center;"></div>
+        </div>
+        <div id="bankEmpty" style="display:none;opacity:.82;text-align:center;padding:18px 10px;">Your bank is empty.</div>
+      </div>
+    </div>
+
+    <div id="inventoryPanel"></div>
+  </div>
+
+  <script src="auth.js"></script>
+  <script src="ui.js"></script>
+  <script src="bank.js"></script>
+</body>
+</html>

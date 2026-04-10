@@ -1,0 +1,774 @@
+/* =========================================================
+   Darkstone Chronicles — style.css (clean / ui.js friendly)
+   - Consistent pages
+   - Avoids conflicts with ui.js injected HUD + inventory styles
+   ========================================================= */
+
+:root{
+  --bg: #0d0d15;
+  --panel: #151520;
+  --panel2: #0f0f16;
+  --text: #eee;
+  --muted: rgba(255,255,255,.78);
+  --border: #333;
+  --border2: #2a2a3a;
+  --btn: #1b1b24;
+  --btnHover: #222233;
+
+  /* Background */
+  --bg-fallback: #0b0b10;
+  --bg-image: url("./images/bg/main_bg.png");
+  --bg-overlay: rgba(0,0,0,0.22);
+
+  /* Premium buttons */
+  --btn-premium-bg:
+    linear-gradient(180deg, rgba(255,255,255,.08), rgba(255,255,255,.02) 42%, rgba(0,0,0,.10) 100%),
+    linear-gradient(180deg, #242833 0%, #171a22 100%);
+  --btn-premium-border: #4a5060;
+  --btn-premium-highlight: rgba(255,255,255,.14);
+  --btn-premium-shadow:
+    0 12px 24px rgba(0,0,0,.26),
+    0 0 0 1px rgba(0,0,0,.45),
+    inset 0 1px 0 rgba(255,255,255,.08),
+    inset 0 -1px 0 rgba(0,0,0,.35);
+  --btn-premium-hover-border: #646d82;
+  --btn-premium-hover-glow: rgba(189, 204, 255, .14);
+  --btn-premium-primary-bg:
+    linear-gradient(180deg, rgba(255,245,210,.16), rgba(255,255,255,.04) 36%, rgba(0,0,0,.10) 100%),
+    linear-gradient(180deg, #6f5320 0%, #3e2d11 100%);
+  --btn-premium-primary-border: #c79b44;
+  --btn-premium-primary-glow: rgba(228, 181, 77, .18);
+  --btn-premium-danger-bg:
+    linear-gradient(180deg, rgba(255,220,220,.10), rgba(255,255,255,.03) 36%, rgba(0,0,0,.12) 100%),
+    linear-gradient(180deg, #592329 0%, #301116 100%);
+  --btn-premium-danger-border: #ad4f5b;
+}
+
+*{ box-sizing: border-box; }
+
+html, body{ height: 100%; }
+
+html{
+  min-height: 100%;
+  background-color: var(--bg-fallback);
+  background-image: var(--bg-image);
+  background-repeat: no-repeat;
+  background-position: center center;
+  background-size: cover;
+  background-attachment: fixed;
+  overflow-x: hidden; /* prevent horizontal page scroll */
+}
+
+body{
+  min-height: 100%;
+  margin: 0;
+  padding: 0; /* ui.js already adds layout padding */
+  font-family: Arial, sans-serif;
+  background: transparent; /* let html bg show */
+  color: var(--text);
+  line-height: 1.35;
+  overflow-x: hidden; /* prevent horizontal page scroll */
+}
+
+/* dark overlay + vignette feel */
+html::before{
+  content:"";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  background: var(--bg-overlay);
+  z-index: 0;
+}
+
+/* ensure UI is above overlay */
+#hudRoot, #mainLayout{
+  position: relative;
+  z-index: 1;
+}
+
+/* Links */
+a{ color: #b7ffcf; text-decoration: none; }
+a:hover{ text-decoration: underline; }
+
+/* Left panel (general pages) */
+#leftPanel{
+  background: #151520;
+  border: 2px solid #333;
+  border-radius: 12px;
+  padding: 14px;
+}
+
+#leftPanel h1{
+  margin: 0 0 12px 0;
+  font-size: 26px;
+  letter-spacing: .2px;
+}
+
+/* Action buttons (Home page etc.) */
+#actions{
+  margin: 14px 0 8px;
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+#actions button{
+  padding: 10px 16px;
+  font-size: 15px;
+  background: var(--btn);
+  color: var(--text);
+  border: 2px solid var(--border);
+  border-radius: 10px;
+  cursor: pointer;
+  transition: filter .15s ease, transform .05s ease, background .15s ease;
+}
+
+#actions button:hover{
+  background: var(--btnHover);
+  filter: brightness(1.06);
+}
+
+#actions button:active{ transform: translateY(1px); }
+
+#actions button:disabled{
+  opacity: .55;
+  cursor: not-allowed;
+}
+
+/* Premium shared action buttons */
+#leftPanel button:not(.invTab):not(.mobLootBtn):not(.mobLootClose):not(.dungeonLootBtn):not(.dungeonLootClose),
+#actions button,
+.townBtn{
+  appearance: none;
+  min-height: 42px;
+  padding: 10px 16px;
+  border-radius: 12px;
+  border: 1px solid var(--btn-premium-border);
+  background: var(--btn-premium-bg);
+  color: #f1f2f6;
+  font-weight: 800;
+  letter-spacing: .2px;
+  text-shadow: 0 1px 0 rgba(0,0,0,.75);
+  box-shadow: var(--btn-premium-shadow);
+  transition:
+    transform .14s ease,
+    border-color .14s ease,
+    box-shadow .14s ease,
+    filter .14s ease;
+}
+
+#leftPanel button:not(.invTab):not(.mobLootBtn):not(.mobLootClose):not(.dungeonLootBtn):not(.dungeonLootClose):hover,
+#actions button:hover,
+.townBtn:hover{
+  transform: translateY(-1px);
+  border-color: var(--btn-premium-hover-border);
+  box-shadow:
+    0 14px 28px rgba(0,0,0,.3),
+    0 0 0 1px rgba(0,0,0,.48),
+    0 0 18px var(--btn-premium-hover-glow),
+    inset 0 1px 0 rgba(255,255,255,.12),
+    inset 0 -1px 0 rgba(0,0,0,.3);
+  filter: brightness(1.03);
+}
+
+#leftPanel button:not(.invTab):not(.mobLootBtn):not(.mobLootClose):not(.dungeonLootBtn):not(.dungeonLootClose):active,
+#actions button:active,
+.townBtn:active{
+  transform: translateY(1px);
+  box-shadow:
+    0 8px 18px rgba(0,0,0,.24),
+    0 0 0 1px rgba(0,0,0,.45),
+    inset 0 2px 3px rgba(0,0,0,.24),
+    inset 0 1px 0 rgba(255,255,255,.05);
+}
+
+#leftPanel button:not(.invTab):not(.mobLootBtn):not(.mobLootClose):not(.dungeonLootBtn):not(.dungeonLootClose):disabled,
+#actions button:disabled,
+.townBtn:disabled{
+  opacity: .5;
+  cursor: not-allowed;
+  transform: none;
+  filter: grayscale(.15);
+  box-shadow:
+    0 8px 16px rgba(0,0,0,.16),
+    inset 0 1px 0 rgba(255,255,255,.04);
+}
+
+#startBtn,
+#attackBtn,
+#targetBtn,
+#actions button{
+  border-color: var(--btn-premium-primary-border);
+  background: var(--btn-premium-primary-bg);
+  box-shadow:
+    0 12px 24px rgba(0,0,0,.28),
+    0 0 0 1px rgba(0,0,0,.45),
+    0 0 16px var(--btn-premium-primary-glow),
+    inset 0 1px 0 rgba(255,255,255,.10),
+    inset 0 -1px 0 rgba(0,0,0,.28);
+}
+
+#startBtn:hover,
+#attackBtn:hover,
+#targetBtn:hover,
+#actions button:hover{
+  border-color: #dfb15a;
+  box-shadow:
+    0 14px 28px rgba(0,0,0,.32),
+    0 0 0 1px rgba(0,0,0,.5),
+    0 0 22px rgba(228, 181, 77, .24),
+    inset 0 1px 0 rgba(255,255,255,.14),
+    inset 0 -1px 0 rgba(0,0,0,.26);
+}
+
+#stopBtn,
+#runBtn{
+  border-color: var(--btn-premium-danger-border);
+  background: var(--btn-premium-danger-bg);
+  box-shadow:
+    0 12px 24px rgba(0,0,0,.28),
+    0 0 0 1px rgba(0,0,0,.45),
+    0 0 16px rgba(173, 79, 91, .16),
+    inset 0 1px 0 rgba(255,255,255,.08),
+    inset 0 -1px 0 rgba(0,0,0,.32);
+}
+
+/* Log (Home page etc.) */
+#log{
+  width: 100%;
+  margin: 12px auto 0;
+  height: 190px;
+  overflow-y: auto;
+  overflow-x: hidden;
+
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 12px;
+  padding: 10px;
+
+  background: rgba(0,0,0,0.28);
+  text-align: left;
+}
+
+.log-item{
+  font-size: 13px;
+  line-height: 1.35;
+  padding: 7px 9px;
+  border-radius: 10px;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.06);
+  margin-bottom: 8px;
+
+  white-space: normal;
+  word-break: break-word;
+
+  opacity: .98;
+  transition: opacity .25s ease, transform .25s ease;
+}
+
+.log-item.new{
+  opacity: 0;
+  transform: translateY(6px);
+}
+
+.log-item.fade-out{
+  opacity: 0;
+  transform: translateY(-6px);
+}
+
+/* Town cards */
+.townCard{
+  background: var(--panel);
+  border: 2px solid var(--border);
+  border-radius: 12px;
+  padding: 12px;
+  text-align: left;
+}
+
+.townTitle{
+  font-weight: 900;
+  font-size: 16px;
+  margin-bottom: 6px;
+}
+
+.townDesc{
+  opacity: .85;
+  font-size: 13px;
+  margin-bottom: 10px;
+  line-height: 1.35;
+}
+
+.townBtn{
+  width: 100%;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 2px solid var(--border);
+  background: var(--btn);
+  color: #fff;
+  cursor: pointer;
+}
+.townBtn:hover{ filter: brightness(1.08); }
+
+/* Home hub */
+#homeHub{
+  width: min(100%, 900px);
+  margin: 0 auto 14px;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 18px 34px;
+  justify-items: center;
+}
+
+.hubNav{
+  width: 100%;
+  max-width: 170px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--text);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+}
+
+.hubIconFrame{
+  width: 76px;
+  height: 76px;
+  padding: 4px;
+  border-radius: 6px;
+  border: 1px solid rgba(255,255,255,.18);
+  background:
+    linear-gradient(180deg, rgba(255,255,255,.08), rgba(255,255,255,.02)),
+    rgba(8,8,12,.72);
+  box-shadow:
+    0 0 0 1px rgba(0,0,0,.55) inset,
+    0 10px 26px rgba(0,0,0,.32);
+  transition: transform .14s ease, border-color .14s ease, box-shadow .14s ease;
+}
+
+.hubEmoji{
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 38px;
+  line-height: 1;
+  filter: drop-shadow(0 2px 2px rgba(0,0,0,.45));
+}
+
+.hubLabel{
+  min-width: 138px;
+  padding: 7px 12px 8px;
+  border-radius: 9px;
+  border: 1px solid rgba(255,255,255,.14);
+  background: rgba(12,12,16,.76);
+  box-shadow:
+    0 0 0 1px rgba(0,0,0,.4) inset,
+    0 8px 16px rgba(0,0,0,.18);
+  font-size: 14px;
+  line-height: 1;
+  text-align: center;
+  text-shadow: 0 1px 0 rgba(0,0,0,.75);
+}
+
+.hubNav:hover .hubIconFrame{
+  transform: translateY(-2px);
+  border-color: rgba(210,210,210,.34);
+  box-shadow:
+    0 0 0 1px rgba(0,0,0,.55) inset,
+    0 14px 30px rgba(0,0,0,.4);
+}
+
+.hubNav:hover .hubLabel{
+  filter: brightness(1.08);
+}
+
+.hubNav:focus-visible{
+  outline: none;
+}
+
+.hubNav:focus-visible .hubIconFrame,
+.hubNav:focus-visible .hubLabel{
+  border-color: #c7b37a;
+}
+
+#professionsPanel{
+  width: min(100%, 900px);
+  margin: 10px auto 18px;
+  padding: 16px;
+  border-radius: 14px;
+  border: 1px solid rgba(255,255,255,.1);
+  background:
+    linear-gradient(180deg, rgba(255,255,255,.04), rgba(255,255,255,.01)),
+    rgba(10,10,15,.72);
+  box-shadow:
+    0 0 0 1px rgba(0,0,0,.42) inset,
+    0 18px 40px rgba(0,0,0,.26);
+}
+
+#professionsPanel[hidden]{
+  display: none !important;
+}
+
+.categoryPanelHeader{
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.categoryPanelTitle{
+  margin: 0;
+  font-size: 20px;
+}
+
+.categoryCloseBtn{
+  width: auto;
+  min-width: 96px;
+}
+
+.categoryGrid{
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.categoryBtn{
+  padding: 14px 12px;
+  border-radius: 12px;
+  border: 1px solid rgba(255,255,255,.12);
+  background: rgba(19,19,28,.92);
+  color: var(--text);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  cursor: pointer;
+  box-shadow:
+    0 0 0 1px rgba(0,0,0,.34) inset,
+    0 10px 22px rgba(0,0,0,.18);
+}
+
+.categoryBtn:hover{
+  filter: brightness(1.08);
+}
+
+.categoryIcon{
+  font-size: 22px;
+  line-height: 1;
+}
+
+.categoryName{
+  font-size: 14px;
+  font-weight: 700;
+}
+
+/* Paperdoll (equipment page) — keep absolute layout */
+#paperdoll{ position: relative; }
+
+#paperdoll .pdSlot{
+  position: absolute !important;
+  width: 64px;
+  height: 64px;
+  transform: translateX(-50%);
+  border-radius: 14px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  border: 2px solid rgba(120,120,160,.65);
+  background: rgba(15,15,22,.25);
+  box-shadow: 0 10px 24px rgba(0,0,0,.35);
+  cursor: pointer;
+}
+
+#paperdoll .pdEmpty{
+  font-size: 11px;
+  opacity: .85;
+  text-align: center;
+  line-height: 1.05;
+  padding: 0 4px;
+}
+
+/* ===== FIX: Inventory panel inside ui.js grid ===== */
+#mainLayout #inventoryPanel{
+  width: auto !important;
+  max-width: none !important;
+  margin-right: 0 !important;
+  margin-bottom: 0 !important;
+  margin-left: 0 !important;
+  position: relative !important;
+  top: auto !important;
+  left: auto !important;
+}
+
+/* ===== INVENTORY: 8 columns, NO scrollbars ===== */
+#inventoryPanel{
+  overflow: visible !important;
+  height: fit-content;
+}
+
+#inventoryGrid{
+  /* 8 slots per row */
+  grid-template-columns: repeat(8, 40px) !important;
+
+  /* spacing */
+  gap: 6px;
+
+  /* no scrollbars at all */
+  max-height: none !important;
+  overflow: visible !important;
+  overflow-x: hidden !important;
+  overflow-y: visible !important;
+
+  /* keep it aligned nicely */
+  justify-content: flex-start !important;
+}
+
+/* Small screens */
+@media (max-width: 980px){
+  #leftPanel{ padding: 12px; }
+  #homeHub{
+    gap: 16px 20px;
+  }
+  .categoryGrid{
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 680px){
+  #homeHub{
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .hubNav{
+    max-width: 160px;
+  }
+
+  .hubLabel{
+    min-width: 126px;
+    font-size: 13px;
+  }
+
+  .categoryPanelHeader{
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .categoryGrid{
+    grid-template-columns: 1fr;
+  }
+}
+
+.charCreatePage{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  min-height:100vh;
+  padding:24px;
+}
+
+.charCreateWrap{
+  width:100%;
+  max-width:920px;
+}
+
+.charCreateCard{
+  background:#151520;
+  border:2px solid #333;
+  border-radius:18px;
+  padding:24px;
+  box-shadow:0 20px 40px rgba(0,0,0,.28);
+}
+
+.charCreateCard h1{
+  margin:0;
+  font-size:38px;
+  text-align:center;
+}
+
+.charCreateSub{
+  margin-top:10px;
+  text-align:center;
+  opacity:.82;
+  font-size:17px;
+}
+
+.heroChoiceGrid{
+  margin-top:22px;
+  display:grid;
+  grid-template-columns:repeat(3,minmax(0,1fr));
+  gap:16px;
+}
+
+.heroChoiceCard{
+  appearance:none;
+  border:2px solid #333;
+  border-radius:16px;
+  background:#101019;
+  color:#f1f2f6;
+  padding:14px 12px;
+  cursor:pointer;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  gap:10px;
+  box-shadow:0 12px 24px rgba(0,0,0,.22);
+}
+
+.heroChoiceCard img{
+  width:132px;
+  height:132px;
+  object-fit:cover;
+  border-radius:14px;
+  border:2px solid rgba(255,255,255,.08);
+  background:#0f0f16;
+}
+
+.heroChoiceCard span{
+  font-size:20px;
+  font-weight:900;
+}
+
+.heroChoiceCard.heroChoiceActive{
+  border-color:#4f7fd1;
+  box-shadow:
+    0 14px 28px rgba(0,0,0,.3),
+    0 0 18px rgba(79,127,209,.18);
+  background:#152238;
+}
+
+.charCreateField{
+  margin-top:22px;
+  display:flex;
+  flex-direction:column;
+  gap:8px;
+}
+
+.charCreateField label{
+  font-size:14px;
+  font-weight:800;
+}
+
+.charCreateField input{
+  width:100%;
+  height:48px;
+  border-radius:12px;
+  border:2px solid #333;
+  background:#101019;
+  color:#fff;
+  padding:0 14px;
+  font-size:16px;
+}
+
+.charCreatePreview{
+  margin-top:22px;
+  display:flex;
+  align-items:center;
+  gap:16px;
+  justify-content:center;
+  padding:16px;
+  border-radius:16px;
+  border:1px solid rgba(255,255,255,.08);
+  background:rgba(255,255,255,.03);
+}
+
+.charCreatePreview img{
+  width:92px;
+  height:92px;
+  object-fit:cover;
+  border-radius:14px;
+  border:2px solid #333;
+  background:#0f0f16;
+}
+
+.charCreatePreviewMeta{
+  display:flex;
+  flex-direction:column;
+  gap:6px;
+}
+
+.charCreatePreviewClass{
+  font-size:14px;
+  opacity:.76;
+  font-weight:800;
+}
+
+.charCreatePreviewName{
+  font-size:28px;
+  font-weight:900;
+}
+
+.charCreateMsg{
+  min-height:20px;
+  margin-top:14px;
+  text-align:center;
+  color:#ff9ca8;
+  font-weight:700;
+}
+
+.charCreateActions{
+  margin-top:8px;
+  display:flex;
+  justify-content:center;
+}
+
+.charCreateActions .townBtn{
+  min-width:220px;
+}
+
+.loginCard{
+  max-width:620px;
+  margin:0 auto;
+}
+
+.loginHighlights{
+  margin-top:22px;
+  display:flex;
+  gap:10px;
+  flex-wrap:wrap;
+  justify-content:center;
+}
+
+.loginHighlight{
+  padding:8px 12px;
+  border-radius:999px;
+  border:1px solid rgba(255,255,255,.12);
+  background:rgba(255,255,255,.04);
+  font-size:13px;
+  font-weight:800;
+  color:#d9deea;
+}
+
+.loginPreview{
+  margin-top:18px;
+}
+
+.loginBtn{
+  min-width:280px;
+}
+
+@media (max-width: 760px){
+  .heroChoiceGrid{
+    grid-template-columns:1fr;
+  }
+
+  .charCreateCard h1{
+    font-size:30px;
+  }
+
+  .charCreatePreview{
+    flex-direction:column;
+    text-align:center;
+  }
+
+  .loginHighlights{
+    flex-direction:column;
+    align-items:center;
+  }
+}

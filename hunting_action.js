@@ -1,0 +1,741 @@
+const SAVE_KEY = "darkstone_save_v1";
+
+const num = (v, f = 0) => (Number.isFinite(Number(v)) ? Number(v) : f);
+const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+function xpBarGradient(pct){
+  if (pct < 25) return "linear-gradient(90deg,#b84a4a,#e06a6a)";
+  if (pct < 50) return "linear-gradient(90deg,#c66a2b,#eea043)";
+  if (pct < 75) return "linear-gradient(90deg,#4e9a43,#79c96b)";
+  return "linear-gradient(90deg,#2f9e5b,#7be39e)";
+}
+function roundLevelXP(v){
+  v = Math.max(1, Math.round(Number(v) || 1));
+  if (v >= 10000000) return Math.ceil(v / 50000) * 50000;
+  if (v >= 1000000) return Math.ceil(v / 10000) * 10000;
+  if (v >= 100000) return Math.ceil(v / 5000) * 5000;
+  if (v >= 10000) return Math.ceil(v / 500) * 500;
+  if (v >= 1000) return Math.ceil(v / 100) * 100;
+  return Math.round(v);
+}
+function xpNextForLevel(level){
+  const L = Math.max(1, Math.floor(Number(level) || 1));
+  let xp = 100;
+  for (let cur = 2; cur <= L; cur++) {
+    const prev = cur - 1;
+    let rate = 1.01;
+    if (prev <= 3) rate = 2.0;
+    else if (prev <= 6) rate = 1.5;
+    else if (prev <= 10) rate = 1.3;
+    else if (prev <= 20) rate = 1.18;
+    else if (prev <= 35) rate = 1.12;
+    else if (prev <= 50) rate = 1.10;
+    else if (prev <= 70) rate = 1.075;
+    else if (prev <= 85) rate = 1.06;
+    else if (prev <= 99) rate = 1.05;
+    else if (prev <= 105) rate = 1.05 - 0.002 * (prev - 100);
+    else if (prev <= 200) {
+      const t = (prev - 105) / 95;
+      rate = 1.04 - 0.03 * t;
+    }
+    xp *= rate;
+  }
+  return roundLevelXP(xp);
+}
+
+function loadSave(){
+  try { return JSON.parse(localStorage.getItem(SAVE_KEY) || "{}") || {}; }
+  catch { return {}; }
+}
+function setSave(next){
+  localStorage.setItem(SAVE_KEY, JSON.stringify(next));
+}
+
+function ensureHunting(save){
+  save = save && typeof save === "object" ? save : {};
+  if (!Number.isFinite(Number(save.huntingLevel))) save.huntingLevel = 1;
+  if (!Number.isFinite(Number(save.huntingXP))) save.huntingXP = 0;
+  save.huntingXPNext = xpNextForLevel(save.huntingLevel);
+  if (!Array.isArray(save.inventory)) save.inventory = [];
+  if (!Number.isFinite(Number(save.inventoryMaxSlots))) save.inventoryMaxSlots = 1000;
+  return save;
+}
+function getPotionTier(item){
+  if (!item) return 1;
+  const id = String(item.id || "");
+  const m = id.match(/_(\d+)$/);
+  if (m) return Math.max(1, Math.min(7, Number(m[1]) || 1));
+  const name = String(item.name || "").toUpperCase();
+  const roman = [" VII"," VI"," V"," IV"," III"," II"," I"];
+  const map = { " I":1, " II":2, " III":3, " IV":4, " V":5, " VI":6, " VII":7 };
+  for (const r of roman) if (name.includes(r)) return map[r];
+  return 1;
+}
+function getGatheringPotionBonus(save){
+  const cons = (save && typeof save.consumables === "object") ? save.consumables : {};
+  let bonus = 0;
+  ["quick_potion1","quick_potion2"].forEach((slot) => {
+    const it = cons[slot];
+    if (!it) return;
+    const qty = Number.isFinite(Number(it.quantity ?? it.qty)) ? Number(it.quantity ?? it.qty) : 1;
+    if (qty <= 0) return;
+    const id = String(it.id || "").toLowerCase();
+    const name = String(it.name || "").toLowerCase();
+    if (!id.includes("gathering_insight") && !name.includes("gathering insight")) return;
+    bonus += getPotionTier(it);
+  });
+  return bonus;
+}
+function tickGatheringPotionActions(save, actions = 1){
+  if (!save || typeof save !== "object") return false;
+  if (!save.consumables || typeof save.consumables !== "object") return false;
+  let changed = false;
+  ["quick_potion1","quick_potion2"].forEach((slot) => {
+    const it = save.consumables[slot];
+    if (!it) return;
+    const id = String(it.id || "").toLowerCase();
+    const name = String(it.name || "").toLowerCase();
+    if (!id.includes("gathering_insight") && !name.includes("gathering insight")) return;
+    let qty = Number.isFinite(Number(it.quantity ?? it.qty)) ? Number(it.quantity ?? it.qty) : 1;
+    if (qty <= 0) { save.consumables[slot] = null; changed = true; return; }
+    let left = Number(it.actionsLeft);
+    if (!Number.isFinite(left) || left <= 0) left = 100;
+    let remaining = Math.max(0, Math.floor(left));
+    let steps = Math.max(1, Math.floor(actions));
+    while (steps-- > 0 && qty > 0){
+      remaining -= 1;
+      if (remaining <= 0){
+        qty -= 1;
+        if (qty <= 0){
+          save.consumables[slot] = null;
+          remaining = 0;
+          changed = true;
+          break;
+        }
+        remaining = 100;
+      }
+    }
+    if (save.consumables[slot]) {
+      it.quantity = qty;
+      it.actionsLeft = remaining;
+      changed = true;
+    }
+  });
+  return changed;
+}
+function getGatheringPetState(save){
+  const pet = save?.pets?.gathering;
+  const bonuses = window.DS?.pets?.getGatheringPetBonuses ? (window.DS.pets.getGatheringPetBonuses(pet) || {}) : {};
+  return {
+    name: String(pet?.name || ""),
+    xpPct: num(bonuses.professionXpPct, 0),
+    doublePct: num(bonuses.doubleGatherPct, 0)
+  };
+}
+function renderGatheringPetBonus(save){
+  const el = document.getElementById("gatheringPetBonusText");
+  if (!el) return;
+  const pet = getGatheringPetState(save);
+  if (!pet.name || pet.xpPct <= 0) {
+    el.textContent = "";
+    el.style.display = "none";
+    return;
+  }
+  el.style.display = "";
+  el.textContent = `+${(pet.xpPct * 100).toFixed(2)}% XP (${pet.name})`;
+}
+function gatherXpForReq(req){
+  const lvl = Math.max(1, Number(req) || 1);
+  return 10 + Math.floor(lvl / 10) * 20;
+}
+
+const TARGETS = [
+
+{ id:"shadow_hare",
+  name:"Shadow Hare",
+  req:1,
+  img:"images/hunting/shadow_hare.png",
+  rawName:"Raw Shadow Hare Meat",
+  rawImg:"images/meat/shadow_hare_raw.png",
+  cookedName:"Cooked Shadow Hare Meat",
+  cookedImg:"images/meat/shadow_hare_cooked.png",
+  stamina:2
+},
+
+{ id:"rotfeather_turkey",
+  name:"Rotfeather Turkey",
+  req:10,
+  img:"images/hunting/rotfeather_turkey.png",
+  rawName:"Raw Rotfeather Turkey Meat",
+  rawImg:"images/meat/rotfeather_turkey_raw.png",
+  cookedName:"Cooked Rotfeather Turkey Meat",
+  cookedImg:"images/meat/rotfeather_turkey_cooked.png",
+  stamina:3
+},
+
+{ id:"gloom_fox",
+  name:"Gloom Fox",
+  req:20,
+  img:"images/hunting/gloom_fox.png",
+  rawName:"Raw Gloom Fox Meat",
+  rawImg:"images/meat/gloom_fox_raw.png",
+  cookedName:"Cooked Gloom Fox Meat",
+  cookedImg:"images/meat/gloom_fox_cooked.png",
+  stamina:4
+},
+
+{ id:"bloodtusk_boar",
+  name:"Bloodtusk Boar",
+  req:30,
+  img:"images/hunting/bloodtusk_boar.png",
+  rawName:"Raw Bloodtusk Boar Meat",
+  rawImg:"images/meat/bloodtusk_boar_raw.png",
+  cookedName:"Cooked Bloodtusk Boar Meat",
+  cookedImg:"images/meat/bloodtusk_boar_cooked.png",
+  stamina:5
+},
+
+{ id:"night_wolf",
+  name:"Night Wolf",
+  req:40,
+  img:"images/hunting/night_wolf.png",
+  rawName:"Raw Night Wolf Meat",
+  rawImg:"images/meat/night_wolf_raw.png",
+  cookedName:"Cooked Night Wolf Meat",
+  cookedImg:"images/meat/night_wolf_cooked.png",
+  stamina:6
+},
+
+{ id:"stonehorn_ram",
+  name:"Stonehorn Ram",
+  req:50,
+  img:"images/hunting/stonehorn_ram.png",
+  rawName:"Raw Stonehorn Ram Meat",
+  rawImg:"images/meat/stonehorn_ram_raw.png",
+  cookedName:"Cooked Stonehorn Ram Meat",
+  cookedImg:"images/meat/stonehorn_ram_cooked.png",
+  stamina:7
+},
+
+{ id:"thorn_stag",
+  name:"Thorn Stag",
+  req:60,
+  img:"images/hunting/thorn_stag.png",
+  rawName:"Raw Thorn Stag Meat",
+  rawImg:"images/meat/thorn_stag_raw.png",
+  cookedName:"Cooked Thorn Stag Meat",
+  cookedImg:"images/meat/thorn_stag_cooked.png",
+  stamina:8
+},
+
+{ id:"grave_bear",
+  name:"Grave Bear",
+  req:70,
+  img:"images/hunting/grave_bear.png",
+  rawName:"Raw Grave Bear Meat",
+  rawImg:"images/meat/bear_raw.png",
+  cookedName:"Cooked Grave Bear Meat",
+  cookedImg:"images/meat/bear_cooked.png",
+  stamina:9
+},
+
+{ id:"dire_warg",
+  name:"Dire Warg",
+  req:80,
+  img:"images/hunting/dire_warg.png",
+  rawName:"Raw Dire Warg Meat",
+  rawImg:"images/meat/dire_warg_raw.png",
+  cookedName:"Cooked Dire Warg Meat",
+  cookedImg:"images/meat/dire_warg_cooked.png",
+  stamina:10
+},
+
+{ id:"forest_troll",
+  name:"Forest Troll",
+  req:90,
+  img:"images/hunting/forest_troll.png",
+  rawName:"Raw Forest Troll Meat",
+  rawImg:"images/meat/troll_raw.png",
+  cookedName:"Cooked Forest Troll Meat",
+  cookedImg:"images/meat/troll_cooked.png",
+  stamina:11
+}
+
+];
+function getTargetId(){
+  const p = new URLSearchParams(location.search);
+  return p.get("target") || "deer";
+}
+function getTargetDef(id){
+  return TARGETS.find(t => t.id === id) || TARGETS[0];
+}
+
+function usedUnits(inv){
+  let used = 0;
+  for (const it of inv){
+    if (!it) continue;
+    used += Math.max(1, num(it.quantity ?? it.qty, 1));
+  }
+  return used;
+}
+
+function itemStackKey(it){
+  // stack by type+id/name+img to keep it simple (raw meat stacks)
+  return [it.type||"", it.id||"", it.name||"", it.img||""].join("::");
+}
+function addToInventoryStack(save, item, qty){
+  const key = itemStackKey(item);
+  const ex = save.inventory.find(i => i && itemStackKey(i) === key);
+  if (ex) ex.quantity = Math.max(1, num(ex.quantity, 1)) + qty;
+  else save.inventory.push({ ...item, quantity: qty });
+}
+
+// -------------------------
+// Stats helper (writes inside SAME save object)
+// -------------------------
+function incStat(save, key, amount = 1){
+  if (!save || typeof save !== "object") return;
+  if (!save.stats || typeof save.stats !== "object") save.stats = {};
+  if (!save.stats.total || typeof save.stats.total !== "object") save.stats.total = {};
+
+  const add = Number.isFinite(Number(amount)) ? Number(amount) : 1;
+  const cur = Number.isFinite(Number(save.stats.total[key])) ? Number(save.stats.total[key]) : 0;
+  save.stats.total[key] = cur + add;
+}
+
+function countByName(inv, name){
+  const it = inv.find(x => x && String(x.name||"").toLowerCase() === String(name).toLowerCase());
+  if (!it) return 0;
+  return Math.max(1, num(it.quantity ?? it.qty, 1));
+}
+
+function consumeByName(save, name, qtyNeeded){
+  const idx = save.inventory.findIndex(it => it && String(it.name||"").toLowerCase() === String(name).toLowerCase());
+  if (idx < 0) return false;
+  const it = save.inventory[idx];
+  const q = Math.max(1, num(it.quantity ?? it.qty, 1));
+  if (q > qtyNeeded){ it.quantity = q - qtyNeeded; return true; }
+  if (q === qtyNeeded){ save.inventory.splice(idx, 1); return true; }
+  return false;
+}
+
+// -------------------------
+// DOM
+// -------------------------
+const backBtn = document.getElementById("backBtn");
+const startBtn = document.getElementById("startBtn");
+const stopBtn  = document.getElementById("stopBtn");
+
+const targetImgEl = document.getElementById("targetImg");
+const targetNameEl = document.getElementById("targetName");
+const dropNameEl = document.getElementById("dropName");
+
+const timerWrap = document.getElementById("timerWrap");
+const timerText = document.getElementById("timerText");
+const timerBar  = document.getElementById("timerBar");
+
+const msgEl = document.getElementById("msg");
+
+const targetInput  = document.getElementById("targetInput");
+const targetBtn    = document.getElementById("targetBtn");
+const targetStatus = document.getElementById("targetStatus");
+
+const lvlEl  = document.getElementById("huntLevel");
+const curEl  = document.getElementById("huntXPCurrent");
+const nextEl = document.getElementById("huntXPNext");
+const barEl  = document.getElementById("huntXPBar");
+const arrowEl = document.getElementById("arrowCount");
+const gatheringBonusPetValue = document.getElementById("gatheringBonusPetValue");
+const gatheringBonusDoubleValue = document.getElementById("gatheringBonusDoubleValue");
+const gatheringBonusBuildingValue = document.getElementById("gatheringBonusBuildingValue");
+const gatheringBonusPotionValue = document.getElementById("gatheringBonusPotionValue");
+
+// -------------------------
+// Pause from inspector
+// -------------------------
+window.addEventListener("ds:pause", () => stopHunting(true));
+window.addEventListener("ds:resume", () => { /* no auto-start */ });
+
+// -------------------------
+// UI header
+// -------------------------
+function renderHuntHeader(){
+  const save = ensureHunting(loadSave());
+
+  if (lvlEl) lvlEl.textContent = String(save.huntingLevel);
+  if (curEl) curEl.textContent = String(save.huntingXP);
+  if (nextEl) nextEl.textContent = String(save.huntingXPNext);
+
+  const pct = save.huntingXPNext > 0
+    ? clamp((save.huntingXP / save.huntingXPNext) * 100, 0, 100)
+    : 0;
+  if (barEl) {
+    barEl.style.width = pct.toFixed(1) + "%";
+    barEl.style.background = xpBarGradient(pct);
+  }
+
+  if (arrowEl) arrowEl.textContent = String(countByName(save.inventory, "Arrows"));
+}
+
+function formatPct(value, digits = 2){
+  const pct = Math.max(0, num(value, 0) * 100);
+  const rounded = Math.round(pct * (10 ** digits)) / (10 ** digits);
+  return `+${Number.isInteger(rounded) ? rounded.toFixed(0) : rounded.toFixed(digits).replace(/\.?0+$/, "")}%`;
+}
+
+function renderBonusBox(save){
+  const petBonus = getGatheringPetState(save);
+  if (gatheringBonusPetValue) gatheringBonusPetValue.textContent = formatPct(num(petBonus.xpPct, 0));
+  if (gatheringBonusDoubleValue) gatheringBonusDoubleValue.textContent = formatPct(num(petBonus.doublePct, 0));
+  if (gatheringBonusBuildingValue) gatheringBonusBuildingValue.textContent = formatPct(0);
+  if (gatheringBonusPotionValue) gatheringBonusPotionValue.textContent = formatPct(0);
+}
+
+// -------------------------
+// Loop + timer bar
+// -------------------------
+const CD_MS = 6000;
+// -------------------------
+// Global action lock (prevents multi-actions + enforces absolute cooldown)
+// -------------------------
+const ACTION_ID = "hunting";
+const ACTION_LOCK_KEY = "ds_action_lock_v1";
+
+function loadActionLock(){
+  try { return JSON.parse(localStorage.getItem(ACTION_LOCK_KEY) || "null"); }
+  catch { return null; }
+}
+function saveActionLock(lock){
+  localStorage.setItem(ACTION_LOCK_KEY, JSON.stringify(lock || null));
+}
+function isLockExpired(lock, now){
+  if (!lock || !lock.active) return true;
+  const last = Number(lock.lastPing || 0);
+  return (now - last) > CD_MS * 2;
+}
+function acquireActionLock(){
+  const now = Date.now();
+  const lock = loadActionLock();
+  if (lock && !isLockExpired(lock, now)) {
+    if (lock.actionId && lock.actionId !== ACTION_ID) {
+      return { ok:false, msg:"You are tired. Another action is running." };
+    }
+    if (now < Number(lock.nextAllowedTs || 0)) {
+      const wait = Math.max(0, Number(lock.nextAllowedTs) - now);
+      return { ok:false, msg:`You are tired. Wait ${(wait/1000).toFixed(1)}s.` };
+    }
+  }
+  const nextAllowedTs = now + CD_MS;
+  saveActionLock({ actionId: ACTION_ID, active:true, nextAllowedTs, lastPing: now });
+  return { ok:true };
+}
+function getActionWaitMs(){
+  const now = Date.now();
+  const lock = loadActionLock();
+  if (lock && lock.actionId === ACTION_ID && Number.isFinite(Number(lock.nextAllowedTs))){
+    return Math.max(0, Number(lock.nextAllowedTs) - now);
+  }
+  return CD_MS;
+}
+function touchActionLock(){
+  const now = Date.now();
+  const lock = loadActionLock();
+  if (!lock || lock.actionId !== ACTION_ID) return;
+  lock.active = true;
+  lock.lastPing = now;
+  lock.nextAllowedTs = now + CD_MS;
+  saveActionLock(lock);
+}
+function releaseActionLock(){
+  const lock = loadActionLock();
+  if (lock && lock.actionId === ACTION_ID){
+    lock.active = false;
+    saveActionLock(lock);
+  }
+}
+let huntingActive = false;
+let huntingTimer = null;
+
+let cdAnim = null;
+let cdStart = 0;
+
+let targetRemaining = 0;
+
+function setMsg(t){
+  if (msgEl) msgEl.innerHTML = t || "";
+}
+
+function buildHuntMessage(target, xpGain, isLast = false){
+  const lastText = isLast ? " (last)" : "";
+  return `You obtained 1 <img src="${target.rawImg}" alt="${target.rawName}" style="width:18px;height:18px;vertical-align:-3px;margin:0 4px 0 6px;border-radius:4px;object-fit:cover;">${target.rawName}${lastText} (-1 Arrow, +${xpGain} XP)`;
+}
+
+function stopCooldownUI(){
+  if (cdAnim) cancelAnimationFrame(cdAnim);
+  cdAnim = null;
+  if (timerWrap) timerWrap.style.display = "none";
+  if (timerBar) timerBar.style.width = "0%";
+  if (timerText) timerText.textContent = (CD_MS/1000).toFixed(1) + "s";
+}
+
+function startCooldownUI(remainingMs = CD_MS){
+  if (!timerWrap || !timerBar || !timerText) return;
+  timerWrap.style.display = "";
+  const rem = Math.max(0, Math.min(CD_MS, remainingMs));
+  cdStart = performance.now() - (CD_MS - rem);
+
+  const tick = (now) => {
+    if (!huntingActive || window.DS?.isPaused){
+      cdAnim = null;
+      return;
+    }
+    const elapsed = now - cdStart;
+    const t = Math.min(1, elapsed / CD_MS);
+
+    timerBar.style.width = (t * 100).toFixed(1) + "%";
+    const remain = Math.max(0, (CD_MS - elapsed) / 1000);
+    timerText.textContent = remain.toFixed(1) + "s";
+
+    if (t < 1) cdAnim = requestAnimationFrame(tick);
+    else cdAnim = null;
+  };
+
+  if (cdAnim) cancelAnimationFrame(cdAnim);
+  cdAnim = requestAnimationFrame(tick);
+}
+
+function updateTargetUI(){
+  if (!targetStatus) return;
+  targetStatus.textContent = targetRemaining > 0 ? `Remaining: ${targetRemaining}` : "";
+}
+
+function startHunting(){
+  if (window.DS?.isPaused) return;
+  if (huntingActive) return;
+  const lock = acquireActionLock();
+  if (!lock.ok){ setMsg(lock.msg); return; }
+
+  // precheck arrows + space
+  const s = ensureHunting(loadSave());
+  if (countByName(s.inventory, "Arrows") <= 0){
+    setMsg("You need Arrows.");
+    return;
+  }
+  if (usedUnits(s.inventory) >= num(s.inventoryMaxSlots, 1000)){
+    setMsg("No more inventory space.");
+    return;
+  }
+
+  huntingActive = true;
+  if (startBtn) startBtn.disabled = true;
+  if (stopBtn) stopBtn.disabled = false;
+
+  setMsg("Hunting started.");
+  touchActionLock();
+  scheduleNext(true);
+}
+
+function stopHunting(silent=false){
+  huntingActive = false;
+
+  if (huntingTimer){
+    clearTimeout(huntingTimer);
+    huntingTimer = null;
+  }
+
+  stopCooldownUI();
+
+  if (startBtn) startBtn.disabled = false;
+  if (stopBtn) stopBtn.disabled = true;
+
+  targetRemaining = 0;
+  updateTargetUI();
+
+  if (!silent) setMsg("Hunting stopped.");
+}
+
+function scheduleNext(runImmediately=false){
+  if (!huntingActive) return;
+  if (window.DS?.isPaused) return;
+
+  if (runImmediately){
+    huntTick();
+    return;
+  }
+
+  const waitMs = getActionWaitMs();
+  startCooldownUI(waitMs);
+  huntingTimer = setTimeout(() => huntTick(), waitMs);
+}
+
+function grantHuntXP(save, amount){
+  save.huntingXP += amount;
+
+  while (save.huntingXP >= save.huntingXPNext){
+    save.huntingXP -= save.huntingXPNext;
+    save.huntingLevel += 1;
+    save.huntingXPNext = xpNextForLevel(save.huntingLevel);
+  }
+}
+
+function huntTick(){
+  if (!huntingActive) return;
+  if (window.DS?.isPaused) return;
+
+  const targetId = getTargetId();
+  const t = getTargetDef(targetId);
+
+  const save = ensureHunting(loadSave());
+  const petBonus = getGatheringPetState(save);
+
+  // level req check
+  const effectiveLevel = save.huntingLevel + getGatheringPotionBonus(save);
+  if (effectiveLevel < t.req){
+    setMsg(`Requires Hunting Level ${t.req}.`);
+    stopHunting(true);
+    return;
+  }
+
+  // arrows check (consume 1)
+  const haveArrows = countByName(save.inventory, "Arrows");
+  if (haveArrows <= 0){
+    setMsg("Out of arrows.");
+    stopHunting(true);
+    setSave(save);
+    renderHuntHeader();
+    return;
+  }
+
+  // capacity check
+  if (usedUnits(save.inventory) >= num(save.inventoryMaxSlots, 1000)){
+    setMsg("No more inventory space.");
+    stopHunting(true);
+    setSave(save);
+    renderHuntHeader();
+    return;
+  }
+
+  const okConsume = consumeByName(save, "Arrows", 1);
+  if (!okConsume){
+    setMsg("Out of arrows.");
+    stopHunting(true);
+    setSave(save);
+    renderHuntHeader();
+    return;
+  }
+
+  // give raw meat
+ addToInventoryStack(save, {
+  type: "meat",
+  id: `raw_${t.id}_meat`,
+  name: t.rawName,
+  img: t.rawImg
+}, 1);
+  const doubled = Math.random() < petBonus.doublePct;
+  if (doubled) {
+    addToInventoryStack(save, {
+      type: "meat",
+      id: `raw_${t.id}_meat`,
+      name: t.rawName,
+      img: t.rawImg
+    }, 1);
+  }
+
+  // Stats
+  incStat(save, "huntingTicks", 1);
+  tickGatheringPotionActions(save, 1);
+
+  // XP gain (ρυθμίζεις αν θες)
+  const totalXpGain = Math.max(1, Math.round(gatherXpForReq(t.req) * (1 + petBonus.xpPct)));
+  const petSplit = window.DS?.pets?.splitXpWithPet
+    ? window.DS.pets.splitXpWithPet(save, "gathering", totalXpGain)
+    : { playerXpGain: totalXpGain, petXpGain: 0, petLevelUps: 0, petLevel: 0, petName: "" };
+  const xpGain = petSplit.playerXpGain;
+  grantHuntXP(save, xpGain);
+
+  setSave(save);
+  window.dispatchEvent(new Event("ds:save"));
+  renderHuntHeader();
+  renderBonusBox(save);
+
+  // target mode decrement
+  if (targetRemaining > 0){
+    targetRemaining -= 1;
+    updateTargetUI();
+    if (targetRemaining <= 0){
+      setMsg(`Target completed! ${buildHuntMessage(t, xpGain, true)}${petSplit.petXpGain > 0 ? ` <span style="color:#9fb5ff;">| Pet XP +${petSplit.petXpGain}</span>` : ""}${petSplit.petLevelUps > 0 ? ` <span style="color:#f7df8a;">| ${petSplit.petName} Lvl ${petSplit.petLevel}</span>` : ""}${doubled ? ` <span style="color:#9ff0b7;">Double Gather!</span>` : ""}`);
+      stopHunting(true);
+      return;
+    }
+  }
+
+  setMsg(buildHuntMessage(t, xpGain, false) + (petSplit.petXpGain > 0 ? ` <span style="color:#9fb5ff;">| Pet XP +${petSplit.petXpGain}</span>` : "") + (petSplit.petLevelUps > 0 ? ` <span style="color:#f7df8a;">| ${petSplit.petName} Lvl ${petSplit.petLevel}</span>` : "") + (doubled ? ` <span style="color:#9ff0b7;">Double Gather!</span>` : ""));
+
+  touchActionLock();
+  scheduleNext(false);
+}
+
+// -------------------------
+// Target Hunting
+// -------------------------
+function startTarget(){
+  const val = Number(targetInput?.value);
+  if (!Number.isFinite(val) || val <= 0){
+    alert("Enter a valid target amount (e.g. 100).");
+    return;
+  }
+  targetRemaining = Math.floor(val);
+  updateTargetUI();
+
+  if (!huntingActive) startHunting();
+  else setMsg(`Target set: ${targetRemaining}`);
+}
+
+// -------------------------
+// Boot
+// -------------------------
+window.addEventListener("DOMContentLoaded", () => {
+  const t = getTargetDef(getTargetId());
+
+  if (targetImgEl) targetImgEl.src = t.img;
+  if (targetNameEl) targetNameEl.textContent = t.name;
+  if (dropNameEl) {
+  dropNameEl.innerHTML = `
+    <span style="display:flex;align-items:center;gap:8px;">
+      <span>Drops:</span>
+      <img src="${t.rawImg}" 
+           style="width:26px;height:26px;border-radius:6px;border:1px solid #333;background:#0f0f16;">
+      <b>${t.rawName}</b>
+    </span>
+  `;
+}
+  const save = ensureHunting(loadSave());
+  renderHuntHeader();
+  renderBonusBox(save);
+  stopCooldownUI();
+
+  backBtn?.addEventListener("click", () => {
+    stopHunting(true);
+    window.location.href = "hunting.html";
+  });
+
+  startBtn?.addEventListener("click", startHunting);
+  stopBtn?.addEventListener("click", () => stopHunting(false));
+  targetBtn?.addEventListener("click", startTarget);
+
+  if (stopBtn) stopBtn.disabled = true;
+});
+
+window.addEventListener("ds:save", () => {
+  const save = ensureHunting(loadSave());
+  renderHuntHeader();
+  renderBonusBox(save);
+});
+
+
+
+
+
+
+
+
+

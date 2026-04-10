@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="el">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Darkstone Chronicles - Market</title>
+  <link rel="stylesheet" href="style.css"/>
+</head>
+<body>
+  <div id="hudRoot"></div>
+
+  <div id="mainLayout">
+    <div id="leftPanel">
+      <h1>Market</h1>
+
+      <div style="background:#151520;border:2px solid #333;border-radius:12px;padding:12px;max-width:900px;margin:0 auto;">
+        <div id="marketTabs" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px;">
+          <button type="button" class="townBtn marketTabBtn marketTabBtnActive" data-market-tab="misc">Misc</button>
+          <button type="button" class="townBtn marketTabBtn" data-market-tab="pets">Pets</button>
+        </div>
+
+        <div id="marketMiscTab" class="marketTabPanel">
+          <h2 style="margin-top:0;">Misc Supplies</h2>
+
+          <div style="display:flex;gap:12px;align-items:center;background:#0f0f16;border:1px solid #2a2a3a;border-radius:12px;padding:12px;">
+            <img src="images/items/arrows.png" alt="Arrows"
+                 style="width:64px;height:64px;border-radius:12px;border:2px solid #333;object-fit:cover;background:#000;">
+            <div style="flex:1;">
+              <div style="font-weight:900;font-size:18px;">Arrows x100</div>
+              <div style="opacity:.85;margin-top:4px;">Price: <b>10 gold</b></div>
+              <div style="opacity:.8;margin-top:4px;font-size:12px;">Used for hunting.</div>
+            </div>
+            <button id="buyArrowsBtn">Buy</button>
+          </div>
+
+          <div style="display:flex;gap:12px;align-items:center;background:#0f0f16;border:1px solid #2a2a3a;border-radius:12px;padding:12px;margin-top:12px;">
+            <img src="images/alchemy/items/empty_vial.png" alt="Empty Vial"
+                 style="width:64px;height:64px;border-radius:12px;border:2px solid #333;object-fit:cover;background:#000;">
+            <div style="flex:1;">
+              <div style="font-weight:900;font-size:18px;">Empty Vial</div>
+              <div style="opacity:.85;margin-top:4px;">Price: <b>10 gold</b></div>
+              <div style="opacity:.8;margin-top:4px;font-size:12px;">Used for alchemy potions.</div>
+            </div>
+            <button id="buyEmptyVialBtn">Buy</button>
+          </div>
+        </div>
+
+        <div id="marketPetsTab" class="marketTabPanel" style="display:none;">
+          <h2 style="margin-top:0;">Pets</h2>
+
+          <div style="display:flex;gap:12px;align-items:center;background:#0f0f16;border:1px solid #2a2a3a;border-radius:12px;padding:12px;">
+            <img src="images/pets/combat_wolf_cub.png" alt="Wolf Cub"
+                 style="width:64px;height:64px;border-radius:12px;border:2px solid #333;object-fit:cover;background:#121824;">
+            <div style="flex:1;min-width:0;">
+              <div style="font-weight:900;font-size:18px;">Wolf Cub</div>
+              <div style="opacity:.85;margin-top:4px;">Unlock cost: <b>100,000 gold</b></div>
+              <div style="opacity:.8;margin-top:4px;font-size:12px;">Combat Pet Tier 1</div>
+              <div style="opacity:.8;margin-top:6px;font-size:12px;">+0.20 Attack per pet level</div>
+              <div style="opacity:.8;font-size:12px;">+0.20 Defense per pet level</div>
+              <div style="opacity:.72;margin-top:6px;font-size:11px;">Combat pet XP: gets 10% of combat XP from fights and dungeons only.</div>
+            </div>
+            <button id="buyWolfCubBtn">Buy</button>
+          </div>
+
+          <div style="display:flex;gap:12px;align-items:center;background:#0f0f16;border:1px solid #2a2a3a;border-radius:12px;padding:12px;margin-top:12px;">
+            <img src="images/pets/gathering_burrower_pup.png" alt="Burrower Pup"
+                 style="width:64px;height:64px;border-radius:12px;border:2px solid #333;object-fit:cover;background:#121824;">
+            <div style="flex:1;min-width:0;">
+              <div style="font-weight:900;font-size:18px;">Burrower Pup</div>
+              <div style="opacity:.85;margin-top:4px;">Unlock cost: <b>100,000 gold</b></div>
+              <div style="opacity:.8;margin-top:4px;font-size:12px;">Gathering Pet Tier 1</div>
+              <div style="opacity:.8;margin-top:6px;font-size:12px;">+0.10% Profession XP per pet level</div>
+              <div style="opacity:.8;font-size:12px;">Milestones give Double Gather Chance</div>
+              <div style="opacity:.72;margin-top:6px;font-size:11px;">Lv 10 +1%, Lv 25 +1%, Lv 50 +1%, Lv 75 +1%, Lv 100 +2%</div>
+            </div>
+            <button id="buyBurrowerPupBtn">Buy</button>
+          </div>
+
+          <div style="display:flex;gap:12px;align-items:center;background:#0f0f16;border:1px solid #2a2a3a;border-radius:12px;padding:12px;margin-top:12px;">
+            <img src="images/pets/artisan_workshop_mouse.png" alt="Workshop Mouse"
+                 style="width:64px;height:64px;border-radius:12px;border:2px solid #333;object-fit:cover;background:#121824;">
+            <div style="flex:1;min-width:0;">
+              <div style="font-weight:900;font-size:18px;">Workshop Mouse</div>
+              <div style="opacity:.85;margin-top:4px;">Unlock cost: <b>100,000 gold</b></div>
+              <div style="opacity:.8;margin-top:4px;font-size:12px;">Artisan Pet Tier 1</div>
+              <div style="opacity:.8;margin-top:6px;font-size:12px;">+0.10% Profession XP per pet level</div>
+              <div style="opacity:.8;font-size:12px;">Milestones give Double Craft Chance</div>
+              <div style="opacity:.72;margin-top:6px;font-size:11px;">Lv 10 +1%, Lv 25 +1%, Lv 50 +1%, Lv 75 +1%, Lv 100 +2%</div>
+            </div>
+            <button id="buyWorkshopMouseBtn">Buy</button>
+          </div>
+
+          <div style="display:flex;gap:12px;align-items:center;background:#0f0f16;border:1px solid #2a2a3a;border-radius:12px;padding:12px;margin-top:12px;">
+            <img src="images/pets/fortune_coin_ferret.png" alt="Coin Ferret"
+                 style="width:64px;height:64px;border-radius:12px;border:2px solid #333;object-fit:cover;background:#121824;">
+            <div style="flex:1;min-width:0;">
+              <div style="font-weight:900;font-size:18px;">Coin Ferret</div>
+              <div style="opacity:.85;margin-top:4px;">Unlock cost: <b>100,000 gold</b></div>
+              <div style="opacity:.8;margin-top:4px;font-size:12px;">Fortune Pet Tier 1</div>
+              <div style="opacity:.8;margin-top:6px;font-size:12px;">+0.10% Gold per pet level</div>
+              <div style="opacity:.8;font-size:12px;">Milestones give Luck bonus</div>
+              <div style="opacity:.72;margin-top:6px;font-size:11px;">Lv 10 +1%, Lv 25 +1%, Lv 50 +1%, Lv 75 +1%, Lv 100 +2%</div>
+            </div>
+            <button id="buyCoinFerretBtn">Buy</button>
+          </div>
+        </div>
+
+        <div id="shopMsg" style="margin-top:10px;opacity:.9;"></div>
+      </div>
+    </div>
+
+    <div id="inventoryPanel"></div>
+  </div>
+
+  <script src="auth.js"></script>
+  <script src="ui.js"></script>
+  <script src="market.js"></script>
+</body>
+</html>

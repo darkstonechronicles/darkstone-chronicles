@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="el">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Darkstone Chronicles - Fight</title>
+  <link rel="stylesheet" href="style.css"/>
+</head>
+<body>
+
+  <div id="hudRoot"></div>
+
+  <div id="mainLayout">
+    <div id="leftPanel">
+
+      <div style="
+display:flex;
+align-items:center;
+justify-content:space-between;
+width:90%;
+max-width:900px;
+margin:0 auto 10px;
+">
+        <h1 id="fightPageTitle" style="margin:0;">Fight</h1>
+        <button id="toZonesBtn" style="display:none;">Zones</button>
+      </div>
+
+      <div id="cooldownWrap" style="margin-top:12px;display:none;">
+        <div style="display:flex;justify-content:space-between;font-size:12px;opacity:.9;">
+          <span>Next attack</span>
+          <span id="cooldownText">6.0s</span>
+        </div>
+        <div style="height:5px;background:#222;border:1px solid #333;border-radius:6px;margin-top:6px;overflow:hidden;">
+          <div id="cooldownBar" style="height:100%;width:0%;border-radius:6px;background:linear-gradient(90deg,#b63a3a,#e05555);"></div>
+        </div>
+      </div>
+
+      <div id="zonesWrap" style="width:90%;max-width:900px;margin:0 auto;">
+        <div id="zonesGrid" style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:24px;justify-items:center;"></div>
+      </div>
+
+      <div id="mobsWrap" style="width:90%;max-width:900px;margin:18px auto;display:none;">
+        <div id="mobsGrid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px;"></div>
+      </div>
+
+      <div id="battleWrap" style="width:90%;max-width:700px;margin:18px auto;display:none;">
+        <div id="rewardBonusRow" style="display:none;margin:0 auto 8px;max-width:520px;justify-content:center;gap:8px;flex-wrap:wrap;">
+          <div id="goldBonusBox" style="display:none;text-align:center;padding:6px 10px;border-radius:999px;border:2px solid #8a6a1f;background:#2a2212;color:#ffd27a;font-weight:700;font-size:12px;letter-spacing:.3px;">
+            Gold Bonus +0%
+          </div>
+          <div id="dropChanceBox" style="display:none;text-align:center;padding:6px 10px;border-radius:999px;border:2px solid #2b6a8a;background:#12212a;color:#8fd8ff;font-weight:700;font-size:12px;letter-spacing:.3px;">
+            Drop Chance +0%
+          </div>
+        </div>
+
+        <div style="position:relative;display:grid;grid-template-columns:1fr auto 1fr;align-items:start;gap:16px;background:#151520;border-radius:12px;border:2px solid #333;padding:34px 12px 18px;min-height:186px;box-sizing:border-box;">
+          <div style="display:flex;justify-content:center;align-items:start;align-self:start;min-width:0;">
+            <div style="min-width:0;display:flex;flex-direction:column;align-items:center;gap:4px;position:relative;width:168px;">
+              <div id="heroInfo" style="position:absolute;left:50%;top:-28px;transform:translateX(-50%);font-size:13px;opacity:.9;text-align:center;white-space:nowrap;"></div>
+              <div style="display:flex;align-items:flex-start;justify-content:center;gap:10px;width:100%;">
+                <div style="display:flex;flex-direction:column;align-items:center;gap:4px;flex:0 0 auto;">
+                  <img id="heroImg" src="images/hero.png" alt="Hero" style="width:82px;height:82px;border-radius:10px;border:2px solid #333;object-fit:cover;flex:0 0 auto;">
+                  <div style="width:74px;height:4px;background:#222;border:1px solid #333;border-radius:999px;overflow:hidden;">
+                    <div id="heroHpBar" style="height:100%;width:100%;border-radius:999px;background:linear-gradient(90deg,#b63a3a,#e05555);"></div>
+                  </div>
+                  <div id="heroHpText" style="font-size:10px;opacity:.85;line-height:1;"></div>
+                  <div id="heroDamageText" style="min-height:18px;margin-top:2px;padding:4px 8px;border-radius:999px;border:1px solid rgba(210, 80, 80, .35);background:rgba(60, 18, 18, .82);box-shadow:0 0 10px rgba(150, 30, 30, .16);font-size:10px;font-weight:700;line-height:1;text-align:center;color:#ffe1e1;"></div>
+                </div>
+                <div id="petStack" style="display:none;flex-direction:column;align-items:center;justify-content:space-between;height:82px;flex:0 0 auto;">
+                  <div id="combatPetBadge" style="display:none;flex-direction:column;align-items:center;gap:3px;flex:0 0 auto;">
+                    <div id="combatPetIcon" style="width:34px;height:34px;border-radius:9px;border:2px solid #333;background:#101522;color:#eef2ff;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:900;overflow:hidden;box-sizing:border-box;"></div>
+                    <div style="width:34px;height:4px;background:#222;border:1px solid #333;border-radius:999px;overflow:hidden;">
+                    <div id="combatPetXpBar" style="height:100%;width:0%;border-radius:999px;background:#4aa3ff;"></div>
+                    </div>
+                  </div>
+                  <div id="fortunePetBadge" style="display:none;flex-direction:column;align-items:center;gap:3px;flex:0 0 auto;">
+                    <div id="fortunePetIcon" style="width:34px;height:34px;border-radius:9px;border:2px solid #333;background:#101522;color:#eef2ff;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:900;overflow:hidden;box-sizing:border-box;"></div>
+                    <div style="width:34px;height:4px;background:#222;border:1px solid #333;border-radius:999px;overflow:hidden;">
+                      <div id="fortunePetXpBar" style="height:100%;width:0%;border-radius:999px;background:#4aa3ff;"></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div style="display:flex;align-items:start;justify-content:center;align-self:start;min-width:126px;padding-top:10px;">
+            <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;">
+              <img src="images/ui/my_vs_icon.png" alt="VS" style="width:126px;height:126px;object-fit:contain;display:block;">
+            </div>
+          </div>
+
+          <div style="display:flex;justify-content:center;align-items:start;align-self:start;min-width:0;">
+            <div style="min-width:0;display:flex;flex-direction:column;align-items:center;gap:4px;position:relative;width:120px;">
+              <div id="mobInfo" style="position:absolute;left:50%;top:-28px;transform:translateX(-50%);font-size:13px;opacity:.9;text-align:center;white-space:nowrap;"></div>
+              <img id="mobImg" src="" alt="Mob" style="width:82px;height:82px;border-radius:10px;border:2px solid #333;object-fit:cover;">
+              <div style="width:74px;height:4px;background:#222;border:1px solid #333;border-radius:999px;overflow:hidden;">
+                <div id="mobHpBar" style="height:100%;width:100%;border-radius:999px;background:linear-gradient(90deg,#b63a3a,#e05555);"></div>
+              </div>
+              <div id="mobHpText" style="font-size:10px;opacity:.85;line-height:1;"></div>
+              <div id="mobDamageText" style="min-height:18px;margin-top:2px;padding:4px 8px;border-radius:999px;border:1px solid rgba(70, 190, 120, .35);background:rgba(20, 50, 30, .78);box-shadow:0 0 10px rgba(20, 120, 60, .14);font-size:10px;font-weight:700;line-height:1;text-align:center;color:#dff7e8;"></div>
+            </div>
+          </div>
+
+          <div id="battleLog" style="grid-column:1 / -1;min-height:18px;margin-top:6px;font-size:12px;line-height:1.2;opacity:.92;text-align:center;"></div>
+        </div>
+
+        <div style="margin-top:12px;display:flex;gap:10px;justify-content:center;">
+          <button id="attackBtn">Attack</button>
+          <button id="runBtn">Run</button>
+        </div>
+
+      </div>
+
+    </div>
+
+    <div id="inventoryPanel">
+      <div class="invHeader">
+        <div class="invTitle"><span id="invTitleText">Inventory</span></div>
+        <div class="invGold"><span id="goldValue">0</span></div>
+      </div>
+      <div id="inventoryGrid"></div>
+    </div>
+  </div>
+
+  <script src="auth.js"></script>
+  <script src="ui.js"></script>
+  <script src="fight.js"></script>
+</body>
+</html>

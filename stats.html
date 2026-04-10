@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="el">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Darkstone Chronicles — My Stats</title>
+  <link rel="stylesheet" href="style.css"/>
+</head>
+<body>
+  <div id="hudRoot"></div>
+
+  <div id="mainLayout">
+    <div id="leftPanel">
+      <h1>📊 My Stats</h1>
+
+      <div style="max-width:900px;margin:0 auto 12px;display:flex;gap:10px;justify-content:center;">
+        <button id="backBtn">⬅ Back</button>
+      </div>
+
+      <div id="statsWrap" style="max-width:900px;margin:0 auto;"></div>
+    </div>
+
+    <div id="inventoryPanel">
+      <div class="invHeader">
+        <div class="invTitle"><span id="invTitleText">Inventory</span></div>
+        <div class="invGold">💰 <span id="goldValue">0</span></div>
+      </div>
+      <div id="inventoryGrid"></div>
+    </div>
+  </div>
+
+  <script src="auth.js"></script>
+  <script src="ui.js"></script>
+  <script src="stats.js"></script>
+</body>
+</html>

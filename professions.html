@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="el">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Darkstone Chronicles - Professions</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div id="hudRoot"></div>
+
+  <div id="mainLayout">
+    <div id="leftPanel">
+      <h1 style="margin-bottom:6px;">Professions</h1>
+      <div style="opacity:.85;margin-bottom:14px;">
+        Choose a profession to continue.
+      </div>
+
+      <div id="homeHub">
+        <button class="hubNav" id="goMine">
+          <span class="hubIconFrame">
+            <span class="hubEmoji" aria-hidden="true">&#9935;&#65039;</span>
+          </span>
+          <span class="hubLabel">Mining</span>
+        </button>
+
+        <button class="hubNav" id="goForge">
+          <span class="hubIconFrame">
+            <span class="hubEmoji" aria-hidden="true">&#9874;&#65039;</span>
+          </span>
+          <span class="hubLabel">Forge</span>
+        </button>
+
+        <button class="hubNav" id="goWoodcut">
+          <span class="hubIconFrame">
+            <span class="hubEmoji" aria-hidden="true">&#129717;</span>
+          </span>
+          <span class="hubLabel">Woodcutting</span>
+        </button>
+
+        <button class="hubNav" id="goCarp">
+          <span class="hubIconFrame">
+            <span class="hubEmoji" aria-hidden="true">&#129717;</span>
+          </span>
+          <span class="hubLabel">Carpentry</span>
+        </button>
+
+        <button class="hubNav" id="goHunt">
+          <span class="hubIconFrame">
+            <span class="hubEmoji" aria-hidden="true">&#127993;</span>
+          </span>
+          <span class="hubLabel">Hunting</span>
+        </button>
+
+        <button class="hubNav" id="goFish">
+          <span class="hubIconFrame">
+            <span class="hubEmoji" aria-hidden="true">&#127907;</span>
+          </span>
+          <span class="hubLabel">Fishing</span>
+        </button>
+
+        <button class="hubNav" id="goCook">
+          <span class="hubIconFrame">
+            <span class="hubEmoji" aria-hidden="true">&#127859;</span>
+          </span>
+          <span class="hubLabel">Cooking</span>
+        </button>
+
+        <button class="hubNav" id="goEnchant">
+          <span class="hubIconFrame">
+            <span class="hubEmoji" aria-hidden="true">&#10024;</span>
+          </span>
+          <span class="hubLabel">Enchanting</span>
+        </button>
+
+        <button class="hubNav" id="goHerb">
+          <span class="hubIconFrame">
+            <span class="hubEmoji" aria-hidden="true">&#127807;</span>
+          </span>
+          <span class="hubLabel">Herbalism</span>
+        </button>
+
+        <button class="hubNav" id="goAlchemy">
+          <span class="hubIconFrame">
+            <span class="hubEmoji" aria-hidden="true">&#9879;&#65039;</span>
+          </span>
+          <span class="hubLabel">Alchemy</span>
+        </button>
+      </div>
+    </div>
+
+    <div id="inventoryPanel">
+      <div class="invHeader">
+        <div class="invTitle">
+          <span id="invTitleText">Inventory</span>
+          <span id="invCap" style="opacity:.85;font-size:12px;"></span>
+        </div>
+        <div class="invGold"><span id="goldValue">0</span></div>
+      </div>
+      <div id="inventoryGrid"></div>
+    </div>
+  </div>
+
+  <script src="auth.js"></script>
+  <script src="ui.js"></script>
+  <script src="professions.js"></script>
+</body>
+</html>

@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="el">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Equipment - Darkstone Chronicles</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+  <div id="hudRoot"></div>
+
+  <div id="mainLayout">
+    <div id="leftPanel">
+      <div class="equipWrap" style="max-width:900px;margin:0 auto;">
+        <div class="equipCard" style="background:#151520;border:2px solid #333;border-radius:12px;padding:10px 12px;">
+          <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;">
+            <div style="font-weight:900;">Equipped</div>
+            <div style="opacity:.8;font-size:12px;">Click a slot to unequip</div>
+          </div>
+
+          <div style="display:flex;gap:10px;align-items:stretch;margin-top:10px;">
+            <div id="paperdoll" style="flex:0 0 58%;position:relative;height:350px;border:1px solid #2a2a3a;border-radius:12px;overflow:hidden;background:#0f0f16;">
+              <div class="knightBg" aria-hidden="true"></div>
+
+              <div id="slot_helmet" class="pdSlot" data-slot="helmet" style="left:46%;top:6px;"></div>
+              <div id="slot_chest"  class="pdSlot" data-slot="chest"  style="left:46%;top:88px;"></div>
+              <div id="slot_belt"   class="pdSlot" data-slot="belt"   style="left:46%;top:152px;"></div>
+              <div id="slot_pants"  class="pdSlot" data-slot="pants"  style="left:46%;top:218px;"></div>
+
+              <div id="slot_bracers"  class="pdSlot" data-slot="bracers"  style="left:18%;top:78px;"></div>
+              <div id="slot_mainHand" class="pdSlot" data-slot="mainHand" style="left:18%;top:142px;"></div>
+              <div id="slot_gloves"   class="pdSlot" data-slot="gloves"   style="left:18%;top:206px;"></div>
+              <div id="slot_ring"     class="pdSlot" data-slot="ring"     style="left:18%;top:270px;"></div>
+
+              <div id="slot_shoulders" class="pdSlot" data-slot="shoulders" style="left:76%;top:78px;"></div>
+              <div id="slot_offHand"   class="pdSlot" data-slot="offHand"   style="left:76%;top:142px;"></div>
+              <div id="slot_boots"     class="pdSlot" data-slot="boots"     style="left:76%;top:206px;"></div>
+              <div id="slot_amulet"    class="pdSlot" data-slot="amulet"    style="left:76%;top:270px;"></div>
+            </div>
+
+            <div id="statsPanel" style="flex:1;min-width:0;background:#151520;border:2px solid #333;border-radius:12px;padding:9px 10px;">
+              <div style="font-weight:900;">Stats Breakdown</div>
+
+              <div id="statsTabs" style="display:flex;gap:8px;flex-wrap:nowrap;margin-top:8px;">
+                <button id="tabFight" type="button" style="flex:1;min-width:0;">Fighting Fields</button>
+                <button id="tabDungeon" type="button" style="flex:1;min-width:0;">Dungeons</button>
+              </div>
+
+              <div style="margin-top:8px;">
+                <table id="statsTable" style="width:100%;border-collapse:collapse;font-size:11px;table-layout:fixed;">
+                  <thead>
+                    <tr>
+                      <th style="text-align:left;padding:6px;border-bottom:1px solid #2a2a3a;">Stat</th>
+                      <th style="text-align:right;padding:6px;border-bottom:1px solid #2a2a3a;">Base</th>
+                      <th style="text-align:right;padding:6px;border-bottom:1px solid #2a2a3a;">Equip/Pet</th>
+                      <th style="text-align:right;padding:6px;border-bottom:1px solid #2a2a3a;">Bonus</th>
+                      <th style="text-align:right;padding:6px;border-bottom:1px solid #2a2a3a;">Total</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td style="padding:6px;border-bottom:1px solid #2a2a3a;">Attack</td>
+                      <td id="baseAtk"  style="padding:6px;text-align:right;border-bottom:1px solid #2a2a3a;">0</td>
+                      <td id="gearAtk"  style="padding:6px;text-align:right;border-bottom:1px solid #2a2a3a;">+0</td>
+                      <td id="pctAtk"   style="padding:6px;text-align:right;border-bottom:1px solid #2a2a3a;">0%</td>
+                      <td id="totalAtk" style="padding:6px;text-align:right;border-bottom:1px solid #2a2a3a;font-weight:900;">0</td>
+                    </tr>
+                    <tr>
+                      <td style="padding:6px;">Defense</td>
+                      <td id="baseDef"  style="padding:6px;text-align:right;">0</td>
+                      <td id="gearDef"  style="padding:6px;text-align:right;">+0</td>
+                      <td id="pctDef"   style="padding:6px;text-align:right;">0%</td>
+                      <td id="totalDef" style="padding:6px;text-align:right;font-weight:900;">0</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="inventoryPanel">
+      <div class="invHeader">
+        <div class="invTitle">Inventory</div>
+        <div class="invGold">💰 <span id="goldValue">0</span></div>
+      </div>
+      <div id="inventoryGrid"></div>
+    </div>
+  </div>
+
+  <script src="auth.js"></script>
+  <script src="ui.js"></script>
+  <script src="equipment.js"></script>
+</body>
+</html>

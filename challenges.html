@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="el">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Darkstone Chronicles - Challenges</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div id="hudRoot"></div>
+
+  <div id="mainLayout">
+    <div id="leftPanel">
+      <h1 style="margin-bottom:6px;">Challenges</h1>
+      <div style="opacity:.85;margin-bottom:14px;font-style:italic;">
+        Pick a challenge category and track your progress.
+      </div>
+
+      <div id="homeHub">
+        <button class="hubNav" id="challengeTypeFight">
+          <span class="hubIconFrame">
+            <span class="hubEmoji" aria-hidden="true">&#9876;&#65039;</span>
+          </span>
+          <span class="hubLabel">Fighting</span>
+        </button>
+        <button class="hubNav" id="challengeTypeGathering">
+          <span class="hubIconFrame">
+            <span class="hubEmoji" aria-hidden="true">&#9935;&#65039;</span>
+          </span>
+          <span class="hubLabel">Gathering</span>
+        </button>
+        <button class="hubNav" id="challengeTypeArtisan">
+          <span class="hubIconFrame">
+            <span class="hubEmoji" aria-hidden="true">&#9874;&#65039;</span>
+          </span>
+          <span class="hubLabel">Artisan</span>
+        </button>
+      </div>
+
+      <div id="challengeSubtypes" style="display:none;max-width:900px;margin:8px auto 0;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;"></div>
+      <div id="challengeList" style="display:none;max-width:900px;margin:16px auto 0;"></div>
+    </div>
+
+    <div id="inventoryPanel">
+      <div class="invHeader">
+        <div class="invTitle">
+          <span id="invTitleText">Inventory</span>
+          <span id="invCap" style="opacity:.85;font-size:12px;"></span>
+        </div>
+        <div class="invGold"><span id="goldValue">0</span></div>
+      </div>
+      <div id="inventoryGrid"></div>
+    </div>
+  </div>
+
+  <script src="auth.js"></script>
+  <script src="ui.js"></script>
+  <script src="challenges.js"></script>
+</body>
+</html>

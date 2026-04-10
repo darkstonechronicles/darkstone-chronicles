@@ -1,0 +1,5 @@
+cf-pages-upload/
+supabase/.temp/
+.git_broken_backup_*/
+.DS_Store
+Thumbs.db

@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="el">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Darkstone Chronicles - Professions Overview</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div id="hudRoot"></div>
+
+  <div id="mainLayout">
+    <div id="leftPanel">
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:12px;flex-wrap:wrap;">
+        <h1 style="margin:0;">Professions Overview</h1>
+        <button id="backBtn">Back</button>
+      </div>
+
+      <div id="overviewGrid" style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;"></div>
+    </div>
+
+    <div id="inventoryPanel">
+      <div class="invHeader">
+        <div class="invTitle">
+          <span id="invTitleText">Inventory</span>
+          <span id="invCap" style="opacity:.85;font-size:12px;"></span>
+        </div>
+        <div class="invGold"><span id="goldValue">0</span></div>
+      </div>
+      <div id="inventoryGrid"></div>
+    </div>
+  </div>
+
+  <script src="auth.js"></script>
+  <script src="ui.js"></script>
+  <script src="professions_overview.js"></script>
+</body>
+</html>
