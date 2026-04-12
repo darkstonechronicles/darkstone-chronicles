@@ -360,6 +360,10 @@
     return state.user;
   }
 
+  function getClient() {
+    return state.client;
+  }
+
   function getUserLabel() {
     const email = String(state.user?.email || "").trim();
     if (email) return email;
@@ -379,6 +383,7 @@
     preparePlayerState,
     getReturnTo,
     getSession,
+    getClient,
     getUser,
     getUserLabel,
     isConfigured,

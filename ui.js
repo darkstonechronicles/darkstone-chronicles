@@ -19,6 +19,9 @@
   const CHAT_TAB_KEY = "darkstone_chat_tab_v1";
   const PETS_PANEL_COLLAPSED_KEY = "darkstone_pets_panel_collapsed_v1";
   const REFRESH_MS = 800;
+  const GLOBAL_CHAT_FETCH_LIMIT = 80;
+  const GLOBAL_CHAT_COOLDOWN_MS = 2000;
+  const GLOBAL_CHAT_DUPLICATE_WINDOW_MS = 6000;
   const CHAT_CHANNELS = ["global", "market", "clan", "friends"];
   const PET_SLOT_DEFS = [
     { key: "combat", label: "Combat Pet", shortLabel: "Combat", emoji: "⚔️" },
@@ -451,6 +454,227 @@
 
   function setChatState(next) {
     localStorage.setItem(CHAT_KEY, JSON.stringify(next));
+  }
+
+  function createLiveChatChannelState() {
+    return {
+      messages: [],
+      loaded: false,
+      loading: false,
+      sending: false,
+      subscribed: false,
+      channel: null,
+      pollTimer: 0,
+      signature: "",
+      pendingMap: {},
+      lastSendAt: 0,
+      lastSentText: ""
+    };
+  }
+
+  const __liveChatState = {
+    global: createLiveChatChannelState(),
+    market: createLiveChatChannelState()
+  };
+  const __chatDrafts = Object.fromEntries(CHAT_CHANNELS.map((channel) => [channel, ""]));
+
+  function escapeHtml(value) {
+    return String(value ?? "")
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#39;");
+  }
+
+  function getSupabaseClient() {
+    return window.DSAuth?.getClient?.() || null;
+  }
+
+  function isLiveChatTab(tab) {
+    return tab === "global" || tab === "market";
+  }
+
+  function getLiveChatState(tab) {
+    return isLiveChatTab(tab) ? __liveChatState[tab] : null;
+  }
+
+  function normalizeRemoteChatMessage(row) {
+    if (!row || typeof row !== "object") return null;
+    return {
+      id: Number(row.id || 0) || Date.now(),
+      author: String(row.author_name || "Player").trim() || "Player",
+      text: String(row.body || "").trim(),
+      ts: Date.parse(row.created_at || "") || Date.now(),
+      pending: false
+    };
+  }
+
+  function getChatMessageSignature(messages) {
+    return (Array.isArray(messages) ? messages : [])
+      .map((msg) => `${Number(msg?.id || 0)}:${Number(msg?.ts || 0)}:${String(msg?.author || "")}:${String(msg?.text || "")}`)
+      .join("|");
+  }
+
+  async function loadLiveChatMessages(tab, force = false) {
+    const state = getLiveChatState(tab);
+    if ((state.loaded && !force) || state.loading) return;
+
+    const client = getSupabaseClient();
+    if (!client) return;
+
+    state.loading = true;
+    try {
+      const { data, error } = await client
+        .from("chat_messages")
+        .select("id, author_name, body, created_at")
+        .eq("channel_kind", tab)
+        .order("created_at", { ascending: false })
+        .limit(GLOBAL_CHAT_FETCH_LIMIT);
+      if (error) throw error;
+
+      const rows = Array.isArray(data) ? data.map(normalizeRemoteChatMessage).filter(Boolean).reverse() : [];
+      const pendingRows = Object.values(state.pendingMap || {});
+      const mergedRows = [...rows];
+      pendingRows.forEach((pendingMsg) => {
+        const alreadyMatched = rows.some((msg) =>
+          msg.author === pendingMsg.author &&
+          msg.text === pendingMsg.text &&
+          Math.abs(Number(msg.ts || 0) - Number(pendingMsg.ts || 0)) < 15000
+        );
+        if (!alreadyMatched) mergedRows.push(pendingMsg);
+      });
+      mergedRows.sort((a, b) => Number(a.ts || 0) - Number(b.ts || 0));
+      const nextSignature = getChatMessageSignature(mergedRows);
+      const changed = nextSignature !== state.signature;
+      state.messages = mergedRows.slice(-GLOBAL_CHAT_FETCH_LIMIT);
+      state.signature = nextSignature;
+      state.loaded = true;
+      if (__chatTab === tab && (changed || !force)) renderChatPanel(ensureSave(loadSave()));
+    } catch (error) {
+      console.error(`[chat] failed to load ${tab} messages`, error);
+    } finally {
+      state.loading = false;
+    }
+  }
+
+  async function ensureLiveChatSubscription(tab) {
+    const state = getLiveChatState(tab);
+    if (state.subscribed) return;
+
+    const client = getSupabaseClient();
+    if (!client) return;
+
+    const channel = client.channel(`darkstone-${tab}-chat`);
+    channel.on(
+      "postgres_changes",
+      {
+        event: "INSERT",
+        schema: "public",
+        table: "chat_messages",
+        filter: `channel_kind=eq.${tab}`
+      },
+      (payload) => {
+        const nextMessage = normalizeRemoteChatMessage(payload?.new);
+        if (!nextMessage) return;
+        Object.keys(state.pendingMap || {}).forEach((key) => {
+          const pendingMsg = state.pendingMap[key];
+          if (!pendingMsg) return;
+          const sameAuthor = pendingMsg.author === nextMessage.author;
+          const sameText = pendingMsg.text === nextMessage.text;
+          const nearTime = Math.abs(Number(pendingMsg.ts || 0) - Number(nextMessage.ts || 0)) < 15000;
+          if (sameAuthor && sameText && nearTime) delete state.pendingMap[key];
+        });
+        const exists = state.messages.some((msg) => Number(msg.id || 0) === nextMessage.id);
+        if (exists) return;
+        state.messages = [...state.messages, nextMessage].slice(-GLOBAL_CHAT_FETCH_LIMIT);
+        state.signature = getChatMessageSignature(state.messages);
+        state.loaded = true;
+        if (__chatTab === tab) renderChatPanel(ensureSave(loadSave()));
+      }
+    );
+    channel.subscribe((status) => {
+      if (status === "SUBSCRIBED") {
+        state.subscribed = true;
+      }
+    });
+    state.channel = channel;
+  }
+
+  async function sendLiveChatMessage(tab, save, text) {
+    const state = getLiveChatState(tab);
+    if (state.sending) return { ok: false };
+
+    const client = getSupabaseClient();
+    const user = window.DSAuth?.getUser?.();
+    if (!client || !user?.id) {
+      return { ok: false, error: "Chat is not ready yet." };
+    }
+
+    const now = Date.now();
+    const trimmedText = String(text || "").trim();
+    if (!trimmedText) {
+      return { ok: false, error: "Write a message first." };
+    }
+
+    const cooldownRemaining = GLOBAL_CHAT_COOLDOWN_MS - (now - Number(state.lastSendAt || 0));
+    if (cooldownRemaining > 0) {
+      return { ok: false, error: `Wait ${Math.ceil(cooldownRemaining / 1000)}s before sending again.` };
+    }
+
+    const normalizedLast = String(state.lastSentText || "").trim().toLowerCase();
+    const normalizedNext = trimmedText.toLowerCase();
+    if (
+      normalizedLast &&
+      normalizedLast === normalizedNext &&
+      (now - Number(state.lastSendAt || 0)) < GLOBAL_CHAT_DUPLICATE_WINDOW_MS
+    ) {
+      return { ok: false, error: "Do not send the same message repeatedly." };
+    }
+
+    state.sending = true;
+    const optimisticId = `pending:${Date.now()}:${Math.random().toString(36).slice(2, 8)}`;
+    const optimisticMessage = {
+      id: optimisticId,
+      author: getChatAuthorName(save),
+      text: trimmedText,
+      ts: now,
+      pending: true
+    };
+    state.lastSendAt = now;
+    state.lastSentText = trimmedText;
+    state.pendingMap[optimisticId] = optimisticMessage;
+    state.messages = [...state.messages, optimisticMessage].slice(-GLOBAL_CHAT_FETCH_LIMIT);
+    state.signature = getChatMessageSignature(state.messages);
+    if (__chatTab === tab) renderChatPanel(ensureSave(loadSave()));
+    try {
+      const { error } = await client.from("chat_messages").insert({
+        channel_kind: tab,
+        user_id: user.id,
+        author_name: getChatAuthorName(save),
+        body: trimmedText
+      });
+      if (error) throw error;
+      return { ok: true };
+    } catch (error) {
+      delete state.pendingMap[optimisticId];
+      state.messages = state.messages.filter((msg) => msg.id !== optimisticId);
+      state.signature = getChatMessageSignature(state.messages);
+      if (__chatTab === tab) renderChatPanel(ensureSave(loadSave()));
+      console.error(`[chat] failed to send ${tab} message`, error);
+      return { ok: false, error: error?.message || "Failed to send message." };
+    } finally {
+      state.sending = false;
+    }
+  }
+
+  function ensureLiveChatPolling(tab) {
+    const state = getLiveChatState(tab);
+    if (state.pollTimer) return;
+    state.pollTimer = window.setInterval(() => {
+      if (document.hidden) return;
+      loadLiveChatMessages(tab, true);
+    }, 3000);
   }
 
   function calcHpMax(level){
@@ -2152,14 +2376,48 @@ function fmtChatTime(ts){
   return `${hh}:${mm}`;
 }
 
+function getChatMessagesForTab(tab){
+  if (isLiveChatTab(tab)) return getLiveChatState(tab)?.messages || [];
+  const chatState = loadChatState();
+  return Array.isArray(chatState[tab]) ? chatState[tab] : [];
+}
+
+function getChatDraft(tab){
+  return String(__chatDrafts[tab] || "");
+}
+
+function setChatDraft(tab, value){
+  __chatDrafts[CHAT_CHANNELS.includes(tab) ? tab : "global"] = String(value || "");
+}
+
+function getChatInputSelectionSnapshot() {
+  const active = document.activeElement;
+  if (!active || active.id !== "chatInput") return null;
+  return {
+    value: String(active.value || ""),
+    start: Number(active.selectionStart ?? 0),
+    end: Number(active.selectionEnd ?? 0)
+  };
+}
+
   function renderChatPanel(save){
     const panel = document.getElementById("chatPlaceholderPanel");
     if (!panel) return;
+    const inputSnapshot = getChatInputSelectionSnapshot();
+    const previousMessagesEl = panel.querySelector("#chatMessages");
+    const previousScroll = previousMessagesEl ? {
+      top: previousMessagesEl.scrollTop,
+      height: previousMessagesEl.scrollHeight,
+      clientHeight: previousMessagesEl.clientHeight
+    } : null;
   
     __chatTab = loadChatTabPreference();
-    const chatState = loadChatState();
-    const activeMessages = Array.isArray(chatState[__chatTab]) ? chatState[__chatTab] : [];
+    const activeMessages = getChatMessagesForTab(__chatTab);
     const visibleMessages = [...activeMessages].reverse();
+    const liveState = getLiveChatState(__chatTab);
+    if (isLiveChatTab(__chatTab) && liveState && !liveState.loaded && !liveState.loading) {
+      loadLiveChatMessages(__chatTab);
+    }
   
     panel.innerHTML = `
       <div class="chatPanelInner">
@@ -2169,21 +2427,22 @@ function fmtChatTime(ts){
           `).join("")}
         </div>
         <div class="chatComposer">
-          <input id="chatInput" type="text" maxlength="180" placeholder="Write a message...">
+          <input id="chatInput" type="text" maxlength="180" placeholder="Write a message..." value="${escapeHtml(getChatDraft(__chatTab))}" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
           <button id="chatSendBtn" type="button">Send</button>
         </div>
         <div id="chatMessages" class="chatMessages">
+          ${isLiveChatTab(__chatTab) && liveState?.loading && !visibleMessages.length ? `<div class="chatEmpty">Loading ${escapeHtml(__chatTab)} chat...</div>` : ""}
           ${visibleMessages.length ? visibleMessages.map((msg) => `
             <div class="chatMsg">
               <div class="chatMsgHead">
                 <div style="display:flex;align-items:center;gap:4px;min-width:0;flex:1;">
-                  <span class="chatMsgAuthor">${msg.author || "Player"}:</span>
-                  <span class="chatMsgText">${String(msg.text || "")}</span>
+                  <span class="chatMsgAuthor">${escapeHtml(msg.author || "Player")}:</span>
+                  <span class="chatMsgText">${escapeHtml(String(msg.text || ""))}</span>
                 </div>
                 <span class="chatMsgTime">${fmtChatTime(msg.ts)}</span>
               </div>
             </div>
-          `).join("") : `<div class="chatEmpty">No messages yet in ${__chatTab} chat.</div>`}
+          `).join("") : `${!(isLiveChatTab(__chatTab) && liveState?.loading) ? `<div class="chatEmpty">No messages yet in ${escapeHtml(__chatTab)} chat.</div>` : ""}`}
         </div>
       </div>
     `;
@@ -2198,13 +2457,53 @@ function fmtChatTime(ts){
     });
   
     const messagesEl = panel.querySelector("#chatMessages");
-    if (messagesEl) messagesEl.scrollTop = 0;
+    if (messagesEl) {
+      const previousDistanceFromTop = previousScroll
+        ? Math.max(0, previousScroll.top)
+        : 0;
+      const wasNearTop = !previousScroll || previousDistanceFromTop <= 48;
+
+      if (wasNearTop) {
+        messagesEl.scrollTop = 0;
+      } else if (previousScroll) {
+        messagesEl.scrollTop = previousScroll.top;
+      }
+    }
 
   const input = panel.querySelector("#chatInput");
   const sendBtn = panel.querySelector("#chatSendBtn");
-  const sendMessage = () => {
+  input?.addEventListener("input", () => {
+    setChatDraft(__chatTab, input.value);
+  });
+  if (input && inputSnapshot && getChatDraft(__chatTab) === inputSnapshot.value) {
+    input.focus({ preventScroll: true });
+    const start = Math.max(0, Math.min(input.value.length, inputSnapshot.start));
+    const end = Math.max(0, Math.min(input.value.length, inputSnapshot.end));
+    try {
+      input.setSelectionRange(start, end);
+    } catch {}
+  }
+  const sendMessage = async () => {
     const text = String(input?.value || "").trim();
     if (!text) return;
+    if (isLiveChatTab(__chatTab)) {
+      const result = await sendLiveChatMessage(__chatTab, save, text);
+      if (!result.ok) {
+        if (input) {
+          input.value = text;
+          input.title = result.error || "Failed to send message.";
+        }
+        renderChatPanel(ensureSave(loadSave()));
+        return;
+      }
+      if (input) {
+        input.value = "";
+        input.title = "";
+      }
+      setChatDraft(__chatTab, "");
+      renderChatPanel(ensureSave(loadSave()));
+      return;
+    }
     const nextState = loadChatState();
     const channelMessages = Array.isArray(nextState[__chatTab]) ? nextState[__chatTab] : [];
     channelMessages.push({
@@ -2215,6 +2514,7 @@ function fmtChatTime(ts){
     nextState[__chatTab] = channelMessages.slice(-80);
     setChatState(nextState);
     if (input) input.value = "";
+    setChatDraft(__chatTab, "");
     renderChatPanel(ensureSave(loadSave()));
   };
 
@@ -3988,6 +4288,12 @@ function renderAll() {
       hookLocalStorageOnce();
       ensureCoreDOM();
       hookInvTabs();
+      await loadLiveChatMessages("global");
+      await loadLiveChatMessages("market");
+      await ensureLiveChatSubscription("global");
+      await ensureLiveChatSubscription("market");
+      ensureLiveChatPolling("global");
+      ensureLiveChatPolling("market");
 
       const _s = ensureSave(loadSave());
       setSave(_s);
