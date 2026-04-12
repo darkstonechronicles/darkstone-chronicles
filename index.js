@@ -57,15 +57,6 @@
   window.addEventListener("DOMContentLoaded", () => {
     renderLog();
 
-    el("resetSaveBtn")?.addEventListener("click", () => {
-      const ok = confirm("Reset save? This will delete ALL progress.");
-      if (!ok) return;
-
-      localStorage.removeItem("darkstone_save_v1");
-      localStorage.removeItem("ds_home_log_v1");
-      window.location.href = "create_character.html";
-    });
-
     nav("goFight", "fight.html", "Traveled to the Fight zone.");
     nav("goProfessions", "professions.html", "Opened professions.");
     nav("goDungeons", "dungeons.html", "Entered the Whispering Crypt.");

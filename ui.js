@@ -962,7 +962,33 @@
     const s = document.createElement("style");
     s.id = "ds-core-styles";
     s.textContent = `
-      #hudRoot{max-width:1100px;margin:12px auto 10px;padding:0 10px;}
+      #hudRoot{
+        max-width:1100px;
+        margin:12px auto 10px;
+        padding:0 10px;
+        position:relative;
+        z-index:40;
+      }
+      #hudRoot,
+      #mainLayout{
+        transition:opacity .28s ease, transform .28s ease, filter .28s ease;
+        will-change:opacity, transform, filter;
+      }
+      body.ds-page-enter-prep #hudRoot,
+      body.ds-page-enter-prep #mainLayout{
+        opacity:0;
+        transform:translateY(10px) scale(.992);
+        filter:blur(8px);
+      }
+      body.ds-page-transitioning{
+        pointer-events:none;
+      }
+      body.ds-page-transitioning #hudRoot,
+      body.ds-page-transitioning #mainLayout{
+        opacity:0;
+        transform:translateY(12px) scale(.992);
+        filter:blur(8px);
+      }
 
       #mainLayout{
         max-width:1100px;margin:0 auto;
@@ -1382,6 +1408,70 @@
         align-items:flex-start;
         justify-content:flex-start;
         flex-wrap:wrap;
+      }
+      .dsHeaderAccount{
+        margin-left:auto;
+        position:relative;
+        flex:0 0 auto;
+        z-index:50;
+      }
+      .dsAccountBtn{
+        min-height:42px;
+        padding:10px 14px;
+        border-radius:12px;
+        border:1px solid rgba(255,255,255,.12);
+        background:linear-gradient(180deg, rgba(255,255,255,.06), rgba(0,0,0,.10));
+        color:#f3f5fb;
+        font-weight:800;
+        letter-spacing:.2px;
+        cursor:pointer;
+        box-shadow:
+          0 12px 24px rgba(0,0,0,.22),
+          inset 0 1px 0 rgba(255,255,255,.06);
+      }
+      .dsAccountBtn:hover{filter:brightness(1.05);}
+      .dsAccountMenu{
+        position:absolute;
+        top:calc(100% + 8px);
+        right:0;
+        width:min(320px, 78vw);
+        padding:12px;
+        border-radius:14px;
+        border:1px solid rgba(255,255,255,.10);
+        background:linear-gradient(180deg, rgba(24,26,38,.98), rgba(14,15,24,.98));
+        box-shadow:
+          0 18px 42px rgba(0,0,0,.36),
+          0 0 0 1px rgba(0,0,0,.35);
+        display:none;
+        z-index:80;
+      }
+      .dsAccountMenu.dsAccountMenuOpen{
+        display:flex;
+        flex-direction:column;
+        gap:10px;
+      }
+      .dsAccountLabel{
+        font-size:11px;
+        opacity:.68;
+        font-weight:800;
+        letter-spacing:.3px;
+      }
+      .dsAccountEmail{
+        font-size:13px;
+        font-weight:800;
+        white-space:nowrap;
+        overflow:hidden;
+        text-overflow:ellipsis;
+      }
+      .dsAccountLogout{
+        min-height:38px;
+        padding:8px 12px;
+        border-radius:10px;
+        border:1px solid #6f3d48;
+        background:linear-gradient(180deg,#4d2129,#2e1217);
+        color:#ffe7ea;
+        font-weight:800;
+        cursor:pointer;
       }
 
       .dsHeroPanel{
@@ -1877,6 +1967,57 @@
           margin:8px auto 8px;
           padding:0 8px;
         }
+        .dsHeaderTop{
+          display:grid;
+          grid-template-columns:minmax(0, 1fr) auto;
+          align-items:start;
+          gap:8px;
+        }
+        .dsHeroPanel{
+          width:auto;
+          max-width:none;
+          min-width:0;
+          padding:8px;
+          gap:6px;
+        }
+        .dsHeroPortrait img{
+          width:58px;
+          height:58px;
+        }
+        .dsLine{
+          margin:0 0 4px 0;
+          font-size:12px;
+        }
+        .dsBarStack{
+          gap:4px;
+          margin-top:4px;
+        }
+        .dsBarWrap{
+          height:13px;
+        }
+        .dsBarTextIn{
+          font-size:10px;
+          padding-right:36px;
+        }
+        .dsBarTimer{
+          right:5px;
+          font-size:9px;
+        }
+        .dsHeaderAccount{
+          margin-left:0;
+          grid-column:2;
+          grid-row:1;
+          align-self:start;
+        }
+        .dsAccountBtn{
+          min-height:38px;
+          padding:8px 12px;
+        }
+        .dsStatSide{
+          grid-column:2;
+          grid-row:2;
+          justify-self:end;
+        }
         #mainLayout{
           padding:0 8px 16px;
           gap:12px;
@@ -1915,15 +2056,61 @@
       }
 
       @media (max-width: 480px){
-        #inventoryGrid{
-          grid-template-columns:repeat(4, 40px);
+        .dsHeroPortrait img{
+          width:52px;
+          height:52px;
+        }
+        .dsLine{
+          font-size:11px;
+        }
+        .dsBarTextIn{
+          font-size:9px;
+          padding-right:32px;
+        }
+        .dsAccountBtn{
+          min-height:34px;
+          padding:7px 10px;
+          font-size:12px;
         }
         .dsNav{
-          grid-template-columns:1fr;
+          grid-template-columns:repeat(4, minmax(0, 1fr));
+          gap:5px;
+          padding:5px;
+        }
+        .dsNav button{
+          min-height:36px;
+          padding:7px 3px;
+          font-size:10px;
+          gap:2px;
+        }
+        .navEmoji{
+          font-size:11px;
+        }
+        #inventoryGrid{
+          grid-template-columns:repeat(4, 40px);
         }
       }
     `;
     document.head.appendChild(s);
+  }
+
+  function formatPageLabel(page) {
+    const key = normalizePagePath(page).replace(/\.html$/i, "");
+    const labels = {
+      index: "Home",
+      fight: "Fight",
+      dungeons: "Dungeons",
+      buildings: "Buildings",
+      challenges: "Challenges",
+      professions: "Professions",
+      market: "Market",
+      bank: "Bank",
+      stats: "Stats",
+      stats_alloc: "Allocate Stats",
+      equipment: "Equipment",
+      professions_overview: "Overview"
+    };
+    return labels[key] || key.replace(/[_-]+/g, " ").replace(/\b\w/g, (c) => c.toUpperCase()) || "Traveling";
   }
 
   // -------------------------
@@ -2383,7 +2570,7 @@ function ensureGlobalOverviewButton() {
     wrap.id = "dsGlobalOverviewWrap";
     wrap.style.position = "absolute";
     wrap.style.top = "-193px";
-    wrap.style.right = "0";
+    wrap.style.right = "132px";
     wrap.style.zIndex = "8";
     wrap.style.display = "flex";
     wrap.style.flexDirection = "column";
@@ -2906,13 +3093,12 @@ function claimActiveChallengeFromQuest(){
           </button>
         </div>
         ` : ""}
-        <div style="display:flex;align-items:center;justify-content:flex-end;min-width:0;">
-          <div style="display:flex;align-items:center;gap:10px;padding:10px 12px;border:1px solid rgba(255,255,255,.08);border-radius:14px;background:rgba(255,255,255,.03);min-height:52px;max-width:320px;">
-            <div style="display:flex;flex-direction:column;min-width:0;">
-              <span style="font-size:11px;opacity:.7;font-weight:800;letter-spacing:.3px;">ACCOUNT</span>
-              <span style="font-size:13px;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${authLabel || "Signed In"}</span>
-            </div>
-            <button id="authLogoutBtn" style="min-height:36px;padding:8px 12px;border-radius:10px;border:1px solid #6f3d48;background:linear-gradient(180deg,#4d2129,#2e1217);color:#ffe7ea;font-weight:800;cursor:pointer;">Logout</button>
+        <div class="dsHeaderAccount">
+          <button id="authAccountBtn" class="dsAccountBtn" type="button" aria-haspopup="menu" aria-expanded="false">Account</button>
+          <div id="authAccountMenu" class="dsAccountMenu" role="menu" aria-hidden="true">
+            <div class="dsAccountLabel">ACCOUNT</div>
+            <div class="dsAccountEmail">${authLabel || "Signed In"}</div>
+            <button id="authLogoutBtn" class="dsAccountLogout" type="button">Logout</button>
           </div>
         </div>
       </div>
@@ -2964,8 +3150,33 @@ function claimActiveChallengeFromQuest(){
   document.getElementById("navProfessions")?.addEventListener("click", () => navigateWithFade("professions.html"));
   document.getElementById("navMarket")?.addEventListener("click", () => navigateWithFade("market.html"));
   document.getElementById("navBank")?.addEventListener("click", () => navigateWithFade("bank.html"));
+  const accountBtn = document.getElementById("authAccountBtn");
+  const accountMenu = document.getElementById("authAccountMenu");
+  const closeAccountMenu = () => {
+    if (!accountBtn || !accountMenu) return;
+    accountBtn.setAttribute("aria-expanded", "false");
+    accountMenu.classList.remove("dsAccountMenuOpen");
+    accountMenu.setAttribute("aria-hidden", "true");
+  };
+  const openAccountMenu = () => {
+    if (!accountBtn || !accountMenu) return;
+    accountBtn.setAttribute("aria-expanded", "true");
+    accountMenu.classList.add("dsAccountMenuOpen");
+    accountMenu.setAttribute("aria-hidden", "false");
+  };
+  accountBtn?.addEventListener("click", (e) => {
+    e.stopPropagation();
+    if (accountMenu?.classList.contains("dsAccountMenuOpen")) closeAccountMenu();
+    else openAccountMenu();
+  });
+  accountMenu?.addEventListener("click", (e) => e.stopPropagation());
+  document.addEventListener("click", closeAccountMenu);
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape") closeAccountMenu();
+  });
   document.getElementById("authLogoutBtn")?.addEventListener("click", async () => {
     try {
+      closeAccountMenu();
       await window.DSAuth?.signOut?.();
     } catch (error) {
       console.error("[UI] logout failed", error);
@@ -2997,13 +3208,14 @@ function navigateWithFade(targetHref) {
   if (!targetPage) return;
   if (targetPage === currentPage) return;
 
-  document.body.style.transition = "opacity .18s ease, filter .18s ease";
-  document.body.style.opacity = "0";
-  document.body.style.filter = "blur(2px)";
+  try {
+    sessionStorage.setItem("ds:page-enter", "1");
+  } catch {}
+  document.body.classList.add("ds-page-transitioning");
 
   window.setTimeout(() => {
     window.location.href = targetHref;
-  }, 180);
+  }, 220);
 }
 
 // -------------------------
@@ -4313,9 +4525,19 @@ function renderAll() {
   }
 
   async function boot() {
-    document.body.style.opacity = "0";
-    document.body.style.filter = "blur(2px)";
-    document.body.style.transition = "opacity .18s ease, filter .18s ease";
+    const shouldAnimateEntry = (() => {
+      try {
+        return sessionStorage.getItem("ds:page-enter") === "1";
+      } catch {
+        return false;
+      }
+    })();
+    if (shouldAnimateEntry) {
+      document.body.classList.add("ds-page-enter-prep");
+      try {
+        sessionStorage.removeItem("ds:page-enter");
+      } catch {}
+    }
 
     try {
       if (window.DSAuth?.requireAuth) {
@@ -4362,8 +4584,8 @@ function renderAll() {
       renderAll();
       requestAnimationFrame(syncRightColumnToNav);
       requestAnimationFrame(() => {
-        document.body.style.opacity = "1";
-        document.body.style.filter = "none";
+        document.body.classList.remove("ds-page-enter-prep");
+        document.body.classList.remove("ds-page-transitioning");
       });
 
       console.log("[UI] boot ok, key =", SAVE_KEY);
