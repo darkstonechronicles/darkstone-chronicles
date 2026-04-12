@@ -2390,7 +2390,7 @@ function ensureGlobalOverviewButton() {
     wrap.style.gap = "6px";
     wrap.style.alignItems = "flex-end";
     wrap.style.justifyContent = "flex-end";
-    wrap.innerHTML = `<button id="dsGlobalOverviewBtn" class="townBtn" type="button">Overview</button><button id="dsDebugGoldBtn" class="townBtn" type="button">+10B Gold</button>`;
+    wrap.innerHTML = `<button id="dsGlobalOverviewBtn" class="townBtn" type="button">Overview</button>`;
     right.appendChild(wrap);
   } else if (wrap.parentElement !== right) {
     right.appendChild(wrap);
@@ -2401,21 +2401,6 @@ function ensureGlobalOverviewButton() {
   btn.style.minHeight = "34px";
   btn.style.padding = "6px 14px";
   btn.style.fontSize = "";
-  const goldBtn = document.getElementById("dsDebugGoldBtn");
-  if (goldBtn) {
-    goldBtn.style.minHeight = "34px";
-    goldBtn.style.padding = "6px 14px";
-    goldBtn.style.fontSize = "";
-    if (!goldBtn.dataset.bound) {
-      goldBtn.dataset.bound = "1";
-      goldBtn.addEventListener("click", () => {
-        const save = ensureSave(loadSave());
-        save.gold = num(save.gold, 0) + 10000000000;
-        setSave(save);
-        window.dispatchEvent(new Event("ds:save"));
-      });
-    }
-  }
   btn.style.fontSize = "14px";
   btn.style.width = "auto";
   btn.style.minWidth = "0";
