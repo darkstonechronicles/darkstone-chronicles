@@ -1850,11 +1850,77 @@
       }
       .dsSellRow .dsSellMeta{opacity:.85;font-size:12px;}
 
-      @media (max-width: 1px){
-        #mainLayout{grid-template-columns:1fr;}
-        .dsHeroPanel{width:100%;max-width:none;}
-        .dsNav{width:100%;grid-template-columns:repeat(2, minmax(0, 1fr));}
-        #chatPlaceholderPanel{margin-top:0;}
+      @media (max-width: 980px){
+        #mainLayout{
+          grid-template-columns:minmax(0,1fr);
+          gap:14px;
+        }
+        #rightColumn{
+          width:100%;
+        }
+        #inventoryPanel{
+          margin-top:0;
+        }
+        .dsHeroPanel,
+        .dsNav{
+          width:100%;
+          max-width:none;
+        }
+        .dsNav{
+          margin:0;
+          grid-template-columns:repeat(2, minmax(0, 1fr));
+        }
+      }
+
+      @media (max-width: 760px){
+        #hudRoot{
+          margin:8px auto 8px;
+          padding:0 8px;
+        }
+        #mainLayout{
+          padding:0 8px 16px;
+          gap:12px;
+        }
+        #leftPanel,
+        #inventoryPanel,
+        #chatPlaceholderPanel,
+        #quickConsumablesPanel,
+        #petsPanel{
+          border-radius:10px;
+        }
+        #inventoryPanel{
+          padding:8px 8px 6px;
+        }
+        #inventoryGrid{
+          grid-template-columns:repeat(5, 40px);
+          justify-content:center;
+        }
+        .invHeader{
+          flex-wrap:wrap;
+          gap:8px;
+        }
+        .invTabs{
+          width:100%;
+          justify-content:space-between;
+          gap:6px;
+        }
+        .invTab{
+          flex:1 1 0;
+          min-width:0;
+          padding:0 8px;
+        }
+        .petsGrid{
+          grid-template-columns:repeat(2, minmax(0, 1fr));
+        }
+      }
+
+      @media (max-width: 480px){
+        #inventoryGrid{
+          grid-template-columns:repeat(4, 40px);
+        }
+        .dsNav{
+          grid-template-columns:1fr;
+        }
       }
     `;
     document.head.appendChild(s);

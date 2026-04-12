@@ -565,6 +565,19 @@ a:hover{ text-decoration: underline; }
   }
 }
 
+@media (max-width: 760px){
+  #inventoryGrid{
+    grid-template-columns: repeat(5, 40px) !important;
+    justify-content: center !important;
+  }
+}
+
+@media (max-width: 480px){
+  #inventoryGrid{
+    grid-template-columns: repeat(4, 40px) !important;
+  }
+}
+
 .charCreatePage{
   display:flex;
   align-items:center;
