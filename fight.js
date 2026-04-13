@@ -1941,6 +1941,57 @@ const cooldownWrap = document.getElementById("cooldownWrap");
 const cooldownBar  = document.getElementById("cooldownBar");
 const cooldownText = document.getElementById("cooldownText");
 
+function isCompactFightMobile() {
+  return window.matchMedia("(max-width: 680px)").matches;
+}
+
+function applyLootPanelLayout(panel, anchorEl = null) {
+  if (!panel) return;
+  if (isCompactFightMobile()) {
+    const viewportWidth = window.innerWidth || document.documentElement.clientWidth || 360;
+    const viewportHeight = window.innerHeight || document.documentElement.clientHeight || 640;
+    const panelWidth = Math.min(250, Math.max(210, viewportWidth - 110));
+    const panelHeight = Math.min(360, Math.max(280, viewportHeight * 0.52));
+    let left = Math.max(10, (viewportWidth - panelWidth) / 2);
+    let top = Math.max(12, (viewportHeight - panelHeight) / 2);
+
+    if (anchorEl && typeof anchorEl.getBoundingClientRect === "function") {
+      const anchorCard = anchorEl.closest?.(".fightMobCard");
+      const rect = (anchorCard || anchorEl).getBoundingClientRect();
+      left = Math.min(
+        Math.max(10, rect.left + (rect.width / 2) - (panelWidth / 2)),
+        Math.max(10, viewportWidth - panelWidth - 10)
+      );
+      const preferredTop = rect.top + 8;
+      const maxTop = Math.max(12, viewportHeight - panelHeight - 12);
+      top = Math.min(Math.max(12, preferredTop), maxTop);
+      if (top < 12) top = 12;
+    }
+
+    panel.style.position = "fixed";
+    panel.style.left = `${Math.round(left)}px`;
+    panel.style.top = `${Math.round(top)}px`;
+    panel.style.transform = "";
+    panel.style.width = `${Math.round(panelWidth)}px`;
+    panel.style.maxWidth = `${Math.round(panelWidth)}px`;
+    panel.style.maxHeight = `${Math.round(panelHeight)}px`;
+    panel.style.overflowY = "auto";
+    panel.style.overflowX = "hidden";
+    panel.style.zIndex = "120";
+  } else {
+    panel.style.position = "absolute";
+    panel.style.left = "calc(100% + 8px)";
+    panel.style.top = "8px";
+    panel.style.transform = "";
+    panel.style.width = "260px";
+    panel.style.maxWidth = "min(260px,calc(100vw - 40px))";
+    panel.style.maxHeight = "";
+    panel.style.overflowY = "";
+    panel.style.overflowX = "";
+    panel.style.zIndex = "20";
+  }
+}
+
 // =========================
 // RUNTIME STATE
 // =========================
@@ -1952,6 +2003,22 @@ let autoFighting = false;
 let autoTimer = null;
 let cdAnimId = null;
 let cdStart = 0;
+
+function openLootPanelFor(lootPanel, currentOpenPanelRef, anchorEl = null) {
+  if (!lootPanel) return currentOpenPanelRef || null;
+  if (currentOpenPanelRef && currentOpenPanelRef !== lootPanel) {
+    currentOpenPanelRef.style.display = "none";
+  }
+  applyLootPanelLayout(lootPanel, anchorEl);
+  lootPanel.style.display = "block";
+  return lootPanel;
+}
+
+function closeLootPanelFor(lootPanel, currentOpenPanelRef) {
+  if (!lootPanel) return currentOpenPanelRef || null;
+  lootPanel.style.display = "none";
+  return currentOpenPanelRef === lootPanel ? null : currentOpenPanelRef;
+}
 
 function pushBattleLog(text){
   if (!battleLog) return;
@@ -2248,6 +2315,7 @@ function showZones(){
     const locked = hero.level < (z.reqLevel ?? 1);
 
     const card = document.createElement("div");
+    card.className = "fightZoneCard";
     card.style.width = "100%";
     card.style.maxWidth = "132px";
     card.style.padding = "0";
@@ -2258,13 +2326,14 @@ function showZones(){
     card.style.opacity = locked ? "0.55" : "1";
 
     card.innerHTML = `
-      <div style="display:flex;flex-direction:column;align-items:center;gap:10px;">
+      <div class="fightZoneCardInner" style="display:flex;flex-direction:column;align-items:center;gap:10px;">
         <img src="${z.img}" alt="${z.name}"
+             class="fightZoneImg"
              style="width:88px;height:88px;border-radius:10px;border:2px solid #333;object-fit:cover;background:#0f0f16;filter:${locked ? "grayscale(0.9)" : "none"};">
-        <div style="width:126px;min-height:62px;padding:6px 7px;border-radius:10px;border:1px solid rgba(255,255,255,.12);background:#101019;line-height:1.15;display:flex;flex-direction:column;justify-content:center;">
-          <div style="font-size:12px;font-weight:900;white-space:nowrap;">${z.name}</div>
-          <div style="opacity:.9;margin-top:3px;font-size:12px;">Req Lv ${z.reqLevel ?? 1}</div>
-          ${locked ? `<div style="opacity:.85;margin-top:3px;font-size:12px;">Locked</div>` : ``}
+        <div class="fightZoneInfo" style="width:126px;min-height:62px;padding:6px 7px;border-radius:10px;border:1px solid rgba(255,255,255,.12);background:#101019;line-height:1.15;display:flex;flex-direction:column;justify-content:center;">
+          <div class="fightZoneName" style="font-size:12px;font-weight:900;white-space:nowrap;">${z.name}</div>
+          <div class="fightZoneMeta" style="opacity:.9;margin-top:3px;font-size:12px;">Req Lv ${z.reqLevel ?? 1}</div>
+          ${locked ? `<div class="fightZoneMeta" style="opacity:.85;margin-top:3px;font-size:12px;">Locked</div>` : ``}
         </div>
       </div>
     `;
@@ -2293,6 +2362,7 @@ function showMobs(zone){
 zone.mobs.forEach(m => {
   const mob = getMobCombatStats(m);
   const card = document.createElement("div");
+  card.className = "fightMobCard";
   card.style.background = "#151520";
   card.style.border = "2px solid #333";
   card.style.borderRadius = "12px";
@@ -2349,16 +2419,17 @@ zone.mobs.forEach(m => {
   }).join("") : `<div style="opacity:.8;font-size:12px;">No known drops.</div>`;
 
   card.innerHTML = `
-<div style="text-align:center;display:flex;flex-direction:column;align-items:center;">
+<div class="fightMobCardInner" style="text-align:center;display:flex;flex-direction:column;align-items:center;">
 
   <button type="button" class="mobLootBtn" style="position:absolute;top:8px;right:8px;width:28px;height:28px;background:#222438;border:1px solid #3a3d5c;border-radius:8px;cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0;z-index:2;">
     <img src="images/ui/my_treasure_chest.png" alt="Loot" style="width:18px;height:18px;display:block;image-rendering:auto;">
   </button>
 
   <img src="${mob.img}" 
+    class="fightMobImg"
     style="width:96px;height:96px;border-radius:10px;border:2px solid #333;object-fit:cover;margin-bottom:3px;">
 
-  <div style="
+  <div class="fightMobName" style="
     font-weight:bold;
     font-size:16px;
     line-height:1.2;
@@ -2368,7 +2439,7 @@ zone.mobs.forEach(m => {
     ${mob.name}
   </div>
 
-  <div style="
+  <div class="fightMobLevel" style="
     font-size:13px;
     opacity:.9;
     margin-top:0px;
@@ -2377,7 +2448,7 @@ zone.mobs.forEach(m => {
     Level ${mob.lvl}
   </div>
 
-  <div style="display:flex;gap:8px;justify-content:center;margin-top:0px;">
+  <div class="fightMobStats" style="display:flex;gap:8px;justify-content:center;margin-top:0px;">
 
     <div style="
       width:44px;
@@ -2443,23 +2514,23 @@ zone.mobs.forEach(m => {
     const lootPanel = card.querySelector(".mobLootPanel");
     const lootClose = card.querySelector(".mobLootClose");
 
-    lootBtn?.addEventListener("click", (e) => {
+    const toggleLootPanel = (e) => {
+      e.preventDefault();
       e.stopPropagation();
       if (!lootPanel) return;
 
       const willOpen = lootPanel.style.display === "none";
-      if (openLootPanel && openLootPanel !== lootPanel) {
-        openLootPanel.style.display = "none";
-      }
-      lootPanel.style.display = willOpen ? "block" : "none";
-      openLootPanel = willOpen ? lootPanel : null;
-    });
+      openLootPanel = willOpen
+        ? openLootPanelFor(lootPanel, openLootPanel, lootBtn)
+        : closeLootPanelFor(lootPanel, openLootPanel);
+    };
+    lootBtn?.addEventListener("click", toggleLootPanel);
+    lootBtn?.addEventListener("touchend", toggleLootPanel, { passive: false });
 
     lootClose?.addEventListener("click", (e) => {
+      e.preventDefault();
       e.stopPropagation();
-      if (!lootPanel) return;
-      lootPanel.style.display = "none";
-      if (openLootPanel === lootPanel) openLootPanel = null;
+      openLootPanel = closeLootPanelFor(lootPanel, openLootPanel);
     });
 
     lootPanel?.addEventListener("click", (e) => {
@@ -2467,7 +2538,10 @@ zone.mobs.forEach(m => {
     });
 
     // ✅ Click mob starts immediately
-    card.addEventListener("click", () => startBattle(mob, true));
+    card.addEventListener("click", (e) => {
+      if (e.target?.closest?.(".mobLootBtn, .mobLootPanel, .mobLootClose")) return;
+      startBattle(mob, true);
+    });
     mobsGrid.appendChild(card);
   });
 

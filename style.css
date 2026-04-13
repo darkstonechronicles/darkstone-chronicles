@@ -550,16 +550,31 @@ a:hover{ text-decoration: underline; }
 
 @media (max-width: 680px){
   #homeHub{
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 12px 10px;
   }
 
   .hubNav{
-    max-width: 160px;
+    max-width: 74px;
+    gap: 6px;
+  }
+
+  .hubIconFrame{
+    width: 58px;
+    height: 58px;
+    padding: 3px;
+  }
+
+  .hubEmoji{
+    font-size: 28px;
   }
 
   .hubLabel{
-    min-width: 126px;
-    font-size: 13px;
+    min-width: 74px;
+    max-width: 74px;
+    padding: 5px 6px 6px;
+    font-size: 11px;
+    line-height: 1.05;
   }
 
   .categoryPanelHeader{
