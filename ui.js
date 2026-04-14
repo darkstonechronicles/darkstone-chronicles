@@ -1418,6 +1418,12 @@
         z-index:120;
         pointer-events:auto;
       }
+      .dsHeaderPresence{
+        position:relative;
+        flex:0 0 auto;
+        z-index:120;
+        pointer-events:auto;
+      }
       .dsAccountBtn{
         min-height:42px;
         padding:10px 14px;
@@ -2017,6 +2023,11 @@
           grid-column:2;
           grid-row:1;
           align-self:start;
+        }
+        .dsHeaderPresence{
+          grid-column:1 / -1;
+          grid-row:3;
+          justify-self:start;
         }
         .dsAccountBtn{
           min-height:38px;
@@ -3064,6 +3075,18 @@ function claimActiveChallengeFromQuest(){
           </button>
         </div>
         ` : ""}
+        <div class="dsHeaderPresence">
+          <button id="dsPresenceBtn" class="dsAccountBtn" type="button" aria-haspopup="menu" aria-expanded="${__presenceState.menuOpen ? "true" : "false"}">
+            Players ${__presenceState.onlineCount} Online
+          </button>
+          <div id="dsPresenceMenu" class="dsAccountMenu ${__presenceState.menuOpen ? "dsAccountMenuOpen" : ""}" role="menu" aria-hidden="${__presenceState.menuOpen ? "false" : "true"}" style="width:min(540px, calc(100vw - 24px));max-height:min(420px, 70vh);overflow:auto;right:0;left:auto;">
+            <div class="dsAccountLabel">PLAYER ACTIVITY</div>
+            <div class="dsAccountEmail">${__presenceState.onlineCount} online right now</div>
+            <div style="margin-top:8px;">
+              ${getPresenceMenuMarkup()}
+            </div>
+          </div>
+        </div>
         <div class="dsHeaderAccount">
           <button id="authAccountBtn" class="dsAccountBtn" type="button" aria-haspopup="menu" aria-expanded="false">Account</button>
           <div id="authAccountMenu" class="dsAccountMenu" role="menu" aria-hidden="true">
@@ -3122,6 +3145,7 @@ function claimActiveChallengeFromQuest(){
   document.getElementById("navProfessions")?.addEventListener("click", () => navigateWithFade("professions.html"));
   document.getElementById("navMarket")?.addEventListener("click", () => navigateWithFade("market.html"));
   document.getElementById("navBank")?.addEventListener("click", () => navigateWithFade("bank.html"));
+  bindPresenceMenu();
   const accountBtn = document.getElementById("authAccountBtn");
   const accountMenu = document.getElementById("authAccountMenu");
   const closeAccountMenu = () => {
@@ -3173,6 +3197,126 @@ function renderGold(save) {
 function getAuthUserLabel() {
   if (!window.DSAuth?.getUserLabel) return "";
   return String(window.DSAuth.getUserLabel() || "").trim();
+}
+
+const __presenceState = {
+  loading: false,
+  loaded: false,
+  menuOpen: false,
+  players: [],
+  onlineCount: 0,
+  lastFetchAt: 0,
+  error: ""
+};
+
+function formatPresenceAgo(isoString) {
+  if (!isoString) return "Never";
+  const ms = new Date(isoString).getTime();
+  if (!Number.isFinite(ms) || ms <= 0) return "Never";
+  const diff = Math.max(0, Date.now() - ms);
+  const sec = Math.floor(diff / 1000);
+  if (sec < 15) return "just now";
+  if (sec < 60) return `${sec}s ago`;
+  const min = Math.floor(sec / 60);
+  if (min < 60) return `${min}m ago`;
+  const hr = Math.floor(min / 60);
+  if (hr < 24) return `${hr}h ago`;
+  const day = Math.floor(hr / 24);
+  return `${day}d ago`;
+}
+
+function formatPresenceExact(isoString) {
+  if (!isoString) return "No activity yet";
+  const ms = new Date(isoString).getTime();
+  if (!Number.isFinite(ms) || ms <= 0) return "No activity yet";
+  return new Intl.DateTimeFormat("el-GR", {
+    dateStyle: "medium",
+    timeStyle: "short"
+  }).format(ms);
+}
+
+async function refreshPresenceSnapshot(force = false) {
+  if (__presenceState.loading) return;
+  if (!force && __presenceState.loaded && (Date.now() - __presenceState.lastFetchAt) < 30000) return;
+  if (!window.DSAuth?.fetchPresenceSnapshot) return;
+
+  __presenceState.loading = true;
+  try {
+    const snapshot = await window.DSAuth.fetchPresenceSnapshot();
+    __presenceState.players = Array.isArray(snapshot?.players) ? snapshot.players : [];
+    __presenceState.onlineCount = num(snapshot?.onlineCount, 0);
+    __presenceState.loaded = true;
+    __presenceState.error = "";
+    __presenceState.lastFetchAt = Date.now();
+  } catch (error) {
+    console.error("[UI] presence fetch failed", error);
+    __presenceState.error = error?.message || "Failed to load player presence.";
+    __presenceState.lastFetchAt = Date.now();
+  } finally {
+    __presenceState.loading = false;
+    forceRerenderNow();
+  }
+}
+
+function getPresenceMenuMarkup() {
+  if (__presenceState.error) {
+    return `<div style="font-size:12px;color:#ffd8de;">${__presenceState.error}</div>`;
+  }
+  if (__presenceState.loading && !__presenceState.loaded) {
+    return `<div style="font-size:12px;opacity:.82;">Loading players...</div>`;
+  }
+  if (!__presenceState.players.length) {
+    return `<div style="font-size:12px;opacity:.82;">No players found yet.</div>`;
+  }
+
+  return __presenceState.players.slice(0, 24).map((player) => `
+    <div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-top:1px solid rgba(255,255,255,.06);">
+      <div style="position:relative;flex:0 0 auto;">
+        <img src="${player.avatarUrl || "images/hero.png"}" alt="${player.name}" style="width:38px;height:38px;border-radius:10px;border:1px solid rgba(255,255,255,.12);object-fit:cover;background:#10131d;">
+        <span style="position:absolute;right:-2px;bottom:-2px;width:11px;height:11px;border-radius:999px;border:2px solid #111723;background:${player.isOnline ? "#31d07f" : "#666f86"};"></span>
+      </div>
+      <div style="min-width:0;flex:1;">
+        <div style="font-size:13px;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${player.name}</div>
+        <div style="font-size:11px;opacity:.72;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${player.isOnline ? "Online now" : `Last seen ${formatPresenceAgo(player.lastSeenAt)}`}</div>
+      </div>
+      <div style="flex:0 0 auto;text-align:right;max-width:140px;">
+        <div style="font-size:11px;opacity:.82;">${player.lastSeenPage || "In Game"}</div>
+        <div style="font-size:10px;opacity:.58;">${formatPresenceExact(player.lastSeenAt)}</div>
+      </div>
+    </div>
+  `).join("");
+}
+
+function bindPresenceMenu() {
+  const btn = document.getElementById("dsPresenceBtn");
+  const menu = document.getElementById("dsPresenceMenu");
+  if (!btn || !menu) return;
+
+  const closeMenu = () => {
+    __presenceState.menuOpen = false;
+    btn.setAttribute("aria-expanded", "false");
+    menu.classList.remove("dsAccountMenuOpen");
+    menu.setAttribute("aria-hidden", "true");
+  };
+
+  const openMenu = async () => {
+    __presenceState.menuOpen = true;
+    btn.setAttribute("aria-expanded", "true");
+    menu.classList.add("dsAccountMenuOpen");
+    menu.setAttribute("aria-hidden", "false");
+    await refreshPresenceSnapshot(true);
+  };
+
+  btn.addEventListener("click", (e) => {
+    e.stopPropagation();
+    if (__presenceState.menuOpen) closeMenu();
+    else openMenu();
+  });
+  menu.addEventListener("click", (e) => e.stopPropagation());
+  document.addEventListener("click", closeMenu);
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape") closeMenu();
+  });
 }
 
 let __adminPanelBound = false;
@@ -3327,7 +3471,227 @@ function bindAdminToolsModal() {
 }
 
 function normalizePagePath(path) {
-  return String(path || "").replace(/\\/g, "/").split("/").pop().toLowerCase();
+  return String(path || "")
+    .replace(/\\/g, "/")
+    .split("/").pop()
+    .split("?")[0]
+    .split("#")[0]
+    .toLowerCase();
+}
+
+const SHELL_ROUTES = new Set(["index.html", "fight.html", "dungeons.html", "dungeon_run.html", "buildings.html", "challenges.html", "market.html", "bank.html", "professions.html", "professions_overview.html", "equipment.html", "stats.html", "mining.html", "mining_action.html", "hunting.html", "fishing.html", "cooking.html", "herbalism.html", "alchemy.html", "carpentry.html", "woodcutting.html", "forge.html", "enchanting.html"]);
+const SHELL_INSTANT_ROUTES = new Set(["mining_action.html"]);
+
+function canUseShellRouting(currentPage, targetPage) {
+  return SHELL_ROUTES.has(currentPage) && SHELL_ROUTES.has(targetPage);
+}
+
+function mountShellView(targetPage, targetHref = targetPage) {
+  const left = document.getElementById("leftPanel");
+  if (!left) return false;
+
+  window.dispatchEvent(new Event("ds:pause"));
+
+  if (targetPage === "index.html") {
+    window.DSFight?.unmount?.();
+    window.DS_DUNGEON?.unmountDungeonList?.();
+    window.DS_DUNGEON?.unmountDungeonRun?.();
+    return !!window.DSHome?.mount?.(left);
+  }
+
+  if (targetPage === "fight.html") {
+    window.DS_DUNGEON?.unmountDungeonList?.();
+    window.DS_DUNGEON?.unmountDungeonRun?.();
+    return !!window.DSFight?.mount?.(left);
+  }
+
+  if (targetPage === "dungeons.html") {
+    window.DSFight?.unmount?.();
+    window.DS_DUNGEON?.unmountDungeonRun?.();
+    return !!window.DS_DUNGEON?.mountDungeonList?.(left);
+  }
+
+  if (targetPage === "dungeon_run.html") {
+    window.DSFight?.unmount?.();
+    window.DS_DUNGEON?.unmountDungeonList?.();
+    return !!window.DS_DUNGEON?.mountDungeonRun?.(left);
+  }
+
+  if (targetPage === "buildings.html") {
+    window.DSFight?.unmount?.();
+    window.DS_DUNGEON?.unmountDungeonList?.();
+    window.DS_DUNGEON?.unmountDungeonRun?.();
+    return !!window.DSBuildings?.mount?.(left);
+  }
+
+  if (targetPage === "challenges.html") {
+    window.DSFight?.unmount?.();
+    window.DS_DUNGEON?.unmountDungeonList?.();
+    window.DS_DUNGEON?.unmountDungeonRun?.();
+    return !!window.DSChallenges?.mount?.(left);
+  }
+
+  if (targetPage === "market.html") {
+    window.DSFight?.unmount?.();
+    window.DS_DUNGEON?.unmountDungeonList?.();
+    window.DS_DUNGEON?.unmountDungeonRun?.();
+    return !!window.DSMarket?.mount?.(left);
+  }
+
+  if (targetPage === "bank.html") {
+    window.DSFight?.unmount?.();
+    window.DS_DUNGEON?.unmountDungeonList?.();
+    window.DS_DUNGEON?.unmountDungeonRun?.();
+    return !!window.DSBank?.mount?.(left);
+  }
+
+  if (targetPage === "professions.html") {
+    window.DSFight?.unmount?.();
+    window.DS_DUNGEON?.unmountDungeonList?.();
+    window.DS_DUNGEON?.unmountDungeonRun?.();
+    return !!window.DSProfessions?.mount?.(left);
+  }
+
+  if (targetPage === "professions_overview.html") {
+    window.DSFight?.unmount?.();
+    window.DS_DUNGEON?.unmountDungeonList?.();
+    window.DS_DUNGEON?.unmountDungeonRun?.();
+    return !!window.DSOverview?.mount?.(left);
+  }
+
+  if (targetPage === "mining.html") {
+    window.DSFight?.unmount?.();
+    window.DS_DUNGEON?.unmountDungeonList?.();
+    window.DS_DUNGEON?.unmountDungeonRun?.();
+    return !!window.DSMining?.mount?.(left);
+  }
+
+  if (targetPage === "mining_action.html") {
+    window.DSFight?.unmount?.();
+    window.DS_DUNGEON?.unmountDungeonList?.();
+    window.DS_DUNGEON?.unmountDungeonRun?.();
+    return !!window.DSMiningAction?.mount?.(left, targetHref);
+  }
+
+  if (targetPage === "hunting.html") {
+    window.DSFight?.unmount?.();
+    window.DS_DUNGEON?.unmountDungeonList?.();
+    window.DS_DUNGEON?.unmountDungeonRun?.();
+    return !!window.DSHunting?.mount?.(left);
+  }
+
+  if (targetPage === "fishing.html") {
+    window.DSFight?.unmount?.();
+    window.DS_DUNGEON?.unmountDungeonList?.();
+    window.DS_DUNGEON?.unmountDungeonRun?.();
+    return !!window.DSFishing?.mount?.(left);
+  }
+
+  if (targetPage === "cooking.html") {
+    window.DSFight?.unmount?.();
+    window.DS_DUNGEON?.unmountDungeonList?.();
+    window.DS_DUNGEON?.unmountDungeonRun?.();
+    return !!window.DSCooking?.mount?.(left);
+  }
+
+  if (targetPage === "herbalism.html") {
+    window.DSFight?.unmount?.();
+    window.DS_DUNGEON?.unmountDungeonList?.();
+    window.DS_DUNGEON?.unmountDungeonRun?.();
+    return !!window.DSHerbalism?.mount?.(left);
+  }
+
+  if (targetPage === "alchemy.html") {
+    window.DSFight?.unmount?.();
+    window.DS_DUNGEON?.unmountDungeonList?.();
+    window.DS_DUNGEON?.unmountDungeonRun?.();
+    return !!window.DSAlchemy?.mount?.(left);
+  }
+
+  if (targetPage === "carpentry.html") {
+    window.DSFight?.unmount?.();
+    window.DS_DUNGEON?.unmountDungeonList?.();
+    window.DS_DUNGEON?.unmountDungeonRun?.();
+    return !!window.DSCarpentry?.mount?.(left);
+  }
+
+  if (targetPage === "woodcutting.html") {
+    window.DSFight?.unmount?.();
+    window.DS_DUNGEON?.unmountDungeonList?.();
+    window.DS_DUNGEON?.unmountDungeonRun?.();
+    return !!window.DSWoodcutting?.mount?.(left);
+  }
+
+  if (targetPage === "forge.html") {
+    window.DSFight?.unmount?.();
+    window.DS_DUNGEON?.unmountDungeonList?.();
+    window.DS_DUNGEON?.unmountDungeonRun?.();
+    return !!window.DSForge?.mount?.(left);
+  }
+
+  if (targetPage === "enchanting.html") {
+    window.DSFight?.unmount?.();
+    window.DS_DUNGEON?.unmountDungeonList?.();
+    window.DS_DUNGEON?.unmountDungeonRun?.();
+    return !!window.DSEnchanting?.mount?.(left);
+  }
+
+  if (targetPage === "equipment.html") {
+    window.DSFight?.unmount?.();
+    window.DS_DUNGEON?.unmountDungeonList?.();
+    window.DS_DUNGEON?.unmountDungeonRun?.();
+    return !!window.DSEquipment?.mount?.(left);
+  }
+
+  if (targetPage === "stats.html") {
+    window.DSFight?.unmount?.();
+    window.DS_DUNGEON?.unmountDungeonList?.();
+    window.DS_DUNGEON?.unmountDungeonRun?.();
+    return !!window.DSStats?.mount?.(left);
+  }
+
+  return false;
+}
+
+function navigateWithinShell(targetHref, options = {}) {
+  const targetPage = normalizePagePath(targetHref);
+  const currentPage = normalizePagePath(window.location.pathname || "index.html");
+  if (!canUseShellRouting(currentPage, targetPage)) return false;
+  if (targetPage === currentPage && !options.force) return true;
+
+  if (SHELL_INSTANT_ROUTES.has(targetPage)) {
+    const didMount = mountShellView(targetPage, targetHref);
+    if (!didMount) return false;
+    if (!options.skipHistory) {
+      window.history.pushState({ dsShellRoute: targetPage }, "", targetHref);
+    }
+    window.DSAuth?.markPresenceNow?.(true).catch((error) => {
+      console.error("[UI] immediate presence update failed", error);
+    });
+    return true;
+  }
+
+  document.body.classList.add("ds-page-transitioning");
+  window.setTimeout(() => {
+    const didMount = mountShellView(targetPage, targetHref);
+    if (!didMount) {
+      document.body.classList.remove("ds-page-transitioning");
+      window.location.href = targetHref;
+      return;
+    }
+
+    if (!options.skipHistory) {
+      window.history.pushState({ dsShellRoute: targetPage }, "", targetHref);
+    }
+    window.DSAuth?.markPresenceNow?.(true).catch((error) => {
+      console.error("[UI] immediate presence update failed", error);
+    });
+    requestAnimationFrame(() => {
+      document.body.classList.remove("ds-page-transitioning");
+    });
+  }, 140);
+
+  return true;
 }
 
 function navigateWithFade(targetHref) {
@@ -3335,6 +3699,8 @@ function navigateWithFade(targetHref) {
   const currentPage = normalizePagePath(window.location.pathname || "index.html");
   if (!targetPage) return;
   if (targetPage === currentPage) return;
+
+  if (navigateWithinShell(targetHref)) return;
 
   try {
     sessionStorage.setItem("ds:page-enter", "1");
@@ -3345,6 +3711,10 @@ function navigateWithFade(targetHref) {
     window.location.href = targetHref;
   }, 220);
 }
+
+window.DSUI = Object.assign(window.DSUI || {}, {
+  navigateWithinShell
+});
 
 // -------------------------
 // Inventory render + DnD swap
@@ -4677,6 +5047,7 @@ function renderAll() {
         }
         await window.DSAuth.preparePlayerState?.();
         await window.DSAuth.refreshAdminStatus?.();
+        await window.DSAuth.markPresenceNow?.(true);
       }
 
       const page = String(window.location.pathname || "").split("/").pop().toLowerCase();
@@ -4702,22 +5073,42 @@ function renderAll() {
       setInterval(() => {
         try { applyRegenTick(); } catch(e) { console.error("[UI] regen tick failed", e); }
       }, 2000);
+      setInterval(() => {
+        refreshPresenceSnapshot().catch((error) => {
+          console.error("[UI] background presence refresh failed", error);
+        });
+      }, 60000);
 
       window.addEventListener("ds:save", forceRerenderNow);
+      window.addEventListener("ds:presence-updated", () => {
+        refreshPresenceSnapshot(true).catch((error) => {
+          console.error("[UI] presence refresh after heartbeat failed", error);
+        });
+      });
       window.addEventListener("ds:auth", async () => {
         try {
           await window.DSAuth?.refreshAdminStatus?.();
+          await refreshPresenceSnapshot(true);
         } catch (error) {
           console.error("[UI] admin refresh failed", error);
         }
         forceRerenderNow();
       });
       window.addEventListener("resize", syncRightColumnToNav);
+      window.addEventListener("popstate", (event) => {
+        const targetPage = normalizePagePath(event.state?.dsShellRoute || window.location.pathname || "");
+        if (!SHELL_ROUTES.has(targetPage)) return;
+        const targetHref = `${window.location.pathname || targetPage}${window.location.search || ""}`;
+        navigateWithinShell(targetHref, { force: true, skipHistory: true });
+      });
       window.addEventListener("storage", (e) => {
         if (e.key === CHAT_KEY || e.key === CHAT_TAB_KEY || e.key === SAVE_KEY) forceRerenderNow();
       });
 
       renderAll();
+      refreshPresenceSnapshot(true).catch((error) => {
+        console.error("[UI] initial presence refresh failed", error);
+      });
       requestAnimationFrame(syncRightColumnToNav);
       requestAnimationFrame(() => {
         document.body.classList.remove("ds-page-enter-prep");

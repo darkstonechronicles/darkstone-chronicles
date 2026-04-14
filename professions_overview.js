@@ -1,20 +1,27 @@
 (() => {
   const SAVE_KEY = "darkstone_save_v1";
+  const OVERVIEW_TEMPLATE = `
+    <div style="display:flex;justify-content:flex-start;align-items:center;gap:12px;margin-bottom:12px;flex-wrap:wrap;">
+      <h1 style="margin:0;">Professions Overview</h1>
+    </div>
+
+    <div id="overviewGrid" style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;"></div>
+  `;
 
   const num = (v, f = 0) => (Number.isFinite(Number(v)) ? Number(v) : f);
   const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 
   const TRACKS = [
-    { key: "mining", label: "Mining", emoji: "⛏️" },
-    { key: "blacksmith", label: "Forge", emoji: "⚒️" },
-    { key: "woodcutting", label: "Woodcutting", emoji: "🪵" },
-    { key: "carpentry", label: "Carpentry", emoji: "🪚" },
-    { key: "hunting", label: "Hunting", emoji: "🏹" },
-    { key: "fishing", label: "Fishing", emoji: "🎣" },
-    { key: "cooking", label: "Cooking", emoji: "🍳" },
-    { key: "enchanting", label: "Enchanting", emoji: "✨" },
-    { key: "herbalism", label: "Herbalism", emoji: "🌿" },
-    { key: "alchemy", label: "Alchemy", emoji: "⚗️" }
+    { key: "mining", label: "Mining", emoji: "β›οΈ" },
+    { key: "blacksmith", label: "Forge", emoji: "β’οΈ" },
+    { key: "woodcutting", label: "Woodcutting", emoji: "πµ" },
+    { key: "carpentry", label: "Carpentry", emoji: "π" },
+    { key: "hunting", label: "Hunting", emoji: "πΉ" },
+    { key: "fishing", label: "Fishing", emoji: "π£" },
+    { key: "cooking", label: "Cooking", emoji: "π³" },
+    { key: "enchanting", label: "Enchanting", emoji: "β¨" },
+    { key: "herbalism", label: "Herbalism", emoji: "πΏ" },
+    { key: "alchemy", label: "Alchemy", emoji: "β—οΈ" }
   ];
 
   function roundLevelXP(v){
@@ -97,7 +104,7 @@
     `;
   }
 
-  function render() {
+  function renderOverview() {
     const save = loadSave();
     const heroLevel = Math.max(1, num(save.heroLevel, 1));
     const heroXP = Math.max(0, num(save.heroXP, 0));
@@ -107,7 +114,7 @@
     if (!grid) return;
 
     grid.innerHTML = [
-      card("Hero Level", heroLevel, heroXP, heroXPNext, "🛡️"),
+      card("Hero Level", heroLevel, heroXP, heroXPNext, "π›΅οΈ"),
       ...TRACKS.map((track) => {
         const data = getTrack(save, track.key);
         return card(track.label, data.level, data.xp, data.next, track.emoji);
@@ -115,11 +122,29 @@
     ].join("");
   }
 
-  function boot() {
-    render();
-    window.addEventListener("ds:save", render);
+  function mountOverview(root = null) {
+    const left = root || document.getElementById("leftPanel");
+    if (!left) return false;
+    left.innerHTML = OVERVIEW_TEMPLATE;
+    document.title = "Darkstone Chronicles - Professions Overview";
+    renderOverview();
+    return true;
   }
 
-  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", boot);
-  else boot();
+  function initStandaloneOverview() {
+    if (!document.getElementById("overviewGrid")) return false;
+    document.title = "Darkstone Chronicles - Professions Overview";
+    renderOverview();
+    return true;
+  }
+
+  window.DSOverview = {
+    mount: mountOverview
+  };
+
+  window.addEventListener("DOMContentLoaded", () => {
+    initStandaloneOverview();
+  });
+
+  window.addEventListener("ds:save", renderOverview);
 })();

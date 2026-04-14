@@ -1,6 +1,70 @@
 (() => {
   const SAVE_KEY = "darkstone_save_v1";
+  const FORGE_TEMPLATE = `
+    <div style="max-width:340px;margin:0 auto 12px;">
+      <div style="background:#151520;border:2px solid #333;border-radius:12px;padding:10px 12px;width:100%;">
+        <div style="font-weight:900;font-size:18px;display:flex;align-items:center;justify-content:center;gap:8px;margin-bottom:8px;text-align:center;">
+          <span aria-hidden="true">&#9874;&#65039;</span>
+          <span>Forge Lvl: <span id="bsLevel">1</span></span>
+        </div>
+        <div style="width:100%;">
+          <div style="height:12px;background:#0f0f16;border:1px solid #2a2a3a;border-radius:999px;overflow:hidden;position:relative;">
+            <div id="bsXPBar" style="height:100%;width:0%;background:#7dff9f;"></div>
+            <div style="position:absolute;top:50%;left:8px;transform:translateY(-50%);font-size:11px;font-weight:800;line-height:1;color:#f4f1e8;text-shadow:0 1px 3px rgba(0,0,0,.75);pointer-events:none;">XP</div>
+            <div style="position:absolute;top:50%;right:8px;transform:translateY(-50%);font-size:11px;font-weight:800;line-height:1;color:#f4f1e8;text-shadow:0 1px 3px rgba(0,0,0,.75);pointer-events:none;"><span id="bsXPCurrent">0</span>/<span id="bsXPNext">100</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div style="max-width:900px;margin:0 auto;">
+      <div id="forgeTabs">
+        <button id="tabSmelt" class="forgeTabBtn is-active" type="button">Smelt Bars</button>
+        <button id="tabCraft" class="forgeTabBtn" type="button">Craft Items</button>
+      </div>
+
+      <div id="forgeSmeltPanel">
+        <h2 style="margin:0 0 10px;">Choose a Bar to Smelt</h2>
+        <div id="barGrid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px;"></div>
+      </div>
+
+      <div id="forgeCraftPanel" style="display:none;">
+        <h2 style="margin:0 0 10px;">Craft Items</h2>
+        <div id="craftCategoryView">
+          <div id="craftMaterialTabs" style="display:flex;gap:10px;flex-wrap:wrap;margin:0 0 12px;"></div>
+        </div>
+        <div id="craftItemsView" style="display:none;">
+          <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin:0 0 12px;">
+            <div id="craftItemsTitle" style="font-size:18px;font-weight:800;"></div>
+            <button id="craftBackBtn" type="button" style="padding:8px 12px;border-radius:10px;border:2px solid #2a2a3a;background:#151520;color:#cfcfe6;font-weight:800;cursor:pointer;">Back</button>
+          </div>
+          <div id="craftGrid" style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;"></div>
+        </div>
+      </div>
+    </div>
+  `;
+
   const num = (v, f = 0) => (Number.isFinite(Number(v)) ? Number(v) : f);
+
+  let bsLevel = null;
+  let bsXPCurrent = null;
+  let bsXPNext = null;
+  let bsXPBar = null;
+  let tabSmelt = null;
+  let tabCraft = null;
+  let forgeSmeltPanel = null;
+  let forgeCraftPanel = null;
+  let barGrid = null;
+  let craftMaterialTabs = null;
+  let craftCategoryView = null;
+  let craftItemsView = null;
+  let craftItemsTitle = null;
+  let craftGrid = null;
+  let craftBackBtn = null;
+
+  let activeTab = "smelt";
+  let selectedMaterialId = "";
+  let eventsBound = false;
 
   function loadSave(){
     try { return JSON.parse(localStorage.getItem(SAVE_KEY) || "{}") || {}; }
@@ -90,18 +154,14 @@
     { id:"shoulders", label:"Shoulders" }
   ];
 
-  function smeltRecipeId(material){
-    return `${material.id}_bar`;
-  }
-  function craftRecipeId(material, slotDef){
-    return `${material.id}_${slotDef.id}`;
-  }
+  function smeltRecipeId(material){ return `${material.id}_bar`; }
+  function craftRecipeId(material, slotDef){ return `${material.id}_${slotDef.id}`; }
   function craftItemName(material, slotDef){
     const suffix = slotDef.id === "main_hand" ? (MAIN_HAND_NAMES[material.id] || slotDef.label) : slotDef.label;
     return `${material.name} ${suffix}`;
   }
   function openRecipe(recipeId){
-    location.href = `forge_action.html?recipe=${encodeURIComponent(recipeId)}`;
+    window.location.href = `forge_action.html?recipe=${encodeURIComponent(recipeId)}`;
   }
   function button(label, disabled, onClick){
     const btn = document.createElement("button");
@@ -146,24 +206,24 @@
     return img;
   }
 
-  const bsLevel = document.getElementById("bsLevel");
-  const bsXPCurrent = document.getElementById("bsXPCurrent");
-  const bsXPNext = document.getElementById("bsXPNext");
-  const bsXPBar = document.getElementById("bsXPBar");
-  const tabSmelt = document.getElementById("tabSmelt");
-  const tabCraft = document.getElementById("tabCraft");
-  const forgeSmeltPanel = document.getElementById("forgeSmeltPanel");
-  const forgeCraftPanel = document.getElementById("forgeCraftPanel");
-  const barGrid = document.getElementById("barGrid");
-  const craftMaterialTabs = document.getElementById("craftMaterialTabs");
-  const craftCategoryView = document.getElementById("craftCategoryView");
-  const craftItemsView = document.getElementById("craftItemsView");
-  const craftItemsTitle = document.getElementById("craftItemsTitle");
-  const craftGrid = document.getElementById("craftGrid");
-  const craftBackBtn = document.getElementById("craftBackBtn");
-
-  let activeTab = "smelt";
-  let selectedMaterialId = "";
+  function bindDom() {
+    bsLevel = document.getElementById("bsLevel");
+    bsXPCurrent = document.getElementById("bsXPCurrent");
+    bsXPNext = document.getElementById("bsXPNext");
+    bsXPBar = document.getElementById("bsXPBar");
+    tabSmelt = document.getElementById("tabSmelt");
+    tabCraft = document.getElementById("tabCraft");
+    forgeSmeltPanel = document.getElementById("forgeSmeltPanel");
+    forgeCraftPanel = document.getElementById("forgeCraftPanel");
+    barGrid = document.getElementById("barGrid");
+    craftMaterialTabs = document.getElementById("craftMaterialTabs");
+    craftCategoryView = document.getElementById("craftCategoryView");
+    craftItemsView = document.getElementById("craftItemsView");
+    craftItemsTitle = document.getElementById("craftItemsTitle");
+    craftGrid = document.getElementById("craftGrid");
+    craftBackBtn = document.getElementById("craftBackBtn");
+    eventsBound = false;
+  }
 
   function renderHeader(){
     const save = ensureForge(loadSave());
@@ -231,10 +291,7 @@
       card.appendChild(img);
       card.appendChild(info);
 
-      if (!locked) {
-        card.addEventListener("click", () => openRecipe(smeltRecipeId(material)));
-      }
-
+      if (!locked) card.addEventListener("click", () => openRecipe(smeltRecipeId(material)));
       barGrid.appendChild(card);
     });
   }
@@ -246,6 +303,7 @@
     craftMaterialTabs.style.display = "grid";
     craftMaterialTabs.style.gridTemplateColumns = "repeat(4, minmax(0, 1fr))";
     craftMaterialTabs.style.gap = "12px";
+
     MATERIALS.forEach((material) => {
       const locked = save.blacksmithLevel < material.reqLevel;
       const btn = document.createElement("button");
@@ -369,26 +427,49 @@
     renderCraftMaterials();
   }
 
-  tabSmelt?.addEventListener("click", () => {
-    activeTab = "smelt";
-    renderActiveTab();
-  });
-  tabCraft?.addEventListener("click", () => {
-    activeTab = "craft";
-    renderActiveTab();
-  });
-  craftBackBtn?.addEventListener("click", () => {
-    if (craftCategoryView) craftCategoryView.style.display = "";
-    if (craftItemsView) craftItemsView.style.display = "none";
-  });
+  function bindEvents() {
+    if (eventsBound) return;
+    tabSmelt?.addEventListener("click", () => {
+      activeTab = "smelt";
+      renderActiveTab();
+    });
+    tabCraft?.addEventListener("click", () => {
+      activeTab = "craft";
+      renderActiveTab();
+    });
+    craftBackBtn?.addEventListener("click", () => {
+      if (craftCategoryView) craftCategoryView.style.display = "";
+      if (craftItemsView) craftItemsView.style.display = "none";
+    });
+    eventsBound = true;
+  }
 
-  window.addEventListener("DOMContentLoaded", () => {
+  function renderForgeView() {
     renderHeader();
     renderActiveTab();
-  });
-  window.addEventListener("ds:save", () => {
-    renderHeader();
-    if (activeTab === "smelt") renderSmeltCards();
-    else renderCraftMaterials();
-  });
+  }
+
+  function mountForge(root = null) {
+    const left = root || document.getElementById("leftPanel");
+    if (!left) return false;
+    left.innerHTML = FORGE_TEMPLATE;
+    document.title = "Darkstone Chronicles - Forge";
+    bindDom();
+    bindEvents();
+    renderForgeView();
+    return true;
+  }
+
+  function initStandaloneForge() {
+    if (!document.getElementById("tabSmelt")) return false;
+    document.title = "Darkstone Chronicles - Forge";
+    bindDom();
+    bindEvents();
+    renderForgeView();
+    return true;
+  }
+
+  window.DSForge = { mount: mountForge };
+  window.addEventListener("DOMContentLoaded", () => { initStandaloneForge(); });
+  window.addEventListener("ds:save", renderForgeView);
 })();

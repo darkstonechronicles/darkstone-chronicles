@@ -3,6 +3,9 @@
   const SAVE_KEY = "darkstone_save_v1";
   const SAVE_OWNER_KEY = "darkstone_save_owner_v1";
   const SUPABASE_SCRIPT_SRC = "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js";
+  const PRESENCE_HEARTBEAT_MS = 45 * 1000;
+  const PRESENCE_MIN_UPDATE_MS = 20 * 1000;
+  const ONLINE_WINDOW_MS = 2 * 60 * 1000;
   const CONFIG = {
     url: "https://ibpwrvtsnuhbylexuoil.supabase.co",
     anonKey: "sb_publishable_TLEC6vRVLjVzDOsmbXs4uA_X0MUXTYi"
@@ -26,6 +29,11 @@
       syncTimer: 0,
       revision: 0,
       suppressSync: false
+    },
+    presence: {
+      timer: 0,
+      lastSentAt: 0,
+      sending: null
     }
   };
 
@@ -66,6 +74,49 @@
   function currentRelativeUrl() {
     const page = currentPage();
     return `${page}${window.location.search || ""}${window.location.hash || ""}`;
+  }
+
+  function getPresencePageLabel(page = currentPage()) {
+    const labels = {
+      "index.html": "Home",
+      "fight.html": "Fight",
+      "dungeons.html": "Dungeons",
+      "dungeon_run.html": "Dungeon Run",
+      "professions.html": "Professions",
+      "professions_overview.html": "Overview",
+      "market.html": "Market",
+      "bank.html": "Bank",
+      "buildings.html": "Buildings",
+      "challenges.html": "Challenges",
+      "equipment.html": "Equipment",
+      "stats.html": "Stats",
+      "stats_alloc.html": "Stat Allocation",
+      "mining.html": "Mining",
+      "mining_action.html": "Mining Action",
+      "forge.html": "Forge",
+      "forge_action.html": "Forge Action",
+      "woodcutting.html": "Woodcutting",
+      "carpentry.html": "Carpentry",
+      "wood_gather.html": "Wood Gather",
+      "wood_gather_action.html": "Wood Gather Action",
+      "wood_sawmill.html": "Sawmill",
+      "wood_sawmill_action.html": "Sawmill Action",
+      "hunting.html": "Hunting",
+      "hunting_action.html": "Hunting Action",
+      "fishing.html": "Fishing",
+      "fishing_action.html": "Fishing Action",
+      "cooking.html": "Cooking",
+      "cooking_action.html": "Cooking Action",
+      "herbalism.html": "Herbalism",
+      "herbalism_action.html": "Herbalism Action",
+      "alchemy.html": "Alchemy",
+      "alchemy_action.html": "Alchemy Action",
+      "alchemy_tier.html": "Alchemy Tier",
+      "enchanting.html": "Enchanting",
+      "create_character.html": "Character Creation",
+      "login.html": "Login"
+    };
+    return labels[String(page || "").toLowerCase()] || "In Game";
   }
 
   function getReturnTo() {
@@ -306,6 +357,99 @@
     }
   }
 
+  function stopPresenceHeartbeat() {
+    if (state.presence.timer) {
+      window.clearInterval(state.presence.timer);
+      state.presence.timer = 0;
+    }
+    state.presence.lastSentAt = 0;
+    state.presence.sending = null;
+  }
+
+  async function markPresenceNow(force = false) {
+    await ready;
+    if (!state.client || !state.user?.id) return false;
+    if (state.presence.sending) return state.presence.sending;
+
+    const now = Date.now();
+    if (!force && now - Number(state.presence.lastSentAt || 0) < PRESENCE_MIN_UPDATE_MS) {
+      return false;
+    }
+
+    state.presence.sending = (async () => {
+      const payload = {
+        id: state.user.id,
+        email: state.user.email || null,
+        last_seen_at: new Date().toISOString(),
+        last_seen_page: getPresencePageLabel()
+      };
+
+      const { error } = await state.client.from("profiles").upsert(payload);
+      if (error) {
+        console.error("[auth] presence update failed", error);
+        return false;
+      }
+
+      state.presence.lastSentAt = Date.now();
+      window.dispatchEvent(new CustomEvent("ds:presence-updated", {
+        detail: { at: state.presence.lastSentAt, page: payload.last_seen_page }
+      }));
+      return true;
+    })();
+
+    try {
+      return await state.presence.sending;
+    } finally {
+      state.presence.sending = null;
+    }
+  }
+
+  function startPresenceHeartbeat() {
+    if (state.presence.timer || !state.user?.id) return;
+    markPresenceNow(true).catch((error) => {
+      console.error("[auth] initial presence update failed", error);
+    });
+    state.presence.timer = window.setInterval(() => {
+      if (document.hidden) return;
+      markPresenceNow().catch((error) => {
+        console.error("[auth] presence heartbeat failed", error);
+      });
+    }, PRESENCE_HEARTBEAT_MS);
+  }
+
+  async function fetchPresenceSnapshot() {
+    await ready;
+    if (!state.client) return { ok: false, players: [], onlineCount: 0, onlineWindowMs: ONLINE_WINDOW_MS };
+
+    const { data, error } = await state.client
+      .from("profiles")
+      .select("id, display_name, avatar_url, last_seen_at, last_seen_page")
+      .order("last_seen_at", { ascending: false, nullsFirst: false });
+
+    if (error) throw error;
+
+    const now = Date.now();
+    const players = (Array.isArray(data) ? data : []).map((row) => {
+      const seenAt = row?.last_seen_at ? new Date(row.last_seen_at).getTime() : 0;
+      const isOnline = seenAt > 0 && (now - seenAt) <= ONLINE_WINDOW_MS;
+      return {
+        id: String(row?.id || ""),
+        name: String(row?.display_name || "Hero").trim() || "Hero",
+        avatarUrl: String(row?.avatar_url || "").trim(),
+        lastSeenAt: row?.last_seen_at || null,
+        lastSeenPage: String(row?.last_seen_page || "").trim(),
+        isOnline
+      };
+    });
+
+    return {
+      ok: true,
+      players,
+      onlineCount: players.filter((player) => player.isOnline).length,
+      onlineWindowMs: ONLINE_WINDOW_MS
+    };
+  }
+
   function isAdmin() {
     return !!state.admin.isAdmin;
   }
@@ -373,6 +517,7 @@
     const { data } = await state.client.auth.getSession();
     state.session = data?.session || null;
     state.user = data?.session?.user || null;
+    if (state.user?.id) startPresenceHeartbeat();
 
     state.client.auth.onAuthStateChange((event, session) => {
       state.session = session || null;
@@ -382,9 +527,12 @@
       state.admin.isAdmin = false;
       state.admin.checking = null;
       if (!state.user?.id) {
+        stopPresenceHeartbeat();
         state.cloud.userId = "";
         state.cloud.ready = false;
         state.cloud.revision = 0;
+      } else {
+        startPresenceHeartbeat();
       }
       window.dispatchEvent(new CustomEvent("ds:auth", {
         detail: {
@@ -438,6 +586,7 @@
   async function signOut() {
     await ready;
     if (!state.client) return;
+    stopPresenceHeartbeat();
     if (state.cloud.syncTimer) {
       window.clearTimeout(state.cloud.syncTimer);
       state.cloud.syncTimer = 0;
@@ -485,11 +634,14 @@
     getClient,
     getUser,
     getUserLabel,
+    getPresencePageLabel,
     isConfigured,
     ready,
     redirectIfLoggedIn,
     requireAuth,
     refreshAdminStatus,
+    fetchPresenceSnapshot,
+    markPresenceNow,
     signInWithGoogle,
     signOut,
     syncCloudSaveNow,

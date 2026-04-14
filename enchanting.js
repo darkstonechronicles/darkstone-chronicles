@@ -1,36 +1,79 @@
 (() => {
   const SAVE_KEY = "darkstone_save_v1";
   const PICK_KEY = "ds_enchant_pick_v1";
+  const ENCHANTING_TEMPLATE = `
+    <h1 style="margin-bottom:6px;">Enchanting</h1>
+    <div style="opacity:.85;margin-bottom:14px;">
+      Select gear from your inventory and enchant it with the matching tier bar and plank.
+    </div>
+
+    <div style="max-width:340px;margin:0 auto 12px;">
+      <div style="background:#151520;border:2px solid #333;border-radius:12px;padding:10px 12px;">
+        <div style="font-weight:900;font-size:18px;display:flex;align-items:center;justify-content:center;gap:8px;margin-bottom:8px;text-align:center;">
+          <span aria-hidden="true">&#10024;</span>
+          <span>Enchanting Lvl: <span id="enchLevel">1</span></span>
+        </div>
+        <div style="height:12px;background:#0f0f16;border:1px solid #2a2a3a;border-radius:999px;overflow:hidden;position:relative;">
+          <div id="enchXPBar" style="height:100%;width:0%;background:linear-gradient(90deg,#d18a1f,#f3c463);"></div>
+          <div style="position:absolute;top:50%;left:8px;transform:translateY(-50%);font-size:11px;font-weight:800;line-height:1;color:#f4f1e8;text-shadow:0 1px 3px rgba(0,0,0,.75);pointer-events:none;">XP</div>
+          <div style="position:absolute;top:50%;right:8px;transform:translateY(-50%);font-size:11px;font-weight:800;line-height:1;color:#f4f1e8;text-shadow:0 1px 3px rgba(0,0,0,.75);pointer-events:none;"><span id="enchXPCurrent">0</span>/<span id="enchXPNext">100</span></div>
+        </div>
+      </div>
+    </div>
+
+    <div id="selectedCard" style="background:#151520;border:2px solid #333;border-radius:12px;padding:12px;display:none;">
+      <div style="font-weight:900;font-size:16px;margin-bottom:10px;">Selected Item</div>
+
+      <div id="selWrap" style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;">
+        <div id="selImgFrame" style="position:relative;width:84px;height:84px;display:none;">
+          <img id="selImg" src="" alt="" style="width:84px;height:84px;border-radius:12px;border:2px solid #333;object-fit:cover;background:#0f0f16;">
+          <div id="selUpgBadge" style="position:absolute;top:-8px;right:-8px;min-width:28px;height:28px;padding:0 8px;border-radius:999px;background:#d18a1f;color:#111;font-weight:900;font-size:13px;display:none;align-items:center;justify-content:center;border:2px solid #f6d58d;"></div>
+        </div>
+        <div style="min-width:260px;flex:1;">
+          <div id="selName" style="font-weight:900;font-size:18px;">No item selected</div>
+          <div id="selInfo" style="opacity:.85;margin-top:4px;">Pick a gear item from the list below.</div>
+          <div id="selStats" style="opacity:.9;margin-top:6px;">-</div>
+        </div>
+      </div>
+
+      <hr style="border:none;border-top:1px solid rgba(255,255,255,.08);margin:12px 0;">
+
+      <div style="font-weight:900;margin-bottom:8px;">Requirements</div>
+      <div style="opacity:.9;margin-bottom:6px;">Enchanting Req: <b><span id="reqEnchantLevel">1</span></b></div>
+      <div style="opacity:.9;margin-bottom:6px;"><span id="needBarLabel">Bar</span>: <b><span id="needBar">0</span></b> (you have <span id="haveBar">0</span>)</div>
+      <div style="opacity:.9;margin-bottom:6px;"><span id="needPlankLabel">Plank</span>: <b><span id="needPlank">0</span></b> (you have <span id="havePlank">0</span>)</div>
+      <div style="opacity:.9;margin-bottom:10px;">Success chance: <b><span id="chanceText">-</span></b></div>
+
+      <div style="display:flex;gap:10px;flex-wrap:wrap;">
+        <button id="btnEnchant" disabled>Enchant</button>
+        <button id="btnBack">Back</button>
+      </div>
+
+      <div id="enchMsg" style="margin-top:10px;opacity:.92;"></div>
+    </div>
+
+    <div id="listCard" style="background:#151520;border:2px solid #333;border-radius:12px;padding:12px;margin-top:12px;">
+      <div style="font-weight:900;font-size:16px;margin-bottom:10px;">Select Item For Enchant</div>
+      <div id="gearList" style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;"></div>
+    </div>
+  `;
 
   const BAR_TIERS = [
-    "Copper Bar",
-    "Silver Bar",
-    "Iron Bar",
-    "Mithril Bar",
-    "Adamant Bar",
-    "Obsidian Bar",
-    "Crystal Bar",
-    "Sulfur Bar",
-    "Rose Quartz Bar",
-    "Darkstone Bar"
+    "Copper Bar","Silver Bar","Iron Bar","Mithril Bar","Adamant Bar",
+    "Obsidian Bar","Crystal Bar","Sulfur Bar","Rose Quartz Bar","Darkstone Bar"
   ];
-
   const PLANK_TIERS = [
-    "Ash Plank",
-    "Pine Plank",
-    "Birch Plank",
-    "Oak Plank",
-    "Cedar Plank",
-    "Maple Plank",
-    "Ironwood Plank",
-    "Heartwood Plank",
-    "Darkwood Plank",
-    "Ebony Plank"
+    "Ash Plank","Pine Plank","Birch Plank","Oak Plank","Cedar Plank",
+    "Maple Plank","Ironwood Plank","Heartwood Plank","Darkwood Plank","Ebony Plank"
   ];
 
   const num = (v, f = 0) => (Number.isFinite(Number(v)) ? Number(v) : f);
   const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
   const el = (id) => document.getElementById(id);
+
+  let shellMounted = false;
+  let shellDetailMode = false;
+
   function xpBarGradient(pct) {
     if (pct < 25) return "linear-gradient(90deg,#b84a4a,#e06a6a)";
     if (pct < 50) return "linear-gradient(90deg,#c66a2b,#eea043)";
@@ -77,6 +120,7 @@
     try { return JSON.parse(localStorage.getItem(SAVE_KEY) || "{}") || {}; }
     catch { return {}; }
   }
+
   function getPotionTier(item){
     if (!item) return 1;
     const id = String(item.id || "");
@@ -88,6 +132,7 @@
     for (const r of roman) if (name.includes(r)) return map[r];
     return 1;
   }
+
   function getArtisanPotionBonus(save){
     const cons = (save && typeof save.consumables === "object") ? save.consumables : {};
     let bonus = 0;
@@ -103,9 +148,11 @@
     });
     return bonus;
   }
+
   function getEffectiveEnchantLevel(save){
     return Math.max(1, num(save.enchantingLevel, 1)) + getArtisanPotionBonus(save);
   }
+
   function tickArtisanPotionActions(save, actions = 1){
     if (!save || typeof save !== "object") return false;
     if (!save.consumables || typeof save.consumables !== "object") return false;
@@ -148,29 +195,15 @@
     localStorage.setItem(SAVE_KEY, JSON.stringify(next));
   }
 
-  function addStackByName(save, name, quantity) {
-    const qty = Math.max(1, Math.round(num(quantity, 1)));
-    const existing = save.inventory.find((it) => it && String(it.name || "").toLowerCase() === String(name).toLowerCase());
-    if (existing) {
-      const cur = Math.max(1, num(existing.quantity ?? existing.qty, 1));
-      existing.quantity = cur + qty;
-      return;
-    }
-    save.inventory.push({ name, quantity: qty });
-  }
-
   function ensureSave(s) {
     s = s && typeof s === "object" ? s : {};
     if (!Array.isArray(s.inventory)) s.inventory = [];
     if (!s.equipment || typeof s.equipment !== "object") s.equipment = {};
-
     s.heroAttack = num(s.heroAttack, 10);
     s.heroDefense = num(s.heroDefense, 10);
-
     s.enchantingLevel = Math.max(1, num(s.enchantingLevel, 1));
     s.enchantingXP = Math.max(0, num(s.enchantingXP, 0));
     s.enchantingXPNext = Math.max(1, num(s.enchantingXPNext, xpNextForLevel(s.enchantingLevel)));
-
     return s;
   }
 
@@ -198,13 +231,7 @@
 
   function stableKey(it) {
     const base = it?.baseName ? String(it.baseName) : stripPlus(it?.name);
-    return [
-      it?.type || "",
-      base || "",
-      it?.slot || "",
-      it?.reqLevel ?? 1,
-      it?.rarity || ""
-    ].join("::");
+    return [it?.type || "", base || "", it?.slot || "", it?.reqLevel ?? 1, it?.rarity || ""].join("::");
   }
 
   function getPick() {
@@ -212,40 +239,45 @@
     catch { return null; }
   }
 
-  function clearPick() {
-    localStorage.removeItem(PICK_KEY);
-  }
-
-  function setPick(pick) {
-    localStorage.setItem(PICK_KEY, JSON.stringify(pick));
-  }
+  function clearPick() { localStorage.removeItem(PICK_KEY); }
+  function setPick(pick) { localStorage.setItem(PICK_KEY, JSON.stringify(pick)); }
 
   function isDetailMode() {
+    if (shellMounted) return shellDetailMode;
     try {
       const url = new URL(window.location.href);
       return url.searchParams.get("view") === "item";
-    } catch {
-      return false;
-    }
+    } catch { return false; }
   }
 
   function goToListMode() {
     clearPick();
+    if (shellMounted) {
+      shellDetailMode = false;
+      render();
+      return;
+    }
     window.location.href = "enchanting.html";
   }
 
   function goToDetailMode() {
+    if (shellMounted) {
+      shellDetailMode = true;
+      render();
+      return;
+    }
     window.location.href = "enchanting.html?view=item";
+  }
+
+  function navigateToProfessions() {
+    if (window.DSUI?.navigateWithinShell?.("professions.html")) return;
+    window.location.href = "professions.html";
   }
 
   function buildPick(index, item) {
     const copy = { ...item };
     ensureBaseName(copy);
-    return {
-      index,
-      key: stableKey(copy),
-      ts: Date.now()
-    };
+    return { index, key: stableKey(copy), ts: Date.now() };
   }
 
   function isGearItem(item) {
@@ -273,16 +305,11 @@
     return clamp(Math.floor(reqLevel / 10) + 1, 1, 10);
   }
 
-  function reqEnchantLevelForTier(tier) {
-    return tier <= 1 ? 1 : (tier - 1) * 10;
-  }
+  function reqEnchantLevelForTier(tier) { return tier <= 1 ? 1 : (tier - 1) * 10; }
 
   function materialForTier(tier) {
     const idx = clamp(tier, 1, 10) - 1;
-    return {
-      bar: BAR_TIERS[idx],
-      plank: PLANK_TIERS[idx]
-    };
+    return { bar: BAR_TIERS[idx], plank: PLANK_TIERS[idx] };
   }
 
   function getUnitsByName(inv, name) {
@@ -299,7 +326,6 @@
       const it = save.inventory[i];
       if (!it) continue;
       if (String(it.name || "").toLowerCase() !== String(name).toLowerCase()) continue;
-
       const qty = Math.max(1, num(it.quantity ?? it.qty, 1));
       if (qty <= remaining) {
         remaining -= qty;
@@ -312,32 +338,16 @@
     return remaining === 0;
   }
 
-  function takeOneFromInventoryIndex(save, idx) {
-    const it = save.inventory[idx];
-    if (!it) return null;
-
-    const qty = Math.max(1, num(it.quantity ?? it.qty, 1));
-    if (qty > 1) {
-      it.quantity = qty - 1;
-      return { ...it, quantity: 1 };
-    }
-
-    save.inventory.splice(idx, 1);
-    return { ...it, quantity: 1 };
-  }
-
   function recomputeTotals(save) {
     const baseAtk = num(save.heroAttack, 10);
     const baseDef = num(save.heroDefense, 10);
     let atkBonus = 0;
     let defBonus = 0;
-
     Object.values(save.equipment || {}).forEach((it) => {
       if (!it) return;
       atkBonus += num(it.atk, 0);
       defBonus += num(it.def, 0);
     });
-
     save.attackTotal = baseAtk + atkBonus;
     save.defenseTotal = baseDef + defBonus;
   }
@@ -345,7 +355,6 @@
   function gainEnchantXP(save, amount) {
     save.enchantingXP += Math.max(0, Math.round(num(amount, 0)));
     save.enchantingXPNext = xpNextForLevel(save.enchantingLevel);
-
     while (save.enchantingXP >= save.enchantingXPNext) {
       save.enchantingXP -= save.enchantingXPNext;
       save.enchantingLevel += 1;
@@ -356,27 +365,19 @@
   function applyEnchantStats(item) {
     const atk = num(item?.atk, 0);
     const def = num(item?.def, 0);
-
     if (atk > 0) item.atk = atk + 1;
     if (def > 0) item.def = def + 1;
-
-    if (atk <= 0 && def <= 0) {
-      item.atk = 1;
-    }
+    if (atk <= 0 && def <= 0) item.atk = 1;
   }
 
   function getGearEntries(save) {
-    return save.inventory
-      .map((item, index) => ({ item, index }))
-      .filter(({ item }) => isGearItem(item));
+    return save.inventory.map((item, index) => ({ item, index })).filter(({ item }) => isGearItem(item));
   }
 
   function findSelectedItem(save, pick, allowFallback = false) {
     if (!pick) return { idx: null, item: null };
-
     const idx = num(pick.index, -1);
     const key = String(pick.key || "");
-
     if (idx >= 0 && idx < save.inventory.length) {
       const atIndex = save.inventory[idx];
       if (atIndex) {
@@ -384,16 +385,13 @@
         if (stableKey(atIndex) === key) return { idx, item: atIndex };
       }
     }
-
     const idx2 = save.inventory.findIndex((it) => {
       if (!it) return false;
       ensureBaseName(it);
       return stableKey(it) === key;
     });
     if (idx2 >= 0) return { idx: idx2, item: save.inventory[idx2] };
-
     if (!allowFallback) return { idx: null, item: null };
-
     const gears = getGearEntries(save);
     if (gears.length === 0) return { idx: null, item: null };
     return { idx: gears[0].index, item: gears[0].item };
@@ -407,13 +405,8 @@
   }
 
   function rarityColors(item) {
-    if (item?.setId) {
-      return { bg: "#2a0a0d", border: "#8d3b45" };
-    }
-    if (item?.crafted) {
-      return { bg: "#14361d", border: "#2d7a43" };
-    }
-
+    if (item?.setId) return { bg: "#2a0a0d", border: "#8d3b45" };
+    if (item?.crafted) return { bg: "#14361d", border: "#2d7a43" };
     const rarity = String(item?.rarity || "").toLowerCase();
     if (rarity === "common") return { bg: "#0b0b0b", border: "#3a3a46" };
     if (rarity === "uncommon") return { bg: "#0f141b", border: "#4c667f" };
@@ -438,10 +431,8 @@
   function renderGearList(save, selectedIndex) {
     const wrap = el("gearList");
     if (!wrap) return;
-
     const gears = getGearEntries(save);
     wrap.innerHTML = "";
-
     if (gears.length === 0) {
       const empty = document.createElement("div");
       empty.style.opacity = ".85";
@@ -449,12 +440,10 @@
       wrap.appendChild(empty);
       return;
     }
-
     gears.forEach(({ item, index }) => {
       ensureBaseName(item);
       setUpgName(item);
       const colors = rarityColors(item);
-
       const node = document.createElement("button");
       node.type = "button";
       node.style.display = "flex";
@@ -467,13 +456,11 @@
       node.style.color = "#fff";
       node.style.textAlign = "left";
       node.style.cursor = "pointer";
-
       const tier = getItemTier(item);
       const rarity = normalizeEnchantRarity(item);
       const upg = upgradeLevel(item);
       const maxUpg = maxEnchantForItem(item);
       const qty = Math.max(1, num(item.quantity ?? item.qty, 1));
-
       node.innerHTML = `
         <div style="position:relative;width:54px;height:54px;flex:0 0 auto;">
           <img src="${item.img || ""}" alt="${item.name || "Item"}" style="width:54px;height:54px;border-radius:10px;border:1px solid ${colors.border};object-fit:cover;background:${colors.bg};">
@@ -484,12 +471,10 @@
           <div style="opacity:.82;font-size:12px;margin-top:2px;">Tier ${tier} | ${rarity} | +${upg}/${maxUpg}${qty > 1 ? ` | x${qty}` : ""}</div>
         </div>
       `;
-
       node.addEventListener("click", () => {
         setPick(buildPick(index, item));
         goToDetailMode();
       });
-
       wrap.appendChild(node);
     });
   }
@@ -497,7 +482,6 @@
   function renderSelected(save, selectedIndex, selectedItem) {
     const msgEl = el("enchMsg");
     if (msgEl && !msgEl.textContent) msgEl.textContent = "";
-
     if (!selectedItem) {
       if (el("selName")) el("selName").textContent = "No item selected";
       if (el("selInfo")) el("selInfo").textContent = "Pick a gear item from the list below.";
@@ -517,10 +501,8 @@
       renderGearList(save, selectedIndex);
       return;
     }
-
     ensureBaseName(selectedItem);
     setUpgName(selectedItem);
-
     const upg = upgradeLevel(selectedItem);
     const maxUpg = maxEnchantForItem(selectedItem);
     const tier = getItemTier(selectedItem);
@@ -531,17 +513,9 @@
     const haveBar = getUnitsByName(save.inventory, mats.bar);
     const havePlank = getUnitsByName(save.inventory, mats.plank);
     const chance = successChance(save, selectedItem);
-    const canEnchant =
-      effectiveLevel >= reqEnchantLevel &&
-      haveBar >= 1 &&
-      havePlank >= 1 &&
-      upg < maxUpg;
-
+    const canEnchant = effectiveLevel >= reqEnchantLevel && haveBar >= 1 && havePlank >= 1 && upg < maxUpg;
     if (el("selName")) el("selName").textContent = selectedItem.name || "Item";
-    if (el("selInfo")) {
-      el("selInfo").textContent =
-        `Tier ${tier} | ${normalizeEnchantRarity(selectedItem)} | Req Lv ${num(selectedItem.reqLevel, 1)} | Max +${maxUpg}`;
-    }
+    if (el("selInfo")) el("selInfo").textContent = `Tier ${tier} | ${normalizeEnchantRarity(selectedItem)} | Req Lv ${num(selectedItem.reqLevel, 1)} | Max +${maxUpg}`;
     if (el("selStats")) {
       const statParts = [];
       if (num(selectedItem.atk, 0) > 0) statParts.push(`ATK +${num(selectedItem.atk, 0)}`);
@@ -570,14 +544,12 @@
         el("selUpgBadge").style.display = "none";
       }
     }
-
     if (el("selWrap")) {
       el("selWrap").style.background = colors.bg;
       el("selWrap").style.border = `2px solid ${colors.border}`;
       el("selWrap").style.borderRadius = "12px";
       el("selWrap").style.padding = "12px";
     }
-
     if (el("reqEnchantLevel")) el("reqEnchantLevel").textContent = String(reqEnchantLevel);
     if (el("needBarLabel")) el("needBarLabel").textContent = mats.bar;
     if (el("needPlankLabel")) el("needPlankLabel").textContent = mats.plank;
@@ -585,7 +557,6 @@
     if (el("needPlank")) el("needPlank").textContent = "1";
     if (el("haveBar")) el("haveBar").textContent = String(haveBar);
     if (el("havePlank")) el("havePlank").textContent = String(havePlank);
-
     if (upg >= maxUpg) {
       if (el("chanceText")) el("chanceText").textContent = "MAX";
       if (el("btnEnchant")) el("btnEnchant").disabled = true;
@@ -600,15 +571,14 @@
       if (msgEl && (haveBar < 1 || havePlank < 1)) msgEl.textContent = "Missing materials.";
       else if (msgEl && msgEl.textContent === "Missing materials.") msgEl.textContent = "";
     }
-
     renderGearList(save, selectedIndex);
   }
 
-  function renderMode(isDetail) {
-    if (el("selectedCard")) el("selectedCard").style.display = isDetail ? "block" : "none";
-    if (el("listCard")) el("listCard").style.display = isDetail ? "none" : "block";
-    if (el("btnEnchant")) el("btnEnchant").style.display = isDetail ? "inline-flex" : "none";
-    if (el("btnBack")) el("btnBack").textContent = isDetail ? "Back" : "Professions";
+  function renderMode(detailMode) {
+    if (el("selectedCard")) el("selectedCard").style.display = detailMode ? "block" : "none";
+    if (el("listCard")) el("listCard").style.display = detailMode ? "none" : "block";
+    if (el("btnEnchant")) el("btnEnchant").style.display = detailMode ? "inline-flex" : "none";
+    if (el("btnBack")) el("btnBack").textContent = detailMode ? "Back" : "Professions";
   }
 
   function render() {
@@ -616,16 +586,13 @@
     const detailMode = isDetailMode();
     const pick = detailMode ? getPick() : null;
     const found = detailMode ? findSelectedItem(save, pick, false) : { idx: null, item: null };
-
     if (detailMode && !found.item) {
       goToListMode();
       return;
     }
-
     if (detailMode && found.item && (!pick || found.idx !== num(pick.index, -1))) {
       setPick(buildPick(found.idx, found.item));
     }
-
     renderTop(save);
     renderMode(detailMode);
     if (detailMode) renderSelected(save, found.idx, found.item);
@@ -637,39 +604,33 @@
     const found = findSelectedItem(save, getPick());
     const idx = found.idx;
     const item = found.item;
-
     if (idx == null || !item) {
       if (el("enchMsg")) el("enchMsg").textContent = "No item selected.";
       render();
       return;
     }
-
     ensureBaseName(item);
     const upg = upgradeLevel(item);
     const maxUpg = maxEnchantForItem(item);
     const tier = getItemTier(item);
     const reqEnchantLevel = reqEnchantLevelForTier(tier);
     const mats = materialForTier(tier);
-
     if (upg >= maxUpg) {
       if (el("enchMsg")) el("enchMsg").textContent = `Max enchant reached (+${maxUpg}).`;
       render();
       return;
     }
-
     const effectiveLevel = getEffectiveEnchantLevel(save);
     if (effectiveLevel < reqEnchantLevel) {
       if (el("enchMsg")) el("enchMsg").textContent = `Requires Enchanting Level ${reqEnchantLevel}.`;
       render();
       return;
     }
-
     if (getUnitsByName(save.inventory, mats.bar) < 1 || getUnitsByName(save.inventory, mats.plank) < 1) {
       if (el("enchMsg")) el("enchMsg").textContent = "Not enough materials.";
       render();
       return;
     }
-
     const removedBar = removeUnitsByName(save, mats.bar, 1);
     const removedPlank = removeUnitsByName(save, mats.plank, 1);
     if (!removedBar || !removedPlank) {
@@ -678,24 +639,19 @@
       render();
       return;
     }
-
     const stackQty = Math.max(1, num(item.quantity ?? item.qty, 1));
     const chance = successChance(save, item);
     const rolledSuccess = Math.random() <= chance;
-
     if (rolledSuccess) {
       let enchantedItem = item;
-
       if (stackQty > 1) {
         item.quantity = stackQty - 1;
         enchantedItem = { ...item, quantity: 1 };
       }
-
       ensureBaseName(enchantedItem);
       enchantedItem.upg = upgradeLevel(enchantedItem) + 1;
       applyEnchantStats(enchantedItem);
       setUpgName(enchantedItem);
-
       if (stackQty > 1) {
         save.inventory.push(enchantedItem);
         const newIndex = save.inventory.length - 1;
@@ -703,7 +659,6 @@
       } else {
         setPick(buildPick(idx, item));
       }
-
       gainEnchantXP(save, 20 + tier * 5);
       if (el("enchMsg")) el("enchMsg").textContent = `Success! ${enchantedItem.name} reached +${enchantedItem.upg}.`;
     } else {
@@ -711,30 +666,48 @@
       setPick(buildPick(idx, item));
       if (el("enchMsg")) el("enchMsg").textContent = "Failed. Materials were consumed.";
     }
-
-      tickArtisanPotionActions(save, 1);
-      recomputeTotals(save);
-      setSave(save);
-      render();
+    tickArtisanPotionActions(save, 1);
+    recomputeTotals(save);
+    setSave(save);
+    render();
   }
 
-  function boot() {
-    const save = ensureSave(loadSave());
-
+  function bindEvents() {
     el("btnBack")?.addEventListener("click", () => {
       if (isDetailMode()) {
         goToListMode();
         return;
       }
-      window.location.href = "professions.html";
+      navigateToProfessions();
     });
-
     el("btnEnchant")?.addEventListener("click", doEnchant);
-
-    render();
-    window.addEventListener("ds:save", render);
   }
 
-  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", boot);
-  else boot();
+  function mountEnchanting(root = null) {
+    const left = root || el("leftPanel");
+    if (!left) return false;
+    left.innerHTML = ENCHANTING_TEMPLATE;
+    document.title = "Darkstone Chronicles - Enchanting";
+    shellMounted = true;
+    shellDetailMode = !!getPick();
+    bindEvents();
+    render();
+    return true;
+  }
+
+  function bootStandalone() {
+    if (!el("gearList")) return false;
+    document.title = "Darkstone Chronicles - Enchanting";
+    shellMounted = false;
+    bindEvents();
+    render();
+    return true;
+  }
+
+  window.DSEnchanting = { mount: mountEnchanting };
+
+  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", bootStandalone);
+  else bootStandalone();
+
+  window.addEventListener("ds:save", render);
 })();

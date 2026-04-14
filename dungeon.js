@@ -13,6 +13,122 @@
   const STAT_POINTS_PER_LEVEL = 5;
   const MAX_WAVE_ROUNDS = 15;
   const CRYPT_SIGIL_ITEM = { type:"material", name:"Crypt Sigil", img:"images/items/sigils/crypt_sigil.png" };
+  const DUNGEON_LIST_TEMPLATE = `
+    <h1>Dungeons</h1>
+    <div style="width:90%;max-width:900px;margin:0 auto;">
+      <div id="dungeonCards" style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px;justify-items:center;"></div>
+      <div id="msg" style="margin-top:10px;text-align:center;opacity:.9;"></div>
+    </div>
+  `;
+  const DUNGEON_RUN_TEMPLATE = `
+    <h1 id="dungeonTitle">&#127984; Dungeon</h1>
+
+    <div id="battleWrap" style="width:90%;max-width:700px;margin:18px auto;">
+      <div id="prepText" style="margin:0 0 8px 0;font-size:12px;opacity:.85;"></div>
+      <div id="enterDungeonRow" style="display:none;justify-content:center;margin:0 0 12px 0;">
+        <button id="enterDungeonBtn" style="min-width:180px;">Enter Dungeon</button>
+      </div>
+      <div id="runAgainRow" style="display:none;justify-content:center;margin:0 0 12px 0;">
+        <button id="runAgainBtn" style="min-width:160px;">Run Again</button>
+      </div>
+
+      <div id="vsCard" style="display:none;position:relative;align-items:center;justify-content:space-between;gap:10px;background:#151520;border-radius:12px;border:2px solid #333;padding:12px;">
+        <div style="flex:1;text-align:center;">
+          <img id="heroImg" src="images/hero.png" alt="Hero" style="width:90px;height:90px;border-radius:10px;border:2px solid #333;object-fit:cover;">
+          <div id="heroInfo" style="margin-top:8px;font-size:14px;"></div>
+          <div style="height:10px;background:#222;border:1px solid #333;border-radius:6px;margin-top:6px;">
+            <div id="heroHpBar" style="height:100%;width:100%;border-radius:6px;"></div>
+          </div>
+          <div id="heroHpText" style="margin-top:4px;font-size:12px;opacity:.9;"></div>
+        </div>
+
+        <div style="font-size:28px;font-weight:bold;opacity:.9;">VS</div>
+
+        <div style="flex:1;text-align:center;">
+          <img id="mobImg" src="" alt="Mob" style="width:90px;height:90px;border-radius:10px;border:2px solid #333;object-fit:cover;">
+          <div id="mobInfo" style="margin-top:8px;font-size:14px;"></div>
+          <div style="height:10px;background:#222;border:1px solid #333;border-radius:6px;margin-top:6px;">
+            <div id="mobHpBar" style="height:100%;width:100%;border-radius:6px;"></div>
+          </div>
+          <div id="mobHpText" style="margin-top:4px;font-size:12px;opacity:.9;"></div>
+        </div>
+      </div>
+
+      <div id="waveCard" style="display:none;position:relative;grid-template-columns:1fr auto 1fr;align-items:center;gap:16px;background:#151520;border-radius:12px;border:2px solid #333;padding:42px 12px 18px;min-height:186px;box-sizing:border-box;">
+        <div id="runTimerWrap" style="position:absolute;left:10px;top:8px;display:flex;align-items:center;gap:6px;opacity:.8;font-size:12px;pointer-events:none;">
+          <span>β±</span>
+          <span id="runTimer" style="font-weight:800;letter-spacing:.4px;">00:00</span>
+        </div>
+        <div style="position:absolute;left:50%;top:12px;transform:translateX(-50%);display:flex;justify-content:center;align-items:center;pointer-events:none;">
+          <div id="waveLabel" style="font-weight:700;text-align:center;"></div>
+        </div>
+        <div style="display:flex;justify-content:center;align-items:center;align-self:center;">
+          <div style="display:flex;flex-direction:column;align-items:center;gap:4px;width:150px;">
+            <div style="display:flex;align-items:flex-start;justify-content:center;gap:10px;width:100%;">
+              <div style="display:flex;flex-direction:column;align-items:center;gap:4px;flex:0 0 auto;">
+                <img id="waveHeroImg" src="images/hero.png" alt="Hero" style="width:82px;height:82px;border-radius:10px;border:2px solid #333;object-fit:cover;flex:0 0 auto;">
+                <div style="width:74px;height:6px;background:#222;border:1px solid #333;border-radius:999px;overflow:hidden;">
+                  <div id="waveHeroHpBar" style="height:100%;width:100%;border-radius:999px;background:linear-gradient(90deg, #39d98a, #198754);"></div>
+                </div>
+                <div id="waveHeroHpText" style="font-size:10px;opacity:.85;line-height:1;"></div>
+                <div id="waveHeroDamageText" style="display:none;margin-top:2px;padding:4px 8px;border-radius:999px;border:1px solid rgba(210, 80, 80, .35);background:rgba(60, 18, 18, .82);box-shadow:0 0 10px rgba(150, 30, 30, .16);font-size:9px;font-weight:700;line-height:1;text-align:center;color:#ffe1e1;white-space:nowrap;"></div>
+              </div>
+              <div id="wavePetStack" style="display:none;flex-direction:column;align-items:center;justify-content:space-between;height:82px;flex:0 0 auto;">
+                <div id="waveCombatPetBadge" style="display:none;flex-direction:column;align-items:center;gap:3px;flex:0 0 auto;">
+                  <div id="waveCombatPetIcon" style="width:34px;height:34px;border-radius:9px;border:2px solid #333;background:#101522;color:#eef2ff;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:900;overflow:hidden;box-sizing:border-box;"></div>
+                  <div style="width:34px;height:4px;background:#222;border:1px solid #333;border-radius:999px;overflow:hidden;">
+                    <div id="waveCombatPetXpBar" style="height:100%;width:0%;border-radius:999px;background:#4aa3ff;"></div>
+                  </div>
+                </div>
+                <div id="waveFortunePetBadge" style="display:none;flex-direction:column;align-items:center;gap:3px;flex:0 0 auto;">
+                  <div id="waveFortunePetIcon" style="width:34px;height:34px;border-radius:9px;border:2px solid #333;background:#101522;color:#eef2ff;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:900;overflow:hidden;box-sizing:border-box;"></div>
+                  <div style="width:34px;height:4px;background:#222;border:1px solid #333;border-radius:999px;overflow:hidden;">
+                    <div id="waveFortunePetXpBar" style="height:100%;width:0%;border-radius:999px;background:#4aa3ff;"></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div style="display:flex;align-items:center;justify-content:center;align-self:center;min-width:126px;">
+          <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;">
+            <img src="images/ui/my_vs_icon.png" alt="VS" style="width:126px;height:126px;object-fit:contain;display:block;">
+            <div id="encounterStatus" style="min-height:28px;font-size:12px;line-height:1.2;opacity:.92;text-align:center;max-width:160px;"></div>
+          </div>
+        </div>
+        <div style="display:flex;justify-content:center;align-items:center;align-self:center;min-width:0;">
+          <div style="min-width:0;display:flex;flex-direction:column;align-items:center;gap:4px;position:relative;width:120px;">
+            <div id="waveMobInfo" style="position:absolute;left:50%;top:-28px;transform:translateX(-50%);font-size:13px;opacity:.9;text-align:center;white-space:nowrap;"></div>
+            <img id="waveMobImg" src="" alt="Mob" style="width:82px;height:82px;border-radius:10px;border:2px solid #333;object-fit:cover;">
+            <div style="width:74px;height:6px;background:#222;border:1px solid #333;border-radius:999px;overflow:hidden;">
+              <div id="waveHpBar" style="height:100%;width:0%;border-radius:999px;background:linear-gradient(90deg, #ff5555, #bb0000);"></div>
+            </div>
+            <div id="waveHpText" style="font-size:10px;opacity:.85;line-height:1;"></div>
+            <div id="waveMobDamageText" style="display:none;margin-top:2px;padding:4px 8px;border-radius:999px;border:1px solid rgba(70, 190, 120, .35);background:rgba(20, 50, 30, .78);box-shadow:0 0 10px rgba(20, 120, 60, .14);font-size:9px;font-weight:700;line-height:1;text-align:center;color:#dff7e8;white-space:nowrap;"></div>
+          </div>
+        </div>
+
+        <div id="battleLog" style="grid-column:1 / -1;min-height:18px;margin-top:6px;font-size:12px;line-height:1.2;opacity:.92;text-align:center;"></div>
+      </div>
+
+      <div id="cooldownWrap" style="margin-top:10px;display:none;">
+        <div style="display:flex;justify-content:space-between;font-size:12px;opacity:.9;">
+          <span id="cooldownLabel">Next</span>
+          <span id="cooldownText">6.0s</span>
+        </div>
+        <div style="height:10px;background:#222;border:1px solid #333;border-radius:6px;margin-top:6px;overflow:hidden;">
+          <div id="cooldownBar" style="height:100%;width:0%;border-radius:6px;"></div>
+        </div>
+      </div>
+    </div>
+  `;
+  let __dungeonListMounted = false;
+  let __dungeonListOpenPanel = null;
+  let __dungeonListOutsideClick = null;
+  let __dungeonListResize = null;
+  let __dungeonRunMounted = false;
+  let __dungeonRunEnterHandler = null;
+  let __dungeonRunAgainHandler = null;
 
   const DUNGEON_DEFS = [
     {
@@ -1507,6 +1623,418 @@
 
   function enterIce(){ return enterDungeon("ice"); }
 
+  function ensureDungeonListStyles() {
+    if (document.getElementById("ds-dungeon-list-styles")) return;
+    const style = document.createElement("style");
+    style.id = "ds-dungeon-list-styles";
+    style.textContent = `
+      @media (max-width: 680px) {
+        #dungeonCards {
+          grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+          gap: 10px !important;
+        }
+        .dungeonCard { max-width: 104px !important; }
+        .dungeonLootBtn {
+          top: 2px !important;
+          right: 50% !important;
+          transform: translateX(61px) !important;
+          width: 22px !important;
+          height: 22px !important;
+          border-radius: 7px !important;
+        }
+        .dungeonLootBtn img { width: 14px !important; height: 14px !important; }
+        .dungeonCardInner { gap: 8px !important; }
+        .dungeonEnterBtn {
+          padding: 0 !important;
+          border: 0 !important;
+          background: transparent !important;
+          box-shadow: none !important;
+          min-height: 0 !important;
+        }
+        .dungeonCardImg { width: 72px !important; height: 72px !important; border-radius: 8px !important; }
+        .dungeonInfo {
+          width: 104px !important;
+          min-height: 94px !important;
+          padding: 5px 5px 6px !important;
+          border-radius: 8px !important;
+        }
+        .dungeonName {
+          min-height: 24px !important;
+          font-size: 10px !important;
+          line-height: 1.05 !important;
+          white-space: normal !important;
+          word-break: break-word !important;
+        }
+        .dungeonReq, .dungeonCost {
+          margin-top: 3px !important;
+          font-size: 10px !important;
+          line-height: 1.05 !important;
+        }
+        .dungeonStats {
+          margin-top: 6px !important;
+          padding-top: 5px !important;
+          gap: 4px !important;
+        }
+        .dungeonStatBox {
+          border-radius: 8px !important;
+          padding: 4px 2px !important;
+          gap: 2px !important;
+        }
+        .dungeonStatIcon { font-size: 13px !important; }
+        .dungeonStatValue { font-size: 10px !important; }
+      }
+      @media (max-width: 480px) {
+        #dungeonCards { gap: 8px !important; }
+        .dungeonCard { max-width: 96px !important; }
+        .dungeonLootBtn { transform: translateX(55px) !important; }
+        .dungeonCardImg { width: 66px !important; height: 66px !important; }
+        .dungeonInfo {
+          width: 96px !important;
+          min-height: 90px !important;
+          padding: 4px 4px 5px !important;
+        }
+        .dungeonName { font-size: 9px !important; }
+        .dungeonReq, .dungeonCost, .dungeonStatValue { font-size: 9px !important; }
+      }
+    `;
+    document.head.appendChild(style);
+  }
+
+  function isCompactDungeonMobile() {
+    return window.matchMedia("(max-width: 680px)").matches;
+  }
+
+  function applyDungeonLootPanelLayout(panel, anchorEl = null) {
+    if (!panel) return;
+
+    if (isCompactDungeonMobile()) {
+      const viewportWidth = window.innerWidth || document.documentElement.clientWidth || 360;
+      const viewportHeight = window.innerHeight || document.documentElement.clientHeight || 640;
+      const panelWidth = Math.min(250, Math.max(210, viewportWidth - 110));
+      const panelHeight = Math.min(360, Math.max(280, viewportHeight * 0.52));
+      let left = Math.max(10, (viewportWidth - panelWidth) / 2);
+      let top = Math.max(12, (viewportHeight - panelHeight) / 2);
+
+      if (anchorEl && typeof anchorEl.getBoundingClientRect === "function") {
+        const anchorCard = anchorEl.closest?.(".dungeonCard");
+        const rect = (anchorCard || anchorEl).getBoundingClientRect();
+        left = Math.min(
+          Math.max(10, rect.left + (rect.width / 2) - (panelWidth / 2)),
+          Math.max(10, viewportWidth - panelWidth - 10)
+        );
+        const preferredTop = rect.top + 8;
+        const maxTop = Math.max(12, viewportHeight - panelHeight - 12);
+        top = Math.min(Math.max(12, preferredTop), maxTop);
+        if (top < 12) top = 12;
+      }
+
+      panel.style.position = "fixed";
+      panel.style.left = `${Math.round(left)}px`;
+      panel.style.top = `${Math.round(top)}px`;
+      panel.style.transform = "";
+      panel.style.width = `${Math.round(panelWidth)}px`;
+      panel.style.maxWidth = `${Math.round(panelWidth)}px`;
+      panel.style.maxHeight = `${Math.round(panelHeight)}px`;
+      panel.style.overflowY = "auto";
+      panel.style.overflowX = "hidden";
+      panel.style.zIndex = "120";
+      return;
+    }
+
+    panel.style.position = "absolute";
+    panel.style.left = "calc(100% + 8px)";
+    panel.style.top = "8px";
+    panel.style.transform = "";
+    panel.style.width = "260px";
+    panel.style.maxWidth = "min(260px,calc(100vw - 40px))";
+    panel.style.maxHeight = "";
+    panel.style.overflowY = "";
+    panel.style.overflowX = "";
+    panel.style.zIndex = "20";
+  }
+
+  function openDungeonLootPanelFor(lootPanel, currentOpenPanelRef, anchorEl = null) {
+    if (!lootPanel) return currentOpenPanelRef || null;
+    if (currentOpenPanelRef && currentOpenPanelRef !== lootPanel) {
+      currentOpenPanelRef.style.display = "none";
+    }
+    applyDungeonLootPanelLayout(lootPanel, anchorEl);
+    lootPanel.style.display = "block";
+    return lootPanel;
+  }
+
+  function closeDungeonLootPanelFor(lootPanel, currentOpenPanelRef) {
+    if (!lootPanel) return currentOpenPanelRef || null;
+    lootPanel.style.display = "none";
+    return currentOpenPanelRef === lootPanel ? null : currentOpenPanelRef;
+  }
+
+  function unmountDungeonList() {
+    if (__dungeonListOutsideClick) {
+      document.removeEventListener("click", __dungeonListOutsideClick);
+      __dungeonListOutsideClick = null;
+    }
+    if (__dungeonListResize) {
+      window.removeEventListener("resize", __dungeonListResize);
+      __dungeonListResize = null;
+    }
+    __dungeonListOpenPanel = null;
+    __dungeonListMounted = false;
+  }
+
+  function unmountDungeonRun() {
+    const enterBtn = runDOM.enterBtn();
+    const runAgainBtn = runDOM.runAgainBtn();
+    if (enterBtn && __dungeonRunEnterHandler) {
+      enterBtn.removeEventListener("click", __dungeonRunEnterHandler);
+    }
+    if (runAgainBtn && __dungeonRunAgainHandler) {
+      runAgainBtn.removeEventListener("click", __dungeonRunAgainHandler);
+    }
+    __dungeonRunEnterHandler = null;
+    __dungeonRunAgainHandler = null;
+    resetMountedRunState();
+    __dungeonRunMounted = false;
+  }
+
+  function mountDungeonList(root = null) {
+    const left = root || document.getElementById("leftPanel");
+    if (!left) return false;
+
+    if (__dungeonListMounted) unmountDungeonList();
+
+    ensureDungeonListStyles();
+    left.innerHTML = DUNGEON_LIST_TEMPLATE;
+    document.title = "Darkstone Chronicles - Dungeons";
+
+    const msgEl = document.getElementById("msg");
+    const cardsWrap = document.getElementById("dungeonCards");
+    if (!msgEl || !cardsWrap) return false;
+
+    __dungeonListMounted = true;
+    __dungeonListOpenPanel = null;
+    const setMsg = (t) => { msgEl.textContent = t || ""; };
+
+    function doEnter(id, btn) {
+      if (!window.DS_DUNGEON || typeof window.DS_DUNGEON.enterDungeon !== "function") {
+        setMsg("dungeon.js not loaded (DS_DUNGEON missing).");
+        return;
+      }
+
+      const active = window.DS_DUNGEON.getActive ? window.DS_DUNGEON.getActive() : null;
+      if (active && active.id) {
+        const wantResume = window.confirm("You already have an active dungeon. Resume?");
+        if (wantResume) {
+          if (!window.DSUI?.navigateWithinShell?.("dungeon_run.html")) {
+            window.location.href = "dungeon_run.html";
+          }
+          return;
+        }
+        window.DS_DUNGEON.clearActive?.();
+      }
+
+      if (btn) btn.disabled = true;
+      setMsg("Preparing for battle...");
+
+      const res = window.DS_DUNGEON.enterDungeon(id);
+      if (!res || !res.ok) {
+        setMsg((res && res.msg) ? res.msg : "Cannot enter.");
+        if (btn) btn.disabled = false;
+        return;
+      }
+
+      if (!window.DSUI?.navigateWithinShell?.("dungeon_run.html")) {
+        window.location.href = "dungeon_run.html";
+      }
+    }
+
+    const dungeons = listDungeons();
+    if (!dungeons.length) {
+      setMsg("No dungeons configured.");
+      return true;
+    }
+
+    cardsWrap.innerHTML = "";
+    dungeons.forEach((d) => {
+      const card = document.createElement("div");
+      card.className = "dungeonCard";
+      card.style.width = "100%";
+      card.style.maxWidth = "180px";
+      card.style.padding = "0";
+      card.style.border = "0";
+      card.style.background = "transparent";
+      card.style.cursor = "default";
+      card.style.textAlign = "center";
+      card.style.position = "relative";
+      card.style.overflow = "visible";
+
+      const lootItems = [...(d.setItems || [])];
+      lootItems.push({ type:"material", name:"Crypt Sigil", rarity:"rare", img:"images/items/sigils/crypt_sigil.png", _label:"Bonus Drop" });
+      const lootHtml = lootItems.map((it) => {
+        const stats = [];
+        if (Number.isFinite(Number(it.atk)) && Number(it.atk) !== 0) stats.push(`ATK ${it.atk}`);
+        if (Number.isFinite(Number(it.def)) && Number(it.def) !== 0) stats.push(`DEF ${it.def}`);
+        if (Number.isFinite(Number(it.reqLevel))) stats.push(`Req Lv ${it.reqLevel}`);
+        const isSetItem = !!it.setId;
+        const rarityKey = String(it.rarity || "").toLowerCase();
+        const rarityBg =
+          isSetItem ? "#2a0a0d" :
+          rarityKey === "mythic" ? "#0b2a2e" :
+          rarityKey === "legendary" ? "#2b1a0b" :
+          rarityKey === "epic" ? "#1a0f2e" :
+          rarityKey === "rare" ? "#0f1b2e" :
+          rarityKey === "uncommon" ? "#0f141b" :
+          rarityKey === "common" ? "#0b0b0b" :
+          "#1b1b24";
+        const rarityBorder =
+          isSetItem ? "#7c2d35" :
+          rarityKey === "mythic" ? "#2aa7b0" :
+          rarityKey === "legendary" ? "#d18a1f" :
+          rarityKey === "epic" ? "#7d4bc2" :
+          rarityKey === "rare" ? "#3d73c9" :
+          rarityKey === "uncommon" ? "#4c667f" :
+          rarityKey === "common" ? "#3a3a46" :
+          "#2a2a3a";
+        const meta = [it._label || it.rarity || it.type || "", ...stats].filter(Boolean).join(" | ");
+        return `
+          <div style="display:flex;gap:8px;align-items:center;background:#151520;border:1px solid ${rarityBorder};border-radius:8px;padding:6px 8px;">
+            <img src="${it.img || ""}" alt="${it.name || "Item"}" style="width:32px;height:32px;border-radius:6px;border:1px solid ${rarityBorder};background:${rarityBg};object-fit:cover;flex:0 0 auto;">
+            <div style="min-width:0;display:flex;flex-direction:column;align-items:flex-start;text-align:left;">
+              <div style="font-size:12px;font-weight:800;line-height:1.1;">${it.name || "Item"}</div>
+              <div style="font-size:10px;opacity:.75;line-height:1.25;">${meta}</div>
+            </div>
+          </div>
+        `;
+      }).join("");
+
+      card.innerHTML = `
+        <button type="button" class="dungeonLootBtn" style="position:absolute;top:8px;right:8px;width:28px;height:28px;background:#222438;border:1px solid #3a3d5c;border-radius:8px;cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0;z-index:2;">
+          <img src="images/ui/my_treasure_chest.png" alt="Loot" style="width:18px;height:18px;display:block;image-rendering:auto;">
+        </button>
+        <div class="dungeonCardInner" style="display:flex;flex-direction:column;align-items:center;gap:10px;">
+          <button type="button" class="dungeonEnterBtn" aria-label="Enter ${d.name}">
+            <img src="${d.thumb}" alt="${d.name}" class="dungeonCardImg" style="width:96px;height:96px;border-radius:10px;border:2px solid #333;object-fit:cover;background:#0f0f16;">
+          </button>
+          <div class="dungeonInfo" style="width:170px;min-height:124px;padding:5px 8px 8px;border-radius:10px;border:1px solid rgba(255,255,255,.12);background:#101019;line-height:1.15;display:flex;flex-direction:column;justify-content:flex-start;">
+            <div class="dungeonName" style="font-size:14px;font-weight:900;min-height:28px;display:flex;align-items:center;justify-content:center;text-align:center;white-space:nowrap;">${d.name}</div>
+            <div class="dungeonReq" style="opacity:.9;margin-top:3px;font-size:12px;">Req Lv ${d.reqLevel}</div>
+            <div class="dungeonCost" style="opacity:.9;margin-top:6px;font-size:12px;">Cost: ${d.entryCost} Stamina</div>
+            <div class="dungeonStats" style="margin-top:8px;padding-top:7px;border-top:1px solid rgba(255,255,255,.08);display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;">
+              <div class="dungeonStatBox" style="border-radius:10px;background:#1a1a28;padding:6px 4px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;">
+                <div class="dungeonStatIcon" style="font-size:16px;line-height:1;" aria-hidden="true">&#128151;</div>
+                <div class="dungeonStatValue" style="font-size:12px;line-height:1;font-weight:800;">${new Intl.NumberFormat("el-GR").format(Number(d.boss?.hp || 0))}</div>
+              </div>
+              <div class="dungeonStatBox" style="border-radius:10px;background:#1a1a28;padding:6px 4px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;">
+                <div class="dungeonStatIcon" style="font-size:16px;line-height:1;" aria-hidden="true">&#9876;&#65039;</div>
+                <div class="dungeonStatValue" style="font-size:12px;line-height:1;font-weight:800;">${new Intl.NumberFormat("el-GR").format(Number(d.boss?.atk || 0))}</div>
+              </div>
+              <div class="dungeonStatBox" style="border-radius:10px;background:#1a1a28;padding:6px 4px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;">
+                <div class="dungeonStatIcon" style="font-size:16px;line-height:1;" aria-hidden="true">&#128737;&#65039;</div>
+                <div class="dungeonStatValue" style="font-size:12px;line-height:1;font-weight:800;">${new Intl.NumberFormat("el-GR").format(Number(d.boss?.def || 0))}</div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="dungeonLootPanel" style="display:none;position:absolute;left:calc(100% + 8px);top:8px;width:260px;max-width:min(260px,calc(100vw - 40px));z-index:20;background:#10121c;border:1px solid #3a3d5c;border-radius:12px;padding:10px;box-shadow:0 10px 24px rgba(0,0,0,.45);">
+          <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:8px;">
+            <div style="font-weight:800;font-size:12px;opacity:.95;">Drops</div>
+            <button type="button" class="dungeonLootClose" style="background:#222438;border:1px solid #3a3d5c;color:#ddd;width:24px;height:24px;border-radius:999px;font-size:12px;cursor:pointer;">x</button>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:6px;">
+            ${lootHtml}
+          </div>
+        </div>
+      `;
+
+      const lootBtn = card.querySelector(".dungeonLootBtn");
+      const lootPanel = card.querySelector(".dungeonLootPanel");
+      const lootClose = card.querySelector(".dungeonLootClose");
+      const enterBtn = card.querySelector(".dungeonEnterBtn");
+
+      const toggleLootPanel = (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        if (!lootPanel) return;
+        const willOpen = lootPanel.style.display === "none";
+        __dungeonListOpenPanel = willOpen
+          ? openDungeonLootPanelFor(lootPanel, __dungeonListOpenPanel, lootBtn)
+          : closeDungeonLootPanelFor(lootPanel, __dungeonListOpenPanel);
+      };
+
+      lootBtn?.addEventListener("click", toggleLootPanel);
+      lootBtn?.addEventListener("touchend", toggleLootPanel, { passive: false });
+      lootClose?.addEventListener("click", (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        __dungeonListOpenPanel = closeDungeonLootPanelFor(lootPanel, __dungeonListOpenPanel);
+      });
+      lootPanel?.addEventListener("click", (e) => e.stopPropagation());
+      enterBtn?.addEventListener("click", (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        doEnter(d.id, null);
+      });
+
+      cardsWrap.appendChild(card);
+    });
+
+    cardsWrap.onclick = (e) => {
+      if (e.target === cardsWrap && __dungeonListOpenPanel) {
+        __dungeonListOpenPanel.style.display = "none";
+        __dungeonListOpenPanel = null;
+      }
+    };
+
+    __dungeonListOutsideClick = (e) => {
+      if (e.target?.closest?.(".dungeonLootBtn, .dungeonLootPanel, .dungeonLootClose")) return;
+      if (__dungeonListOpenPanel) {
+        __dungeonListOpenPanel.style.display = "none";
+        __dungeonListOpenPanel = null;
+      }
+    };
+    document.addEventListener("click", __dungeonListOutsideClick);
+
+    __dungeonListResize = () => {
+      if (__dungeonListOpenPanel) {
+        applyDungeonLootPanelLayout(
+          __dungeonListOpenPanel,
+          __dungeonListOpenPanel.parentElement?.querySelector?.(".dungeonLootBtn") || null
+        );
+      }
+    };
+    window.addEventListener("resize", __dungeonListResize);
+
+    return true;
+  }
+
+  function mountDungeonRun(root = null) {
+    const left = root || document.getElementById("leftPanel");
+    if (!left) return false;
+
+    unmountDungeonList();
+    if (__dungeonRunMounted) unmountDungeonRun();
+    resetMountedRunState();
+
+    left.innerHTML = DUNGEON_RUN_TEMPLATE;
+    document.title = "Darkstone Chronicles - Dungeon Run";
+
+    __dungeonRunEnterHandler = () => {
+      startActiveRun();
+    };
+    __dungeonRunAgainHandler = () => {
+      const res = runAgainActive();
+      if (!res.ok) pushLog(res.msg || "Could not start dungeon again.");
+    };
+
+    const mounted = mountActiveRun();
+    if (!mounted.ok) return false;
+
+    runDOM.enterBtn()?.addEventListener("click", __dungeonRunEnterHandler);
+    runDOM.runAgainBtn()?.addEventListener("click", __dungeonRunAgainHandler);
+    __dungeonRunMounted = true;
+    return true;
+  }
+
   // ===== Public: startActiveRun (used by dungeon_run.html auto-start) =====
   function mountActiveRun(){
     const active = loadActive();
@@ -1620,6 +2148,10 @@
     listDungeons,
     enterDungeon,
     enterIce,
+    mountDungeonList,
+    unmountDungeonList,
+    mountDungeonRun,
+    unmountDungeonRun,
     mountActiveRun,
     startActiveRun,
     runAgainActive,
@@ -1630,20 +2162,16 @@
 
   // ===== Auto-start if we are on dungeon_run.html =====
   window.addEventListener("DOMContentLoaded", () => {
+    if (document.getElementById("dungeonCards") && !runDOM.battleLog()) {
+      mountDungeonList();
+    }
     // Only attempt auto start if run DOM exists
     if(runDOM.battleLog() && runDOM.heroHpBar() && runDOM.mobHpBar()){
       const active = loadActive();
       const pending = loadPending();
       const current = active || pending;
       if(current && getDungeon(current.id)){
-        mountActiveRun();
-        runDOM.enterBtn()?.addEventListener("click", () => {
-          startActiveRun();
-        });
-        runDOM.runAgainBtn()?.addEventListener("click", () => {
-          const res = runAgainActive();
-          if(!res.ok) pushLog(res.msg || "Could not start dungeon again.");
-        });
+        mountDungeonRun();
       }
     }
   });

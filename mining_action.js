@@ -7,6 +7,8 @@
 // - Mining XP scaling + level up
 // - ✅ Stats: miningTicks increments safely (won’t be overwritten by setSave)
 
+(() => {
+
 const SAVE_KEY = "darkstone_save_v1";
 const num = (v, f = 0) => (Number.isFinite(Number(v)) ? Number(v) : f);
 const ORE_SIGIL_ITEM = {
@@ -15,6 +17,87 @@ const ORE_SIGIL_ITEM = {
   name: "Ore Sigil",
   img: "images/items/sigils/ore_sigil.png"
 };
+const MINING_ACTION_TEMPLATE = `
+  <div style="max-width:340px;margin:0 auto 12px;">
+    <div style="background:#151520;border:2px solid #333;border-radius:12px;padding:10px 12px;width:100%;">
+      <div style="font-weight:900;font-size:18px;display:flex;align-items:center;justify-content:center;gap:8px;margin-bottom:8px;text-align:center;">
+        <span aria-hidden="true">&#9935;&#65039;</span>
+        <span>Mining Lvl: <span id="mineLevel">1</span></span>
+      </div>
+      <div style="width:100%;">
+        <div style="height:12px;background:#0f0f16;border:1px solid #2a2a3a;border-radius:999px;overflow:hidden;position:relative;">
+          <div id="mineXPBar" style="height:100%;width:0%;background:#ffaa00;"></div>
+          <div style="position:absolute;top:50%;left:8px;transform:translateY(-50%);font-size:11px;font-weight:800;line-height:1;color:#f4f1e8;text-shadow:0 1px 3px rgba(0,0,0,.75);pointer-events:none;">XP</div>
+          <div style="position:absolute;top:50%;right:8px;transform:translateY(-50%);font-size:11px;font-weight:800;line-height:1;color:#f4f1e8;text-shadow:0 1px 3px rgba(0,0,0,.75);pointer-events:none;"><span id="mineXPCurrent">0</span>/<span id="mineXPNext">100</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div style="max-width:340px;margin:0 auto 12px;">
+    <div id="miningBonusBox" style="background:#151520;border:2px solid #333;border-radius:12px;padding:12px;width:100%;min-height:56px;display:flex;align-items:flex-start;gap:10px;">
+      <div style="font-weight:800;font-size:14px;white-space:nowrap;line-height:1.05;text-align:center;">Bonus<br>XP</div>
+      <div style="width:1px;align-self:stretch;background:#333;"></div>
+      <div id="miningBonusContent" style="flex:1;display:flex;flex-direction:column;justify-content:flex-start;gap:2px;padding-top:2px;">
+        <div id="miningBonusTop" style="display:grid;grid-template-columns:0.8fr 1px 1.5fr 1px 1fr 1px 1fr;gap:8px;font-size:11px;font-weight:700;opacity:.9;text-align:center;align-items:center;">
+          <div>Pet</div>
+          <div style="width:1px;align-self:stretch;background:#333;"></div>
+          <div style="font-size:10px;line-height:1;white-space:nowrap;align-self:center;">Double Gather</div>
+          <div style="width:1px;align-self:stretch;background:#333;"></div>
+          <div>Building</div>
+          <div style="width:1px;align-self:stretch;background:#333;"></div>
+          <div>Potion</div>
+        </div>
+        <div style="height:1px;background:#333;width:100%;"></div>
+        <div id="miningBonusBottom" style="display:grid;grid-template-columns:0.8fr 1px 1.5fr 1px 1fr 1px 1fr;gap:8px;min-height:14px;align-items:stretch;text-align:center;font-size:11px;font-weight:700;color:#cfe7ff;">
+          <div id="miningBonusPetValue">+0%</div>
+          <div style="width:1px;align-self:stretch;background:#333;"></div>
+          <div id="miningBonusDoubleValue">+0%</div>
+          <div style="width:1px;align-self:stretch;background:#333;"></div>
+          <div id="miningBonusBuildingValue">+0%</div>
+          <div style="width:1px;align-self:stretch;background:#333;"></div>
+          <div id="miningBonusPotionValue">+0%</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div style="width:90%;max-width:700px;margin:0 auto 12px;display:flex;gap:10px;justify-content:center;">
+    <button id="backBtn">Back</button>
+    <button id="startBtn">Start</button>
+    <button id="stopBtn" disabled>Stop</button>
+  </div>
+
+  <div style="background:#151520;border:2px solid #333;border-radius:12px;padding:12px;max-width:900px;margin:0 auto;">
+    <div style="display:flex;gap:12px;align-items:center;">
+      <div style="display:flex;flex-direction:column;align-items:center;gap:8px;min-width:74px;">
+        <div style="font-weight:800;font-size:18px;text-align:center;" id="oreName">Ore</div>
+        <img id="oreImg" src="" alt="Ore" style="width:74px;height:74px;border-radius:12px;border:2px solid #333;object-fit:cover;background:#0f0f16;">
+      </div>
+      <div style="flex:1;">
+        <div id="timerWrap" style="margin-top:10px;display:none;">
+          <div style="display:flex;justify-content:space-between;font-size:12px;opacity:.9;">
+            <span>Mining...</span>
+            <span id="timerText">6.0s</span>
+          </div>
+          <div style="height:5px;background:#222;border:1px solid #333;border-radius:6px;margin-top:6px;overflow:hidden;">
+            <div id="timerBar" style="height:100%;width:0%;border-radius:6px;background:linear-gradient(90deg,#b63a3a,#e05555);"></div>
+          </div>
+        </div>
+
+        <div style="margin-top:10px;display:flex;gap:10px;flex-wrap:wrap;align-items:center;">
+          <div style="opacity:.85;font-size:12px;">Target amount:</div>
+          <input id="targetInput" type="number" min="1" step="1" placeholder="e.g. 100"
+            style="width:120px;padding:8px 10px;border-radius:10px;border:2px solid #333;background:#0f0f16;color:#fff;">
+          <button id="targetBtn">Mine Target</button>
+          <div id="targetStatus" style="opacity:.85;font-size:12px;"></div>
+        </div>
+      </div>
+    </div>
+
+    <div id="msg" style="margin-top:12px;opacity:.9;"></div>
+  </div>
+`;
 
 function loadSave(){
   try { return JSON.parse(localStorage.getItem(SAVE_KEY) || "{}") || {}; }
@@ -222,31 +305,50 @@ function incStat(save, key, amount = 1){
 // -------------------------
 // DOM
 // -------------------------
-const backBtn = document.getElementById("backBtn");
-const startBtn = document.getElementById("startBtn");
-const stopBtn  = document.getElementById("stopBtn");
+let backBtn = null;
+let startBtn = null;
+let stopBtn  = null;
+let oreImg  = null;
+let oreName = null;
+let timerWrap = null;
+let timerText = null;
+let timerBar  = null;
+let msgEl = null;
+let targetInput  = null;
+let targetBtn    = null;
+let targetStatus = null;
+let lvlEl  = null;
+let curEl  = null;
+let nextEl = null;
+let barEl  = null;
+let miningBonusPetValue = null;
+let miningBonusDoubleValue = null;
+let miningBonusBuildingValue = null;
+let miningBonusPotionValue = null;
+let currentOreId = "copper_ore";
 
-const oreImg  = document.getElementById("oreImg");
-const oreName = document.getElementById("oreName");
-
-const timerWrap = document.getElementById("timerWrap");
-const timerText = document.getElementById("timerText");
-const timerBar  = document.getElementById("timerBar");
-
-const msgEl = document.getElementById("msg");
-
-const targetInput  = document.getElementById("targetInput");
-const targetBtn    = document.getElementById("targetBtn");
-const targetStatus = document.getElementById("targetStatus");
-
-const lvlEl  = document.getElementById("mineLevel");
-const curEl  = document.getElementById("mineXPCurrent");
-const nextEl = document.getElementById("mineXPNext");
-const barEl  = document.getElementById("mineXPBar");
-const miningBonusPetValue = document.getElementById("miningBonusPetValue");
-const miningBonusDoubleValue = document.getElementById("miningBonusDoubleValue");
-const miningBonusBuildingValue = document.getElementById("miningBonusBuildingValue");
-const miningBonusPotionValue = document.getElementById("miningBonusPotionValue");
+function bindDom(){
+  backBtn = document.getElementById("backBtn");
+  startBtn = document.getElementById("startBtn");
+  stopBtn = document.getElementById("stopBtn");
+  oreImg = document.getElementById("oreImg");
+  oreName = document.getElementById("oreName");
+  timerWrap = document.getElementById("timerWrap");
+  timerText = document.getElementById("timerText");
+  timerBar = document.getElementById("timerBar");
+  msgEl = document.getElementById("msg");
+  targetInput = document.getElementById("targetInput");
+  targetBtn = document.getElementById("targetBtn");
+  targetStatus = document.getElementById("targetStatus");
+  lvlEl = document.getElementById("mineLevel");
+  curEl = document.getElementById("mineXPCurrent");
+  nextEl = document.getElementById("mineXPNext");
+  barEl = document.getElementById("mineXPBar");
+  miningBonusPetValue = document.getElementById("miningBonusPetValue");
+  miningBonusDoubleValue = document.getElementById("miningBonusDoubleValue");
+  miningBonusBuildingValue = document.getElementById("miningBonusBuildingValue");
+  miningBonusPotionValue = document.getElementById("miningBonusPotionValue");
+}
 
 // -------------------------
 // Global pause/resume from ui.js inspector
@@ -474,7 +576,7 @@ function mineTick(){
   if (!miningActive) return;
   if (window.DS?.isPaused) return;
 
-  const oreId = getOreFromUrl();
+  const oreId = currentOreId || getOreFromUrl();
   const ore = getOreDef(oreId);
 
   const save = ensureMining(loadSave());
@@ -569,8 +671,8 @@ function startTargetMining(){
 // -------------------------
 // Boot
 // -------------------------
-window.addEventListener("DOMContentLoaded", () => {
-  const oreId = getOreFromUrl();
+function initMiningActionRoute(oreId){
+  currentOreId = oreId || getOreFromUrl();
   const ore = getOreDef(oreId);
 
   if (oreImg) oreImg.src = ore.img;
@@ -583,6 +685,7 @@ window.addEventListener("DOMContentLoaded", () => {
 
   backBtn?.addEventListener("click", () => {
     stopMining(true);
+    if (window.DSUI?.navigateWithinShell?.("mining.html")) return;
     window.location.href = "mining.html";
   });
 
@@ -592,6 +695,36 @@ window.addEventListener("DOMContentLoaded", () => {
   targetBtn?.addEventListener("click", startTargetMining);
 
   if (stopBtn) stopBtn.disabled = true;
+}
+
+function mountMiningAction(root = null, targetHref = "mining_action.html"){
+  const left = root || document.getElementById("leftPanel");
+  if (!left) return false;
+  stopMining(true);
+  left.innerHTML = MINING_ACTION_TEMPLATE;
+  document.title = "Darkstone Chronicles - Mining Action";
+  bindDom();
+  const parsed = (() => {
+    try { return new URL(targetHref, window.location.href); }
+    catch { return null; }
+  })();
+  const oreId = parsed?.searchParams.get("ore") || "copper_ore";
+  initMiningActionRoute(oreId);
+  return true;
+}
+
+function initStandaloneMiningAction(){
+  if (!document.getElementById("backBtn")) return false;
+  document.title = "Darkstone Chronicles - Mining Action";
+  bindDom();
+  initMiningActionRoute(getOreFromUrl());
+  return true;
+}
+
+window.DSMiningAction = { mount: mountMiningAction };
+
+window.addEventListener("DOMContentLoaded", () => {
+  initStandaloneMiningAction();
 });
 
 window.addEventListener("ds:save", () => {
@@ -600,8 +733,4 @@ window.addEventListener("ds:save", () => {
   renderMiningBonusBox(save);
 });
 
-
-
-
-
-
+})();

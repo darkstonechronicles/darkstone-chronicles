@@ -1,8 +1,34 @@
 (() => {
   const SAVE_KEY = "darkstone_save_v1";
+  const BANK_TEMPLATE = `
+    <h1>Bank</h1>
+
+    <div style="display:flex;justify-content:center;padding:12px 10px;border-radius:14px;border:1px solid rgba(199,155,68,.28);background:linear-gradient(180deg, rgba(255,245,210,.05), rgba(255,255,255,.01) 30%, rgba(0,0,0,.10) 100%),linear-gradient(180deg, #1c2028 0%, #12151c 100%);box-shadow:0 0 0 1px rgba(0,0,0,.42),0 14px 28px rgba(0,0,0,.22),inset 0 1px 0 rgba(255,255,255,.05),inset 0 -1px 0 rgba(0,0,0,.28);max-width:900px;margin:0 auto 12px;">
+      <div style="width:100%;max-width:700px;display:grid;grid-template-columns:120px max-content 1px 1fr;gap:14px;align-items:start;">
+        <div id="bankFilterList" style="display:flex;flex-direction:column;gap:8px;"></div>
+        <div id="bankGrid" style="display:grid;grid-template-columns:repeat(6,40px);gap:4px;justify-content:center;padding:4px;width:max-content;max-width:100%;"></div>
+        <div style="width:1px;align-self:stretch;background:linear-gradient(180deg, rgba(199,155,68,.06), rgba(199,155,68,.42) 18%, rgba(199,155,68,.42) 82%, rgba(199,155,68,.06));"></div>
+        <div id="bankPreview" style="min-height:220px;display:flex;align-items:center;justify-content:center;"></div>
+      </div>
+      <div id="bankEmpty" style="display:none;opacity:.82;text-align:center;padding:18px 10px;">Your bank is empty.</div>
+    </div>
+  `;
 
   const num = (v, f = 0) => (Number.isFinite(Number(v)) ? Number(v) : f);
   const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+
+  let selectedIndex = null;
+  let activeFilter = "all";
+
+  const FILTERS = [
+    { id: "all", label: "All" },
+    { id: "equipment", label: "Equipment" },
+    { id: "fish", label: "Fish" },
+    { id: "meat", label: "Meat" },
+    { id: "food", label: "Food" },
+    { id: "materials", label: "Materials" },
+    { id: "other", label: "Other" }
+  ];
 
   function loadSave(){
     try { return JSON.parse(localStorage.getItem(SAVE_KEY) || "{}") || {}; }
@@ -102,24 +128,6 @@
     }
   }
 
-  const bankGrid = document.getElementById("bankGrid");
-  const bankEmpty = document.getElementById("bankEmpty");
-  const bankFilterList = document.getElementById("bankFilterList");
-  const bankPreview = document.getElementById("bankPreview");
-
-  let selectedIndex = null;
-  let activeFilter = "all";
-
-  const FILTERS = [
-    { id: "all", label: "All" },
-    { id: "equipment", label: "Equipment" },
-    { id: "fish", label: "Fish" },
-    { id: "meat", label: "Meat" },
-    { id: "food", label: "Food" },
-    { id: "materials", label: "Materials" },
-    { id: "other", label: "Other" }
-  ];
-
   function isGearItem(it){
     return (it?.type === "gear") || !!it?.slot;
   }
@@ -147,6 +155,7 @@
   }
 
   function renderFilters(save){
+    const bankFilterList = document.getElementById("bankFilterList");
     if (!bankFilterList) return;
     const bank = Array.isArray(save.bank) ? save.bank : [];
     const counts = Object.fromEntries(FILTERS.map(f => [f.id, 0]));
@@ -185,6 +194,7 @@
   }
 
   function renderBankInspector(){
+    const bankPreview = document.getElementById("bankPreview");
     if (!bankPreview) return;
     const save = ensureSave(loadSave());
     const item = Number.isFinite(selectedIndex) ? save.bank[selectedIndex] : null;
@@ -256,6 +266,8 @@
   }
 
   function renderBank(){
+    const bankGrid = document.getElementById("bankGrid");
+    const bankEmpty = document.getElementById("bankEmpty");
     if (!bankGrid) return;
     const save = ensureSave(loadSave());
     const bank = Array.isArray(save.bank) ? save.bank : [];
@@ -342,6 +354,29 @@
     renderBankInspector();
   }
 
-  window.addEventListener("DOMContentLoaded", renderBank);
+  function mountBank(root = null) {
+    const left = root || document.getElementById("leftPanel");
+    if (!left) return false;
+    left.innerHTML = BANK_TEMPLATE;
+    document.title = "Darkstone Chronicles - Bank";
+    renderBank();
+    return true;
+  }
+
+  function initStandaloneBank() {
+    if (!document.getElementById("bankGrid")) return false;
+    document.title = "Darkstone Chronicles - Bank";
+    renderBank();
+    return true;
+  }
+
+  window.DSBank = {
+    mount: mountBank
+  };
+
+  window.addEventListener("DOMContentLoaded", () => {
+    initStandaloneBank();
+  });
+
   window.addEventListener("ds:save", renderBank);
 })();

@@ -1,15 +1,82 @@
 // equipment.js — Darkstone Chronicles (Paperdoll Equip UI + Stats Breakout + Set Bonus)
-// ✅ recomputeTotals (base + gear) + Cryptwarden set bonus (2/4=2%, 3/4=4%, 4/4=6% total ATK)
-// ✅ writes: attackTotal/defenseTotal + _atkBase/_defBase/_atkFromGear/_defFromGear/setBonusAtkPct
-// ✅ renders breakout UI IF you have elements with these ids:
-//    baseAtk, baseDef, gearAtk, gearDef, setPct, totalAtk, totalDef
+// ✅ reusable shell mount + standalone init
 
 (() => {
   const SAVE_KEY = "darkstone_save_v1";
+  const EQUIPMENT_TEMPLATE = `
+    <div class="equipWrap" style="max-width:900px;margin:0 auto;">
+      <div class="equipCard" style="background:#151520;border:2px solid #333;border-radius:12px;padding:10px 12px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;">
+          <div style="font-weight:900;">Equipped</div>
+          <div style="opacity:.8;font-size:12px;">Click a slot to unequip</div>
+        </div>
 
-  // ---------- helpers ----------
+        <div style="display:flex;gap:10px;align-items:stretch;margin-top:10px;">
+          <div id="paperdoll" style="flex:0 0 58%;position:relative;height:350px;border:1px solid #2a2a3a;border-radius:12px;overflow:hidden;background:#0f0f16;">
+            <div class="knightBg" aria-hidden="true"></div>
+
+            <div id="slot_helmet" class="pdSlot" data-slot="helmet" style="left:46%;top:6px;"></div>
+            <div id="slot_chest" class="pdSlot" data-slot="chest" style="left:46%;top:88px;"></div>
+            <div id="slot_belt" class="pdSlot" data-slot="belt" style="left:46%;top:152px;"></div>
+            <div id="slot_pants" class="pdSlot" data-slot="pants" style="left:46%;top:218px;"></div>
+
+            <div id="slot_bracers" class="pdSlot" data-slot="bracers" style="left:18%;top:78px;"></div>
+            <div id="slot_mainHand" class="pdSlot" data-slot="mainHand" style="left:18%;top:142px;"></div>
+            <div id="slot_gloves" class="pdSlot" data-slot="gloves" style="left:18%;top:206px;"></div>
+            <div id="slot_ring" class="pdSlot" data-slot="ring" style="left:18%;top:270px;"></div>
+
+            <div id="slot_shoulders" class="pdSlot" data-slot="shoulders" style="left:76%;top:78px;"></div>
+            <div id="slot_offHand" class="pdSlot" data-slot="offHand" style="left:76%;top:142px;"></div>
+            <div id="slot_boots" class="pdSlot" data-slot="boots" style="left:76%;top:206px;"></div>
+            <div id="slot_amulet" class="pdSlot" data-slot="amulet" style="left:76%;top:270px;"></div>
+          </div>
+
+          <div id="statsPanel" style="flex:1;min-width:0;background:#151520;border:2px solid #333;border-radius:12px;padding:9px 10px;">
+            <div style="font-weight:900;">Stats Breakdown</div>
+
+            <div id="statsTabs" style="display:flex;gap:8px;flex-wrap:nowrap;margin-top:8px;">
+              <button id="tabFight" type="button" style="flex:1;min-width:0;">Fighting Fields</button>
+              <button id="tabDungeon" type="button" style="flex:1;min-width:0;">Dungeons</button>
+            </div>
+
+            <div style="margin-top:8px;">
+              <table id="statsTable" style="width:100%;border-collapse:collapse;font-size:11px;table-layout:fixed;">
+                <thead>
+                  <tr>
+                    <th style="text-align:left;padding:6px;border-bottom:1px solid #2a2a3a;">Stat</th>
+                    <th style="text-align:right;padding:6px;border-bottom:1px solid #2a2a3a;">Base</th>
+                    <th style="text-align:right;padding:6px;border-bottom:1px solid #2a2a3a;">Equip/Pet</th>
+                    <th style="text-align:right;padding:6px;border-bottom:1px solid #2a2a3a;">Bonus</th>
+                    <th style="text-align:right;padding:6px;border-bottom:1px solid #2a2a3a;">Total</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td style="padding:6px;border-bottom:1px solid #2a2a3a;">Attack</td>
+                    <td id="baseAtk" style="padding:6px;text-align:right;border-bottom:1px solid #2a2a3a;">0</td>
+                    <td id="gearAtk" style="padding:6px;text-align:right;border-bottom:1px solid #2a2a3a;">+0</td>
+                    <td id="pctAtk" style="padding:6px;text-align:right;border-bottom:1px solid #2a2a3a;">0%</td>
+                    <td id="totalAtk" style="padding:6px;text-align:right;border-bottom:1px solid #2a2a3a;font-weight:900;">0</td>
+                  </tr>
+                  <tr>
+                    <td style="padding:6px;">Defense</td>
+                    <td id="baseDef" style="padding:6px;text-align:right;">0</td>
+                    <td id="gearDef" style="padding:6px;text-align:right;">+0</td>
+                    <td id="pctDef" style="padding:6px;text-align:right;">0%</td>
+                    <td id="totalDef" style="padding:6px;text-align:right;font-weight:900;">0</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
+
   const num = (v, f = 0) => (Number.isFinite(Number(v)) ? Number(v) : f);
   const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+  let currentStatsTab = "fight";
 
   function itemStackKey(it){
     return [
@@ -39,6 +106,7 @@
     try { return JSON.parse(localStorage.getItem(SAVE_KEY) || "{}") || {}; }
     catch { return {}; }
   }
+
   function setSave(next) {
     localStorage.setItem(SAVE_KEY, JSON.stringify(next));
   }
@@ -50,17 +118,16 @@
     if (!save.equipment || typeof save.equipment !== "object") save.equipment = {};
 
     const slots = [
-      "mainHand","offHand",
-      "helmet","shoulders",
-      "chest","bracers","gloves",
-      "belt","pants","boots",
-      "ring","amulet"
+      "mainHand", "offHand",
+      "helmet", "shoulders",
+      "chest", "bracers", "gloves",
+      "belt", "pants", "boots",
+      "ring", "amulet"
     ];
     for (const k of slots) if (!(k in save.equipment)) save.equipment[k] = null;
 
-    // ✅ HARD FLOOR so you never see 0 bases by accident
-    save.heroLevel   = Math.max(1, num(save.heroLevel, 1));
-    save.heroAttack  = Math.max(10, num(save.heroAttack, 10));
+    save.heroLevel = Math.max(1, num(save.heroLevel, 1));
+    save.heroAttack = Math.max(10, num(save.heroAttack, 10));
     save.heroDefense = Math.max(10, num(save.heroDefense, 10));
     save.barracksLevel = Math.max(0, Math.round(num(save.barracksLevel, 0)));
     save.cryptHallLevel = Math.max(0, Math.round(num(save.cryptHallLevel, 0)));
@@ -74,10 +141,9 @@
     return ensureEquipment(loadSave());
   }
 
-  // ---------- set bonus ----------
   function getSetCounts(equipment) {
     const counts = {};
-    Object.values(equipment || {}).forEach(it => {
+    Object.values(equipment || {}).forEach((it) => {
       if (!it) return;
       const sid = String(it.setId || "").toLowerCase();
       if (sid) {
@@ -104,9 +170,9 @@
     const iceCount = counts.icewarden || 0;
     const frostCount = counts.frostveil || 0;
 
-    const cryptAtk = tierPct(cryptCount, [[2,0.02],[3,0.04],[4,0.06]]);
-    const icePct = tierPct(iceCount, [[2,0.02],[4,0.04],[6,0.06],[8,0.08],[10,0.10]]);
-    const goldPct = tierPct(frostCount, [[2,0.04],[4,0.08],[6,0.12]]);
+    const cryptAtk = tierPct(cryptCount, [[2, 0.02], [3, 0.04], [4, 0.06]]);
+    const icePct = tierPct(iceCount, [[2, 0.02], [4, 0.04], [6, 0.06], [8, 0.08], [10, 0.10]]);
+    const goldPct = tierPct(frostCount, [[2, 0.04], [4, 0.08], [6, 0.12]]);
 
     return {
       atkPct: cryptAtk + icePct,
@@ -115,48 +181,8 @@
     };
   }
 
-  function recomputeTotalsLocal(save) {
-    // base stats
-    const baseAtk = Math.max(10, num(save.heroAttack, 10));
-    const baseDef = Math.max(10, num(save.heroDefense, 10));
-
-    // gear bonuses
-    let atkB = 0, defB = 0;
-    Object.values(save.equipment || {}).forEach(it => {
-      if (!it) return;
-      atkB += Math.max(0, num(it.atk, 0));
-      defB += Math.max(0, num(it.def, 0));
-    });
-
-    const petBonuses = getCombatPetBonuses(save);
-    const rawAtk = baseAtk + atkB + petBonuses.atkFlat;
-    const rawDef = baseDef + defB + petBonuses.defFlat;
-
-    const bonuses = getSetBonusPcts(save.equipment);
-    const atkWithSet = Math.floor(rawAtk * (1 + bonuses.atkPct + petBonuses.atkPct));
-    const defWithSet = Math.floor(rawDef * (1 + bonuses.defPct + petBonuses.defPct));
-
-    save.attackTotal = atkWithSet;
-    save.defenseTotal = defWithSet;
-
-    // breakout fields (for your equipment page table)
-    save.setBonusAtkPct = bonuses.atkPct + petBonuses.atkPct;
-    save.setBonusDefPct = bonuses.defPct + petBonuses.defPct;
-    save.setBonusGoldPct = bonuses.goldPct;
-    save._atkBase = baseAtk;
-    save._defBase = baseDef;
-    save._atkFromGear = atkB;
-    save._defFromGear = defB;
-    save._atkFromPet = petBonuses.atkFlat;
-    save._defFromPet = petBonuses.defFlat;
-    save._petBonusAtkPct = petBonuses.atkPct;
-    save._petBonusDefPct = petBonuses.defPct;
-
-    return save;
-  }
-
   function buildingBonusPct(level){
-    return Math.max(0, num(level, 0)) * 0.0005; // 0.05% per level
+    return Math.max(0, num(level, 0)) * 0.0005;
   }
 
   function getPotionTier(item){
@@ -165,8 +191,8 @@
     const m = id.match(/_(\d+)$/);
     if (m) return Math.max(1, Math.min(7, Number(m[1]) || 1));
     const name = String(item.name || "").toUpperCase();
-    const roman = [" VII"," VI"," V"," IV"," III"," II"," I"];
-    const map = { " I":1, " II":2, " III":3, " IV":4, " V":5, " VI":6, " VII":7 };
+    const roman = [" VII", " VI", " V", " IV", " III", " II", " I"];
+    const map = { " I": 1, " II": 2, " III": 3, " IV": 4, " V": 5, " VI": 6, " VII": 7 };
     for (const r of roman) if (name.includes(r)) return map[r];
     return 1;
   }
@@ -175,8 +201,8 @@
     let atkPct = 0;
     let defPct = 0;
     const cons = (save && typeof save.consumables === "object") ? save.consumables : {};
-    const quickSlots = ["quick_potion1","quick_potion2"];
-    const legacySlots = ["potion1","potion2"];
+    const quickSlots = ["quick_potion1", "quick_potion2"];
+    const legacySlots = ["potion1", "potion2"];
     const slotsToCheck = quickSlots.some((k) => cons[k]) ? quickSlots : legacySlots;
     slotsToCheck.forEach((slot) => {
       const it = cons[slot];
@@ -194,6 +220,7 @@
     });
     return { atkPct, defPct };
   }
+
   function getCombatPetBonuses(save){
     const api = window.DS?.pets;
     const pet = save?.pets?.combat;
@@ -206,6 +233,44 @@
       defPct: num(bonuses.defPct, 0)
     };
   }
+
+  function recomputeTotalsLocal(save) {
+    const baseAtk = Math.max(10, num(save.heroAttack, 10));
+    const baseDef = Math.max(10, num(save.heroDefense, 10));
+
+    let atkB = 0;
+    let defB = 0;
+    Object.values(save.equipment || {}).forEach((it) => {
+      if (!it) return;
+      atkB += Math.max(0, num(it.atk, 0));
+      defB += Math.max(0, num(it.def, 0));
+    });
+
+    const petBonuses = getCombatPetBonuses(save);
+    const rawAtk = baseAtk + atkB + petBonuses.atkFlat;
+    const rawDef = baseDef + defB + petBonuses.defFlat;
+
+    const bonuses = getSetBonusPcts(save.equipment);
+    const atkWithSet = Math.floor(rawAtk * (1 + bonuses.atkPct + petBonuses.atkPct));
+    const defWithSet = Math.floor(rawDef * (1 + bonuses.defPct + petBonuses.defPct));
+
+    save.attackTotal = atkWithSet;
+    save.defenseTotal = defWithSet;
+    save.setBonusAtkPct = bonuses.atkPct + petBonuses.atkPct;
+    save.setBonusDefPct = bonuses.defPct + petBonuses.defPct;
+    save.setBonusGoldPct = bonuses.goldPct;
+    save._atkBase = baseAtk;
+    save._defBase = baseDef;
+    save._atkFromGear = atkB;
+    save._defFromGear = defB;
+    save._atkFromPet = petBonuses.atkFlat;
+    save._defFromPet = petBonuses.defFlat;
+    save._petBonusAtkPct = petBonuses.atkPct;
+    save._petBonusDefPct = petBonuses.defPct;
+
+    return save;
+  }
+
   function fmtSignedCompact(value){
     const v = num(value, 0);
     const abs = Math.abs(v);
@@ -214,7 +279,6 @@
     return `${v >= 0 ? "+" : "-"}${txt}`;
   }
 
-  // ---------- labels ----------
   const SLOT_LABEL = {
     helmet: "Helmet",
     shoulders: "Shoulders",
@@ -230,7 +294,6 @@
     amulet: "Amulet"
   };
 
-  // ---------- styles ----------
   function injectEquipStylesOnce() {
     if (document.getElementById("ds-equip-styles")) return;
     const s = document.createElement("style");
@@ -279,9 +342,7 @@
       #paperdoll .pdSlot.dsSetItem{background:var(--rarity-set);}
       #paperdoll .pdSlot.dsCraftedItem{background:var(--rarity-crafted);}
       .pdSlot:hover{filter:brightness(1.12);}
-      .pdSlot.hasItem{
-        border-color: rgba(170,170,220,.85);
-      }
+      .pdSlot.hasItem{border-color: rgba(170,170,220,.85);}
       .pdSlot img{
         width:48px;height:48px;border-radius:9px;
         object-fit:cover;display:block;
@@ -341,9 +402,7 @@
         font-weight:800;
         font-size:12px;
       }
-      #statsTabs button:hover{
-        filter:brightness(1.08);
-      }
+      #statsTabs button:hover{filter:brightness(1.08);}
       #statsTabs button.statsTabActive{
         border-color:#e0b36a;
         background:#d4a04f;
@@ -355,89 +414,74 @@
     document.head.appendChild(s);
   }
 
-  // ---------- stats breakout render ----------
   function setText(id, value) {
     const el = document.getElementById(id);
     if (!el) return;
     el.textContent = String(value);
   }
 
-  let currentStatsTab = "fight";
+  function renderBreakout() {
+    const s = getSave();
+    recomputeTotalsLocal(s);
+    setSave(s);
 
-function renderBreakout() {
-  const s = getSave();
+    const baseAtk = num(s._atkBase, 0);
+    const baseDef = num(s._defBase, 0);
+    const ga = num(s._atkFromGear, 0);
+    const gd = num(s._defFromGear, 0);
+    const petAtk = num(s._atkFromPet, 0);
+    const petDef = num(s._defFromPet, 0);
 
-  // σιγουρέψου ότι τα totals/breakouts είναι φρέσκα
-  recomputeTotalsLocal(s);
-  setSave(s);
+    const rawAtk = baseAtk + ga + petAtk;
+    const rawDef = baseDef + gd + petDef;
 
-  const baseAtk = num(s._atkBase, 0);
-  const baseDef = num(s._defBase, 0);
-  const ga = num(s._atkFromGear, 0);
-  const gd = num(s._defFromGear, 0);
-  const petAtk = num(s._atkFromPet, 0);
-  const petDef = num(s._defFromPet, 0);
+    const setAtk = num(s.setBonusAtkPct, 0);
+    const setDef = num(s.setBonusDefPct, 0);
+    const petPctAtk = num(s._petBonusAtkPct, 0);
+    const petPctDef = num(s._petBonusDefPct, 0);
+    const bPct = (currentStatsTab === "dungeon")
+      ? buildingBonusPct(s.cryptHallLevel)
+      : buildingBonusPct(s.barracksLevel);
+    const potionBonuses = getPotionBonuses(s);
 
-  const rawAtk = baseAtk + ga + petAtk;
-  const rawDef = baseDef + gd + petDef;
+    const basePctAtk = setAtk + bPct;
+    const basePctDef = setDef + bPct;
 
-  const setAtk = num(s.setBonusAtkPct, 0);
-  const setDef = num(s.setBonusDefPct, 0);
-  const petPctAtk = num(s._petBonusAtkPct, 0);
-  const petPctDef = num(s._petBonusDefPct, 0);
-  const bPct = (currentStatsTab === "dungeon")
-    ? buildingBonusPct(s.cryptHallLevel)
-    : buildingBonusPct(s.barracksLevel);
-  const potionBonuses = getPotionBonuses(s);
+    const baseTotalAtk = Math.floor(rawAtk * (1 + basePctAtk));
+    const baseTotalDef = Math.floor(rawDef * (1 + basePctDef));
+    const totalAtk = Math.floor(baseTotalAtk * (1 + potionBonuses.atkPct));
+    const totalDef = Math.floor(baseTotalDef * (1 + potionBonuses.defPct));
+    const pctAtk = ((1 + basePctAtk) * (1 + potionBonuses.atkPct)) - 1;
+    const pctDef = ((1 + basePctDef) * (1 + potionBonuses.defPct)) - 1;
 
-  const basePctAtk = setAtk + bPct;
-  const basePctDef = setDef + bPct;
+    setText("baseAtk", baseAtk);
+    setText("baseDef", baseDef);
+    setText("gearAtk", `${fmtSignedCompact(ga + petAtk)}${petAtk > 0 ? ` (${fmtSignedCompact(petAtk)} pet)` : ""}`);
+    setText("gearDef", `${fmtSignedCompact(gd + petDef)}${petDef > 0 ? ` (${fmtSignedCompact(petDef)} pet)` : ""}`);
+    setText("pctAtk", `${(pctAtk * 100).toFixed(2)}%${petPctAtk > 0 ? ` (+${(petPctAtk * 100).toFixed(2)}% pet)` : ""}`);
+    setText("pctDef", `${(pctDef * 100).toFixed(2)}%${petPctDef > 0 ? ` (+${(petPctDef * 100).toFixed(2)}% pet)` : ""}`);
+    setText("totalAtk", totalAtk);
+    setText("totalDef", totalDef);
+  }
 
-  const baseTotalAtk = Math.floor(rawAtk * (1 + basePctAtk));
-  const baseTotalDef = Math.floor(rawDef * (1 + basePctDef));
-  const totalAtk = Math.floor(baseTotalAtk * (1 + potionBonuses.atkPct));
-  const totalDef = Math.floor(baseTotalDef * (1 + potionBonuses.defPct));
-  const pctAtk = ((1 + basePctAtk) * (1 + potionBonuses.atkPct)) - 1;
-  const pctDef = ((1 + basePctDef) * (1 + potionBonuses.defPct)) - 1;
-
-  // base
-  setText("baseAtk", baseAtk);
-  setText("baseDef", baseDef);
-
-  // gear (με +)
-  setText("gearAtk", `${fmtSignedCompact(ga + petAtk)}${petAtk > 0 ? ` (${fmtSignedCompact(petAtk)} pet)` : ""}`);
-  setText("gearDef", `${fmtSignedCompact(gd + petDef)}${petDef > 0 ? ` (${fmtSignedCompact(petDef)} pet)` : ""}`);
-
-  // % bonus (set + buildings)
-  setText("pctAtk", `${(pctAtk * 100).toFixed(2)}%${petPctAtk > 0 ? ` (+${(petPctAtk * 100).toFixed(2)}% pet)` : ""}`);
-  setText("pctDef", `${(pctDef * 100).toFixed(2)}%${petPctDef > 0 ? ` (+${(petPctDef * 100).toFixed(2)}% pet)` : ""}`);
-
-  // totals
-  setText("totalAtk", totalAtk);
-  setText("totalDef", totalDef);
-}
-
-  // ---------- render paperdoll ----------
   function renderPaperdoll() {
     const save = getSave();
     const nodes = document.querySelectorAll(".pdSlot");
 
-    nodes.forEach(node => {
+    nodes.forEach((node) => {
       const slotKey = node.dataset.slot;
       const it = save.equipment?.[slotKey] || null;
 
       node.classList.remove("hasItem", "dsSetItem", "dsCraftedItem");
-      node.classList.forEach(c => { if (c.startsWith("dsRarity-")) node.classList.remove(c); });
+      node.classList.forEach((c) => { if (c.startsWith("dsRarity-")) node.classList.remove(c); });
       node.innerHTML = "";
 
       if (it && it.img) {
         node.classList.add("hasItem");
 
-        if (it.setId) {
-          node.classList.add("dsSetItem");
-        } else if (it.crafted) {
-          node.classList.add("dsCraftedItem");
-        } else {
+        if (it.setId) node.classList.add("dsSetItem");
+        else if (it.crafted) node.classList.add("dsCraftedItem");
+        else {
           const rarityKey = String(it.rarity || "").toLowerCase();
           if (rarityKey) node.classList.add("dsRarity-" + rarityKey);
         }
@@ -455,8 +499,8 @@ function renderBreakout() {
           node.appendChild(badge);
         }
 
-        const a = num(it.atk,0);
-        const d = num(it.def,0);
+        const a = num(it.atk, 0);
+        const d = num(it.def, 0);
         const statParts = [];
         if (a) statParts.push(`ATK +${a}`);
         if (d) statParts.push(`DEF +${d}`);
@@ -483,11 +527,9 @@ function renderBreakout() {
         t.className = "pdEmpty";
         t.textContent = label;
         node.appendChild(t);
-
         node.title = `${label}: Empty`;
       }
 
-      // click unequip if has item
       node.onclick = null;
       if (it) {
         node.addEventListener("click", () => {
@@ -508,16 +550,14 @@ function renderBreakout() {
     });
   }
 
-  // ---------- quick equip via SHIFT+click inventory ----------
   function hookInventoryShiftEquip() {
     const grid = document.getElementById("inventoryGrid");
-    if (!grid) return;
+    if (!grid || grid.dataset.dsEquipShiftBound === "1") return;
+    grid.dataset.dsEquipShiftBound = "1";
 
     grid.addEventListener("click", (e) => {
       const slotEl = e.target.closest(".dsSlot");
       if (!slotEl) return;
-
-      // keep normal click for global inspector
       if (!e.shiftKey) return;
 
       const idx = Number(slotEl.dataset.index);
@@ -526,7 +566,6 @@ function renderBreakout() {
       const s = getSave();
       const item = s.inventory[idx];
       if (!item) return;
-
       if (item.type !== "gear" || !item.slot) return;
 
       const req = Math.max(1, num(item.reqLevel, 1));
@@ -537,8 +576,6 @@ function renderBreakout() {
 
       const slotKey = item.slot;
       const prev = s.equipment[slotKey];
-
-      // take 1 from stack if stacked (gear normally shouldn't stack, but safe)
       const q = Math.max(1, num(item.quantity ?? item.qty, 1));
       const picked = { ...item, quantity: 1 };
 
@@ -565,32 +602,58 @@ function renderBreakout() {
     renderBreakout();
   }
 
-  // ---------- boot ----------
-  window.addEventListener("DOMContentLoaded", () => {
-    injectEquipStylesOnce();
+  function bindEquipmentEvents() {
+    document.getElementById("tabFight")?.addEventListener("click", () => setStatsTab("fight"));
+    document.getElementById("tabDungeon")?.addEventListener("click", () => setStatsTab("dungeon"));
+  }
 
-    // Ensure totals exist at least once on load
+  function refreshEquipmentView() {
+    if (!document.getElementById("paperdoll")) return;
+    renderPaperdoll();
+    renderBreakout();
+  }
+
+  function mountEquipment(root = null) {
+    const left = root || document.getElementById("leftPanel");
+    if (!left) return false;
+    injectEquipStylesOnce();
+    left.innerHTML = EQUIPMENT_TEMPLATE;
+    document.title = "Darkstone Chronicles - Equipment";
+
     const s = getSave();
     recomputeTotalsLocal(s);
     setSave(s);
 
-    renderPaperdoll();
-    setStatsTab("fight");
+    bindEquipmentEvents();
     hookInventoryShiftEquip();
+    setStatsTab(currentStatsTab);
+    renderPaperdoll();
+    return true;
+  }
 
-    // if something changes while you're on this page (equip via inspector, etc.)
-    window.addEventListener("ds:save", () => {
-      renderPaperdoll();
-      renderBreakout();
-    });
+  function initStandaloneEquipment() {
+    if (!document.getElementById("paperdoll")) return false;
+    injectEquipStylesOnce();
+    document.title = "Darkstone Chronicles - Equipment";
 
-    document.getElementById("tabFight")?.addEventListener("click", () => setStatsTab("fight"));
-    document.getElementById("tabDungeon")?.addEventListener("click", () => setStatsTab("dungeon"));
+    const s = getSave();
+    recomputeTotalsLocal(s);
+    setSave(s);
+
+    bindEquipmentEvents();
+    hookInventoryShiftEquip();
+    setStatsTab(currentStatsTab);
+    renderPaperdoll();
+    return true;
+  }
+
+  window.DSEquipment = {
+    mount: mountEquipment
+  };
+
+  window.addEventListener("DOMContentLoaded", () => {
+    initStandaloneEquipment();
   });
+
+  window.addEventListener("ds:save", refreshEquipmentView);
 })();
-
-
-
-
-
-

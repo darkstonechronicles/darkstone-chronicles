@@ -12,6 +12,7 @@
 // ✅ Mob click starts fight immediately (no need for Attack)
 // ✅ Zone 3 added: Desert Wastes (Req Lv 30) with your exact mob+item mapping
 
+(() => {
 const SAVE_KEY = "darkstone_save_v1";
 
 // =========================
@@ -1901,45 +1902,229 @@ function recomputeTotalsAndSave(){
 }
 
 // =========================
-// DOM (must exist in fight.html)
+// DOM (bound on mount)
 // =========================
-const zonesGrid = document.getElementById("zonesGrid");
-const zonesWrap = document.getElementById("zonesWrap");
-const mobsWrap  = document.getElementById("mobsWrap");
-const mobsGrid  = document.getElementById("mobsGrid");
-const zoneTitle = document.getElementById("zoneTitle");
-const fightPageTitle = document.getElementById("fightPageTitle");
+let zonesGrid = null;
+let zonesWrap = null;
+let mobsWrap = null;
+let mobsGrid = null;
+let zoneTitle = null;
+let fightPageTitle = null;
 
-const battleWrap = document.getElementById("battleWrap");
-const heroImg = document.getElementById("heroImg");
-const mobImg  = document.getElementById("mobImg");
-const heroInfo = document.getElementById("heroInfo");
-const mobInfo  = document.getElementById("mobInfo");
-const goldBonusBox = document.getElementById("goldBonusBox");
-const dropChanceBox = document.getElementById("dropChanceBox");
-const rewardBonusRow = document.getElementById("rewardBonusRow");
-const heroHpBar = document.getElementById("heroHpBar");
-const mobHpBar  = document.getElementById("mobHpBar");
-const heroHpText = document.getElementById("heroHpText");
-const mobHpText  = document.getElementById("mobHpText");
-const heroDamageText = document.getElementById("heroDamageText");
-const mobDamageText  = document.getElementById("mobDamageText");
-const battleLog  = document.getElementById("battleLog");
-const petStack = document.getElementById("petStack");
-const combatPetBadge = document.getElementById("combatPetBadge");
-const combatPetIcon = document.getElementById("combatPetIcon");
-const combatPetXpBar = document.getElementById("combatPetXpBar");
-const fortunePetBadge = document.getElementById("fortunePetBadge");
-const fortunePetIcon = document.getElementById("fortunePetIcon");
-const fortunePetXpBar = document.getElementById("fortunePetXpBar");
+let battleWrap = null;
+let heroImg = null;
+let mobImg = null;
+let heroInfo = null;
+let mobInfo = null;
+let goldBonusBox = null;
+let dropChanceBox = null;
+let rewardBonusRow = null;
+let heroHpBar = null;
+let mobHpBar = null;
+let heroHpText = null;
+let mobHpText = null;
+let heroDamageText = null;
+let mobDamageText = null;
+let battleLog = null;
+let petStack = null;
+let combatPetBadge = null;
+let combatPetIcon = null;
+let combatPetXpBar = null;
+let fortunePetBadge = null;
+let fortunePetIcon = null;
+let fortunePetXpBar = null;
 
-const attackBtn = document.getElementById("attackBtn");
-const runBtn    = document.getElementById("runBtn");
-const toZonesBtn= document.getElementById("toZonesBtn");
+let attackBtn = null;
+let runBtn = null;
+let toZonesBtn = null;
 
-const cooldownWrap = document.getElementById("cooldownWrap");
-const cooldownBar  = document.getElementById("cooldownBar");
-const cooldownText = document.getElementById("cooldownText");
+let cooldownWrap = null;
+let cooldownBar = null;
+let cooldownText = null;
+
+let __fightMounted = false;
+let __fightRoot = null;
+
+const FIGHT_TEMPLATE = `
+  <div style="display:flex;align-items:center;justify-content:space-between;width:90%;max-width:900px;margin:0 auto 10px;">
+    <h1 id="fightPageTitle" style="margin:0;">Fight</h1>
+    <button id="toZonesBtn" style="display:none;">Zones</button>
+  </div>
+
+  <div id="cooldownWrap" style="margin-top:12px;display:none;">
+    <div style="display:flex;justify-content:space-between;font-size:12px;opacity:.9;">
+      <span>Next attack</span>
+      <span id="cooldownText">6.0s</span>
+    </div>
+    <div style="height:5px;background:#222;border:1px solid #333;border-radius:6px;margin-top:6px;overflow:hidden;">
+      <div id="cooldownBar" style="height:100%;width:0%;border-radius:6px;background:linear-gradient(90deg,#b63a3a,#e05555);"></div>
+    </div>
+  </div>
+
+  <div id="zonesWrap" style="width:90%;max-width:900px;margin:0 auto;">
+    <div id="zonesGrid" style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:24px;justify-items:center;"></div>
+  </div>
+
+  <div id="mobsWrap" style="width:90%;max-width:900px;margin:18px auto;display:none;">
+    <div id="mobsGrid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px;"></div>
+  </div>
+
+  <div id="battleWrap" style="width:90%;max-width:700px;margin:18px auto;display:none;">
+    <div id="rewardBonusRow" style="display:none;margin:0 auto 8px;max-width:520px;justify-content:center;gap:8px;flex-wrap:wrap;">
+      <div id="goldBonusBox" style="display:none;text-align:center;padding:6px 10px;border-radius:999px;border:2px solid #8a6a1f;background:#2a2212;color:#ffd27a;font-weight:700;font-size:12px;letter-spacing:.3px;">Gold Bonus +0%</div>
+      <div id="dropChanceBox" style="display:none;text-align:center;padding:6px 10px;border-radius:999px;border:2px solid #2b6a8a;background:#12212a;color:#8fd8ff;font-weight:700;font-size:12px;letter-spacing:.3px;">Drop Chance +0%</div>
+    </div>
+
+    <div style="position:relative;display:grid;grid-template-columns:1fr auto 1fr;align-items:start;gap:16px;background:#151520;border-radius:12px;border:2px solid #333;padding:34px 12px 18px;min-height:186px;box-sizing:border-box;">
+      <div style="display:flex;justify-content:center;align-items:start;align-self:start;min-width:0;">
+        <div style="min-width:0;display:flex;flex-direction:column;align-items:center;gap:4px;position:relative;width:168px;">
+          <div id="heroInfo" style="position:absolute;left:50%;top:-28px;transform:translateX(-50%);font-size:13px;opacity:.9;text-align:center;white-space:nowrap;"></div>
+          <div style="display:flex;align-items:flex-start;justify-content:center;gap:10px;width:100%;">
+            <div style="display:flex;flex-direction:column;align-items:center;gap:4px;flex:0 0 auto;">
+              <img id="heroImg" src="images/hero.png" alt="Hero" style="width:82px;height:82px;border-radius:10px;border:2px solid #333;object-fit:cover;flex:0 0 auto;">
+              <div style="width:74px;height:4px;background:#222;border:1px solid #333;border-radius:999px;overflow:hidden;">
+                <div id="heroHpBar" style="height:100%;width:100%;border-radius:999px;background:linear-gradient(90deg,#b63a3a,#e05555);"></div>
+              </div>
+              <div id="heroHpText" style="font-size:10px;opacity:.85;line-height:1;"></div>
+              <div id="heroDamageText" style="min-height:18px;margin-top:2px;padding:4px 8px;border-radius:999px;border:1px solid rgba(210, 80, 80, .35);background:rgba(60, 18, 18, .82);box-shadow:0 0 10px rgba(150, 30, 30, .16);font-size:10px;font-weight:700;line-height:1;text-align:center;color:#ffe1e1;"></div>
+            </div>
+            <div id="petStack" style="display:none;flex-direction:column;align-items:center;justify-content:space-between;height:82px;flex:0 0 auto;">
+              <div id="combatPetBadge" style="display:none;flex-direction:column;align-items:center;gap:3px;flex:0 0 auto;">
+                <div id="combatPetIcon" style="width:34px;height:34px;border-radius:9px;border:2px solid #333;background:#101522;color:#eef2ff;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:900;overflow:hidden;box-sizing:border-box;"></div>
+                <div style="width:34px;height:4px;background:#222;border:1px solid #333;border-radius:999px;overflow:hidden;">
+                  <div id="combatPetXpBar" style="height:100%;width:0%;border-radius:999px;background:#4aa3ff;"></div>
+                </div>
+              </div>
+              <div id="fortunePetBadge" style="display:none;flex-direction:column;align-items:center;gap:3px;flex:0 0 auto;">
+                <div id="fortunePetIcon" style="width:34px;height:34px;border-radius:9px;border:2px solid #333;background:#101522;color:#eef2ff;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:900;overflow:hidden;box-sizing:border-box;"></div>
+                <div style="width:34px;height:4px;background:#222;border:1px solid #333;border-radius:999px;overflow:hidden;">
+                  <div id="fortunePetXpBar" style="height:100%;width:0%;border-radius:999px;background:#4aa3ff;"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div style="display:flex;align-items:start;justify-content:center;align-self:start;min-width:126px;padding-top:10px;">
+        <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;">
+          <img src="images/ui/my_vs_icon.png" alt="VS" style="width:126px;height:126px;object-fit:contain;display:block;">
+        </div>
+      </div>
+
+      <div style="display:flex;justify-content:center;align-items:start;align-self:start;min-width:0;">
+        <div style="min-width:0;display:flex;flex-direction:column;align-items:center;gap:4px;position:relative;width:120px;">
+          <div id="mobInfo" style="position:absolute;left:50%;top:-28px;transform:translateX(-50%);font-size:13px;opacity:.9;text-align:center;white-space:nowrap;"></div>
+          <img id="mobImg" src="" alt="Mob" style="width:82px;height:82px;border-radius:10px;border:2px solid #333;object-fit:cover;">
+          <div style="width:74px;height:4px;background:#222;border:1px solid #333;border-radius:999px;overflow:hidden;">
+            <div id="mobHpBar" style="height:100%;width:100%;border-radius:999px;background:linear-gradient(90deg,#b63a3a,#e05555);"></div>
+          </div>
+          <div id="mobHpText" style="font-size:10px;opacity:.85;line-height:1;"></div>
+          <div id="mobDamageText" style="min-height:18px;margin-top:2px;padding:4px 8px;border-radius:999px;border:1px solid rgba(70, 190, 120, .35);background:rgba(20, 50, 30, .78);box-shadow:0 0 10px rgba(20, 120, 60, .14);font-size:10px;font-weight:700;line-height:1;text-align:center;color:#dff7e8;"></div>
+        </div>
+      </div>
+
+      <div id="battleLog" style="grid-column:1 / -1;min-height:18px;margin-top:6px;font-size:12px;line-height:1.2;opacity:.92;text-align:center;"></div>
+    </div>
+
+    <div style="margin-top:12px;display:flex;gap:10px;justify-content:center;">
+      <button id="attackBtn">Attack</button>
+      <button id="runBtn">Run</button>
+    </div>
+  </div>
+`;
+
+function ensureFightShellStyles() {
+  if (document.getElementById("ds-fight-shell-styles")) return;
+  const style = document.createElement("style");
+  style.id = "ds-fight-shell-styles";
+  style.textContent = `
+    @media (max-width: 680px) {
+      #zonesWrap { width: 100% !important; }
+      #zonesGrid { grid-template-columns: repeat(4, minmax(0, 1fr)) !important; gap: 10px !important; }
+      .fightZoneCard { max-width: 74px !important; }
+      .fightZoneCardInner { gap: 6px !important; }
+      .fightZoneImg { width: 56px !important; height: 56px !important; border-radius: 8px !important; }
+      .fightZoneInfo { width: 74px !important; min-height: 48px !important; padding: 4px 5px !important; border-radius: 8px !important; }
+      .fightZoneName { font-size: 10px !important; line-height: 1.05 !important; white-space: normal !important; word-break: break-word !important; }
+      .fightZoneMeta { margin-top: 2px !important; font-size: 10px !important; line-height: 1.05 !important; }
+      #mobsWrap { width: 100% !important; }
+      #mobsGrid { grid-template-columns: repeat(3, minmax(0, 1fr)) !important; gap: 8px !important; }
+      .fightMobCard { padding: 8px !important; border-radius: 10px !important; }
+      .fightMobImg { width: 64px !important; height: 64px !important; margin-bottom: 4px !important; }
+      .fightMobName { font-size: 11px !important; min-height: 28px !important; line-height: 1.1 !important; }
+      .fightMobLevel { font-size: 10px !important; }
+      .fightMobStats { gap: 4px !important; }
+      .fightMobStats > div { width: 34px !important; height: 34px !important; font-size: 9px !important; }
+      .fightMobStats > div > div:first-child { font-size: 11px !important; }
+      .mobLootPanel {
+        position: fixed !important;
+        width: min(228px, calc(100vw - 18px)) !important;
+        max-width: calc(100vw - 18px) !important;
+        max-height: min(360px, 56vh) !important;
+        overflow-y: auto !important;
+        overflow-x: hidden !important;
+        padding: 7px !important;
+        z-index: 120 !important;
+      }
+      .mobLootPanel > div:first-child { margin-bottom: 6px !important; }
+      .mobLootPanel > div:first-child > div:first-child { font-size: 11px !important; }
+      .mobLootPanel > div:first-child .mobLootClose { width: 22px !important; height: 22px !important; font-size: 11px !important; }
+      .mobLootPanel > div:last-child { gap: 5px !important; }
+      .mobLootPanel > div:last-child > div { gap: 6px !important; padding: 5px 6px !important; border-radius: 7px !important; }
+      .mobLootPanel > div:last-child > div > img { width: 28px !important; height: 28px !important; border-radius: 5px !important; }
+      .mobLootPanel > div:last-child > div > div > div:first-child { font-size: 11px !important; line-height: 1.05 !important; }
+      .mobLootPanel > div:last-child > div > div > div:last-child { font-size: 9px !important; line-height: 1.1 !important; }
+    }
+    @media (max-width: 480px) {
+      #mobsGrid { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
+      .mobLootPanel {
+        width: min(214px, calc(100vw - 14px)) !important;
+        max-width: calc(100vw - 14px) !important;
+        max-height: min(340px, 54vh) !important;
+        padding: 6px !important;
+      }
+    }
+  `;
+  document.head.appendChild(style);
+}
+
+function bindFightDom(scope = document) {
+  zonesGrid = scope.getElementById("zonesGrid");
+  zonesWrap = scope.getElementById("zonesWrap");
+  mobsWrap = scope.getElementById("mobsWrap");
+  mobsGrid = scope.getElementById("mobsGrid");
+  zoneTitle = scope.getElementById("zoneTitle");
+  fightPageTitle = scope.getElementById("fightPageTitle");
+  battleWrap = scope.getElementById("battleWrap");
+  heroImg = scope.getElementById("heroImg");
+  mobImg = scope.getElementById("mobImg");
+  heroInfo = scope.getElementById("heroInfo");
+  mobInfo = scope.getElementById("mobInfo");
+  goldBonusBox = scope.getElementById("goldBonusBox");
+  dropChanceBox = scope.getElementById("dropChanceBox");
+  rewardBonusRow = scope.getElementById("rewardBonusRow");
+  heroHpBar = scope.getElementById("heroHpBar");
+  mobHpBar = scope.getElementById("mobHpBar");
+  heroHpText = scope.getElementById("heroHpText");
+  mobHpText = scope.getElementById("mobHpText");
+  heroDamageText = scope.getElementById("heroDamageText");
+  mobDamageText = scope.getElementById("mobDamageText");
+  battleLog = scope.getElementById("battleLog");
+  petStack = scope.getElementById("petStack");
+  combatPetBadge = scope.getElementById("combatPetBadge");
+  combatPetIcon = scope.getElementById("combatPetIcon");
+  combatPetXpBar = scope.getElementById("combatPetXpBar");
+  fortunePetBadge = scope.getElementById("fortunePetBadge");
+  fortunePetIcon = scope.getElementById("fortunePetIcon");
+  fortunePetXpBar = scope.getElementById("fortunePetXpBar");
+  attackBtn = scope.getElementById("attackBtn");
+  runBtn = scope.getElementById("runBtn");
+  toZonesBtn = scope.getElementById("toZonesBtn");
+  cooldownWrap = scope.getElementById("cooldownWrap");
+  cooldownBar = scope.getElementById("cooldownBar");
+  cooldownText = scope.getElementById("cooldownText");
+}
 
 function isCompactFightMobile() {
   return window.matchMedia("(max-width: 680px)").matches;
@@ -2290,11 +2475,14 @@ function scheduleNextEncounter(){
 }
 
 // Pause integration
-window.addEventListener("ds:pause", () => stopAutoFight(true));
-window.addEventListener("ds:save", () => {
+function handleFightPause() {
+  stopAutoFight(true);
+}
+
+function handleFightSave() {
   if (!battleWrap || battleWrap.style.display === "none") return;
   renderCombatPetBadge();
-});
+}
 
 // =========================
 // Zones UI
@@ -2760,10 +2948,12 @@ function addHeroXP(xp){
 // =========================
 // Buttons / Nav
 // =========================
-toZonesBtn?.addEventListener("click", () => showZones());
+function handleFightZonesClick() {
+  showZones();
+}
 
 // Attack is optional (kept)
-attackBtn?.addEventListener("click", () => {
+function handleFightAttackClick() {
   if(!currentMobData || !currentZone){
     pushBattleLog("❌ Select a mob first.");
     return;
@@ -2776,17 +2966,80 @@ attackBtn?.addEventListener("click", () => {
     return;
   }
   pushBattleLog("ℹ️ Already running...");
-});
+}
 
-runBtn?.addEventListener("click", () => {
+function handleFightRunClick() {
   stopAutoFight(true);
   if(currentZone) showMobs(currentZone);
-});
+}
+
+function attachFightEvents() {
+  if (!toZonesBtn || !attackBtn || !runBtn) return;
+  toZonesBtn.addEventListener("click", handleFightZonesClick);
+  attackBtn.addEventListener("click", handleFightAttackClick);
+  runBtn.addEventListener("click", handleFightRunClick);
+  window.addEventListener("ds:pause", handleFightPause);
+  window.addEventListener("ds:save", handleFightSave);
+}
+
+function detachFightEvents() {
+  toZonesBtn?.removeEventListener("click", handleFightZonesClick);
+  attackBtn?.removeEventListener("click", handleFightAttackClick);
+  runBtn?.removeEventListener("click", handleFightRunClick);
+  window.removeEventListener("ds:pause", handleFightPause);
+  window.removeEventListener("ds:save", handleFightSave);
+}
+
+function mountFight(root = null) {
+  if (root) {
+    root.innerHTML = FIGHT_TEMPLATE;
+    __fightRoot = root;
+  } else {
+    __fightRoot = document.getElementById("leftPanel");
+  }
+
+  ensureFightShellStyles();
+  bindFightDom(document);
+  if (!zonesGrid || !zonesWrap || !mobsWrap || !mobsGrid || !battleWrap) return false;
+
+  if (__fightMounted) detachFightEvents();
+
+  __fightMounted = true;
+  currentZone = null;
+  currentMobData = null;
+  currentMob = null;
+  autoFighting = false;
+  autoTimer = null;
+  stopCooldownUI();
+  attachFightEvents();
+  document.title = "Darkstone Chronicles - Fight";
+  showZones();
+  return true;
+}
+
+function unmountFight() {
+  if (!__fightMounted) return;
+  stopAutoFight(true);
+  detachFightEvents();
+  __fightMounted = false;
+  currentZone = null;
+  currentMobData = null;
+  currentMob = null;
+}
 
 // =========================
 // Start page
 // =========================
-showZones();
+window.DSFight = {
+  mount: mountFight,
+  unmount: unmountFight
+};
+
+if (document.getElementById("zonesGrid")) {
+  mountFight();
+}
+
+})();
 
 
 
