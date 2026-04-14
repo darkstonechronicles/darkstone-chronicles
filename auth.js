@@ -334,7 +334,14 @@
     });
 
     if (error || !body?.ok) {
-      throw new Error(body?.error || error?.message || "Admin grant failed.");
+      let detail = body?.error || "";
+      if (!detail && error?.context && typeof error.context.json === "function") {
+        try {
+          const ctx = await error.context.json();
+          detail = String(ctx?.error || ctx?.message || "").trim();
+        } catch {}
+      }
+      throw new Error(detail || error?.message || "Admin grant failed.");
     }
 
     if (body?.save && typeof body.save === "object") {
