@@ -968,6 +968,7 @@
         padding:0 10px;
         position:relative;
         z-index:40;
+        pointer-events:none;
       }
       #hudRoot,
       #mainLayout{
@@ -1400,6 +1401,7 @@
         flex-direction:column;
         gap:10px;
         align-items:stretch;
+        pointer-events:none;
       }
 
       .dsHeaderTop{
@@ -1413,7 +1415,8 @@
         margin-left:auto;
         position:relative;
         flex:0 0 auto;
-        z-index:50;
+        z-index:120;
+        pointer-events:auto;
       }
       .dsAccountBtn{
         min-height:42px;
@@ -1428,6 +1431,7 @@
         box-shadow:
           0 12px 24px rgba(0,0,0,.22),
           inset 0 1px 0 rgba(255,255,255,.06);
+        pointer-events:auto;
       }
       .dsAccountBtn:hover{filter:brightness(1.05);}
       .dsAccountMenu{
@@ -1443,7 +1447,8 @@
           0 18px 42px rgba(0,0,0,.36),
           0 0 0 1px rgba(0,0,0,.35);
         display:none;
-        z-index:80;
+        z-index:160;
+        pointer-events:auto;
       }
       .dsAccountMenu.dsAccountMenuOpen{
         display:flex;
@@ -1481,6 +1486,7 @@
         display:flex;gap:8px;align-items:flex-start;
         background:#151520;border:2px solid #333;border-radius:12px;
         padding:10px;box-sizing:border-box;
+        pointer-events:auto;
       }
 
       .dsHeroPortrait{cursor:pointer;flex:0 0 auto;text-decoration:none;display:inline-flex;}
@@ -1497,6 +1503,7 @@
         display:flex;
         align-items:center;
         box-sizing:border-box;
+        pointer-events:auto;
       }
       .dsHeroStats{flex:1;min-width:0;}
       .dsLine{margin:0 0 6px 0;opacity:.92;font-size:13px}
@@ -1536,6 +1543,7 @@
         align-items:stretch;
         background:#151520;border:2px solid #333;border-radius:12px;
         padding:8px;box-sizing:border-box;
+        pointer-events:auto;
       }
       .dsNav button{
         width:100%;
@@ -1555,6 +1563,7 @@
         padding:8px 12px 6px;box-sizing:border-box;
         position:relative;
         margin-top:-110px;
+        z-index:45;
       }
       #inventoryStickySlot{
         display:none;
@@ -2558,45 +2567,6 @@ function hookInvTabs(){
   setInvTab(__invTab);
 }
 
-function ensureGlobalOverviewButton() {
-  const right = document.getElementById("rightColumn");
-  if (!right) return;
-
-  right.style.position = "relative";
-
-  let wrap = document.getElementById("dsGlobalOverviewWrap");
-  if (!wrap) {
-    wrap = document.createElement("div");
-    wrap.id = "dsGlobalOverviewWrap";
-    wrap.style.position = "absolute";
-    wrap.style.top = "-193px";
-    wrap.style.right = "132px";
-    wrap.style.zIndex = "8";
-    wrap.style.display = "flex";
-    wrap.style.flexDirection = "column";
-    wrap.style.gap = "6px";
-    wrap.style.alignItems = "flex-end";
-    wrap.style.justifyContent = "flex-end";
-    wrap.innerHTML = `<button id="dsGlobalOverviewBtn" class="townBtn" type="button">Overview</button>`;
-    right.appendChild(wrap);
-  } else if (wrap.parentElement !== right) {
-    right.appendChild(wrap);
-  }
-
-  const btn = document.getElementById("dsGlobalOverviewBtn");
-  if (!btn) return;
-  btn.style.minHeight = "34px";
-  btn.style.padding = "6px 14px";
-  btn.style.fontSize = "";
-  btn.style.fontSize = "14px";
-  btn.style.width = "auto";
-  btn.style.minWidth = "0";
-  btn.style.alignSelf = "flex-end";
-  if (btn.dataset.bound === "1") return;
-  btn.dataset.bound = "1";
-  btn.addEventListener("click", () => navigateWithFade("professions_overview.html"));
-}
-
   function syncRightColumnToNav() {
     return;
   }
@@ -3050,6 +3020,7 @@ function claimActiveChallengeFromQuest(){
 
   const statPts = Math.max(0, num(save.heroStatPoints, 0));
   const authLabel = getAuthUserLabel();
+  const isAdminUser = !!window.DSAuth?.isAdmin?.();
 
   hudRoot.innerHTML = `
     <div class="dsHeaderRow">
@@ -3098,6 +3069,7 @@ function claimActiveChallengeFromQuest(){
           <div id="authAccountMenu" class="dsAccountMenu" role="menu" aria-hidden="true">
             <div class="dsAccountLabel">ACCOUNT</div>
             <div class="dsAccountEmail">${authLabel || "Signed In"}</div>
+            ${isAdminUser ? `<button id="authAdminToolsBtn" class="dsAccountLogout" type="button" style="border-color:#4a6dc2;background:linear-gradient(180deg,#233b73,#18274f);color:#eef3ff;">Admin Tools</button>` : ``}
             <button id="authLogoutBtn" class="dsAccountLogout" type="button">Logout</button>
           </div>
         </div>
@@ -3182,6 +3154,11 @@ function claimActiveChallengeFromQuest(){
       console.error("[UI] logout failed", error);
     }
   });
+  document.getElementById("authAdminToolsBtn")?.addEventListener("click", () => {
+    closeAccountMenu();
+    bindAdminToolsModal();
+    openAdminToolsModal();
+  });
 }
 
   function syncRightColumnToNav(force = false) {
@@ -3196,6 +3173,157 @@ function renderGold(save) {
 function getAuthUserLabel() {
   if (!window.DSAuth?.getUserLabel) return "";
   return String(window.DSAuth.getUserLabel() || "").trim();
+}
+
+let __adminPanelBound = false;
+let __adminPanelOpen = false;
+
+function ensureAdminToolsModal() {
+  let modal = document.getElementById("dsAdminModal");
+  if (modal) return modal;
+
+  modal = document.createElement("div");
+  modal.id = "dsAdminModal";
+  modal.style.cssText = [
+    "display:none",
+    "position:fixed",
+    "inset:0",
+    "z-index:220",
+    "background:rgba(4,6,12,.72)",
+    "backdrop-filter:blur(8px)",
+    "padding:18px",
+    "align-items:center",
+    "justify-content:center"
+  ].join(";");
+
+  modal.innerHTML = `
+    <div id="dsAdminModalCard" style="width:min(460px, calc(100vw - 24px));max-height:min(80vh, 720px);overflow:auto;border-radius:16px;border:1px solid rgba(255,255,255,.12);background:linear-gradient(180deg, rgba(20,23,36,.98), rgba(12,14,24,.98));box-shadow:0 24px 60px rgba(0,0,0,.42);padding:16px 16px 14px;">
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:12px;">
+        <div>
+          <div style="font-size:11px;opacity:.68;font-weight:800;letter-spacing:.3px;">ADMIN ONLY</div>
+          <div style="font-size:20px;font-weight:900;">Admin Tools</div>
+        </div>
+        <button id="dsAdminClose" type="button" class="townBtn" style="width:auto;min-width:0;padding:8px 12px;">Close</button>
+      </div>
+
+      <div id="dsAdminStatus" style="margin-bottom:12px;padding:10px 12px;border-radius:12px;border:1px solid rgba(255,255,255,.08);background:rgba(255,255,255,.03);font-size:12px;opacity:.92;">Ready.</div>
+
+      <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;">
+        <button id="dsAdminGold100m" type="button" class="townBtn" style="width:100%;">+100M Gold</button>
+        <button id="dsAdminGold1b" type="button" class="townBtn" style="width:100%;">+1B Gold</button>
+        <button id="dsAdminSetLv10" type="button" class="townBtn" style="width:100%;">Set Level 10</button>
+        <button id="dsAdminSetLv50" type="button" class="townBtn" style="width:100%;">Set Level 50</button>
+        <button id="dsAdminSetLv100" type="button" class="townBtn" style="width:100%;">Set Level 100</button>
+        <button id="dsAdminRefill" type="button" class="townBtn" style="width:100%;">Refill HP / ST</button>
+      </div>
+
+      <div style="margin-top:14px;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;">
+        <label style="display:flex;flex-direction:column;gap:6px;">
+          <span style="font-size:12px;font-weight:800;opacity:.88;">Custom Gold Add</span>
+          <input id="dsAdminGoldInput" type="number" min="0" step="1" placeholder="1000000" style="height:38px;border-radius:10px;border:1px solid rgba(255,255,255,.12);background:#10131d;color:#eef2ff;padding:0 10px;">
+        </label>
+        <label style="display:flex;flex-direction:column;gap:6px;">
+          <span style="font-size:12px;font-weight:800;opacity:.88;">Set Level</span>
+          <input id="dsAdminLevelInput" type="number" min="1" step="1" placeholder="25" style="height:38px;border-radius:10px;border:1px solid rgba(255,255,255,.12);background:#10131d;color:#eef2ff;padding:0 10px;">
+        </label>
+      </div>
+
+      <div style="margin-top:10px;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;">
+        <button id="dsAdminApplyGold" type="button" class="townBtn" style="width:100%;">Apply Gold</button>
+        <button id="dsAdminApplyLevel" type="button" class="townBtn" style="width:100%;">Apply Level</button>
+      </div>
+    </div>
+  `;
+
+  document.body.appendChild(modal);
+  return modal;
+}
+
+function closeAdminToolsModal() {
+  const modal = document.getElementById("dsAdminModal");
+  if (!modal) return;
+  modal.style.display = "none";
+  __adminPanelOpen = false;
+}
+
+function openAdminToolsModal() {
+  const modal = ensureAdminToolsModal();
+  modal.style.display = "flex";
+  __adminPanelOpen = true;
+}
+
+function bindAdminToolsModal() {
+  if (__adminPanelBound) return;
+  const modal = ensureAdminToolsModal();
+  const statusEl = modal.querySelector("#dsAdminStatus");
+
+  const setStatus = (text, isError = false) => {
+    if (!statusEl) return;
+    statusEl.textContent = String(text || "Ready.");
+    statusEl.style.color = isError ? "#ffd8de" : "#eef2ff";
+    statusEl.style.borderColor = isError ? "rgba(179,72,92,.4)" : "rgba(255,255,255,.08)";
+    statusEl.style.background = isError ? "rgba(78,22,34,.4)" : "rgba(255,255,255,.03)";
+  };
+
+  const runGrant = async (payload, successText) => {
+    try {
+      setStatus("Applying admin grant...");
+      await window.DSAuth?.invokeAdminGrant?.(payload);
+      setStatus(successText || "Admin grant applied.");
+      renderAll();
+    } catch (error) {
+      console.error("[admin] grant failed", error);
+      setStatus(error?.message || "Admin grant failed.", true);
+    }
+  };
+
+  modal.addEventListener("click", (e) => {
+    if (e.target === modal) closeAdminToolsModal();
+  });
+  modal.querySelector("#dsAdminClose")?.addEventListener("click", closeAdminToolsModal);
+
+  modal.querySelector("#dsAdminGold100m")?.addEventListener("click", () => runGrant({ add: { gold: 100000000 } }, "Added 100M gold."));
+  modal.querySelector("#dsAdminGold1b")?.addEventListener("click", () => runGrant({ add: { gold: 1000000000 } }, "Added 1B gold."));
+  modal.querySelector("#dsAdminSetLv10")?.addEventListener("click", () => runGrant({ set: { heroLevel: 10, heroXP: 0 } }, "Set hero level to 10."));
+  modal.querySelector("#dsAdminSetLv50")?.addEventListener("click", () => runGrant({ set: { heroLevel: 50, heroXP: 0 } }, "Set hero level to 50."));
+  modal.querySelector("#dsAdminSetLv100")?.addEventListener("click", () => runGrant({ set: { heroLevel: 100, heroXP: 0 } }, "Set hero level to 100."));
+  modal.querySelector("#dsAdminRefill")?.addEventListener("click", () => {
+    const save = ensureSave(loadSave());
+    runGrant({
+      set: {
+        heroHP: num(save.heroHPMax, calcHpMax(num(save.heroLevel, 1))),
+        heroHPMax: num(save.heroHPMax, calcHpMax(num(save.heroLevel, 1))),
+        stamina: num(save.staminaMax, calcStaminaMax(num(save.heroLevel, 1))),
+        staminaMax: num(save.staminaMax, calcStaminaMax(num(save.heroLevel, 1)))
+      }
+    }, "Refilled HP and stamina.");
+  });
+
+  modal.querySelector("#dsAdminApplyGold")?.addEventListener("click", () => {
+    const input = modal.querySelector("#dsAdminGoldInput");
+    const amount = Number(input?.value || 0);
+    if (!Number.isFinite(amount) || amount <= 0) {
+      setStatus("Enter a valid gold amount.", true);
+      return;
+    }
+    runGrant({ add: { gold: Math.trunc(amount) } }, `Added ${new Intl.NumberFormat("el-GR").format(Math.trunc(amount))} gold.`);
+  });
+
+  modal.querySelector("#dsAdminApplyLevel")?.addEventListener("click", () => {
+    const input = modal.querySelector("#dsAdminLevelInput");
+    const level = Number(input?.value || 0);
+    if (!Number.isFinite(level) || level < 1) {
+      setStatus("Enter a valid level.", true);
+      return;
+    }
+    runGrant({ set: { heroLevel: Math.trunc(level), heroXP: 0 } }, `Set hero level to ${Math.trunc(level)}.`);
+  });
+
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape" && __adminPanelOpen) closeAdminToolsModal();
+  });
+
+  __adminPanelBound = true;
 }
 
 function normalizePagePath(path) {
@@ -4491,7 +4619,6 @@ function openInspector(invIndex, item) {
   // -------------------------
 function renderAll() {
   ensureCoreDOM();
-  ensureGlobalOverviewButton();
   const save = ensureSave(loadSave());
   renderHeader(save);
   renderChatPanel(save);
@@ -4549,6 +4676,7 @@ function renderAll() {
           return;
         }
         await window.DSAuth.preparePlayerState?.();
+        await window.DSAuth.refreshAdminStatus?.();
       }
 
       const page = String(window.location.pathname || "").split("/").pop().toLowerCase();
@@ -4576,6 +4704,14 @@ function renderAll() {
       }, 2000);
 
       window.addEventListener("ds:save", forceRerenderNow);
+      window.addEventListener("ds:auth", async () => {
+        try {
+          await window.DSAuth?.refreshAdminStatus?.();
+        } catch (error) {
+          console.error("[UI] admin refresh failed", error);
+        }
+        forceRerenderNow();
+      });
       window.addEventListener("resize", syncRightColumnToNav);
       window.addEventListener("storage", (e) => {
         if (e.key === CHAT_KEY || e.key === CHAT_TAB_KEY || e.key === SAVE_KEY) forceRerenderNow();

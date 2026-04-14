@@ -509,7 +509,9 @@ a:hover{ text-decoration: underline; }
   margin-right: 0 !important;
   margin-bottom: 0 !important;
   margin-left: 0 !important;
+  margin-top: -110px !important;
   position: relative !important;
+  z-index: 45 !important;
   top: auto !important;
   left: auto !important;
 }

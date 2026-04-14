@@ -393,3 +393,9 @@ entrypoint = "./functions/bootstrap-player/index.ts"
 # Specifies static files to be bundled with the function. Supports glob patterns.
 # For example, if you want to serve static HTML pages in your function:
 # static_files = [ "./functions/bootstrap-player/*.html" ]
+
+[functions.admin-grant]
+enabled = true
+verify_jwt = true
+import_map = "./functions/admin-grant/deno.json"
+entrypoint = "./functions/admin-grant/index.ts"

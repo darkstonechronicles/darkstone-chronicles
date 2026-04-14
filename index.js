@@ -59,6 +59,7 @@
 
     nav("goFight", "fight.html", "Traveled to the Fight zone.");
     nav("goProfessions", "professions.html", "Opened professions.");
+    nav("goOverview", "professions_overview.html", "Opened overview.");
     nav("goDungeons", "dungeons.html", "Entered the Whispering Crypt.");
     nav("goBuildings", "buildings.html", "Opened buildings.");
     nav("goChallenges", "challenges.html", "Opened challenges.");

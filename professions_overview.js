@@ -116,10 +116,6 @@
   }
 
   function boot() {
-    document.getElementById("backBtn")?.addEventListener("click", () => {
-      window.location.href = "professions.html";
-    });
-
     render();
     window.addEventListener("ds:save", render);
   }

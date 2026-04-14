@@ -12,6 +12,12 @@
     client: null,
     session: null,
     user: null,
+    admin: {
+      checkedUserId: "",
+      checked: false,
+      isAdmin: false,
+      checking: null
+    },
     cloud: {
       userId: "",
       ready: false,
@@ -257,6 +263,95 @@
     }
   }
 
+  async function refreshAdminStatus() {
+    await ready;
+    if (!state.client || !state.user?.id) {
+      state.admin.checkedUserId = "";
+      state.admin.checked = false;
+      state.admin.isAdmin = false;
+      return false;
+    }
+
+    if (state.admin.checked && state.admin.checkedUserId === state.user.id) {
+      return state.admin.isAdmin;
+    }
+
+    if (state.admin.checking) return state.admin.checking;
+
+    state.admin.checking = (async () => {
+      const { data, error } = await state.client
+        .from("admin_users")
+        .select("user_id")
+        .eq("user_id", state.user.id)
+        .maybeSingle();
+
+      if (error) {
+        console.error("[auth] admin status check failed", error);
+        state.admin.checkedUserId = state.user.id;
+        state.admin.checked = true;
+        state.admin.isAdmin = false;
+        return false;
+      }
+
+      state.admin.checkedUserId = state.user.id;
+      state.admin.checked = true;
+      state.admin.isAdmin = !!data;
+      return state.admin.isAdmin;
+    })();
+
+    try {
+      return await state.admin.checking;
+    } finally {
+      state.admin.checking = null;
+    }
+  }
+
+  function isAdmin() {
+    return !!state.admin.isAdmin;
+  }
+
+  async function invokeAdminGrant(payload = {}) {
+    await ready;
+    if (!state.client || !state.user?.id) {
+      throw new Error("No active session.");
+    }
+
+    const isAllowed = await refreshAdminStatus();
+    if (!isAllowed) {
+      throw new Error("Admin access required.");
+    }
+
+    const session = await getSession();
+    const token = session?.access_token;
+    if (!token) throw new Error("Missing access token.");
+
+    const url = `${CONFIG.url}/functions/v1/admin-grant`;
+    const res = await fetch(url, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${token}`
+      },
+      body: JSON.stringify(payload || {})
+    });
+
+    const body = await res.json().catch(() => ({}));
+    if (!res.ok || !body?.ok) {
+      throw new Error(body?.error || `Admin grant failed (${res.status})`);
+    }
+
+    if (body?.save && typeof body.save === "object") {
+      writeLocalSave(body.save, state.user.id);
+      state.cloud.revision = Math.max(Number(state.cloud.revision || 0), Number(body.revision || 0) || 0);
+      window.dispatchEvent(new Event("ds:save"));
+      window.dispatchEvent(new CustomEvent("ds:cloud-save", {
+        detail: { status: "synced", revision: state.cloud.revision }
+      }));
+    }
+
+    return body;
+  }
+
   const ready = (async () => {
     if (!isConfigured()) return false;
     if (!window.supabase?.createClient) {
@@ -282,6 +377,10 @@
     state.client.auth.onAuthStateChange((event, session) => {
       state.session = session || null;
       state.user = session?.user || null;
+      state.admin.checkedUserId = "";
+      state.admin.checked = false;
+      state.admin.isAdmin = false;
+      state.admin.checking = null;
       if (!state.user?.id) {
         state.cloud.userId = "";
         state.cloud.ready = false;
@@ -390,8 +489,11 @@
     ready,
     redirectIfLoggedIn,
     requireAuth,
+    refreshAdminStatus,
     signInWithGoogle,
     signOut,
-    syncCloudSaveNow
+    syncCloudSaveNow,
+    isAdmin,
+    invokeAdminGrant
   };
 })();
