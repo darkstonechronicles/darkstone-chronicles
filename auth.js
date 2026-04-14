@@ -325,19 +325,16 @@
     const token = session?.access_token;
     if (!token) throw new Error("Missing access token.");
 
-    const url = `${CONFIG.url}/functions/v1/admin-grant`;
-    const res = await fetch(url, {
-      method: "POST",
+    const { data: body, error } = await state.client.functions.invoke("admin-grant", {
+      body: payload || {},
       headers: {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${token}`
-      },
-      body: JSON.stringify(payload || {})
+        Authorization: `Bearer ${token}`,
+        apikey: CONFIG.anonKey
+      }
     });
 
-    const body = await res.json().catch(() => ({}));
-    if (!res.ok || !body?.ok) {
-      throw new Error(body?.error || `Admin grant failed (${res.status})`);
+    if (error || !body?.ok) {
+      throw new Error(body?.error || error?.message || "Admin grant failed.");
     }
 
     if (body?.save && typeof body.save === "object") {
