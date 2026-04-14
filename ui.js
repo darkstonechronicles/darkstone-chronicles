@@ -3471,12 +3471,14 @@ function bindAdminToolsModal() {
 }
 
 function normalizePagePath(path) {
-  return String(path || "")
+  const normalized = String(path || "")
     .replace(/\\/g, "/")
     .split("/").pop()
     .split("?")[0]
     .split("#")[0]
-    .toLowerCase();
+    .toLowerCase()
+    .trim();
+  return normalized || "index.html";
 }
 
 const SHELL_ROUTES = new Set(["index.html", "fight.html", "dungeons.html", "dungeon_run.html", "buildings.html", "challenges.html", "market.html", "bank.html", "professions.html", "professions_overview.html", "equipment.html", "stats.html", "mining.html", "mining_action.html", "hunting.html", "fishing.html", "cooking.html", "herbalism.html", "alchemy.html", "carpentry.html", "woodcutting.html", "forge.html", "enchanting.html"]);
