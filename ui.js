@@ -3359,6 +3359,7 @@ function ensureAdminToolsModal() {
         <button id="dsAdminSetLv50" type="button" class="townBtn" style="width:100%;">Set Level 50</button>
         <button id="dsAdminSetLv100" type="button" class="townBtn" style="width:100%;">Set Level 100</button>
         <button id="dsAdminRefill" type="button" class="townBtn" style="width:100%;">Refill HP / ST</button>
+        <button id="dsAdminClearGlobalChat" type="button" class="townBtn" style="width:100%;grid-column:1 / -1;border-color:#8a4d5e;background:linear-gradient(180deg,#5a2431,#3d1620);color:#fff0f3;">Clear Global Chat</button>
       </div>
 
       <div style="margin-top:14px;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;">
@@ -3441,6 +3442,18 @@ function bindAdminToolsModal() {
         staminaMax: num(save.staminaMax, calcStaminaMax(num(save.heroLevel, 1)))
       }
     }, "Refilled HP and stamina.");
+  });
+  modal.querySelector("#dsAdminClearGlobalChat")?.addEventListener("click", async () => {
+    try {
+      setStatus("Clearing global chat...");
+      await window.DSAuth?.invokeAdminGrant?.({ clearChat: "global" });
+      await loadLiveChatMessages("global", true);
+      renderAll();
+      setStatus("Global chat cleared.");
+    } catch (error) {
+      console.error("[admin] clear global chat failed", error);
+      setStatus(error?.message || "Failed to clear global chat.", true);
+    }
   });
 
   modal.querySelector("#dsAdminApplyGold")?.addEventListener("click", () => {

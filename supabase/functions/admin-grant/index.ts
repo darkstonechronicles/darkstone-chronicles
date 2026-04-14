@@ -16,6 +16,7 @@ type GrantItem = Record<string, unknown> & {
 };
 
 type GrantPayload = {
+  clearChat?: "global" | "market";
   set?: {
     gold?: number;
     heroLevel?: number;
@@ -237,6 +238,18 @@ Deno.serve(async (req) => {
 
   const setOps = payload.set || {};
   const addOps = payload.add || {};
+  const clearChat = payload.clearChat;
+
+  if (clearChat === "global" || clearChat === "market") {
+    const { error: clearChatError } = await admin
+      .from("chat_messages")
+      .delete()
+      .eq("channel_kind", clearChat);
+
+    if (clearChatError) {
+      return json({ error: clearChatError.message }, { status: 500 });
+    }
+  }
 
   if (setOps.gold != null) save.gold = Math.max(0, safeInt(setOps.gold, 0));
   if (addOps.gold != null) save.gold = Math.max(0, safeInt(save.gold, 0) + safeInt(addOps.gold, 0));
