@@ -4,9 +4,38 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Darkstone Chronicles - Challenges</title>
-  <link rel="stylesheet" href="style.css?v=20260415-114732">
+  <link rel="stylesheet" href="style.css?v=20260415-125357">
+  <style id="dsBootShellStyles">
+    html{background-color:var(--bg-fallback,#090a10);}
+    body{margin:0;background:transparent;}
+    #dsBootOverlay{position:fixed;inset:0;z-index:99999;display:flex;align-items:center;justify-content:center;padding:24px;background:radial-gradient(circle at top, rgba(69,82,129,.18), transparent 42%), linear-gradient(180deg,#0b0d14 0%,#090a10 100%);color:#f4f1e8;font-family:Georgia,serif;letter-spacing:.04em;transition:opacity .24s ease, visibility .24s ease;}
+    #dsBootOverlay.is-hidden{opacity:0;visibility:hidden;pointer-events:none;}
+    .dsBootOverlayCard{min-width:min(88vw,340px);padding:16px 20px;border:1px solid rgba(255,255,255,.12);border-radius:16px;background:rgba(17,20,31,.86);box-shadow:0 18px 48px rgba(0,0,0,.38), inset 0 1px 0 rgba(255,255,255,.05);text-align:center;}
+    .dsBootOverlayTitle{font-size:14px;font-weight:700;text-transform:uppercase;opacity:.82;}
+    .dsBootOverlayName{margin-top:6px;font-size:24px;font-weight:900;}
+    .dsBootOverlayHint{margin-top:10px;font-size:12px;opacity:.7;}
+  </style>
+  <script id="dsBootShellScript">
+    (function(){
+      window.__dsBootReady = function(){
+        var root = document.documentElement;
+        var overlay = document.getElementById('dsBootOverlay');
+        root.classList.add('ds-boot-ready');
+        if (!overlay) return;
+        overlay.classList.add('is-hidden');
+        window.setTimeout(function(){ if (overlay && overlay.parentNode) overlay.parentNode.removeChild(overlay); }, 260);
+      };
+    })();
+  </script>
 </head>
 <body>
+  <div id="dsBootOverlay" aria-hidden="true">
+    <div class="dsBootOverlayCard">
+      <div class="dsBootOverlayTitle">Loading</div>
+      <div class="dsBootOverlayName">Darkstone Chronicles</div>
+      <div class="dsBootOverlayHint">Preparing your session...</div>
+    </div>
+  </div>
   <div id="hudRoot"></div>
 
   <div id="mainLayout">
@@ -53,39 +82,39 @@
     </div>
   </div>
 
-  <script src="auth.js?v=20260415-114732"></script>
-  <script src="ui.js?v=20260415-114732"></script>
-  <script src="index.js?v=20260415-114732"></script>
-  <script src="fight.js?v=20260415-114732"></script>
-  <script src="dungeon.js?v=20260415-114732"></script>
-  <script src="buildings.js?v=20260415-114732"></script>
-  <script src="challenges.js?v=20260415-114732"></script>
-  <script src="market.js?v=20260415-114732"></script>
-  <script src="bank.js?v=20260415-114732"></script>
-  <script src="professions.js?v=20260415-114732"></script>
-  <script src="mining.js?v=20260415-114732"></script>
-  <script src="hunting.js?v=20260415-114732"></script>
-  <script src="fishing.js?v=20260415-114732"></script>
-  <script src="cooking.js?v=20260415-114732"></script>
-  <script src="herbalism.js?v=20260415-114732"></script>
-  <script src="alchemy.js?v=20260415-114732"></script>
-  <script src="alchemy_tier.js?v=20260415-114732"></script>
-  <script src="alchemy_action.js?v=20260415-114732"></script>
-  <script src="wood_sawmill.js?v=20260415-114732"></script>
-  <script src="woodcutting.js?v=20260415-114732"></script>
-  <script src="wood_gather_action.js?v=20260415-114732"></script>
-  <script src="wood_sawmill_action.js?v=20260415-114732"></script>
-  <script src="professions_overview.js?v=20260415-114732"></script>
-  <script src="equipment.js?v=20260415-114732"></script>
-  <script src="stats.js?v=20260415-114732"></script>
-  <script src="stats_alloc.js?v=20260415-114732"></script>
-  <script src="forge.js?v=20260415-114732"></script>
-  <script src="enchanting.js?v=20260415-114732"></script>
-  <script src="mining_action.js?v=20260415-114732"></script>
-  <script src="hunting_action.js?v=20260415-114732"></script>
-  <script src="fishing_action.js?v=20260415-114732"></script>
-  <script src="cooking_action.js?v=20260415-114732"></script>
-  <script src="herbalism_action.js?v=20260415-114732"></script>
-  <script src="forge_action.js?v=20260415-114732"></script>
+  <script src="auth.js?v=20260415-125357"></script>
+  <script src="ui.js?v=20260415-125357"></script>
+  <script src="index.js?v=20260415-125357"></script>
+  <script src="fight.js?v=20260415-125357"></script>
+  <script src="dungeon.js?v=20260415-125357"></script>
+  <script src="buildings.js?v=20260415-125357"></script>
+  <script src="challenges.js?v=20260415-125357"></script>
+  <script src="market.js?v=20260415-125357"></script>
+  <script src="bank.js?v=20260415-125357"></script>
+  <script src="professions.js?v=20260415-125357"></script>
+  <script src="mining.js?v=20260415-125357"></script>
+  <script src="hunting.js?v=20260415-125357"></script>
+  <script src="fishing.js?v=20260415-125357"></script>
+  <script src="cooking.js?v=20260415-125357"></script>
+  <script src="herbalism.js?v=20260415-125357"></script>
+  <script src="alchemy.js?v=20260415-125357"></script>
+  <script src="alchemy_tier.js?v=20260415-125357"></script>
+  <script src="alchemy_action.js?v=20260415-125357"></script>
+  <script src="wood_sawmill.js?v=20260415-125357"></script>
+  <script src="woodcutting.js?v=20260415-125357"></script>
+  <script src="wood_gather_action.js?v=20260415-125357"></script>
+  <script src="wood_sawmill_action.js?v=20260415-125357"></script>
+  <script src="professions_overview.js?v=20260415-125357"></script>
+  <script src="equipment.js?v=20260415-125357"></script>
+  <script src="stats.js?v=20260415-125357"></script>
+  <script src="stats_alloc.js?v=20260415-125357"></script>
+  <script src="forge.js?v=20260415-125357"></script>
+  <script src="enchanting.js?v=20260415-125357"></script>
+  <script src="mining_action.js?v=20260415-125357"></script>
+  <script src="hunting_action.js?v=20260415-125357"></script>
+  <script src="fishing_action.js?v=20260415-125357"></script>
+  <script src="cooking_action.js?v=20260415-125357"></script>
+  <script src="herbalism_action.js?v=20260415-125357"></script>
+  <script src="forge_action.js?v=20260415-125357"></script>
 </body>
 </html>

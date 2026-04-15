@@ -1558,7 +1558,31 @@
         font-size:13px;
         display:flex;align-items:center;justify-content:center;gap:6px;
       }
+      .dsNav button.dsNavImageBtn{
+        padding:0;
+        border:0;
+        background:transparent;
+      }
       .dsNav button:hover{filter:brightness(1.08);}
+      .dsNav button.dsNavImageBtn:hover{filter:none;}
+
+      .dsNavImageArt{
+        width:min(100%, 168px);
+        aspect-ratio: 3 / 1;
+        display:block;
+        background-repeat:no-repeat;
+        background-position:center;
+        background-size:contain;
+        filter:drop-shadow(0 8px 18px rgba(0,0,0,.34));
+        transition:transform .14s ease, filter .14s ease;
+      }
+      .dsNav button.dsNavImageBtn:hover .dsNavImageArt{
+        transform:translateY(-1px) scale(1.02);
+        filter:drop-shadow(0 12px 24px rgba(0,0,0,.42));
+      }
+      .dsNavImageArtHome{
+        background-image:url("images/ui/home_nav_button.png");
+      }
 
       .navIcon{width:14px;height:14px;display:block;flex:0 0 auto;}
       .navEmoji{font-size:15px;line-height:1;display:block;flex:0 0 auto;}
@@ -2102,6 +2126,12 @@
           padding:7px 3px;
           font-size:10px;
           gap:2px;
+        }
+        .dsNav button.dsNavImageBtn{
+          padding:0;
+        }
+        .dsNavImageArt{
+          width:min(100%, 110px);
         }
         .navEmoji{
           font-size:11px;
@@ -3099,9 +3129,8 @@ function claimActiveChallengeFromQuest(){
       </div>
 
       <div class="dsNav">
-          <button id="navHome">
-            <span class="navEmoji" aria-hidden="true">&#127968;</span>
-            Home
+          <button id="navHome" class="dsNavImageBtn" aria-label="Home">
+            <span class="dsNavImageArt dsNavImageArtHome" aria-hidden="true"></span>
           </button>
         <button id="navFight">
           <span class="navEmoji" aria-hidden="true">&#9876;&#65039;</span>
@@ -4167,6 +4196,64 @@ function addToStack(arr, item, qty = 1) {
   else arr.push({ ...item, quantity: qty });
 }
 
+function inventoryUsedUnits(inv) {
+  let used = 0;
+  for (const it of inv || []) {
+    if (!it) continue;
+    used += Math.max(1, num(it.quantity ?? it.qty, 1));
+  }
+  return used;
+}
+
+function inventoryMaxUnits(save) {
+  return Math.max(0, num(save?.inventoryMaxSlots, 1000));
+}
+
+function inventoryHasSpaceFor(save, addUnits = 1) {
+  return inventoryUsedUnits(save?.inventory) + Math.max(0, num(addUnits, 0)) <= inventoryMaxUnits(save);
+}
+
+function addInventoryItem(save, item, qty = 1, options = {}) {
+  if (!save || !item) return { ok: false, reason: "invalid" };
+  if (!Array.isArray(save.inventory)) save.inventory = [];
+
+  const amount = Math.max(1, num(qty, 1));
+  if (!inventoryHasSpaceFor(save, amount)) {
+    return {
+      ok: false,
+      reason: "full",
+      used: inventoryUsedUnits(save.inventory),
+      max: inventoryMaxUnits(save)
+    };
+  }
+
+  const stack = options.stack !== false;
+  const prepend = options.prepend === true;
+  const stackKeyFn = typeof options.stackKeyFn === "function" ? options.stackKeyFn : itemStackKey;
+
+  if (stack) {
+    const key = stackKeyFn(item);
+    const ex = save.inventory.find(i => i && stackKeyFn(i) === key);
+    if (ex) ex.quantity = num(ex.quantity, 1) + amount;
+    else if (prepend) save.inventory.unshift({ ...item, quantity: amount });
+    else save.inventory.push({ ...item, quantity: amount });
+    return { ok: true, added: amount };
+  }
+
+  for (let i = 0; i < amount; i += 1) {
+    if (prepend) save.inventory.unshift({ ...item, quantity: 1 });
+    else save.inventory.push({ ...item, quantity: 1 });
+  }
+  return { ok: true, added: amount };
+}
+
+window.DSInventory = Object.assign(window.DSInventory || {}, {
+  usedUnits: inventoryUsedUnits,
+  maxUnits: inventoryMaxUnits,
+  hasSpaceFor: inventoryHasSpaceFor,
+  addItem: addInventoryItem
+});
+
 function consumeFromInventoryIndex(save, idx, qty = 1) {
   const it = save.inventory[idx];
   if (!it) return null;
@@ -5128,6 +5215,7 @@ function renderAll() {
           if (authResult.reason === "not-configured") {
             showBootError("Supabase login is connected, but the frontend anon key is still missing.");
           }
+          window.__dsBootReady?.();
           return;
         }
         await window.DSAuth.preparePlayerState?.();
@@ -5198,12 +5286,14 @@ function renderAll() {
       requestAnimationFrame(() => {
         document.body.classList.remove("ds-page-enter-prep");
         document.body.classList.remove("ds-page-transitioning");
+        window.__dsBootReady?.();
       });
 
       console.log("[UI] boot ok, key =", SAVE_KEY);
     } catch (error) {
       console.error("[UI] boot failed", error);
       showBootError(error?.message || "Unexpected startup error.");
+      window.__dsBootReady?.();
     }
   }
 

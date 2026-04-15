@@ -837,13 +837,19 @@ function addItemToSave(item){
   if(!Array.isArray(data.inventory)) data.inventory = [];
 
   const qty = Math.max(1, num(item.quantity ?? item.qty, 1));
-
-  const key = itemStackKey(item);
-  const ex = data.inventory.find(i => i && itemStackKey(i) === key);
-  if(ex) ex.quantity = (ex.quantity ?? 1) + qty;
-  else data.inventory.push({ ...item, quantity: qty });
+  const invApi = window.DSInventory;
+  if (invApi?.addItem) {
+    const res = invApi.addItem(data, item, qty, { stack: true, stackKeyFn: itemStackKey });
+    if (!res?.ok) return false;
+  } else {
+    const key = itemStackKey(item);
+    const ex = data.inventory.find(i => i && itemStackKey(i) === key);
+    if(ex) ex.quantity = (ex.quantity ?? 1) + qty;
+    else data.inventory.push({ ...item, quantity: qty });
+  }
 
   localStorage.setItem(SAVE_KEY, JSON.stringify(data));
+  return true;
 }
 
 function rollGold(zoneId, mobLvl){

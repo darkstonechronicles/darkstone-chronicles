@@ -536,6 +536,10 @@
           const s = getSave();
           const cur = s.equipment?.[slotKey];
           if (!cur) return;
+          if (window.DSInventory?.hasSpaceFor && !window.DSInventory.hasSpaceFor(s, 1)) {
+            alert("No more inventory space.");
+            return;
+          }
 
           addToStack(s.inventory, cur, 1);
           s.equipment[slotKey] = null;

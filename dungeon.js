@@ -716,13 +716,19 @@
     if(!item) return;
     const s = loadSave();
     if(!Array.isArray(s.inventory)) s.inventory = [];
+    const invApi = window.DSInventory;
 
     const isGear = (item?.type === "gear") || !!item?.slot;
     const qty = Math.max(1, num(item.quantity ?? item.qty, 1));
 
     if (isGear){
-      for (let i = 0; i < qty; i++){
-        s.inventory.push({ ...item, quantity: 1 });
+      if (invApi?.addItem) {
+        const res = invApi.addItem(s, item, qty, { stack: false });
+        if (!res?.ok) return;
+      } else {
+        for (let i = 0; i < qty; i++){
+          s.inventory.push({ ...item, quantity: 1 });
+        }
       }
       setSave(s);
       return;
@@ -730,13 +736,23 @@
 
     const stackableTypes = new Set(["ore","material","consumable","food","fish","meat"]);
     if (stackableTypes.has(item.type)){
-      const key = itemStackKey(item);
-      const ex = s.inventory.find(i => i && itemStackKey(i) === key);
-      if (ex) ex.quantity = num(ex.quantity, 1) + qty;
-      else s.inventory.push({ ...item, quantity: qty });
+      if (invApi?.addItem) {
+        const res = invApi.addItem(s, item, qty, { stack: true, stackKeyFn: itemStackKey });
+        if (!res?.ok) return;
+      } else {
+        const key = itemStackKey(item);
+        const ex = s.inventory.find(i => i && itemStackKey(i) === key);
+        if (ex) ex.quantity = num(ex.quantity, 1) + qty;
+        else s.inventory.push({ ...item, quantity: qty });
+      }
     } else {
-      for (let i = 0; i < qty; i++){
-        s.inventory.push({ ...item, quantity: 1 });
+      if (invApi?.addItem) {
+        const res = invApi.addItem(s, item, qty, { stack: false });
+        if (!res?.ok) return;
+      } else {
+        for (let i = 0; i < qty; i++){
+          s.inventory.push({ ...item, quantity: 1 });
+        }
       }
     }
 

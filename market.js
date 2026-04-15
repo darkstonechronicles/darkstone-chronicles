@@ -123,6 +123,16 @@
     else arr.push({ ...item, quantity: qty });
   }
 
+  function hasInventorySpace(save, addUnits = 1) {
+    if (window.DSInventory?.hasSpaceFor) return window.DSInventory.hasSpaceFor(save, addUnits);
+    let used = 0;
+    for (const it of save.inventory || []) {
+      if (!it) continue;
+      used += Math.max(1, num(it.quantity ?? it.qty, 1));
+    }
+    return used + Math.max(1, num(addUnits, 1)) <= num(save.inventoryMaxSlots, 1000);
+  }
+
   function ensurePets(save){
     if (!save.pets || typeof save.pets !== "object") save.pets = {};
     if (!("combat" in save.pets)) save.pets.combat = null;
@@ -265,6 +275,10 @@
         setMsg("Not enough gold.");
         return;
       }
+      if (!hasInventorySpace(s, 100)) {
+        setMsg("Not enough inventory space.");
+        return;
+      }
 
       s.gold -= price;
       addToStack(s.inventory, {
@@ -287,6 +301,10 @@
       const price = 10;
       if (s.gold < price){
         setMsg("Not enough gold.");
+        return;
+      }
+      if (!hasInventorySpace(s, 1)) {
+        setMsg("Not enough inventory space.");
         return;
       }
 

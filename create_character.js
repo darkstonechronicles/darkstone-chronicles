@@ -67,6 +67,7 @@
           if (authResult.reason === "not-configured") {
             setMessage("Add your Supabase anon key in auth.js before testing login.");
           }
+          window.__dsBootReady?.();
           return;
         }
         await window.DSAuth.preparePlayerState?.();
@@ -97,9 +98,11 @@
       el("createHeroBtn")?.addEventListener("click", createHero);
       updatePreview();
       heroNameInput?.focus();
+      window.__dsBootReady?.();
     } catch (error) {
       console.error("[create_character] boot failed", error);
       setMessage(error?.message || "Character creation failed to initialize.");
+      window.__dsBootReady?.();
     }
   });
 })();

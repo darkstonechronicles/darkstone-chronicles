@@ -12,6 +12,7 @@
     const auth = window.DSAuth;
     if (!auth) {
       setStatus("Auth layer failed to load.", true);
+      window.__dsBootReady?.();
       return;
     }
 
@@ -28,6 +29,7 @@
     if (!auth.isConfigured()) {
       if (loginBtn) loginBtn.disabled = true;
       setStatus("Add your Supabase anon key in auth.js before testing login.", true);
+      window.__dsBootReady?.();
       return;
     }
 
@@ -47,12 +49,14 @@
         setStatus(error?.message || "Google sign-in failed.", true);
       }
     });
+    window.__dsBootReady?.();
   }
 
   window.addEventListener("DOMContentLoaded", () => {
     bootLogin().catch((error) => {
       console.error("[login] boot failed", error);
       setStatus(error?.message || "Login page failed to initialize.", true);
+      window.__dsBootReady?.();
     });
   });
 })();

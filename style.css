@@ -340,6 +340,10 @@ a:hover{ text-decoration: underline; }
   justify-content: center;
 }
 
+.hubNavBtnImage{
+  width: 152px;
+}
+
 .hubIconFrame{
   width: 76px;
   height: 76px;
@@ -353,6 +357,57 @@ a:hover{ text-decoration: underline; }
     0 0 0 1px rgba(0,0,0,.55) inset,
     0 10px 26px rgba(0,0,0,.32);
   transition: transform .14s ease, border-color .14s ease, box-shadow .14s ease;
+}
+
+.hubIconArt{
+  width: min(152px, 30vw);
+  aspect-ratio: 1 / 1;
+  display: block;
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: contain;
+  filter: drop-shadow(0 10px 24px rgba(0,0,0,.34));
+  transition: transform .14s ease, filter .14s ease;
+}
+
+.hubIconArtFight{
+  background-image: url("images/ui/fighting_fields_button.png");
+}
+
+.hubIconArtProfessions{
+  background-image: url("images/ui/professions_button.png");
+}
+
+.hubIconArtOverview{
+  background-image: url("images/ui/overview_button.png");
+}
+
+.hubIconArtDungeons{
+  background-image: url("images/ui/dungeons_button.png");
+}
+
+.hubIconArtBuildings{
+  background-image: url("images/ui/buildings_button.png");
+}
+
+.hubIconArtChallenges{
+  background-image: url("images/ui/challenges_button.png");
+}
+
+.hubIconArtEquipment{
+  background-image: url("images/ui/equipment_button.png");
+}
+
+.hubIconArtMarket{
+  background-image: url("images/ui/market_button.png");
+}
+
+.hubIconArtBank{
+  background-image: url("images/ui/bank_button.png");
+}
+
+.hubIconArtStats{
+  background-image: url("images/ui/my_stats_button.png");
 }
 
 .hubEmoji{
@@ -389,6 +444,11 @@ a:hover{ text-decoration: underline; }
     0 14px 30px rgba(0,0,0,.4);
 }
 
+.hubNavBtn:hover .hubIconArt{
+  transform: translateY(-2px) scale(1.02);
+  filter: drop-shadow(0 14px 30px rgba(0,0,0,.42));
+}
+
 .hubNavBtn:hover + .hubLabel{
   filter: brightness(1.08);
 }
@@ -398,6 +458,7 @@ a:hover{ text-decoration: underline; }
 }
 
 .hubNavBtn:focus-visible .hubIconFrame,
+.hubNavBtn:focus-visible .hubIconArt,
 .hubNavBtn:focus-visible + .hubLabel{
   border-color: #c7b37a;
 }
