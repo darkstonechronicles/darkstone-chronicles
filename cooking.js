@@ -315,6 +315,7 @@ function renderRecipes(){
     card.style.cursor = locked ? "not-allowed" : "pointer";
     card.style.opacity = locked ? "0.55" : "1";
     card.style.height = "140px";
+    if (!locked) card.dataset.openTabHref = `cooking_action.html?recipe=${encodeURIComponent(r.id)}`;
 
   card.innerHTML = `
 <div style="display:grid;grid-template-columns:90px 1fr;gap:14px;align-items:stretch;height:100%;">
@@ -366,7 +367,7 @@ function renderRecipes(){
 
     if (!locked){
       card.addEventListener("click", () => {
-        const href = `cooking_action.html?recipe=${encodeURIComponent(r.id)}`;
+        const href = String(card.dataset.openTabHref || `cooking_action.html?recipe=${encodeURIComponent(r.id)}`);
         if (window.DSUI?.navigateWithinShell?.(href)) return;
         window.location.href = href;
       });

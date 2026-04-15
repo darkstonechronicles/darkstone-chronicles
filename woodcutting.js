@@ -110,6 +110,7 @@
       card.style.padding = "12px";
       card.style.cursor = locked ? "not-allowed" : "pointer";
       card.style.opacity = locked ? "0.55" : "1";
+      if (!locked) card.dataset.openTabHref = `wood_gather_action.html?wood=${encodeURIComponent(w.id)}`;
 
       card.innerHTML = `
         <div style="display:flex;gap:10px;align-items:center;">
@@ -123,7 +124,7 @@
 
       card.addEventListener("click", () => {
         if (locked) return alert(`Requires Woodcutting Level ${w.req}`);
-        const href = `wood_gather_action.html?wood=${encodeURIComponent(w.id)}`;
+        const href = String(card.dataset.openTabHref || `wood_gather_action.html?wood=${encodeURIComponent(w.id)}`);
         if (window.DSUI?.navigateWithinShell?.(href)) return;
         window.location.href = href;
       });

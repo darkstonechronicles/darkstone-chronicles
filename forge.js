@@ -255,6 +255,7 @@
       card.style.display = "flex";
       card.style.gap = "12px";
       card.style.alignItems = "center";
+      if (!locked) card.dataset.openTabHref = `forge_action.html?recipe=${encodeURIComponent(smeltRecipeId(material))}`;
 
       const img = document.createElement("img");
       img.src = `images/bars/${smeltRecipeId(material)}.png`;
@@ -405,6 +406,7 @@
         cost,
         button("Craft", false, () => openRecipe(recipeId))
       );
+      card.dataset.openTabHref = `forge_action.html?recipe=${encodeURIComponent(recipeId)}`;
       craftGrid.appendChild(card);
     });
   }

@@ -2,52 +2,52 @@
   const HOME_TEMPLATE = `
     <div id="homeHub">
       <div class="hubNav">
-        <button class="hubNavBtn hubNavBtnImage" id="goFight" type="button" aria-label="Fighting Fields">
+        <button class="hubNavBtn hubNavBtnImage" id="goFight" type="button" aria-label="Fighting Fields" data-open-tab-href="fight.html">
           <span class="hubIconArt hubIconArtFight" aria-hidden="true"></span>
         </button>
       </div>
       <div class="hubNav">
-        <button class="hubNavBtn hubNavBtnImage" id="goProfessions" type="button" aria-label="Professions">
+        <button class="hubNavBtn hubNavBtnImage" id="goProfessions" type="button" aria-label="Professions" data-open-tab-href="professions.html">
           <span class="hubIconArt hubIconArtProfessions" aria-hidden="true"></span>
         </button>
       </div>
       <div class="hubNav">
-        <button class="hubNavBtn hubNavBtnImage" id="goOverview" type="button" aria-label="Overview">
+        <button class="hubNavBtn hubNavBtnImage" id="goOverview" type="button" aria-label="Overview" data-open-tab-href="professions_overview.html">
           <span class="hubIconArt hubIconArtOverview" aria-hidden="true"></span>
         </button>
       </div>
       <div class="hubNav">
-        <button class="hubNavBtn hubNavBtnImage" id="goDungeons" type="button" aria-label="Dungeons">
+        <button class="hubNavBtn hubNavBtnImage" id="goDungeons" type="button" aria-label="Dungeons" data-open-tab-href="dungeons.html">
           <span class="hubIconArt hubIconArtDungeons" aria-hidden="true"></span>
         </button>
       </div>
       <div class="hubNav">
-        <button class="hubNavBtn hubNavBtnImage" id="goBuildings" type="button" aria-label="Buildings">
+        <button class="hubNavBtn hubNavBtnImage" id="goBuildings" type="button" aria-label="Buildings" data-open-tab-href="buildings.html">
           <span class="hubIconArt hubIconArtBuildings" aria-hidden="true"></span>
         </button>
       </div>
       <div class="hubNav">
-        <button class="hubNavBtn hubNavBtnImage" id="goChallenges" type="button" aria-label="Challenges">
+        <button class="hubNavBtn hubNavBtnImage" id="goChallenges" type="button" aria-label="Challenges" data-open-tab-href="challenges.html">
           <span class="hubIconArt hubIconArtChallenges" aria-hidden="true"></span>
         </button>
       </div>
       <div class="hubNav">
-        <button class="hubNavBtn hubNavBtnImage" id="goEquip" type="button" aria-label="Equipment">
+        <button class="hubNavBtn hubNavBtnImage" id="goEquip" type="button" aria-label="Equipment" data-open-tab-href="equipment.html">
           <span class="hubIconArt hubIconArtEquipment" aria-hidden="true"></span>
         </button>
       </div>
       <div class="hubNav">
-        <button class="hubNavBtn hubNavBtnImage" id="goMarket" type="button" aria-label="Market">
+        <button class="hubNavBtn hubNavBtnImage" id="goMarket" type="button" aria-label="Market" data-open-tab-href="market.html">
           <span class="hubIconArt hubIconArtMarket" aria-hidden="true"></span>
         </button>
       </div>
       <div class="hubNav">
-        <button class="hubNavBtn hubNavBtnImage" id="goBank" type="button" aria-label="Bank">
+        <button class="hubNavBtn hubNavBtnImage" id="goBank" type="button" aria-label="Bank" data-open-tab-href="bank.html">
           <span class="hubIconArt hubIconArtBank" aria-hidden="true"></span>
         </button>
       </div>
       <div class="hubNav">
-        <button class="hubNavBtn hubNavBtnImage" id="goStats" type="button" aria-label="My Stats">
+        <button class="hubNavBtn hubNavBtnImage" id="goStats" type="button" aria-label="My Stats" data-open-tab-href="stats.html">
           <span class="hubIconArt hubIconArtStats" aria-hidden="true"></span>
         </button>
       </div>

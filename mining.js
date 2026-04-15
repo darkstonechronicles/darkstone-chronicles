@@ -115,6 +115,7 @@
       card.style.padding = "12px";
       card.style.cursor = locked ? "not-allowed" : "pointer";
       card.style.opacity = locked ? "0.55" : "1";
+      if (!locked) card.dataset.openTabHref = `mining_action.html?ore=${encodeURIComponent(o.id)}`;
 
       card.innerHTML = `
         <div style="display:flex;gap:10px;align-items:center;">
@@ -131,7 +132,7 @@
           alert(`Requires Mining Level ${o.req}`);
           return;
         }
-        const href = `mining_action.html?ore=${encodeURIComponent(o.id)}`;
+        const href = String(card.dataset.openTabHref || `mining_action.html?ore=${encodeURIComponent(o.id)}`);
         if (window.DSUI?.navigateWithinShell?.(href)) return;
         window.location.href = href;
       });

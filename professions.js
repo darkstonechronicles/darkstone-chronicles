@@ -6,70 +6,70 @@
     </div>
 
     <div id="homeHub">
-      <button class="hubNav" id="goMine">
+      <button class="hubNav" id="goMine" data-open-tab-href="mining.html">
         <span class="hubIconFrame">
           <span class="hubEmoji" aria-hidden="true">&#9935;&#65039;</span>
         </span>
         <span class="hubLabel">Mining</span>
       </button>
 
-      <button class="hubNav" id="goForge">
+      <button class="hubNav" id="goForge" data-open-tab-href="forge.html">
         <span class="hubIconFrame">
           <span class="hubEmoji" aria-hidden="true">&#9874;&#65039;</span>
         </span>
         <span class="hubLabel">Forge</span>
       </button>
 
-      <button class="hubNav" id="goWoodcut">
+      <button class="hubNav" id="goWoodcut" data-open-tab-href="woodcutting.html">
         <span class="hubIconFrame">
           <span class="hubEmoji" aria-hidden="true">&#129717;</span>
         </span>
         <span class="hubLabel">Woodcutting</span>
       </button>
 
-      <button class="hubNav" id="goCarp">
+      <button class="hubNav" id="goCarp" data-open-tab-href="carpentry.html">
         <span class="hubIconFrame">
           <span class="hubEmoji" aria-hidden="true">&#129717;</span>
         </span>
         <span class="hubLabel">Carpentry</span>
       </button>
 
-      <button class="hubNav" id="goHunt">
+      <button class="hubNav" id="goHunt" data-open-tab-href="hunting.html">
         <span class="hubIconFrame">
           <span class="hubEmoji" aria-hidden="true">&#127993;</span>
         </span>
         <span class="hubLabel">Hunting</span>
       </button>
 
-      <button class="hubNav" id="goFish">
+      <button class="hubNav" id="goFish" data-open-tab-href="fishing.html">
         <span class="hubIconFrame">
           <span class="hubEmoji" aria-hidden="true">&#127907;</span>
         </span>
         <span class="hubLabel">Fishing</span>
       </button>
 
-      <button class="hubNav" id="goCook">
+      <button class="hubNav" id="goCook" data-open-tab-href="cooking.html">
         <span class="hubIconFrame">
           <span class="hubEmoji" aria-hidden="true">&#127859;</span>
         </span>
         <span class="hubLabel">Cooking</span>
       </button>
 
-      <button class="hubNav" id="goEnchant">
+      <button class="hubNav" id="goEnchant" data-open-tab-href="enchanting.html">
         <span class="hubIconFrame">
           <span class="hubEmoji" aria-hidden="true">&#10024;</span>
         </span>
         <span class="hubLabel">Enchanting</span>
       </button>
 
-      <button class="hubNav" id="goHerb">
+      <button class="hubNav" id="goHerb" data-open-tab-href="herbalism.html">
         <span class="hubIconFrame">
           <span class="hubEmoji" aria-hidden="true">&#127807;</span>
         </span>
         <span class="hubLabel">Herbalism</span>
       </button>
 
-      <button class="hubNav" id="goAlchemy">
+      <button class="hubNav" id="goAlchemy" data-open-tab-href="alchemy.html">
         <span class="hubIconFrame">
           <span class="hubEmoji" aria-hidden="true">&#9879;&#65039;</span>
         </span>

@@ -109,6 +109,7 @@
       card.style.textAlign = "left";
       card.style.cursor = locked ? "not-allowed" : "pointer";
       card.style.opacity = locked ? "0.55" : "1";
+      if (!locked) card.dataset.openTabHref = `fishing_action.html?spot=${encodeURIComponent(spot.id)}`;
 
       card.innerHTML = `
         <div style="display:flex;gap:10px;align-items:center;">
@@ -124,7 +125,7 @@
 
       if (!locked){
         card.addEventListener("click", () => {
-          const href = `fishing_action.html?spot=${encodeURIComponent(spot.id)}`;
+          const href = String(card.dataset.openTabHref || `fishing_action.html?spot=${encodeURIComponent(spot.id)}`);
           if (window.DSUI?.navigateWithinShell?.(href)) return;
           window.location.href = href;
         });

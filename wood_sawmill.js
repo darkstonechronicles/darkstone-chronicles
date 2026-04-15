@@ -110,6 +110,7 @@
       card.style.display = "flex";
       card.style.gap = "12px";
       card.style.alignItems = "center";
+      if (!locked) card.dataset.openTabHref = `wood_sawmill_action.html?recipe=${encodeURIComponent(r.id)}`;
 
       const img = document.createElement("img");
       img.src = r.img;
@@ -130,7 +131,7 @@
       card.appendChild(info);
       if (!locked) {
         card.addEventListener("click", () => {
-          const href = `wood_sawmill_action.html?recipe=${encodeURIComponent(r.id)}`;
+          const href = String(card.dataset.openTabHref || `wood_sawmill_action.html?recipe=${encodeURIComponent(r.id)}`);
           if (window.DSUI?.navigateWithinShell?.(href)) return;
           window.location.href = href;
         });

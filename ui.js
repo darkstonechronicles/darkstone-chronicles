@@ -3202,34 +3202,34 @@ function claimActiveChallengeFromQuest(){
       </div>
 
       <div class="dsNav">
-          <button id="navHome" class="dsNavImageBtn" aria-label="Home">
+          <button id="navHome" class="dsNavImageBtn" aria-label="Home" data-open-tab-href="index.html">
             <span class="dsNavImageArt dsNavImageArtHome" aria-hidden="true"></span>
           </button>
-        <button id="navFight">
+        <button id="navFight" data-open-tab-href="fight.html">
           <span class="navEmoji" aria-hidden="true">&#9876;&#65039;</span>
           Fight
         </button>
-        <button id="navDungeons">
+        <button id="navDungeons" data-open-tab-href="dungeons.html">
           <span class="navEmoji" aria-hidden="true">&#127984;</span>
           Dungeons
         </button>
-        <button id="navBuildings">
+        <button id="navBuildings" data-open-tab-href="buildings.html">
           <span class="navEmoji" aria-hidden="true">&#127970;</span>
           Buildings
         </button>
-        <button id="navChallenges">
+        <button id="navChallenges" data-open-tab-href="challenges.html">
           <span class="navEmoji" aria-hidden="true">&#127919;</span>
           Challenges
         </button>
-        <button id="navProfessions">
+        <button id="navProfessions" data-open-tab-href="professions.html">
           <span class="navEmoji" aria-hidden="true">&#9874;&#65039;</span>
           Professions
         </button>
-        <button id="navMarket">
+        <button id="navMarket" data-open-tab-href="market.html">
           <span class="navEmoji" aria-hidden="true">&#128176;</span>
           Market
         </button>
-        <button id="navBank">
+        <button id="navBank" data-open-tab-href="bank.html">
           <span class="navEmoji" aria-hidden="true">&#127974;</span>
           Bank
         </button>
@@ -3904,6 +3904,8 @@ window.DSUI = Object.assign(window.DSUI || {}, {
 // -------------------------
 let __invSig = "";
 let dragFromIndex = null;
+let __inventoryContextMenu = null;
+let __initialInspectorHandled = false;
 
 function invSignature(save) {
   const inv = Array.isArray(save.inventory) ? save.inventory : [];
@@ -3939,6 +3941,129 @@ function setInvCap(save) {
   capEl.textContent = `${usedUnits}/${maxUnits}`;
 }
 
+function closeInventoryContextMenu() {
+  if (!__inventoryContextMenu) return;
+  __inventoryContextMenu.style.display = "none";
+  delete __inventoryContextMenu.dataset.inspectIndex;
+  delete __inventoryContextMenu.dataset.targetHref;
+}
+
+function getInspectorTabUrl(invIndex) {
+  const idx = Math.max(0, Math.floor(Number(invIndex) || 0));
+  const url = new URL("index.html", window.location.href);
+  url.searchParams.set("inspectInv", String(idx));
+  return url.toString();
+}
+
+function openInspectorInNewTab(invIndex) {
+  const idx = Math.max(0, Math.floor(Number(invIndex) || 0));
+  window.open(getInspectorTabUrl(idx), "_blank", "noopener");
+}
+
+function openHrefInNewTab(href) {
+  const target = String(href || "").trim();
+  if (!target) return;
+  window.open(new URL(target, window.location.href).toString(), "_blank", "noopener");
+}
+
+function ensureInventoryContextMenu() {
+  if (__inventoryContextMenu?.isConnected) return __inventoryContextMenu;
+
+  const menu = document.createElement("div");
+  menu.id = "dsInventoryContextMenu";
+  Object.assign(menu.style, {
+    position: "fixed",
+    zIndex: "240",
+    display: "none",
+    minWidth: "220px",
+    padding: "8px",
+    borderRadius: "12px",
+    border: "1px solid rgba(255,255,255,.12)",
+    background: "rgba(16,18,28,.96)",
+    boxShadow: "0 16px 40px rgba(0,0,0,.35)",
+    backdropFilter: "blur(10px)"
+  });
+  menu.innerHTML = `
+    <button type="button" id="dsInvCtxOpenTab" class="townBtn" style="width:100%;min-width:0;padding:10px 12px;font-size:13px;">
+      Open in New Tab
+    </button>
+  `;
+  menu.querySelector("#dsInvCtxOpenTab")?.addEventListener("click", () => {
+    const targetHref = String(menu.dataset.targetHref || "").trim();
+    const inspectIndex = Number(menu.dataset.inspectIndex);
+    if (targetHref) {
+      openHrefInNewTab(targetHref);
+    } else if (Number.isFinite(inspectIndex) && inspectIndex >= 0) {
+      openInspectorInNewTab(inspectIndex);
+    } else {
+      return;
+    }
+    closeInventoryContextMenu();
+  });
+  document.body.appendChild(menu);
+  document.addEventListener("click", closeInventoryContextMenu);
+  document.addEventListener("scroll", closeInventoryContextMenu, true);
+  window.addEventListener("blur", closeInventoryContextMenu);
+  window.addEventListener("resize", closeInventoryContextMenu);
+  __inventoryContextMenu = menu;
+  return menu;
+}
+
+function showInventoryContextMenu(invIndex, clientX, clientY) {
+  const menu = ensureInventoryContextMenu();
+  menu.dataset.inspectIndex = String(Math.max(0, Math.floor(Number(invIndex) || 0)));
+  delete menu.dataset.targetHref;
+  menu.style.display = "block";
+
+  const pad = 12;
+  const rect = menu.getBoundingClientRect();
+  const maxLeft = Math.max(pad, window.innerWidth - rect.width - pad);
+  const maxTop = Math.max(pad, window.innerHeight - rect.height - pad);
+  menu.style.left = `${Math.min(Math.max(pad, clientX), maxLeft)}px`;
+  menu.style.top = `${Math.min(Math.max(pad, clientY), maxTop)}px`;
+}
+
+function showOpenInNewTabMenu(href, clientX, clientY) {
+  const target = String(href || "").trim();
+  if (!target) return;
+  const menu = ensureInventoryContextMenu();
+  menu.dataset.targetHref = target;
+  delete menu.dataset.inspectIndex;
+  menu.style.display = "block";
+
+  const pad = 12;
+  const rect = menu.getBoundingClientRect();
+  const maxLeft = Math.max(pad, window.innerWidth - rect.width - pad);
+  const maxTop = Math.max(pad, window.innerHeight - rect.height - pad);
+  menu.style.left = `${Math.min(Math.max(pad, clientX), maxLeft)}px`;
+  menu.style.top = `${Math.min(Math.max(pad, clientY), maxTop)}px`;
+}
+
+function getRequestedInspectorIndex() {
+  try {
+    const params = new URLSearchParams(window.location.search || "");
+    const raw = params.get("inspectInv");
+    if (raw == null || String(raw).trim() === "") return null;
+    const value = Number(raw);
+    if (!Number.isFinite(value)) return null;
+    const idx = Math.floor(value);
+    return idx >= 0 ? idx : null;
+  } catch {
+    return null;
+  }
+}
+
+function maybeOpenRequestedInspector() {
+  if (__initialInspectorHandled) return;
+  __initialInspectorHandled = true;
+  const idx = getRequestedInspectorIndex();
+  if (idx == null) return;
+  const save = ensureSave(loadSave());
+  const item = save.inventory?.[idx];
+  if (!item) return;
+  openInspector(idx, item);
+}
+
 function renderInventory(save) {
   const grid = document.getElementById("inventoryGrid");
   if (!grid) return;
@@ -3956,8 +4081,24 @@ function renderInventory(save) {
       openInspector(idx, it);
     };
     grid.addEventListener("click", handleInvClick);
+    grid.addEventListener("contextmenu", (e) => {
+      const slot = e.target.closest(".dsSlot");
+      if (!slot) return;
+      const idx = Number(slot.dataset.index);
+      if (!Number.isFinite(idx)) return;
+      e.preventDefault();
+      showInventoryContextMenu(idx, e.clientX, e.clientY);
+    });
     // capture phase fallback in case something stops propagation
     document.addEventListener("click", handleInvClick, true);
+    document.addEventListener("contextmenu", (e) => {
+      const target = e.target.closest("[data-open-tab-href]");
+      if (!target || target.closest(".dsSlot")) return;
+      const href = String(target.getAttribute("data-open-tab-href") || "").trim();
+      if (!href) return;
+      e.preventDefault();
+      showOpenInNewTabMenu(href, e.clientX, e.clientY);
+    });
   }
 
   const sig = invSignature(save);
@@ -5360,6 +5501,7 @@ function renderAll() {
       });
 
       renderAll();
+      maybeOpenRequestedInspector();
       refreshPresenceSnapshot(true).catch((error) => {
         console.error("[UI] initial presence refresh failed", error);
       });

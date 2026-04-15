@@ -98,6 +98,26 @@
     }
     return used;
   }
+  function showCardNotice(card, text){
+    if (!card) return;
+    card.querySelector(".huntCardNotice")?.remove();
+    const notice = document.createElement("div");
+    notice.className = "huntCardNotice";
+    notice.textContent = text;
+    notice.style.marginTop = "10px";
+    notice.style.padding = "8px 10px";
+    notice.style.borderRadius = "10px";
+    notice.style.border = "1px solid rgba(255,120,120,.35)";
+    notice.style.background = "rgba(120,26,32,.28)";
+    notice.style.color = "#ffb3b3";
+    notice.style.fontSize = "12px";
+    notice.style.fontWeight = "800";
+    notice.style.textAlign = "center";
+    card.appendChild(notice);
+    window.setTimeout(() => {
+      if (notice.isConnected) notice.remove();
+    }, 2200);
+  }
 
   function renderHeader(){
     const s = ensureHunting(loadSave());
@@ -118,7 +138,6 @@
   function renderTargets(){
     const s = ensureHunting(loadSave());
     const grid = document.getElementById("targetGrid");
-    const msg = document.getElementById("msg");
     if (!grid) return;
     const arrows = countByName(s.inventory, "Arrows");
     const full = usedUnits(s.inventory) >= num(s.inventoryMaxSlots, 1000);
@@ -134,6 +153,7 @@
       card.style.padding = "12px";
       card.style.cursor = locked ? "not-allowed" : "pointer";
       card.style.opacity = locked ? ".6" : "1";
+      if (!locked) card.dataset.openTabHref = `hunting_action.html?target=${encodeURIComponent(t.id)}`;
 
       card.innerHTML = `
         <div style="display:flex;gap:12px;align-items:center;">
@@ -151,10 +171,19 @@
       `;
 
       card.addEventListener("click", () => {
-        if (locked) { if (msg) msg.textContent = `❌ Requires Hunting Level ${t.req}.`; return; }
-        if (full) { if (msg) msg.textContent = "❌ No more inventory space"; return; }
-        if (arrows <= 0) { if (msg) msg.textContent = "❌ You need Arrows."; return; }
-        const href = `hunting_action.html?target=${encodeURIComponent(t.id)}`;
+        if (locked) {
+          showCardNotice(card, `Requires Hunting Level ${t.req}.`);
+          return;
+        }
+        if (full) {
+          showCardNotice(card, "No more inventory space.");
+          return;
+        }
+        if (arrows <= 0) {
+          showCardNotice(card, "You need Arrows.");
+          return;
+        }
+        const href = String(card.dataset.openTabHref || `hunting_action.html?target=${encodeURIComponent(t.id)}`);
         if (window.DSUI?.navigateWithinShell?.(href)) return;
         window.location.href = href;
       });

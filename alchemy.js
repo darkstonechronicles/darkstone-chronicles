@@ -110,6 +110,7 @@
       card.style.padding = "12px";
       card.style.cursor = locked ? "not-allowed" : "pointer";
       card.style.opacity = locked ? "0.55" : "1";
+      if (!locked) card.dataset.openTabHref = `alchemy_tier.html?tier=${tier.tier}`;
       card.innerHTML = `
         <div style="display:flex;gap:10px;align-items:center;">
           <img src="${tier.icon}" alt="${tier.title}" style="width:64px;height:64px;border-radius:10px;border:2px solid #333;object-fit:cover;background:#0f0f16;">
@@ -125,7 +126,7 @@
           alert(`Requires Alchemy Level ${tier.req}`);
           return;
         }
-        const href = `alchemy_tier.html?tier=${tier.tier}`;
+        const href = String(card.dataset.openTabHref || `alchemy_tier.html?tier=${tier.tier}`);
         if (window.DSUI?.navigateWithinShell?.(href)) return;
         window.location.href = href;
       });

@@ -152,6 +152,7 @@ function renderTier(){
     card.style.padding = "12px";
     card.style.cursor = locked ? "not-allowed" : "pointer";
     card.style.opacity = locked ? "0.55" : "1";
+    if (!locked) card.dataset.openTabHref = `alchemy_action.html?recipe=${encodeURIComponent(`${potion.id}_${currentTier}`)}`;
 
     card.innerHTML = `
       <div style="display:flex;gap:10px;align-items:center;">
@@ -169,7 +170,7 @@ function renderTier(){
         alert(`Requires Alchemy Level ${herb.req}`);
         return;
       }
-      const href = `alchemy_action.html?recipe=${encodeURIComponent(`${potion.id}_${currentTier}`)}`;
+      const href = String(card.dataset.openTabHref || `alchemy_action.html?recipe=${encodeURIComponent(`${potion.id}_${currentTier}`)}`);
       if (window.DSUI?.navigateWithinShell?.(href)) return;
       window.location.href = href;
     });

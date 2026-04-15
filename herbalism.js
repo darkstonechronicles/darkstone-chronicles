@@ -110,6 +110,7 @@
       card.style.padding = "12px";
       card.style.cursor = locked ? "not-allowed" : "pointer";
       card.style.opacity = locked ? "0.55" : "1";
+      if (!locked) card.dataset.openTabHref = `herbalism_action.html?zone=${encodeURIComponent(zone.id)}`;
       card.innerHTML = `
         <div style="display:flex;gap:10px;align-items:center;">
           <img src="${zone.zoneImg}" alt="${zone.name}" style="width:64px;height:64px;border-radius:10px;border:2px solid #333;object-fit:cover;background:#0f0f16;">
@@ -125,7 +126,7 @@
           alert(`Requires Herbalism Level ${zone.req}`);
           return;
         }
-        const href = `herbalism_action.html?zone=${encodeURIComponent(zone.id)}`;
+        const href = String(card.dataset.openTabHref || `herbalism_action.html?zone=${encodeURIComponent(zone.id)}`);
         if (window.DSUI?.navigateWithinShell?.(href)) return;
         window.location.href = href;
       });
