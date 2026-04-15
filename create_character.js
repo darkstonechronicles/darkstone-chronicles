@@ -66,6 +66,23 @@
     `).join("");
   }
 
+  async function resolveFunctionErrorMessage(error) {
+    if (!error) return "Could not create hero.";
+    if (typeof error.message === "string" && error.message && !/non-2xx status code/i.test(error.message)) {
+      return error.message;
+    }
+    const ctx = error.context;
+    if (ctx?.json) {
+      try {
+        const payload = await ctx.json();
+        if (typeof payload?.error === "string" && payload.error.trim()) return payload.error.trim();
+      } catch {
+        // ignore parse failure
+      }
+    }
+    return "Could not create hero.";
+  }
+
   async function createHero() {
     const heroName = String(heroNameInput?.value || "").trim();
     if (!heroName) {
@@ -104,7 +121,7 @@
         });
 
         if (error) {
-          throw new Error(error.message || "Could not create hero.");
+          throw new Error(await resolveFunctionErrorMessage(error));
         }
         if (data?.error) {
           throw new Error(data.error);
