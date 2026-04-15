@@ -14,7 +14,7 @@
   const MAX_WAVE_ROUNDS = 15;
   const CRYPT_SIGIL_ITEM = { type:"material", name:"Crypt Sigil", img:"images/items/sigils/crypt_sigil.png" };
   const DUNGEON_LIST_TEMPLATE = `
-    <h1>Dungeons</h1>
+    <h1 style="color:#ead39b;text-shadow:0 1px 0 rgba(87, 58, 16, .95),0 0 10px rgba(0,0,0,.34),0 2px 8px rgba(0,0,0,.72);">Dungeons</h1>
     <div style="width:90%;max-width:900px;margin:0 auto;">
       <div id="dungeonCards" style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px;justify-items:center;"></div>
       <div id="msg" style="margin-top:10px;text-align:center;opacity:.9;"></div>
@@ -1796,6 +1796,12 @@
     }
     __dungeonListOpenPanel = null;
     __dungeonListMounted = false;
+    const left = document.getElementById("leftPanel");
+    if (left) {
+      left.style.background = "";
+      left.style.border = "";
+      left.style.borderRadius = "";
+    }
   }
 
   function unmountDungeonRun() {
@@ -1821,6 +1827,9 @@
 
     ensureDungeonListStyles();
     left.innerHTML = DUNGEON_LIST_TEMPLATE;
+    left.style.background = "rgba(0, 0, 0, 0.15)";
+    left.style.border = "3px solid rgba(0, 0, 0, 0.55)";
+    left.style.borderRadius = "12px";
     document.title = "Darkstone Chronicles - Dungeons";
 
     const msgEl = document.getElementById("msg");

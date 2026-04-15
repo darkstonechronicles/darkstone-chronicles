@@ -1091,8 +1091,8 @@
         min-width:0;
         margin-left:0;
         min-height:320px;
-        background:#151520;
-        border:2px solid #333;
+        background:rgba(0, 0, 0, 0.40);
+        border:3px solid rgba(0, 0, 0, 0.55);
         border-radius:12px;
         padding:12px;
         box-sizing:border-box;
@@ -1102,8 +1102,8 @@
         width:100%;
         min-width:0;
         margin-left:0;
-        background:#151520;
-        border:2px solid #333;
+        background:rgba(0, 0, 0, 0.40);
+        border:3px solid rgba(0, 0, 0, 0.55);
         border-radius:12px;
         padding:10px;
         box-sizing:border-box;
@@ -1114,8 +1114,8 @@
         width:100%;
         min-width:0;
         margin-left:0;
-        background:#151520;
-        border:2px solid #333;
+        background:rgba(0, 0, 0, 0.40);
+        border:3px solid rgba(0, 0, 0, 0.55);
         border-radius:12px;
         padding:10px;
         box-sizing:border-box;
@@ -1513,6 +1513,58 @@
         pointer-events:auto;
       }
       .dsAccountBtn:hover{filter:brightness(1.05);}
+      .dsAccountBtnFrame{
+        width:170px;
+        height:50px;
+        min-height:0;
+        padding:0;
+        border:0;
+        background:transparent;
+        box-shadow:none;
+        filter:none;
+        display:inline-flex;
+        align-items:center;
+        justify-content:center;
+        overflow:visible;
+      }
+      .dsAccountBtnFrame:hover{
+        filter:none;
+      }
+      .dsAccountBtnFrameArt{
+        width:100%;
+        height:100%;
+        display:block;
+        position:relative;
+        background-image:url("images/ui/nav_button_frame.png");
+        background-repeat:no-repeat;
+        background-position:center;
+        background-size:100% 100%;
+        filter:drop-shadow(0 8px 18px rgba(0,0,0,.30));
+        transition:transform .14s ease, filter .14s ease;
+      }
+      .dsAccountBtnFrame:hover .dsAccountBtnFrameArt{
+        transform:translateY(-1px) scale(1.02);
+        filter:drop-shadow(0 12px 22px rgba(0,0,0,.38));
+      }
+      .dsAccountBtnFrameLabel{
+        position:absolute;
+        inset:0;
+        display:flex;
+        align-items:center;
+        justify-content:center;
+        color:#ead39b;
+        font-family:Georgia, "Times New Roman", serif;
+        font-size:12px;
+        font-weight:900;
+        letter-spacing:.8px;
+        text-transform:uppercase;
+        text-shadow:
+          0 1px 0 rgba(87, 58, 16, .95),
+          0 0 10px rgba(0,0,0,.34),
+          0 2px 8px rgba(0,0,0,.72);
+        transform:translateY(-2px);
+        pointer-events:none;
+      }
       .dsAccountMenu{
         position:absolute;
         top:calc(100% + 8px);
@@ -1563,7 +1615,7 @@
         width:340px;
         max-width:340px;
         display:flex;gap:8px;align-items:flex-start;
-        background:#151520;border:2px solid #333;border-radius:12px;
+        background:rgba(0, 0, 0, 0.15);border:3px solid rgba(0, 0, 0, 0.55);border-radius:12px;
         padding:10px;box-sizing:border-box;
         pointer-events:auto;
       }
@@ -1586,6 +1638,13 @@
       }
       .dsHeroStats{flex:1;min-width:0;}
       .dsLine{margin:0 0 6px 0;opacity:.92;font-size:13px}
+      .dsHeroMetaText{
+        color:#ead39b;
+        text-shadow:
+          0 1px 0 rgba(87, 58, 16, .95),
+          0 0 10px rgba(0,0,0,.34),
+          0 2px 8px rgba(0,0,0,.72);
+      }
 
       .dsBarStack{display:flex;flex-direction:column;gap:6px;margin-top:6px;}
       .dsBarWrap{
@@ -1598,7 +1657,11 @@
         position:absolute; inset:0;
         display:flex; align-items:center; justify-content:center;
         font-size:11px; font-weight:800;
-        text-shadow:0 1px 6px rgba(0,0,0,.65);
+        color:#ead39b;
+        text-shadow:
+          0 1px 0 rgba(87, 58, 16, .95),
+          0 0 10px rgba(0,0,0,.34),
+          0 2px 8px rgba(0,0,0,.72);
         pointer-events:none;
         opacity:.95;
         padding-right:42px;
@@ -1607,7 +1670,11 @@
         position:absolute; right:6px; top:50%;
         transform:translateY(-50%);
         font-size:10px; font-weight:800;
-        text-shadow:0 1px 6px rgba(0,0,0,.65);
+        color:#ead39b;
+        text-shadow:
+          0 1px 0 rgba(87, 58, 16, .95),
+          0 0 10px rgba(0,0,0,.34),
+          0 2px 8px rgba(0,0,0,.72);
         pointer-events:none;
         opacity:.85;
         letter-spacing:.2px;
@@ -1620,7 +1687,7 @@
         grid-template-columns:repeat(4, minmax(0, 1fr));
         gap:8px;
         align-items:stretch;
-        background:#151520;border:2px solid #333;border-radius:12px;
+        background:rgba(0, 0, 0, 0.20);border:3px solid rgba(0, 0, 0, 0.55);border-radius:12px;
         padding:8px;box-sizing:border-box;
         pointer-events:auto;
       }
@@ -1643,18 +1710,109 @@
         width:min(100%, 168px);
         aspect-ratio: 3 / 1;
         display:block;
+        position:relative;
+        transition:transform .14s ease, filter .14s ease;
+      }
+      .dsNavImageArt::before{
+        content:"";
+        position:absolute;
+        inset:0;
         background-repeat:no-repeat;
         background-position:center;
-        background-size:contain;
+        background-size:auto 208%;
         filter:drop-shadow(0 8px 18px rgba(0,0,0,.34));
+        transform:scaleY(1.40);
+        transform-origin:center;
         transition:transform .14s ease, filter .14s ease;
       }
       .dsNav button.dsNavImageBtn:hover .dsNavImageArt{
         transform:translateY(-1px) scale(1.02);
-        filter:drop-shadow(0 12px 24px rgba(0,0,0,.42));
       }
-      .dsNavImageArtHome{
-        background-image:url("images/ui/home_nav_button.png");
+      .dsNav button.dsNavImageBtn:hover .dsNavImageArt::before{
+        filter:drop-shadow(0 12px 24px rgba(0,0,0,.42));
+        transform:scaleY(1.44);
+      }
+      .dsNavImageArtHome::before{
+        background-image:url("images/ui/nav_button_frame.png");
+      }
+      .dsNavImageArtFight::before{
+        background-image:url("images/ui/nav_button_frame.png");
+      }
+      .dsNavImageArtDungeons::before{
+        background-image:url("images/ui/nav_button_frame.png");
+      }
+      .dsNavImageArtBuildings::before{
+        background-image:url("images/ui/nav_button_frame.png");
+      }
+      .dsNavImageArtChallenges::before{
+        background-image:url("images/ui/nav_button_frame.png");
+      }
+      .dsNavImageArtProfessions::before{
+        background-image:url("images/ui/nav_button_frame.png");
+      }
+      .dsNavImageArtMarket::before{
+        background-image:url("images/ui/nav_button_frame.png");
+      }
+      .dsNavImageArtBank::before{
+        background-image:url("images/ui/nav_button_frame.png");
+      }
+      .dsNavImageLabel{
+        position:absolute;
+        inset:0;
+        display:flex;
+        align-items:center;
+        justify-content:center;
+        padding:0 18px;
+        color:#ead39b;
+        font-family:Georgia, "Times New Roman", serif;
+        font-size:14px;
+        font-weight:900;
+        letter-spacing:1.2px;
+        text-transform:uppercase;
+        transform:translateY(-6px);
+        text-shadow:
+          0 1px 0 rgba(87, 58, 16, .95),
+          0 0 10px rgba(0,0,0,.34),
+          0 2px 8px rgba(0,0,0,.72);
+        pointer-events:none;
+      }
+      .dsNavImageLabelHome{
+        transform:translateY(-6px);
+      }
+      .dsNavImageLabelFight{
+        transform:translateY(-6px);
+        font-size:13px;
+        letter-spacing:1px;
+      }
+      .dsNavImageLabelDungeons{
+        transform:translateY(-6px);
+        font-size:12px;
+        letter-spacing:.8px;
+      }
+      .dsNavImageLabelBuildings{
+        transform:translateY(-6px);
+        font-size:12px;
+        letter-spacing:.7px;
+      }
+      .dsNavImageLabelChallenges{
+        transform:translateY(-6px);
+        font-size:11px;
+        letter-spacing:.55px;
+      }
+      .dsNavImageLabelProfessions{
+        transform:translateY(-6px);
+        font-size:11px;
+        letter-spacing:.45px;
+      }
+      .dsNavImageLabelMarket{
+        transform:translateY(-6px);
+        font-size:12px;
+        letter-spacing:.8px;
+      }
+      .dsNavImageLabelBank{
+        transform:translateY(-6px);
+        font-size:12px;
+        letter-spacing:1px;
       }
 
       .navIcon{width:14px;height:14px;display:block;flex:0 0 auto;}
@@ -1662,7 +1820,7 @@
 
       #inventoryPanel{
         width:100%;
-        background:#151520;border:2px solid #333;border-radius:12px;
+        background:rgba(0, 0, 0, 0.40);border:3px solid rgba(0, 0, 0, 0.55);border-radius:12px;
         padding:8px 12px 6px;box-sizing:border-box;
         position:relative;
         margin-top:-110px;
@@ -1679,6 +1837,13 @@
         z-index:20;
       }
       .invHeader{display:flex;align-items:center;justify-content:flex-start;margin-bottom:5px;gap:10px;}
+      #invTitleText{
+        color:#ead39b;
+        text-shadow:
+          0 1px 0 rgba(87, 58, 16, .95),
+          0 0 10px rgba(0,0,0,.34),
+          0 2px 8px rgba(0,0,0,.72);
+      }
       .invTabs{display:flex;gap:8px;align-items:center;}
       .invTab{
         min-width:96px;height:26px;padding:0 12px;border-radius:8px;border:2px solid #333;
@@ -2130,6 +2295,19 @@
           min-height:38px;
           padding:8px 12px;
         }
+        .dsAccountBtnFrameArt{
+          width:100%;
+          height:100%;
+        }
+        .dsAccountBtnFrameLabel{
+          font-size:9px;
+          letter-spacing:.6px;
+          transform:translateY(-1px);
+        }
+        .dsAccountBtnFrame{
+          width:132px;
+          height:40px;
+        }
         .dsStatSide{
           grid-column:2;
           grid-row:2;
@@ -2205,6 +2383,52 @@
         }
         .dsNavImageArt{
           width:min(100%, 110px);
+        }
+        .dsNavImageArt::before{
+          background-size:auto 182%;
+          transform:scaleY(1.28);
+        }
+        .dsNavImageLabel{
+          padding:0 10px;
+          font-size:9px;
+          letter-spacing:.7px;
+        }
+        .dsNavImageLabelHome{
+          transform:translateY(-3px);
+        }
+        .dsNavImageLabelFight{
+          transform:translateY(-3px);
+          font-size:8px;
+        }
+        .dsNavImageLabelDungeons{
+          transform:translateY(-3px);
+          font-size:7px;
+          letter-spacing:.5px;
+        }
+        .dsNavImageLabelBuildings{
+          transform:translateY(-3px);
+          font-size:7px;
+          letter-spacing:.45px;
+        }
+        .dsNavImageLabelChallenges{
+          transform:translateY(-3px);
+          font-size:6px;
+          letter-spacing:.3px;
+        }
+        .dsNavImageLabelProfessions{
+          transform:translateY(-3px);
+          font-size:6px;
+          letter-spacing:.25px;
+        }
+        .dsNavImageLabelMarket{
+          transform:translateY(-3px);
+          font-size:7px;
+          letter-spacing:.45px;
+        }
+        .dsNavImageLabelBank{
+          transform:translateY(-3px);
+          font-size:8px;
+          letter-spacing:.55px;
         }
         .navEmoji{
           font-size:11px;
@@ -3146,8 +3370,8 @@ function claimActiveChallengeFromQuest(){
 
           <div class="dsHeroStats">
             <p class="dsLine" style="display:flex;align-items:center;justify-content:space-between;gap:12px;">
-              <span>${save.heroName || "Hero"}</span>
-              <span>Level: ${lvl}</span>
+              <span class="dsHeroMetaText">${save.heroName || "Hero"}</span>
+              <span class="dsHeroMetaText">Level: ${lvl}</span>
             </p>
 
             <div class="dsBarStack">
@@ -3179,8 +3403,10 @@ function claimActiveChallengeFromQuest(){
         </div>
         ` : ""}
         <div class="dsHeaderPresence">
-          <button id="dsPresenceBtn" class="dsAccountBtn" type="button" aria-haspopup="menu" aria-expanded="${__presenceState.menuOpen ? "true" : "false"}">
-            Online : ${__presenceState.onlineCount}
+          <button id="dsPresenceBtn" class="dsAccountBtn dsAccountBtnFrame" type="button" aria-haspopup="menu" aria-expanded="${__presenceState.menuOpen ? "true" : "false"}">
+            <span class="dsAccountBtnFrameArt" aria-hidden="true">
+              <span class="dsAccountBtnFrameLabel">ONLINE : ${__presenceState.onlineCount}</span>
+            </span>
           </button>
           <div id="dsPresenceMenu" class="dsAccountMenu ${__presenceState.menuOpen ? "dsAccountMenuOpen" : ""}" role="menu" aria-hidden="${__presenceState.menuOpen ? "false" : "true"}" style="width:min(540px, calc(100vw - 24px));max-height:min(420px, 70vh);overflow:auto;right:0;left:auto;">
             <div class="dsAccountLabel">PLAYER ACTIVITY</div>
@@ -3191,7 +3417,11 @@ function claimActiveChallengeFromQuest(){
           </div>
         </div>
         <div class="dsHeaderAccount">
-          <button id="authAccountBtn" class="dsAccountBtn" type="button" aria-haspopup="menu" aria-expanded="false">Account</button>
+          <button id="authAccountBtn" class="dsAccountBtn dsAccountBtnFrame" type="button" aria-haspopup="menu" aria-expanded="false">
+            <span class="dsAccountBtnFrameArt" aria-hidden="true">
+              <span class="dsAccountBtnFrameLabel">ACCOUNT</span>
+            </span>
+          </button>
           <div id="authAccountMenu" class="dsAccountMenu" role="menu" aria-hidden="true">
             <div class="dsAccountLabel">ACCOUNT</div>
             <div class="dsAccountEmail">${authLabel || "Signed In"}</div>
@@ -3203,35 +3433,44 @@ function claimActiveChallengeFromQuest(){
 
       <div class="dsNav">
           <button id="navHome" class="dsNavImageBtn" aria-label="Home" data-open-tab-href="index.html">
-            <span class="dsNavImageArt dsNavImageArtHome" aria-hidden="true"></span>
+            <span class="dsNavImageArt dsNavImageArtHome" aria-hidden="true">
+              <span class="dsNavImageLabel dsNavImageLabelHome">HOME</span>
+            </span>
           </button>
-        <button id="navFight" data-open-tab-href="fight.html">
-          <span class="navEmoji" aria-hidden="true">&#9876;&#65039;</span>
-          Fight
+        <button id="navFight" class="dsNavImageBtn" aria-label="Fight" data-open-tab-href="fight.html">
+          <span class="dsNavImageArt dsNavImageArtFight" aria-hidden="true">
+            <span class="dsNavImageLabel dsNavImageLabelFight">FIGHT</span>
+          </span>
         </button>
-        <button id="navDungeons" data-open-tab-href="dungeons.html">
-          <span class="navEmoji" aria-hidden="true">&#127984;</span>
-          Dungeons
+        <button id="navDungeons" class="dsNavImageBtn" aria-label="Dungeons" data-open-tab-href="dungeons.html">
+          <span class="dsNavImageArt dsNavImageArtDungeons" aria-hidden="true">
+            <span class="dsNavImageLabel dsNavImageLabelDungeons">DUNGEONS</span>
+          </span>
         </button>
-        <button id="navBuildings" data-open-tab-href="buildings.html">
-          <span class="navEmoji" aria-hidden="true">&#127970;</span>
-          Buildings
+        <button id="navBuildings" class="dsNavImageBtn" aria-label="Buildings" data-open-tab-href="buildings.html">
+          <span class="dsNavImageArt dsNavImageArtBuildings" aria-hidden="true">
+            <span class="dsNavImageLabel dsNavImageLabelBuildings">BUILDINGS</span>
+          </span>
         </button>
-        <button id="navChallenges" data-open-tab-href="challenges.html">
-          <span class="navEmoji" aria-hidden="true">&#127919;</span>
-          Challenges
+        <button id="navChallenges" class="dsNavImageBtn" aria-label="Challenges" data-open-tab-href="challenges.html">
+          <span class="dsNavImageArt dsNavImageArtChallenges" aria-hidden="true">
+            <span class="dsNavImageLabel dsNavImageLabelChallenges">CHALLENGES</span>
+          </span>
         </button>
-        <button id="navProfessions" data-open-tab-href="professions.html">
-          <span class="navEmoji" aria-hidden="true">&#9874;&#65039;</span>
-          Professions
+        <button id="navProfessions" class="dsNavImageBtn" aria-label="Professions" data-open-tab-href="professions.html">
+          <span class="dsNavImageArt dsNavImageArtProfessions" aria-hidden="true">
+            <span class="dsNavImageLabel dsNavImageLabelProfessions">PROFESSIONS</span>
+          </span>
         </button>
-        <button id="navMarket" data-open-tab-href="market.html">
-          <span class="navEmoji" aria-hidden="true">&#128176;</span>
-          Market
+        <button id="navMarket" class="dsNavImageBtn" aria-label="Market" data-open-tab-href="market.html">
+          <span class="dsNavImageArt dsNavImageArtMarket" aria-hidden="true">
+            <span class="dsNavImageLabel dsNavImageLabelMarket">MARKET</span>
+          </span>
         </button>
-        <button id="navBank" data-open-tab-href="bank.html">
-          <span class="navEmoji" aria-hidden="true">&#127974;</span>
-          Bank
+        <button id="navBank" class="dsNavImageBtn" aria-label="Bank" data-open-tab-href="bank.html">
+          <span class="dsNavImageArt dsNavImageArtBank" aria-hidden="true">
+            <span class="dsNavImageLabel dsNavImageLabelBank">BANK</span>
+          </span>
         </button>
       </div>
     </div>

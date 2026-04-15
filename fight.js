@@ -1953,7 +1953,7 @@ let __fightRoot = null;
 
 const FIGHT_TEMPLATE = `
   <div style="display:flex;align-items:center;justify-content:space-between;width:90%;max-width:900px;margin:0 auto 10px;">
-    <h1 id="fightPageTitle" style="margin:0;">Fight</h1>
+    <h1 id="fightPageTitle" style="margin:0;color:#ead39b;text-shadow:0 1px 0 rgba(87, 58, 16, .95),0 0 10px rgba(0,0,0,.34),0 2px 8px rgba(0,0,0,.72);">Fight</h1>
     <button id="toZonesBtn" style="display:none;">Zones</button>
   </div>
 
@@ -2524,7 +2524,7 @@ function showZones(){
         <img src="${z.img}" alt="${z.name}"
              class="fightZoneImg"
              style="width:88px;height:88px;border-radius:10px;border:2px solid #333;object-fit:cover;background:#0f0f16;filter:${locked ? "grayscale(0.9)" : "none"};">
-        <div class="fightZoneInfo" style="width:126px;min-height:62px;padding:6px 7px;border-radius:10px;border:1px solid rgba(255,255,255,.12);background:#101019;line-height:1.15;display:flex;flex-direction:column;justify-content:center;">
+        <div class="fightZoneInfo" style="width:126px;min-height:62px;padding:6px 7px;border-radius:10px;border:3px solid rgba(0,0,0,.55);background:rgba(0,0,0,.15);color:#ead39b;line-height:1.15;display:flex;flex-direction:column;justify-content:center;text-shadow:0 1px 0 rgba(87, 58, 16, .95),0 0 8px rgba(0,0,0,.34),0 2px 6px rgba(0,0,0,.72);">
           <div class="fightZoneName" style="font-size:12px;font-weight:900;white-space:nowrap;">${z.name}</div>
           <div class="fightZoneMeta" style="opacity:.9;margin-top:3px;font-size:12px;">Req Lv ${z.reqLevel ?? 1}</div>
           ${locked ? `<div class="fightZoneMeta" style="opacity:.85;margin-top:3px;font-size:12px;">Locked</div>` : ``}
@@ -3008,6 +3008,12 @@ function mountFight(root = null) {
   bindFightDom(document);
   if (!zonesGrid || !zonesWrap || !mobsWrap || !mobsGrid || !battleWrap) return false;
 
+  if (__fightRoot) {
+    __fightRoot.style.background = "rgba(0, 0, 0, 0.15)";
+    __fightRoot.style.border = "3px solid rgba(0, 0, 0, 0.55)";
+    __fightRoot.style.borderRadius = "12px";
+  }
+
   if (__fightMounted) detachFightEvents();
 
   __fightMounted = true;
@@ -3027,6 +3033,11 @@ function unmountFight() {
   if (!__fightMounted) return;
   stopAutoFight(true);
   detachFightEvents();
+  if (__fightRoot) {
+    __fightRoot.style.background = "";
+    __fightRoot.style.border = "";
+    __fightRoot.style.borderRadius = "";
+  }
   __fightMounted = false;
   currentZone = null;
   currentMobData = null;
