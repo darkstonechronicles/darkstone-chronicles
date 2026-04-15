@@ -125,7 +125,9 @@
           alert(`Requires Herbalism Level ${zone.req}`);
           return;
         }
-        window.location.href = `herbalism_action.html?zone=${encodeURIComponent(zone.id)}`;
+        const href = `herbalism_action.html?zone=${encodeURIComponent(zone.id)}`;
+        if (window.DSUI?.navigateWithinShell?.(href)) return;
+        window.location.href = href;
       });
       grid.appendChild(card);
     });

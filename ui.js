@@ -3494,8 +3494,8 @@ function normalizePagePath(path) {
   return normalized || "index.html";
 }
 
-const SHELL_ROUTES = new Set(["index.html", "fight.html", "dungeons.html", "dungeon_run.html", "buildings.html", "challenges.html", "market.html", "bank.html", "professions.html", "professions_overview.html", "equipment.html", "stats.html", "mining.html", "mining_action.html", "hunting.html", "fishing.html", "cooking.html", "herbalism.html", "alchemy.html", "carpentry.html", "woodcutting.html", "forge.html", "enchanting.html"]);
-const SHELL_INSTANT_ROUTES = new Set(["mining_action.html"]);
+const SHELL_ROUTES = new Set(["index.html", "fight.html", "dungeons.html", "dungeon_run.html", "buildings.html", "challenges.html", "market.html", "bank.html", "professions.html", "professions_overview.html", "equipment.html", "stats.html", "stats_alloc.html", "mining.html", "mining_action.html", "hunting.html", "hunting_action.html", "fishing.html", "fishing_action.html", "cooking.html", "cooking_action.html", "herbalism.html", "herbalism_action.html", "alchemy.html", "alchemy_tier.html", "alchemy_action.html", "carpentry.html", "woodcutting.html", "wood_gather_action.html", "wood_sawmill_action.html", "forge.html", "forge_action.html", "enchanting.html"]);
+const SHELL_INSTANT_ROUTES = new Set(["mining_action.html", "hunting_action.html", "fishing_action.html", "cooking_action.html", "herbalism_action.html", "alchemy_action.html", "wood_gather_action.html", "wood_sawmill_action.html", "forge_action.html"]);
 
 function canUseShellRouting(currentPage, targetPage) {
   return SHELL_ROUTES.has(currentPage) && SHELL_ROUTES.has(targetPage);
@@ -3595,11 +3595,25 @@ function mountShellView(targetPage, targetHref = targetPage) {
     return !!window.DSHunting?.mount?.(left);
   }
 
+  if (targetPage === "hunting_action.html") {
+    window.DSFight?.unmount?.();
+    window.DS_DUNGEON?.unmountDungeonList?.();
+    window.DS_DUNGEON?.unmountDungeonRun?.();
+    return !!window.DSHuntingAction?.mount?.(left, targetHref);
+  }
+
   if (targetPage === "fishing.html") {
     window.DSFight?.unmount?.();
     window.DS_DUNGEON?.unmountDungeonList?.();
     window.DS_DUNGEON?.unmountDungeonRun?.();
     return !!window.DSFishing?.mount?.(left);
+  }
+
+  if (targetPage === "fishing_action.html") {
+    window.DSFight?.unmount?.();
+    window.DS_DUNGEON?.unmountDungeonList?.();
+    window.DS_DUNGEON?.unmountDungeonRun?.();
+    return !!window.DSFishingAction?.mount?.(left, targetHref);
   }
 
   if (targetPage === "cooking.html") {
@@ -3609,6 +3623,13 @@ function mountShellView(targetPage, targetHref = targetPage) {
     return !!window.DSCooking?.mount?.(left);
   }
 
+  if (targetPage === "cooking_action.html") {
+    window.DSFight?.unmount?.();
+    window.DS_DUNGEON?.unmountDungeonList?.();
+    window.DS_DUNGEON?.unmountDungeonRun?.();
+    return !!window.DSCookingAction?.mount?.(left, targetHref);
+  }
+
   if (targetPage === "herbalism.html") {
     window.DSFight?.unmount?.();
     window.DS_DUNGEON?.unmountDungeonList?.();
@@ -3616,11 +3637,32 @@ function mountShellView(targetPage, targetHref = targetPage) {
     return !!window.DSHerbalism?.mount?.(left);
   }
 
+  if (targetPage === "herbalism_action.html") {
+    window.DSFight?.unmount?.();
+    window.DS_DUNGEON?.unmountDungeonList?.();
+    window.DS_DUNGEON?.unmountDungeonRun?.();
+    return !!window.DSHerbalismAction?.mount?.(left, targetHref);
+  }
+
   if (targetPage === "alchemy.html") {
     window.DSFight?.unmount?.();
     window.DS_DUNGEON?.unmountDungeonList?.();
     window.DS_DUNGEON?.unmountDungeonRun?.();
     return !!window.DSAlchemy?.mount?.(left);
+  }
+
+  if (targetPage === "alchemy_tier.html") {
+    window.DSFight?.unmount?.();
+    window.DS_DUNGEON?.unmountDungeonList?.();
+    window.DS_DUNGEON?.unmountDungeonRun?.();
+    return !!window.DSAlchemyTier?.mount?.(left, targetHref);
+  }
+
+  if (targetPage === "alchemy_action.html") {
+    window.DSFight?.unmount?.();
+    window.DS_DUNGEON?.unmountDungeonList?.();
+    window.DS_DUNGEON?.unmountDungeonRun?.();
+    return !!window.DSAlchemyAction?.mount?.(left, targetHref);
   }
 
   if (targetPage === "carpentry.html") {
@@ -3637,11 +3679,32 @@ function mountShellView(targetPage, targetHref = targetPage) {
     return !!window.DSWoodcutting?.mount?.(left);
   }
 
+  if (targetPage === "wood_gather_action.html") {
+    window.DSFight?.unmount?.();
+    window.DS_DUNGEON?.unmountDungeonList?.();
+    window.DS_DUNGEON?.unmountDungeonRun?.();
+    return !!window.DSWoodGatherAction?.mount?.(left, targetHref);
+  }
+
+  if (targetPage === "wood_sawmill_action.html") {
+    window.DSFight?.unmount?.();
+    window.DS_DUNGEON?.unmountDungeonList?.();
+    window.DS_DUNGEON?.unmountDungeonRun?.();
+    return !!window.DSWoodSawmillAction?.mount?.(left, targetHref);
+  }
+
   if (targetPage === "forge.html") {
     window.DSFight?.unmount?.();
     window.DS_DUNGEON?.unmountDungeonList?.();
     window.DS_DUNGEON?.unmountDungeonRun?.();
     return !!window.DSForge?.mount?.(left);
+  }
+
+  if (targetPage === "forge_action.html") {
+    window.DSFight?.unmount?.();
+    window.DS_DUNGEON?.unmountDungeonList?.();
+    window.DS_DUNGEON?.unmountDungeonRun?.();
+    return !!window.DSForgeAction?.mount?.(left, targetHref);
   }
 
   if (targetPage === "enchanting.html") {
@@ -3663,6 +3726,13 @@ function mountShellView(targetPage, targetHref = targetPage) {
     window.DS_DUNGEON?.unmountDungeonList?.();
     window.DS_DUNGEON?.unmountDungeonRun?.();
     return !!window.DSStats?.mount?.(left);
+  }
+
+  if (targetPage === "stats_alloc.html") {
+    window.DSFight?.unmount?.();
+    window.DS_DUNGEON?.unmountDungeonList?.();
+    window.DS_DUNGEON?.unmountDungeonRun?.();
+    return !!window.DSStatsAlloc?.mount?.(left);
   }
 
   return false;

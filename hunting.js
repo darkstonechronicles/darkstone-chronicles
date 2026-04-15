@@ -154,7 +154,9 @@
         if (locked) { if (msg) msg.textContent = `❌ Requires Hunting Level ${t.req}.`; return; }
         if (full) { if (msg) msg.textContent = "❌ No more inventory space"; return; }
         if (arrows <= 0) { if (msg) msg.textContent = "❌ You need Arrows."; return; }
-        window.location.href = `hunting_action.html?target=${encodeURIComponent(t.id)}`;
+        const href = `hunting_action.html?target=${encodeURIComponent(t.id)}`;
+        if (window.DSUI?.navigateWithinShell?.(href)) return;
+        window.location.href = href;
       });
 
       grid.appendChild(card);

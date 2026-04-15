@@ -123,7 +123,9 @@
 
       card.addEventListener("click", () => {
         if (locked) return alert(`Requires Woodcutting Level ${w.req}`);
-        window.location.href = `wood_gather_action.html?wood=${encodeURIComponent(w.id)}`;
+        const href = `wood_gather_action.html?wood=${encodeURIComponent(w.id)}`;
+        if (window.DSUI?.navigateWithinShell?.(href)) return;
+        window.location.href = href;
       });
 
       grid.appendChild(card);

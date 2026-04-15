@@ -125,7 +125,9 @@
           alert(`Requires Alchemy Level ${tier.req}`);
           return;
         }
-        window.location.href = `alchemy_tier.html?tier=${tier.tier}`;
+        const href = `alchemy_tier.html?tier=${tier.tier}`;
+        if (window.DSUI?.navigateWithinShell?.(href)) return;
+        window.location.href = href;
       });
       grid.appendChild(card);
     });

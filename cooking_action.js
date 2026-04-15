@@ -7,6 +7,93 @@
 
 (() => {
   const SAVE_KEY = "darkstone_save_v1";
+  const COOKING_ACTION_TEMPLATE = `
+  <div style="max-width:340px;margin:0 auto 12px;">
+    <div style="background:#151520;border:2px solid #333;border-radius:12px;padding:10px 12px;width:100%;">
+      <div style="font-weight:900;font-size:18px;display:flex;align-items:center;justify-content:center;gap:8px;margin-bottom:8px;text-align:center;">
+        <span aria-hidden="true">&#127859;</span>
+        <span>Cooking Lvl: <span id="cookLevel">1</span></span>
+      </div>
+      <div style="width:100%;">
+        <div style="height:12px;background:#0f0f16;border:1px solid #2a2a3a;border-radius:999px;overflow:hidden;position:relative;">
+          <div id="cookXPBar" style="height:100%;width:0%;background:#ffaa00;"></div>
+          <div style="position:absolute;top:50%;left:8px;transform:translateY(-50%);font-size:11px;font-weight:800;line-height:1;color:#f4f1e8;text-shadow:0 1px 3px rgba(0,0,0,.75);pointer-events:none;">XP</div>
+          <div style="position:absolute;top:50%;right:8px;transform:translateY(-50%);font-size:11px;font-weight:800;line-height:1;color:#f4f1e8;text-shadow:0 1px 3px rgba(0,0,0,.75);pointer-events:none;"><span id="cookXPCurrent">0</span>/<span id="cookXPNext">100</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div style="max-width:340px;margin:0 auto 12px;">
+    <div id="artisanBonusBox" style="background:#151520;border:2px solid #333;border-radius:12px;padding:12px;width:100%;min-height:56px;display:flex;align-items:flex-start;gap:10px;">
+      <div style="font-weight:800;font-size:14px;white-space:nowrap;line-height:1.05;text-align:center;">Bonus<br>XP</div>
+      <div style="width:1px;align-self:stretch;background:#333;"></div>
+      <div id="artisanBonusContent" style="flex:1;display:flex;flex-direction:column;justify-content:flex-start;gap:2px;padding-top:2px;">
+        <div id="artisanBonusTop" style="display:grid;grid-template-columns:0.8fr 1px 1.5fr 1px 1fr 1px 1fr;gap:8px;font-size:11px;font-weight:700;opacity:.9;text-align:center;align-items:center;">
+          <div>Pet</div>
+          <div style="width:1px;align-self:stretch;background:#333;"></div>
+          <div style="font-size:10px;line-height:1;white-space:nowrap;align-self:center;">Double Craft</div>
+          <div style="width:1px;align-self:stretch;background:#333;"></div>
+          <div>Building</div>
+          <div style="width:1px;align-self:stretch;background:#333;"></div>
+          <div>Potion</div>
+        </div>
+        <div style="height:1px;background:#333;width:100%;"></div>
+        <div id="artisanBonusBottom" style="display:grid;grid-template-columns:0.8fr 1px 1.5fr 1px 1fr 1px 1fr;gap:8px;min-height:14px;align-items:stretch;text-align:center;font-size:11px;font-weight:700;color:#cfe7ff;">
+          <div id="artisanBonusPetValue">+0%</div>
+          <div style="width:1px;align-self:stretch;background:#333;"></div>
+          <div id="artisanBonusDoubleValue">+0%</div>
+          <div style="width:1px;align-self:stretch;background:#333;"></div>
+          <div id="artisanBonusBuildingValue">+0%</div>
+          <div style="width:1px;align-self:stretch;background:#333;"></div>
+          <div id="artisanBonusPotionValue">+0%</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div style="width:90%;max-width:700px;margin:0 auto 12px;display:flex;gap:10px;justify-content:center;">
+    <button id="backBtn">Back</button>
+    <button id="startBtn">Start</button>
+    <button id="stopBtn" disabled>Stop</button>
+  </div>
+
+  <div style="background:#151520;border:2px solid #333;border-radius:12px;padding:12px;max-width:900px;margin:0 auto;">
+    <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;">
+      <div style="display:flex;gap:12px;align-items:center;">
+        <img id="inImg" src="" alt="Input"
+          style="width:64px;height:64px;border-radius:12px;border:2px solid #333;object-fit:cover;background:#0f0f16;">
+        <div style="opacity:.85;font-weight:900;">-></div>
+        <img id="outImg" src="" alt="Food"
+          style="width:64px;height:64px;border-radius:12px;border:2px solid #333;object-fit:cover;background:#0f0f16;">
+      </div>
+
+      <div style="flex:1;min-width:240px;">
+        <div style="font-weight:800;font-size:18px;" id="recipeName">Recipe</div>
+        <div style="opacity:.85;font-size:12px;margin-top:4px;" id="recipeInfo"></div>
+        <div id="timerWrap" style="margin-top:10px;display:none;">
+          <div style="display:flex;justify-content:space-between;font-size:12px;opacity:.9;">
+            <span>Cooking...</span>
+            <span id="timerText">6.0s</span>
+          </div>
+          <div style="height:5px;background:#222;border:1px solid #333;border-radius:6px;margin-top:6px;overflow:hidden;">
+            <div id="timerBar" style="height:100%;width:0%;border-radius:6px;background:linear-gradient(90deg,#b63a3a,#e05555);"></div>
+          </div>
+        </div>
+
+        <div style="margin-top:10px;display:flex;gap:10px;flex-wrap:wrap;align-items:center;">
+          <div style="opacity:.85;font-size:12px;">Target amount:</div>
+          <input id="targetInput" type="number" min="1" step="1" placeholder="e.g. 100"
+            style="width:120px;padding:8px 10px;border-radius:10px;border:2px solid #333;background:#0f0f16;color:#fff;">
+          <button id="targetBtn">Cook Target</button>
+          <div id="targetStatus" style="opacity:.85;font-size:12px;"></div>
+        </div>
+      </div>
+    </div>
+
+    <div id="msg" style="margin-top:12px;opacity:.9;"></div>
+  </div>
+`;
 
 const num = (v, f = 0) => (Number.isFinite(Number(v)) ? Number(v) : f);
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
@@ -456,7 +543,7 @@ out:{type:"food", id:"cooked_leviathan_marlin", name:"Cooked Leviathan Marlin", 
 ];
   function getRecipeFromUrl() {
     const p = new URLSearchParams(location.search);
-    return p.get("recipe") || "cooked_silver_minnow";
+    return p.get("recipe") || "cooked_shadow_hare_meat";
   }
   function getRecipeDef(id) {
     return RECIPES.find(r => r.id === id) || RECIPES[0];
@@ -465,33 +552,64 @@ out:{type:"food", id:"cooked_leviathan_marlin", name:"Cooked Leviathan Marlin", 
   // --------------------------------------------------
   // DOM
   // --------------------------------------------------
-  const backBtn = document.getElementById("backBtn");
-  const startBtn = document.getElementById("startBtn");
-  const stopBtn = document.getElementById("stopBtn");
+  let backBtn = null;
+  let startBtn = null;
+  let stopBtn = null;
 
-  const inImg = document.getElementById("inImg");
-  const outImg = document.getElementById("outImg");
-  const recipeName = document.getElementById("recipeName");
-  const recipeInfo = document.getElementById("recipeInfo");
+  let inImg = null;
+  let outImg = null;
+  let recipeName = null;
+  let recipeInfo = null;
 
-  const timerWrap = document.getElementById("timerWrap");
-  const timerText = document.getElementById("timerText");
-  const timerBar = document.getElementById("timerBar");
+  let timerWrap = null;
+  let timerText = null;
+  let timerBar = null;
 
-  const msgEl = document.getElementById("msg");
+  let msgEl = null;
 
-  const targetInput = document.getElementById("targetInput");
-  const targetBtn = document.getElementById("targetBtn");
-  const targetStatus = document.getElementById("targetStatus");
+  let targetInput = null;
+  let targetBtn = null;
+  let targetStatus = null;
 
-  const lvlEl = document.getElementById("cookLevel");
-  const curEl = document.getElementById("cookXPCurrent");
-  const nextEl = document.getElementById("cookXPNext");
-  const barEl = document.getElementById("cookXPBar");
-  const artisanBonusPetValue = document.getElementById("artisanBonusPetValue");
-  const artisanBonusDoubleValue = document.getElementById("artisanBonusDoubleValue");
-  const artisanBonusBuildingValue = document.getElementById("artisanBonusBuildingValue");
-  const artisanBonusPotionValue = document.getElementById("artisanBonusPotionValue");
+  let lvlEl = null;
+  let curEl = null;
+  let nextEl = null;
+  let barEl = null;
+  let artisanBonusPetValue = null;
+  let artisanBonusDoubleValue = null;
+  let artisanBonusBuildingValue = null;
+  let artisanBonusPotionValue = null;
+  let currentRecipeId = "cooked_shadow_hare_meat";
+
+  function bindDom() {
+    backBtn = document.getElementById("backBtn");
+    startBtn = document.getElementById("startBtn");
+    stopBtn = document.getElementById("stopBtn");
+
+    inImg = document.getElementById("inImg");
+    outImg = document.getElementById("outImg");
+    recipeName = document.getElementById("recipeName");
+    recipeInfo = document.getElementById("recipeInfo");
+
+    timerWrap = document.getElementById("timerWrap");
+    timerText = document.getElementById("timerText");
+    timerBar = document.getElementById("timerBar");
+
+    msgEl = document.getElementById("msg");
+
+    targetInput = document.getElementById("targetInput");
+    targetBtn = document.getElementById("targetBtn");
+    targetStatus = document.getElementById("targetStatus");
+
+    lvlEl = document.getElementById("cookLevel");
+    curEl = document.getElementById("cookXPCurrent");
+    nextEl = document.getElementById("cookXPNext");
+    barEl = document.getElementById("cookXPBar");
+    artisanBonusPetValue = document.getElementById("artisanBonusPetValue");
+    artisanBonusDoubleValue = document.getElementById("artisanBonusDoubleValue");
+    artisanBonusBuildingValue = document.getElementById("artisanBonusBuildingValue");
+    artisanBonusPotionValue = document.getElementById("artisanBonusPotionValue");
+  }
 
   // Pause/resume from ui.js inspector
   window.addEventListener("ds:pause", () => stopCooking(true));
@@ -724,7 +842,7 @@ function releaseActionLock(){
     if (!cookingActive) return;
     if (window.DS?.isPaused) return;
 
-    const rid = getRecipeFromUrl();
+    const rid = currentRecipeId || getRecipeFromUrl();
     const r = getRecipeDef(rid);
     const s = ensureCooking(loadSave());
 
@@ -832,10 +950,9 @@ function releaseActionLock(){
     else setMsg(`Target set: ${targetRemaining}`);
   }
 
-  // Boot
-  window.addEventListener("DOMContentLoaded", () => {
-    const rid = getRecipeFromUrl();
-    const r = getRecipeDef(rid);
+  function initCookingActionRoute(recipeId) {
+    currentRecipeId = recipeId || getRecipeFromUrl();
+    const r = getRecipeDef(currentRecipeId);
 
     // images (FIXED)
     if (inImg) inImg.src = absAsset(r.in.img);
@@ -863,6 +980,7 @@ function releaseActionLock(){
 
     backBtn?.addEventListener("click", () => {
       stopCooking(true);
+      if (window.DSUI?.navigateWithinShell?.("cooking.html")) return;
       window.location.href = "cooking.html";
     });
 
@@ -871,6 +989,36 @@ function releaseActionLock(){
     targetBtn?.addEventListener("click", startTargetCooking);
 
     if (stopBtn) stopBtn.disabled = true;
+  }
+
+  function mountCookingAction(root = null, targetHref = "cooking_action.html") {
+    const left = root || document.getElementById("leftPanel");
+    if (!left) return false;
+    stopCooking(true);
+    left.innerHTML = COOKING_ACTION_TEMPLATE;
+    document.title = "Darkstone Chronicles - Cooking Action";
+    bindDom();
+    const parsed = (() => {
+      try { return new URL(targetHref, window.location.href); }
+      catch { return null; }
+    })();
+    const recipeId = parsed?.searchParams.get("recipe") || "cooked_shadow_hare_meat";
+    initCookingActionRoute(recipeId);
+    return true;
+  }
+
+  function initStandaloneCookingAction() {
+    if (!document.getElementById("backBtn")) return false;
+    document.title = "Darkstone Chronicles - Cooking Action";
+    bindDom();
+    initCookingActionRoute(getRecipeFromUrl());
+    return true;
+  }
+
+  window.DSCookingAction = { mount: mountCookingAction };
+
+  window.addEventListener("DOMContentLoaded", () => {
+    initStandaloneCookingAction();
   });
 
   window.addEventListener("ds:save", () => {

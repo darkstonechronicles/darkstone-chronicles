@@ -1,18 +1,91 @@
-// wood_gather_action.js — Gather action (LOG ICONS + timer bar + stats safe)
-// - Start / Stop / Back
-// - 6s cooldown bar + timer text (requestAnimationFrame)
-// - Target amount
-// - DS pause stops immediately
-// - Gives 1 log per tick, stacks in inventory
-// - Woodcutting XP scaling + level up
-// - ✅ Stats-safe: woodGatherTicks increments INSIDE the same save object (won’t be overwritten)
-
+(() => {
 const SAVE_KEY = "darkstone_save_v1";
 const WOOD_SIGIL_ITEM = {
   type: "material",
   name: "Wood Sigil",
   img: "images/items/sigils/wood_sigil.png"
 };
+const WOOD_GATHER_TEMPLATE = `
+  <div style="max-width:340px;margin:0 auto 12px;">
+    <div style="background:#151520;border:2px solid #333;border-radius:12px;padding:10px 12px;width:100%;">
+      <div style="font-weight:900;font-size:18px;display:flex;align-items:center;justify-content:center;gap:8px;margin-bottom:8px;text-align:center;">
+        <span aria-hidden="true">&#129717;</span>
+        <span>Woodcutting Lvl: <span id="woodLevel">1</span></span>
+      </div>
+      <div style="width:100%;">
+        <div style="height:12px;background:#0f0f16;border:1px solid #2a2a3a;border-radius:999px;overflow:hidden;position:relative;">
+          <div id="woodXPBar" style="height:100%;width:0%;background:#ffd27d;"></div>
+          <div style="position:absolute;top:50%;left:8px;transform:translateY(-50%);font-size:11px;font-weight:800;line-height:1;color:#f4f1e8;text-shadow:0 1px 3px rgba(0,0,0,.75);pointer-events:none;">XP</div>
+          <div style="position:absolute;top:50%;right:8px;transform:translateY(-50%);font-size:11px;font-weight:800;line-height:1;color:#f4f1e8;text-shadow:0 1px 3px rgba(0,0,0,.75);pointer-events:none;"><span id="woodXPCurrent">0</span>/<span id="woodXPNext">100</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div style="max-width:340px;margin:0 auto 12px;">
+    <div id="gatheringBonusBox" style="background:#151520;border:2px solid #333;border-radius:12px;padding:12px;width:100%;min-height:56px;display:flex;align-items:flex-start;gap:10px;">
+      <div style="font-weight:800;font-size:14px;white-space:nowrap;line-height:1.05;text-align:center;">Bonus<br>XP</div>
+      <div style="width:1px;align-self:stretch;background:#333;"></div>
+      <div id="gatheringBonusContent" style="flex:1;display:flex;flex-direction:column;justify-content:flex-start;gap:2px;padding-top:2px;">
+        <div id="gatheringBonusTop" style="display:grid;grid-template-columns:0.8fr 1px 1.5fr 1px 1fr 1px 1fr;gap:8px;font-size:11px;font-weight:700;opacity:.9;text-align:center;align-items:center;">
+          <div>Pet</div>
+          <div style="width:1px;align-self:stretch;background:#333;"></div>
+          <div style="font-size:10px;line-height:1;white-space:nowrap;align-self:center;">Double Gather</div>
+          <div style="width:1px;align-self:stretch;background:#333;"></div>
+          <div>Building</div>
+          <div style="width:1px;align-self:stretch;background:#333;"></div>
+          <div>Potion</div>
+        </div>
+        <div style="height:1px;background:#333;width:100%;"></div>
+        <div id="gatheringBonusBottom" style="display:grid;grid-template-columns:0.8fr 1px 1.5fr 1px 1fr 1px 1fr;gap:8px;min-height:14px;align-items:stretch;text-align:center;font-size:11px;font-weight:700;color:#cfe7ff;">
+          <div id="gatheringBonusPetValue">+0%</div>
+          <div style="width:1px;align-self:stretch;background:#333;"></div>
+          <div id="gatheringBonusDoubleValue">+0%</div>
+          <div style="width:1px;align-self:stretch;background:#333;"></div>
+          <div id="gatheringBonusBuildingValue">+0%</div>
+          <div style="width:1px;align-self:stretch;background:#333;"></div>
+          <div id="gatheringBonusPotionValue">+0%</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div style="width:90%;max-width:700px;margin:0 auto 12px;display:flex;gap:10px;justify-content:center;">
+    <button id="backBtn">Back</button>
+    <button id="startBtn">Start</button>
+    <button id="stopBtn" disabled>Stop</button>
+  </div>
+
+  <div style="background:#151520;border:2px solid #333;border-radius:12px;padding:12px;max-width:900px;margin:0 auto;">
+    <div style="display:flex;gap:12px;align-items:center;">
+      <div style="display:flex;flex-direction:column;align-items:center;gap:8px;min-width:74px;">
+        <div id="woodName" style="font-weight:800;font-size:18px;text-align:center;">-</div>
+        <img id="woodImg" src="" alt="Wood" style="width:74px;height:74px;border-radius:12px;border:2px solid #333;object-fit:cover;background:#0f0f16;">
+      </div>
+      <div style="flex:1;">
+        <div id="timerWrap" style="margin-top:10px;display:none;">
+          <div style="display:flex;justify-content:space-between;font-size:12px;opacity:.9;">
+            <span>Gathering...</span>
+            <span id="timerText">6.0s</span>
+          </div>
+          <div style="height:5px;background:#222;border:1px solid #333;border-radius:6px;margin-top:6px;overflow:hidden;">
+            <div id="timerBar" style="height:100%;width:0%;border-radius:6px;background:linear-gradient(90deg,#b63a3a,#e05555);"></div>
+          </div>
+        </div>
+
+        <div style="margin-top:10px;display:flex;gap:10px;flex-wrap:wrap;align-items:center;">
+          <div style="opacity:.85;font-size:12px;">Target amount:</div>
+          <input id="targetInput" type="number" min="1" step="1" placeholder="e.g. 100"
+                 style="width:120px;padding:8px 10px;border-radius:10px;border:2px solid #333;background:#0f0f16;color:#fff;">
+          <button id="targetBtn">Gather Target</button>
+          <div id="targetStatus" style="opacity:.85;font-size:12px;"></div>
+        </div>
+      </div>
+    </div>
+
+    <div id="msg" style="margin-top:12px;opacity:.9;"></div>
+  </div>
+`;
 
 const num = (v,f=0) => (Number.isFinite(Number(v)) ? Number(v) : f);
 const clamp = (v,a,b) => Math.max(a, Math.min(b, v));
@@ -22,7 +95,6 @@ function xpBarGradient(pct){
   if (pct < 75) return "linear-gradient(90deg,#4e9a43,#79c96b)";
   return "linear-gradient(90deg,#2f9e5b,#7be39e)";
 }
-
 function loadSave(){
   try { return JSON.parse(localStorage.getItem(SAVE_KEY) || "{}") || {}; }
   catch { return {}; }
@@ -63,15 +135,12 @@ function xpNextForLevel(level){
   }
   return roundLevelXP(xp);
 }
-
 function ensureWood(save){
   save = save && typeof save === "object" ? save : {};
   if (!Array.isArray(save.inventory)) save.inventory = [];
-
   save.woodcuttingLevel = Math.max(1, num(save.woodcuttingLevel, 1));
   save.woodcuttingXP = Math.max(0, num(save.woodcuttingXP, 0));
   save.woodcuttingXPNext = xpNextForLevel(save.woodcuttingLevel);
-
   return save;
 }
 function getPotionTier(item){
@@ -146,20 +215,7 @@ function getGatheringPetState(save){
     doublePct: num(bonuses.doubleGatherPct, 0)
   };
 }
-function renderGatheringPetBonus(save){
-  const el = document.getElementById("gatheringPetBonusText");
-  if (!el) return;
-  const pet = getGatheringPetState(save);
-  if (!pet.name || pet.xpPct <= 0) {
-    el.textContent = "";
-    el.style.display = "none";
-    return;
-  }
-  el.style.display = "";
-  el.textContent = `+${(pet.xpPct * 100).toFixed(2)}% XP (${pet.name})`;
-}
 
-// ✅ Uses log icons for selection/header (same path that works in inventory)
 const WOODS = [
   { id:"ash",      name:"Ash",      req: 1,  img:"images/wood/logs/ash_log.png" },
   { id:"pine",     name:"Pine",     req:10,  img:"images/wood/logs/pine_log.png" },
@@ -172,16 +228,9 @@ const WOODS = [
   { id:"darkwood", name:"Darkwood", req:80,  img:"images/wood/logs/darkwood_log.png" },
   { id:"ebony",    name:"Ebony",    req:90,  img:"images/wood/logs/ebony_log.png" }
 ];
-
-function getWoodFromUrl(){
-  const p = new URLSearchParams(location.search);
-  return p.get("wood") || "ash";
-}
 function getWoodDef(id){
   return WOODS.find(w => w.id === id) || WOODS[0];
 }
-
-// stacking compatible with ui.js (simple key)
 function itemStackKey(it){
   return [it.type||"", it.name||"", it.img||""].join("::");
 }
@@ -191,79 +240,84 @@ function addToInventoryStack(save, item, qty){
   if (ex) ex.quantity = (Number(ex.quantity) || 1) + qty;
   else save.inventory.push({ ...item, quantity: qty });
 }
-
-// ✅ Stats helper (writes inside SAME save object)
 function incStat(save, key, amount = 1){
   if (!save || typeof save !== "object") return;
   if (!save.stats || typeof save.stats !== "object") save.stats = {};
   if (!save.stats.total || typeof save.stats.total !== "object") save.stats.total = {};
-
   const add = Number.isFinite(Number(amount)) ? Number(amount) : 1;
   const cur = Number.isFinite(Number(save.stats.total[key])) ? Number(save.stats.total[key]) : 0;
   save.stats.total[key] = cur + add;
 }
 
-// DOM
-const backBtn = document.getElementById("backBtn");
-const startBtn = document.getElementById("startBtn");
-const stopBtn  = document.getElementById("stopBtn");
+let backBtn = null;
+let startBtn = null;
+let stopBtn = null;
+let woodImg = null;
+let woodName = null;
+let woodReq = null;
+let timerWrap = null;
+let timerText = null;
+let timerBar = null;
+let msgEl = null;
+let targetInput = null;
+let targetBtn = null;
+let targetStatus = null;
+let lvlEl = null;
+let curEl = null;
+let nextEl = null;
+let barEl = null;
+let gatheringBonusPetValue = null;
+let gatheringBonusDoubleValue = null;
+let gatheringBonusBuildingValue = null;
+let gatheringBonusPotionValue = null;
+let currentWoodId = "ash";
 
-const woodImg  = document.getElementById("woodImg");
-const woodName = document.getElementById("woodName");
-const woodReq  = document.getElementById("woodReq");
+function bindDom(){
+  backBtn = document.getElementById("backBtn");
+  startBtn = document.getElementById("startBtn");
+  stopBtn = document.getElementById("stopBtn");
+  woodImg = document.getElementById("woodImg");
+  woodName = document.getElementById("woodName");
+  woodReq = document.getElementById("woodReq");
+  timerWrap = document.getElementById("timerWrap");
+  timerText = document.getElementById("timerText");
+  timerBar = document.getElementById("timerBar");
+  msgEl = document.getElementById("msg");
+  targetInput = document.getElementById("targetInput");
+  targetBtn = document.getElementById("targetBtn");
+  targetStatus = document.getElementById("targetStatus");
+  lvlEl = document.getElementById("woodLevel");
+  curEl = document.getElementById("woodXPCurrent");
+  nextEl = document.getElementById("woodXPNext");
+  barEl = document.getElementById("woodXPBar");
+  gatheringBonusPetValue = document.getElementById("gatheringBonusPetValue");
+  gatheringBonusDoubleValue = document.getElementById("gatheringBonusDoubleValue");
+  gatheringBonusBuildingValue = document.getElementById("gatheringBonusBuildingValue");
+  gatheringBonusPotionValue = document.getElementById("gatheringBonusPotionValue");
+}
 
-const timerWrap = document.getElementById("timerWrap");
-const timerText = document.getElementById("timerText");
-const timerBar  = document.getElementById("timerBar");
-
-const msgEl = document.getElementById("msg");
-
-const targetInput  = document.getElementById("targetInput");
-const targetBtn    = document.getElementById("targetBtn");
-const targetStatus = document.getElementById("targetStatus");
-
-const lvlEl  = document.getElementById("woodLevel");
-const curEl  = document.getElementById("woodXPCurrent");
-const nextEl = document.getElementById("woodXPNext");
-const barEl  = document.getElementById("woodXPBar");
-const gatheringBonusPetValue = document.getElementById("gatheringBonusPetValue");
-const gatheringBonusDoubleValue = document.getElementById("gatheringBonusDoubleValue");
-const gatheringBonusBuildingValue = document.getElementById("gatheringBonusBuildingValue");
-const gatheringBonusPotionValue = document.getElementById("gatheringBonusPotionValue");
-
-// pause integration
 window.addEventListener("ds:pause", () => stopGather(true));
-
 function setMsg(t){ if (msgEl) msgEl.innerHTML = t || ""; }
-
 function buildWoodGatherMessage(logName, logImg, xpGain, sigilDrop, isLast = false){
   const lastText = isLast ? " (last)" : "";
   return `You obtained 1 <img src="${logImg}" alt="${logName}" style="width:18px;height:18px;vertical-align:-3px;margin:0 4px 0 6px;border-radius:4px;object-fit:cover;">${logName}${lastText} (+${xpGain} XP)${sigilDrop ? " | Wood Sigil +1" : ""}`;
 }
-
 function renderHeader(){
   const save = ensureWood(loadSave());
-
   if (lvlEl) lvlEl.textContent = String(save.woodcuttingLevel);
   if (curEl) curEl.textContent = String(save.woodcuttingXP);
   if (nextEl) nextEl.textContent = String(save.woodcuttingXPNext);
-
-  const pct = save.woodcuttingXPNext > 0
-    ? clamp((save.woodcuttingXP / save.woodcuttingXPNext) * 100, 0, 100)
-    : 0;
-
+  const pct = save.woodcuttingXPNext > 0 ? clamp((save.woodcuttingXP / save.woodcuttingXPNext) * 100, 0, 100) : 0;
   if (barEl) {
     barEl.style.width = pct.toFixed(1) + "%";
     barEl.style.background = xpBarGradient(pct);
   }
 }
-
 function formatPct(value, digits = 2){
   const pct = Math.max(0, num(value, 0) * 100);
   const rounded = Math.round(pct * (10 ** digits)) / (10 ** digits);
   return `+${Number.isInteger(rounded) ? rounded.toFixed(0) : rounded.toFixed(digits).replace(/\.?0+$/, "")}%`;
 }
-
 function renderBonusBox(save){
   const petBonus = getGatheringPetState(save);
   if (gatheringBonusPetValue) gatheringBonusPetValue.textContent = formatPct(num(petBonus.xpPct, 0));
@@ -272,14 +326,9 @@ function renderBonusBox(save){
   if (gatheringBonusPotionValue) gatheringBonusPotionValue.textContent = formatPct(0);
 }
 
-// ---- Timer / loop
 const CD_MS = 6000;
-// -------------------------
-// Global action lock (prevents multi-actions + enforces absolute cooldown)
-// -------------------------
 const ACTION_ID = "wood_gather";
 const ACTION_LOCK_KEY = "ds_action_lock_v1";
-
 function loadActionLock(){
   try { return JSON.parse(localStorage.getItem(ACTION_LOCK_KEY) || "null"); }
   catch { return null; }
@@ -325,30 +374,18 @@ function touchActionLock(){
   lock.nextAllowedTs = now + CD_MS;
   saveActionLock(lock);
 }
-function releaseActionLock(){
-  const lock = loadActionLock();
-  if (lock && lock.actionId === ACTION_ID){
-    lock.active = false;
-    saveActionLock(lock);
-  }
-}
 let active = false;
 let timer = null;
-
 let cdAnim = null;
 let cdStart = 0;
-
 let targetRemaining = 0;
-
 function gatherXpForReq(req){
   const lvl = Math.max(1, Number(req) || 1);
   return 10 + Math.floor(lvl / 10) * 20;
 }
-
 function stopCooldownUI(){
   if (cdAnim) cancelAnimationFrame(cdAnim);
   cdAnim = null;
-
   if (timerWrap) timerWrap.style.display = "none";
   if (timerBar) {
     timerBar.style.width = "0%";
@@ -356,114 +393,83 @@ function stopCooldownUI(){
   }
   if (timerText) timerText.textContent = (CD_MS/1000).toFixed(1) + "s";
 }
-
 function startCooldownUI(remainingMs = CD_MS){
   if (!timerWrap || !timerBar || !timerText) return;
-
   timerWrap.style.display = "block";
   timerWrap.style.visibility = "visible";
-
   timerBar.style.background = "linear-gradient(90deg,#b63a3a,#e05555)";
   timerBar.style.width = "0%";
-
   const rem = Math.max(0, Math.min(CD_MS, remainingMs));
   cdStart = performance.now() - (CD_MS - rem);
-
   const tickAnim = (now) => {
     if (!active || window.DS?.isPaused) { cdAnim = null; return; }
-
     const elapsed = now - cdStart;
     const t = Math.min(1, elapsed / CD_MS);
-
     timerBar.style.width = (t * 100).toFixed(1) + "%";
     const remain = Math.max(0, (CD_MS - elapsed) / 1000);
     timerText.textContent = remain.toFixed(1) + "s";
-
     if (t < 1) cdAnim = requestAnimationFrame(tickAnim);
     else cdAnim = null;
   };
-
   if (cdAnim) cancelAnimationFrame(cdAnim);
   cdAnim = requestAnimationFrame(tickAnim);
 }
-
 function updateTargetUI(){
   if (!targetStatus) return;
   targetStatus.textContent = (targetRemaining > 0) ? `Remaining: ${targetRemaining}` : "";
 }
-
 function startGather(){
   if (window.DS?.isPaused) return;
   if (active) return;
   const lock = acquireActionLock();
   if (!lock.ok){ setMsg(lock.msg); return; }
-
   active = true;
   if (startBtn) startBtn.disabled = true;
   if (stopBtn) stopBtn.disabled = false;
-
   setMsg("Gathering started.");
   scheduleNext(true);
 }
-
 function stopGather(silent=false){
   active = false;
-
   if (timer){
     clearTimeout(timer);
     timer = null;
   }
-
   stopCooldownUI();
-
   if (startBtn) startBtn.disabled = false;
   if (stopBtn) stopBtn.disabled = true;
-
   targetRemaining = 0;
   updateTargetUI();
-
   if (!silent) setMsg("Gathering stopped.");
 }
-
 function scheduleNext(runImmediately=false){
   if (!active || window.DS?.isPaused) return;
-
   if (runImmediately){
     gatherTick();
     return;
   }
-
   const waitMs = getActionWaitMs();
   startCooldownUI(waitMs);
   timer = setTimeout(() => gatherTick(), waitMs);
 }
-
 function gatherTick(){
   if (!active || window.DS?.isPaused) return;
-
-  const wood = getWoodDef(getWoodFromUrl());
+  const wood = getWoodDef(currentWoodId || "ash");
   const save = ensureWood(loadSave());
-
   const effectiveLevel = save.woodcuttingLevel + getGatheringPotionBonus(save);
   if (effectiveLevel < wood.req){
     setMsg(`Requires Woodcutting Level ${wood.req}.`);
     stopGather(true);
     return;
   }
-
   const petBonus = getGatheringPetState(save);
-  // give 1 log
   const logName = `${wood.name} Log`;
   const logImg  = `images/wood/logs/${wood.id}_log.png`;
   addToInventoryStack(save, { type:"material", name: logName, img: logImg }, 1);
   const doubled = Math.random() < petBonus.doublePct;
   if (doubled) addToInventoryStack(save, { type:"material", name: logName, img: logImg }, 1);
-
-  // ✅ STATS (safe: stored in same save object)
   incStat(save, "woodGatherTicks", 1);
   tickGatheringPotionActions(save, 1);
-
-  // XP (scaled by wood tier)
   const totalXpGain = Math.max(1, Math.round(gatherXpForReq(wood.req) * (1 + petBonus.xpPct)));
   const petSplit = window.DS?.pets?.splitXpWithPet
     ? window.DS.pets.splitXpWithPet(save, "gathering", totalXpGain)
@@ -475,18 +481,15 @@ function gatherTick(){
     save.woodcuttingLevel += 1;
     save.woodcuttingXPNext = xpNextForLevel(save.woodcuttingLevel);
   }
-
-  setSave(save);
-  window.dispatchEvent(new Event("ds:save"));
-  renderHeader();
-  renderBonusBox(save);
-
   let sigilDrop = false;
   if (Math.random() < (1 / 250)) {
     addToInventoryStack(save, { ...WOOD_SIGIL_ITEM }, 1);
     sigilDrop = true;
   }
-
+  setSave(save);
+  window.dispatchEvent(new Event("ds:save"));
+  renderHeader();
+  renderBonusBox(save);
   if (targetRemaining > 0){
     targetRemaining -= 1;
     updateTargetUI();
@@ -496,12 +499,10 @@ function gatherTick(){
       return;
     }
   }
-
   setMsg(buildWoodGatherMessage(logName, logImg, xpGain, sigilDrop, false) + (petSplit.petXpGain > 0 ? ` <span style="color:#9fb5ff;">| Pet XP +${petSplit.petXpGain}</span>` : "") + (petSplit.petLevelUps > 0 ? ` <span style="color:#f7df8a;">| ${petSplit.petName} Lvl ${petSplit.petLevel}</span>` : "") + (doubled ? ` <span style="color:#9ff0b7;">Double Gather!</span>` : ""));
   touchActionLock();
   scheduleNext();
 }
-
 function startTarget(){
   const val = Number(targetInput?.value);
   if (!Number.isFinite(val) || val <= 0){
@@ -513,31 +514,56 @@ function startTarget(){
   if (!active) startGather();
   else setMsg(`Target set: ${targetRemaining}`);
 }
-
-window.addEventListener("DOMContentLoaded", () => {
-  const wood = getWoodDef(getWoodFromUrl());
-
+function initWoodGatherRoute(targetHref = window.location.href){
+  try {
+    const parsed = new URL(targetHref, window.location.href);
+    currentWoodId = parsed.searchParams.get("wood") || "ash";
+  } catch {
+    currentWoodId = "ash";
+  }
+  const wood = getWoodDef(currentWoodId);
   if (woodImg) woodImg.src = wood.img;
   if (woodName) woodName.textContent = wood.name;
-  if (woodReq)  woodReq.textContent = "";
-
+  if (woodReq) woodReq.textContent = "";
   const save = ensureWood(loadSave());
   renderHeader();
   renderBonusBox(save);
   stopCooldownUI();
-
-  backBtn?.addEventListener("click", () => { stopGather(true); window.location.href = "woodcutting.html"; });
+  backBtn?.addEventListener("click", () => {
+    stopGather(true);
+    if (window.DSUI?.navigateWithinShell?.("woodcutting.html")) return;
+    window.location.href = "woodcutting.html";
+  });
   startBtn?.addEventListener("click", startGather);
   stopBtn?.addEventListener("click", () => stopGather(false));
   targetBtn?.addEventListener("click", startTarget);
-
   if (stopBtn) stopBtn.disabled = true;
-});
+}
+function mountWoodGatherAction(root = null, targetHref = "wood_gather_action.html"){
+  const left = root || document.getElementById("leftPanel");
+  if (!left) return false;
+  stopGather(true);
+  left.innerHTML = WOOD_GATHER_TEMPLATE;
+  document.title = "Darkstone Chronicles - Woodcutting";
+  bindDom();
+  initWoodGatherRoute(targetHref);
+  return true;
+}
+function initStandaloneWoodGather(){
+  if (!document.getElementById("backBtn")) return false;
+  document.title = "Darkstone Chronicles - Woodcutting";
+  bindDom();
+  initWoodGatherRoute(window.location.href);
+  return true;
+}
 
+window.DSWoodGatherAction = { mount: mountWoodGatherAction };
+window.addEventListener("DOMContentLoaded", () => {
+  initStandaloneWoodGather();
+});
 window.addEventListener("ds:save", () => {
   const save = ensureWood(loadSave());
   renderHeader();
   renderBonusBox(save);
 });
-
-
+})();

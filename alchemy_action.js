@@ -1,5 +1,86 @@
+(() => {
 const SAVE_KEY = "darkstone_save_v1";
 const num = (v, f = 0) => (Number.isFinite(Number(v)) ? Number(v) : f);
+const ALCHEMY_ACTION_TEMPLATE = `
+  <div style="max-width:340px;margin:0 auto 12px;">
+    <div style="background:#151520;border:2px solid #333;border-radius:12px;padding:10px 12px;width:100%;">
+      <div style="font-weight:900;font-size:18px;display:flex;align-items:center;justify-content:center;gap:8px;margin-bottom:8px;text-align:center;">
+        <span aria-hidden="true">&#9879;&#65039;</span>
+        <span>Alchemy Lvl: <span id="alchemyLevel">1</span></span>
+      </div>
+      <div style="width:100%;">
+        <div style="height:12px;background:#0f0f16;border:1px solid #2a2a3a;border-radius:999px;overflow:hidden;position:relative;">
+          <div id="alchemyXPBar" style="height:100%;width:0%;background:linear-gradient(90deg,#b84a4a,#e06a6a);"></div>
+          <div style="position:absolute;top:50%;left:8px;transform:translateY(-50%);font-size:11px;font-weight:800;line-height:1;color:#f4f1e8;text-shadow:0 1px 3px rgba(0,0,0,.75);pointer-events:none;">XP</div>
+          <div style="position:absolute;top:50%;right:8px;transform:translateY(-50%);font-size:11px;font-weight:800;line-height:1;color:#f4f1e8;text-shadow:0 1px 3px rgba(0,0,0,.75);pointer-events:none;"><span id="alchemyXPCurrent">0</span>/<span id="alchemyXPNext">100</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div style="max-width:340px;margin:0 auto 12px;">
+    <div id="artisanBonusBox" style="background:#151520;border:2px solid #333;border-radius:12px;padding:12px;width:100%;min-height:56px;display:flex;align-items:flex-start;gap:10px;">
+      <div style="font-weight:800;font-size:14px;white-space:nowrap;line-height:1.05;text-align:center;">Bonus<br>XP</div>
+      <div style="width:1px;align-self:stretch;background:#333;"></div>
+      <div id="artisanBonusContent" style="flex:1;display:flex;flex-direction:column;justify-content:flex-start;gap:2px;padding-top:2px;">
+        <div id="artisanBonusTop" style="display:grid;grid-template-columns:0.8fr 1px 1.5fr 1px 1fr 1px 1fr;gap:8px;font-size:11px;font-weight:700;opacity:.9;text-align:center;align-items:center;">
+          <div>Pet</div>
+          <div style="width:1px;align-self:stretch;background:#333;"></div>
+          <div style="font-size:10px;line-height:1;white-space:nowrap;align-self:center;">Double Craft</div>
+          <div style="width:1px;align-self:stretch;background:#333;"></div>
+          <div>Building</div>
+          <div style="width:1px;align-self:stretch;background:#333;"></div>
+          <div>Potion</div>
+        </div>
+        <div style="height:1px;background:#333;width:100%;"></div>
+        <div id="artisanBonusBottom" style="display:grid;grid-template-columns:0.8fr 1px 1.5fr 1px 1fr 1px 1fr;gap:8px;min-height:14px;align-items:stretch;text-align:center;font-size:11px;font-weight:700;color:#cfe7ff;">
+          <div id="artisanBonusPetValue">+0%</div>
+          <div style="width:1px;align-self:stretch;background:#333;"></div>
+          <div id="artisanBonusDoubleValue">+0%</div>
+          <div style="width:1px;align-self:stretch;background:#333;"></div>
+          <div id="artisanBonusBuildingValue">+0%</div>
+          <div style="width:1px;align-self:stretch;background:#333;"></div>
+          <div id="artisanBonusPotionValue">+0%</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div style="width:90%;max-width:700px;margin:0 auto 12px;display:flex;gap:10px;justify-content:center;">
+    <button id="backBtn">Back</button>
+    <button id="startBtn">Start</button>
+    <button id="stopBtn" disabled>Stop</button>
+  </div>
+
+  <div style="background:#151520;border:2px solid #333;border-radius:12px;padding:12px;max-width:900px;margin:0 auto;">
+    <div style="display:flex;gap:12px;align-items:center;">
+      <div style="display:flex;flex-direction:column;align-items:center;gap:8px;min-width:74px;">
+        <div style="font-weight:800;font-size:14px;line-height:1.05;text-align:center;" id="potionName">Potion</div>
+        <img id="potionImg" src="" alt="Potion" style="width:74px;height:74px;border-radius:12px;border:2px solid #333;object-fit:cover;background:#0f0f16;">
+      </div>
+      <div style="flex:1;">
+        <div id="timerWrap" style="margin-top:10px;display:none;">
+          <div style="display:flex;justify-content:space-between;font-size:12px;opacity:.9;">
+            <span>Brewing...</span>
+            <span id="timerText">6.0s</span>
+          </div>
+          <div style="height:5px;background:#222;border:1px solid #333;border-radius:6px;margin-top:6px;overflow:hidden;">
+            <div id="timerBar" style="height:100%;width:0%;border-radius:6px;background:linear-gradient(90deg,#b63a3a,#e05555);"></div>
+          </div>
+        </div>
+
+        <div style="margin-top:10px;display:flex;gap:10px;flex-wrap:wrap;align-items:center;">
+          <div style="opacity:.85;font-size:12px;">Target amount:</div>
+          <input id="targetInput" type="number" min="1" step="1" placeholder="e.g. 100" style="width:120px;padding:8px 10px;border-radius:10px;border:2px solid #333;background:#0f0f16;color:#fff;">
+          <button id="targetBtn">Brew Target</button>
+          <div id="targetStatus" style="opacity:.85;font-size:12px;"></div>
+        </div>
+      </div>
+    </div>
+
+    <div id="msg" style="margin-top:12px;opacity:.9;"></div>
+  </div>
+`;
 
 function loadSave(){
   try { return JSON.parse(localStorage.getItem(SAVE_KEY) || "{}") || {}; }
@@ -218,35 +299,64 @@ function buildRecipes(){
 }
 
 const RECIPES = buildRecipes();
-function getRecipeFromUrl(){
-  const p = new URLSearchParams(location.search);
-  return p.get("recipe") || "strength_1";
+function getRecipeFromTarget(targetHref = window.location.href){
+  try {
+    const url = new URL(targetHref, window.location.href);
+    return url.searchParams.get("recipe") || "strength_1";
+  } catch {
+    return "strength_1";
+  }
 }
 function getRecipeDef(id){
   return RECIPES.find((r) => r.id === id) || RECIPES[0];
 }
 
-const backBtn = document.getElementById("backBtn");
-const startBtn = document.getElementById("startBtn");
-const stopBtn = document.getElementById("stopBtn");
-const potionImg = document.getElementById("potionImg");
-const potionName = document.getElementById("potionName");
-const potionReq = document.getElementById("potionReq");
-const timerWrap = document.getElementById("timerWrap");
-const timerText = document.getElementById("timerText");
-const timerBar = document.getElementById("timerBar");
-const msgEl = document.getElementById("msg");
-const targetInput = document.getElementById("targetInput");
-const targetBtn = document.getElementById("targetBtn");
-const targetStatus = document.getElementById("targetStatus");
-const lvlEl = document.getElementById("alchemyLevel");
-const curEl = document.getElementById("alchemyXPCurrent");
-const nextEl = document.getElementById("alchemyXPNext");
-const xpBarEl = document.getElementById("alchemyXPBar");
-const artisanBonusPetValue = document.getElementById("artisanBonusPetValue");
-const artisanBonusDoubleValue = document.getElementById("artisanBonusDoubleValue");
-const artisanBonusBuildingValue = document.getElementById("artisanBonusBuildingValue");
-const artisanBonusPotionValue = document.getElementById("artisanBonusPotionValue");
+let backBtn = null;
+let startBtn = null;
+let stopBtn = null;
+let potionImg = null;
+let potionName = null;
+let potionReq = null;
+let timerWrap = null;
+let timerText = null;
+let timerBar = null;
+let msgEl = null;
+let targetInput = null;
+let targetBtn = null;
+let targetStatus = null;
+let lvlEl = null;
+let curEl = null;
+let nextEl = null;
+let xpBarEl = null;
+let artisanBonusPetValue = null;
+let artisanBonusDoubleValue = null;
+let artisanBonusBuildingValue = null;
+let artisanBonusPotionValue = null;
+let currentRecipeId = "strength_1";
+
+function bindDom(){
+  backBtn = document.getElementById("backBtn");
+  startBtn = document.getElementById("startBtn");
+  stopBtn = document.getElementById("stopBtn");
+  potionImg = document.getElementById("potionImg");
+  potionName = document.getElementById("potionName");
+  potionReq = document.getElementById("potionReq");
+  timerWrap = document.getElementById("timerWrap");
+  timerText = document.getElementById("timerText");
+  timerBar = document.getElementById("timerBar");
+  msgEl = document.getElementById("msg");
+  targetInput = document.getElementById("targetInput");
+  targetBtn = document.getElementById("targetBtn");
+  targetStatus = document.getElementById("targetStatus");
+  lvlEl = document.getElementById("alchemyLevel");
+  curEl = document.getElementById("alchemyXPCurrent");
+  nextEl = document.getElementById("alchemyXPNext");
+  xpBarEl = document.getElementById("alchemyXPBar");
+  artisanBonusPetValue = document.getElementById("artisanBonusPetValue");
+  artisanBonusDoubleValue = document.getElementById("artisanBonusDoubleValue");
+  artisanBonusBuildingValue = document.getElementById("artisanBonusBuildingValue");
+  artisanBonusPotionValue = document.getElementById("artisanBonusPotionValue");
+}
 
 window.addEventListener("ds:pause", () => stopAlchemyAction(true));
 
@@ -436,7 +546,7 @@ function scheduleNextAction(runImmediately = false){
 }
 function actionTick(){
   if (!actionActive || window.DS?.isPaused) return;
-  const recipe = getRecipeDef(getRecipeFromUrl());
+  const recipe = getRecipeDef(currentRecipeId || getRecipeFromTarget());
   const save = ensureAlchemy(loadSave());
   const petBonus = getArtisanPetState(save);
 
@@ -508,8 +618,9 @@ function startTargetAlchemyAction(){
   else setMsg(`Target set: ${targetRemaining}`);
 }
 
-window.addEventListener("DOMContentLoaded", () => {
-  const recipe = getRecipeDef(getRecipeFromUrl());
+function initAlchemyActionRoute(targetHref = window.location.href){
+  currentRecipeId = getRecipeFromTarget(targetHref);
+  const recipe = getRecipeDef(currentRecipeId);
   if (potionImg) potionImg.src = recipe.img;
   if (potionName) potionName.textContent = recipe.name;
   const save = ensureAlchemy(loadSave());
@@ -521,12 +632,39 @@ window.addEventListener("DOMContentLoaded", () => {
 
   backBtn?.addEventListener("click", () => {
     stopAlchemyAction(true);
-    window.location.href = `alchemy_tier.html?tier=${recipe.tier}`;
+    const href = `alchemy_tier.html?tier=${recipe.tier}`;
+    if (window.DSUI?.navigateWithinShell?.(href)) return;
+    window.location.href = href;
   });
   startBtn?.addEventListener("click", startAlchemyAction);
   stopBtn?.addEventListener("click", () => stopAlchemyAction(false));
   targetBtn?.addEventListener("click", startTargetAlchemyAction);
   if (stopBtn) stopBtn.disabled = true;
+}
+
+function mountAlchemyAction(root = null, targetHref = "alchemy_action.html"){
+  const left = root || document.getElementById("leftPanel");
+  if (!left) return false;
+  stopAlchemyAction(true);
+  left.innerHTML = ALCHEMY_ACTION_TEMPLATE;
+  document.title = "Darkstone Chronicles - Alchemy Action";
+  bindDom();
+  initAlchemyActionRoute(targetHref);
+  return true;
+}
+
+function initStandaloneAlchemyAction(){
+  if (!document.getElementById("backBtn")) return false;
+  document.title = "Darkstone Chronicles - Alchemy Action";
+  bindDom();
+  initAlchemyActionRoute(window.location.href);
+  return true;
+}
+
+window.DSAlchemyAction = { mount: mountAlchemyAction };
+
+window.addEventListener("DOMContentLoaded", () => {
+  initStandaloneAlchemyAction();
 });
 
 window.addEventListener("ds:save", () => {
@@ -534,3 +672,4 @@ window.addEventListener("ds:save", () => {
   renderAlchemyHeader();
   renderBonusBox(save);
 });
+})();

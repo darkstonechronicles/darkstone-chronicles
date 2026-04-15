@@ -124,7 +124,9 @@
 
       if (!locked){
         card.addEventListener("click", () => {
-          window.location.href = `fishing_action.html?spot=${encodeURIComponent(spot.id)}`;
+          const href = `fishing_action.html?spot=${encodeURIComponent(spot.id)}`;
+          if (window.DSUI?.navigateWithinShell?.(href)) return;
+          window.location.href = href;
         });
       }
 

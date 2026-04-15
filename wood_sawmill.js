@@ -130,7 +130,9 @@
       card.appendChild(info);
       if (!locked) {
         card.addEventListener("click", () => {
-          window.location.href = `wood_sawmill_action.html?recipe=${encodeURIComponent(r.id)}`;
+          const href = `wood_sawmill_action.html?recipe=${encodeURIComponent(r.id)}`;
+          if (window.DSUI?.navigateWithinShell?.(href)) return;
+          window.location.href = href;
         });
       }
       grid.appendChild(card);

@@ -2,6 +2,15 @@
   const SAVE_KEY = "darkstone_save_v1";
   const BASE_ATK = 10;
   const BASE_DEF = 10;
+  const STATS_ALLOC_TEMPLATE = `
+    <h1>Allocate Stats</h1>
+
+    <div style="width:90%;max-width:700px;margin:0 auto 12px;display:flex;gap:10px;justify-content:center;">
+      <button id="backBtn">Back</button>
+    </div>
+
+    <div id="allocWrap" style="width:90%;max-width:700px;margin:0 auto;"></div>
+  `;
 
   const num = (v, f=0) => (Number.isFinite(Number(v)) ? Number(v) : f);
   const clamp = (v,a,b) => Math.max(a, Math.min(b, v));
@@ -167,15 +176,35 @@
     updateUI();
   }
 
-  function boot(){
+  function initStatsAllocRoute(){
     document.getElementById("backBtn")?.addEventListener("click", () => {
+      if (window.DSUI?.navigateWithinShell?.("index.html")) return;
       window.location.href = "index.html";
     });
 
     render();
-    window.addEventListener("ds:save", render);
   }
+
+  function mountStatsAlloc(root = null){
+    const left = root || document.getElementById("leftPanel");
+    if (!left) return false;
+    left.innerHTML = STATS_ALLOC_TEMPLATE;
+    document.title = "Darkstone Chronicles - Allocate Stats";
+    initStatsAllocRoute();
+    return true;
+  }
+
+  function boot(){
+    if (!document.getElementById("allocWrap")) return false;
+    document.title = "Darkstone Chronicles - Allocate Stats";
+    initStatsAllocRoute();
+    return true;
+  }
+
+  window.DSStatsAlloc = { mount: mountStatsAlloc };
 
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", boot);
   else boot();
+
+  window.addEventListener("ds:save", render);
 })();

@@ -1,4 +1,30 @@
+(() => {
 const SAVE_KEY = "darkstone_save_v1";
+const ALCHEMY_TIER_TEMPLATE = `
+  <div style="max-width:340px;margin:0 auto 12px;">
+    <div style="background:#151520;border:2px solid #333;border-radius:12px;padding:10px 12px;width:100%;">
+      <div style="font-weight:900;font-size:18px;display:flex;align-items:center;justify-content:center;gap:8px;margin-bottom:8px;text-align:center;">
+        <span aria-hidden="true">&#9879;&#65039;</span>
+        <span>Alchemy Lvl: <span id="alchemyLevel">1</span></span>
+      </div>
+      <div style="width:100%;">
+        <div style="height:12px;background:#0f0f16;border:1px solid #2a2a3a;border-radius:999px;overflow:hidden;position:relative;">
+          <div id="alchemyXPBar" style="height:100%;width:0%;background:#7dc0ff;"></div>
+          <div style="position:absolute;top:50%;left:8px;transform:translateY(-50%);font-size:11px;font-weight:800;line-height:1;color:#f4f1e8;text-shadow:0 1px 3px rgba(0,0,0,.75);pointer-events:none;">XP</div>
+          <div style="position:absolute;top:50%;right:8px;transform:translateY(-50%);font-size:11px;font-weight:800;line-height:1;color:#f4f1e8;text-shadow:0 1px 3px rgba(0,0,0,.75);pointer-events:none;"><span id="alchemyXPCurrent">0</span>/<span id="alchemyXPNext">100</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div style="max-width:980px;margin:0 auto;">
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin:0 0 10px;">
+      <h2 id="tierTitle" style="margin:0;">Tier Potions</h2>
+      <button id="backBtn" type="button" style="padding:8px 12px;border-radius:10px;border:2px solid #2a2a3a;background:#151520;color:#cfcfe6;font-weight:800;cursor:pointer;">Back</button>
+    </div>
+    <div id="potionGrid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px;"></div>
+  </div>
+`;
 
 function loadSave(){
   try { return JSON.parse(localStorage.getItem(SAVE_KEY) || "{}") || {}; }
@@ -62,6 +88,8 @@ const POTION_TYPES = [
   { id:"luck", label:"Luck Potion" }
 ];
 
+let currentTier = 1;
+
 function getPotionBonusLine(potionId, tier){
   const safeTier = Math.max(1, Math.min(5, Number(tier) || 1));
   const pct = safeTier * 4;
@@ -74,9 +102,13 @@ function getPotionBonusLine(potionId, tier){
   return "";
 }
 
-function getTierFromUrl(){
-  const p = new URLSearchParams(location.search);
-  return Math.min(7, Math.max(1, Number(p.get("tier") || 1)));
+function getTierFromTarget(targetHref = window.location.href){
+  try {
+    const url = new URL(targetHref, window.location.href);
+    return Math.min(7, Math.max(1, Number(url.searchParams.get("tier") || 1)));
+  } catch {
+    return 1;
+  }
 }
 
 function renderAlchemyHeader(){
@@ -99,21 +131,20 @@ function renderAlchemyHeader(){
 
 function renderTier(){
   const save = ensureAlchemy(loadSave());
-  const tier = getTierFromUrl();
-  const herb = HERBS.find((x) => x.tier === tier) || HERBS[0];
+  const herb = HERBS.find((x) => x.tier === currentTier) || HERBS[0];
   const grid = document.getElementById("potionGrid");
   const title = document.getElementById("tierTitle");
   if (!grid) return;
 
-  if (title) title.textContent = `Tier ${ROMAN[tier - 1]} Potions`;
+  if (title) title.textContent = `Tier ${ROMAN[currentTier - 1]} Potions`;
   grid.innerHTML = "";
 
   POTION_TYPES.forEach((potion) => {
     const effectiveLevel = save.alchemyLevel + getArtisanPotionBonus(save);
     const locked = effectiveLevel < herb.req;
-    const fullName = `${potion.label} ${ROMAN[tier - 1]}`;
-    const icon = `images/alchemy/potions/${potion.id}_${tier}.png`;
-    const bonusLine = getPotionBonusLine(potion.id, tier);
+    const fullName = `${potion.label} ${ROMAN[currentTier - 1]}`;
+    const icon = `images/alchemy/potions/${potion.id}_${currentTier}.png`;
+    const bonusLine = getPotionBonusLine(potion.id, currentTier);
     const card = document.createElement("div");
     card.style.background = "#151520";
     card.style.border = "2px solid #333";
@@ -138,17 +169,46 @@ function renderTier(){
         alert(`Requires Alchemy Level ${herb.req}`);
         return;
       }
-      window.location.href = `alchemy_action.html?recipe=${encodeURIComponent(`${potion.id}_${tier}`)}`;
+      const href = `alchemy_action.html?recipe=${encodeURIComponent(`${potion.id}_${currentTier}`)}`;
+      if (window.DSUI?.navigateWithinShell?.(href)) return;
+      window.location.href = href;
     });
 
     grid.appendChild(card);
   });
 }
 
-window.addEventListener("DOMContentLoaded", () => {
+function initAlchemyTierRoute(targetHref = window.location.href) {
+  currentTier = getTierFromTarget(targetHref);
   renderAlchemyHeader();
   renderTier();
   document.getElementById("backBtn")?.addEventListener("click", () => {
+    if (window.DSUI?.navigateWithinShell?.("alchemy.html")) return;
     window.location.href = "alchemy.html";
   });
+}
+
+function mountAlchemyTier(root = null, targetHref = "alchemy_tier.html") {
+  const left = root || document.getElementById("leftPanel");
+  if (!left) return false;
+  left.innerHTML = ALCHEMY_TIER_TEMPLATE;
+  document.title = "Darkstone Chronicles - Alchemy Tier";
+  initAlchemyTierRoute(targetHref);
+  return true;
+}
+
+function initStandaloneAlchemyTier(){
+  if (!document.getElementById("potionGrid")) return false;
+  document.title = "Darkstone Chronicles - Alchemy Tier";
+  initAlchemyTierRoute(window.location.href);
+  return true;
+}
+
+window.DSAlchemyTier = { mount: mountAlchemyTier };
+window.addEventListener("DOMContentLoaded", () => { initStandaloneAlchemyTier(); });
+window.addEventListener("ds:save", () => {
+  if (!document.getElementById("potionGrid")) return;
+  renderAlchemyHeader();
+  renderTier();
 });
+})();

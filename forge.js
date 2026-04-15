@@ -161,7 +161,9 @@
     return `${material.name} ${suffix}`;
   }
   function openRecipe(recipeId){
-    window.location.href = `forge_action.html?recipe=${encodeURIComponent(recipeId)}`;
+    const href = `forge_action.html?recipe=${encodeURIComponent(recipeId)}`;
+    if (window.DSUI?.navigateWithinShell?.(href)) return;
+    window.location.href = href;
   }
   function button(label, disabled, onClick){
     const btn = document.createElement("button");

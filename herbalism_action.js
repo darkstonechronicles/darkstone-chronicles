@@ -1,4 +1,86 @@
+(() => {
+
 const SAVE_KEY = "darkstone_save_v1";
+const HERBALISM_ACTION_TEMPLATE = `
+  <div style="max-width:340px;margin:0 auto 12px;">
+    <div style="background:#151520;border:2px solid #333;border-radius:12px;padding:10px 12px;width:100%;">
+      <div style="font-weight:900;font-size:18px;display:flex;align-items:center;justify-content:center;gap:8px;margin-bottom:8px;text-align:center;">
+        <span aria-hidden="true">&#127807;</span>
+        <span>Herbalism Lvl: <span id="herbLevel">1</span></span>
+      </div>
+      <div style="width:100%;">
+        <div style="height:12px;background:#0f0f16;border:1px solid #2a2a3a;border-radius:999px;overflow:hidden;position:relative;">
+          <div id="herbXPBar" style="height:100%;width:0%;background:linear-gradient(90deg,#b84a4a,#e06a6a);"></div>
+          <div style="position:absolute;top:50%;left:8px;transform:translateY(-50%);font-size:11px;font-weight:800;line-height:1;color:#f4f1e8;text-shadow:0 1px 3px rgba(0,0,0,.75);pointer-events:none;">XP</div>
+          <div style="position:absolute;top:50%;right:8px;transform:translateY(-50%);font-size:11px;font-weight:800;line-height:1;color:#f4f1e8;text-shadow:0 1px 3px rgba(0,0,0,.75);pointer-events:none;"><span id="herbXPCurrent">0</span>/<span id="herbXPNext">100</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div style="max-width:340px;margin:0 auto 12px;">
+    <div id="gatheringBonusBox" style="background:#151520;border:2px solid #333;border-radius:12px;padding:12px;width:100%;min-height:56px;display:flex;align-items:flex-start;gap:10px;">
+      <div style="font-weight:800;font-size:14px;white-space:nowrap;line-height:1.05;text-align:center;">Bonus<br>XP</div>
+      <div style="width:1px;align-self:stretch;background:#333;"></div>
+      <div id="gatheringBonusContent" style="flex:1;display:flex;flex-direction:column;justify-content:flex-start;gap:2px;padding-top:2px;">
+        <div id="gatheringBonusTop" style="display:grid;grid-template-columns:0.8fr 1px 1.5fr 1px 1fr 1px 1fr;gap:8px;font-size:11px;font-weight:700;opacity:.9;text-align:center;align-items:center;">
+          <div>Pet</div>
+          <div style="width:1px;align-self:stretch;background:#333;"></div>
+          <div style="font-size:10px;line-height:1;white-space:nowrap;align-self:center;">Double Gather</div>
+          <div style="width:1px;align-self:stretch;background:#333;"></div>
+          <div>Building</div>
+          <div style="width:1px;align-self:stretch;background:#333;"></div>
+          <div>Potion</div>
+        </div>
+        <div style="height:1px;background:#333;width:100%;"></div>
+        <div id="gatheringBonusBottom" style="display:grid;grid-template-columns:0.8fr 1px 1.5fr 1px 1fr 1px 1fr;gap:8px;min-height:14px;align-items:stretch;text-align:center;font-size:11px;font-weight:700;color:#cfe7ff;">
+          <div id="gatheringBonusPetValue">+0%</div>
+          <div style="width:1px;align-self:stretch;background:#333;"></div>
+          <div id="gatheringBonusDoubleValue">+0%</div>
+          <div style="width:1px;align-self:stretch;background:#333;"></div>
+          <div id="gatheringBonusBuildingValue">+0%</div>
+          <div style="width:1px;align-self:stretch;background:#333;"></div>
+          <div id="gatheringBonusPotionValue">+0%</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div style="width:90%;max-width:700px;margin:0 auto 12px;display:flex;gap:10px;justify-content:center;">
+    <button id="backBtn">Back</button>
+    <button id="startBtn">Start</button>
+    <button id="stopBtn" disabled>Stop</button>
+  </div>
+
+  <div style="background:#151520;border:2px solid #333;border-radius:12px;padding:12px;max-width:900px;margin:0 auto;">
+    <div style="display:flex;gap:12px;align-items:center;">
+      <div style="display:flex;flex-direction:column;align-items:center;gap:8px;min-width:74px;">
+        <div style="font-weight:800;font-size:18px;text-align:center;" id="zoneName">Zone</div>
+        <img id="zoneImg" src="" alt="Zone" style="width:74px;height:74px;border-radius:12px;border:2px solid #333;object-fit:cover;background:#0f0f16;">
+      </div>
+      <div style="flex:1;">
+        <div id="timerWrap" style="margin-top:10px;display:none;">
+          <div style="display:flex;justify-content:space-between;font-size:12px;opacity:.9;">
+            <span>Gathering...</span>
+            <span id="timerText">6.0s</span>
+          </div>
+          <div style="height:5px;background:#222;border:1px solid #333;border-radius:6px;margin-top:6px;overflow:hidden;">
+            <div id="timerBar" style="height:100%;width:0%;border-radius:6px;background:linear-gradient(90deg,#b63a3a,#e05555);"></div>
+          </div>
+        </div>
+
+        <div style="margin-top:10px;display:flex;gap:10px;flex-wrap:wrap;align-items:center;">
+          <div style="opacity:.85;font-size:12px;">Target amount:</div>
+          <input id="targetInput" type="number" min="1" step="1" placeholder="e.g. 100" style="width:120px;padding:8px 10px;border-radius:10px;border:2px solid #333;background:#0f0f16;color:#fff;">
+          <button id="targetBtn">Gather Target</button>
+          <div id="targetStatus" style="opacity:.85;font-size:12px;"></div>
+        </div>
+      </div>
+    </div>
+
+    <div id="msg" style="margin-top:12px;opacity:.9;"></div>
+  </div>
+`;
 
 function loadSave(){
   try { return JSON.parse(localStorage.getItem(SAVE_KEY) || "{}") || {}; }
@@ -175,27 +257,52 @@ function incStat(save, key, amount = 1){
   save.stats.total[key] = cur + add;
 }
 
-const backBtn = document.getElementById("backBtn");
-const startBtn = document.getElementById("startBtn");
-const stopBtn = document.getElementById("stopBtn");
-const zoneImg = document.getElementById("zoneImg");
-const zoneName = document.getElementById("zoneName");
-const herbName = document.getElementById("herbName");
-const timerWrap = document.getElementById("timerWrap");
-const timerText = document.getElementById("timerText");
-const timerBar = document.getElementById("timerBar");
-const msgEl = document.getElementById("msg");
-const targetInput = document.getElementById("targetInput");
-const targetBtn = document.getElementById("targetBtn");
-const targetStatus = document.getElementById("targetStatus");
-const lvlEl = document.getElementById("herbLevel");
-const curEl = document.getElementById("herbXPCurrent");
-const nextEl = document.getElementById("herbXPNext");
-const barEl = document.getElementById("herbXPBar");
-const gatheringBonusPetValue = document.getElementById("gatheringBonusPetValue");
-const gatheringBonusDoubleValue = document.getElementById("gatheringBonusDoubleValue");
-const gatheringBonusBuildingValue = document.getElementById("gatheringBonusBuildingValue");
-const gatheringBonusPotionValue = document.getElementById("gatheringBonusPotionValue");
+let backBtn = null;
+let startBtn = null;
+let stopBtn = null;
+let zoneImg = null;
+let zoneName = null;
+let herbName = null;
+let timerWrap = null;
+let timerText = null;
+let timerBar = null;
+let msgEl = null;
+let targetInput = null;
+let targetBtn = null;
+let targetStatus = null;
+let lvlEl = null;
+let curEl = null;
+let nextEl = null;
+let barEl = null;
+let gatheringBonusPetValue = null;
+let gatheringBonusDoubleValue = null;
+let gatheringBonusBuildingValue = null;
+let gatheringBonusPotionValue = null;
+let currentZoneId = "verdant_hollow";
+
+function bindDom(){
+  backBtn = document.getElementById("backBtn");
+  startBtn = document.getElementById("startBtn");
+  stopBtn = document.getElementById("stopBtn");
+  zoneImg = document.getElementById("zoneImg");
+  zoneName = document.getElementById("zoneName");
+  herbName = document.getElementById("herbName");
+  timerWrap = document.getElementById("timerWrap");
+  timerText = document.getElementById("timerText");
+  timerBar = document.getElementById("timerBar");
+  msgEl = document.getElementById("msg");
+  targetInput = document.getElementById("targetInput");
+  targetBtn = document.getElementById("targetBtn");
+  targetStatus = document.getElementById("targetStatus");
+  lvlEl = document.getElementById("herbLevel");
+  curEl = document.getElementById("herbXPCurrent");
+  nextEl = document.getElementById("herbXPNext");
+  barEl = document.getElementById("herbXPBar");
+  gatheringBonusPetValue = document.getElementById("gatheringBonusPetValue");
+  gatheringBonusDoubleValue = document.getElementById("gatheringBonusDoubleValue");
+  gatheringBonusBuildingValue = document.getElementById("gatheringBonusBuildingValue");
+  gatheringBonusPotionValue = document.getElementById("gatheringBonusPotionValue");
+}
 
 window.addEventListener("ds:pause", () => stopGathering(true));
 window.addEventListener("ds:resume", () => {});
@@ -362,7 +469,7 @@ function scheduleNextGather(runImmediately = false){
 }
 function gatherTick(){
   if (!gatheringActive || window.DS?.isPaused) return;
-  const zone = getZoneDef(getZoneFromUrl());
+  const zone = getZoneDef(currentZoneId || getZoneFromUrl());
   const save = ensureHerbalism(loadSave());
 
   const effectiveLevel = save.herbalismLevel + getGatheringPotionBonus(save);
@@ -422,8 +529,9 @@ function startTargetGathering(){
   else setMsg(`Target set: ${targetRemaining}`);
 }
 
-window.addEventListener("DOMContentLoaded", () => {
-  const zone = getZoneDef(getZoneFromUrl());
+function initHerbalismActionRoute(zoneId){
+  currentZoneId = zoneId || getZoneFromUrl();
+  const zone = getZoneDef(currentZoneId);
   if (zoneImg) zoneImg.src = zone.zoneImg;
   if (zoneName) zoneName.textContent = zone.name;
   if (herbName) herbName.textContent = zone.herbName;
@@ -435,6 +543,7 @@ window.addEventListener("DOMContentLoaded", () => {
 
   backBtn?.addEventListener("click", () => {
     stopGathering(true);
+    if (window.DSUI?.navigateWithinShell?.("herbalism.html")) return;
     window.location.href = "herbalism.html";
   });
   startBtn?.addEventListener("click", startGathering);
@@ -442,6 +551,36 @@ window.addEventListener("DOMContentLoaded", () => {
   targetBtn?.addEventListener("click", startTargetGathering);
 
   if (stopBtn) stopBtn.disabled = true;
+}
+
+function mountHerbalismAction(root = null, targetHref = "herbalism_action.html"){
+  const left = root || document.getElementById("leftPanel");
+  if (!left) return false;
+  stopGathering(true);
+  left.innerHTML = HERBALISM_ACTION_TEMPLATE;
+  document.title = "Darkstone Chronicles - Herbalism Action";
+  bindDom();
+  const parsed = (() => {
+    try { return new URL(targetHref, window.location.href); }
+    catch { return null; }
+  })();
+  const zoneId = parsed?.searchParams.get("zone") || "verdant_hollow";
+  initHerbalismActionRoute(zoneId);
+  return true;
+}
+
+function initStandaloneHerbalismAction(){
+  if (!document.getElementById("backBtn")) return false;
+  document.title = "Darkstone Chronicles - Herbalism Action";
+  bindDom();
+  initHerbalismActionRoute(getZoneFromUrl());
+  return true;
+}
+
+window.DSHerbalismAction = { mount: mountHerbalismAction };
+
+window.addEventListener("DOMContentLoaded", () => {
+  initStandaloneHerbalismAction();
 });
 
 window.addEventListener("ds:save", () => {
@@ -449,3 +588,4 @@ window.addEventListener("ds:save", () => {
   renderHerbalismHeader();
   renderBonusBox(save);
 });
+})();

@@ -366,7 +366,9 @@ function renderRecipes(){
 
     if (!locked){
       card.addEventListener("click", () => {
-        window.location.href = `cooking_action.html?recipe=${encodeURIComponent(r.id)}`;
+        const href = `cooking_action.html?recipe=${encodeURIComponent(r.id)}`;
+        if (window.DSUI?.navigateWithinShell?.(href)) return;
+        window.location.href = href;
       });
     }
 

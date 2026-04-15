@@ -1,4 +1,87 @@
+(() => {
+
 const SAVE_KEY = "darkstone_save_v1";
+const FISHING_ACTION_TEMPLATE = `
+  <div style="max-width:340px;margin:0 auto 12px;">
+    <div style="background:#151520;border:2px solid #333;border-radius:12px;padding:10px 12px;width:100%;">
+      <div style="font-weight:900;font-size:18px;display:flex;align-items:center;justify-content:center;gap:8px;margin-bottom:8px;text-align:center;">
+        <span aria-hidden="true">&#127907;</span>
+        <span>Fishing Lvl: <span id="fishLevel">1</span></span>
+      </div>
+      <div style="width:100%;">
+        <div style="height:12px;background:#0f0f16;border:1px solid #2a2a3a;border-radius:999px;overflow:hidden;position:relative;">
+          <div id="fishXPBar" style="height:100%;width:0%;background:#7dff9f;"></div>
+          <div style="position:absolute;top:50%;left:8px;transform:translateY(-50%);font-size:11px;font-weight:800;line-height:1;color:#f4f1e8;text-shadow:0 1px 3px rgba(0,0,0,.75);pointer-events:none;">XP</div>
+          <div style="position:absolute;top:50%;right:8px;transform:translateY(-50%);font-size:11px;font-weight:800;line-height:1;color:#f4f1e8;text-shadow:0 1px 3px rgba(0,0,0,.75);pointer-events:none;"><span id="fishXPCurrent">0</span>/<span id="fishXPNext">100</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div style="max-width:340px;margin:0 auto 12px;">
+    <div id="gatheringBonusBox" style="background:#151520;border:2px solid #333;border-radius:12px;padding:12px;width:100%;min-height:56px;display:flex;align-items:flex-start;gap:10px;">
+      <div style="font-weight:800;font-size:14px;white-space:nowrap;line-height:1.05;text-align:center;">Bonus<br>XP</div>
+      <div style="width:1px;align-self:stretch;background:#333;"></div>
+      <div id="gatheringBonusContent" style="flex:1;display:flex;flex-direction:column;justify-content:flex-start;gap:2px;padding-top:2px;">
+        <div id="gatheringBonusTop" style="display:grid;grid-template-columns:0.8fr 1px 1.5fr 1px 1fr 1px 1fr;gap:8px;font-size:11px;font-weight:700;opacity:.9;text-align:center;align-items:center;">
+          <div>Pet</div>
+          <div style="width:1px;align-self:stretch;background:#333;"></div>
+          <div style="font-size:10px;line-height:1;white-space:nowrap;align-self:center;">Double Gather</div>
+          <div style="width:1px;align-self:stretch;background:#333;"></div>
+          <div>Building</div>
+          <div style="width:1px;align-self:stretch;background:#333;"></div>
+          <div>Potion</div>
+        </div>
+        <div style="height:1px;background:#333;width:100%;"></div>
+        <div id="gatheringBonusBottom" style="display:grid;grid-template-columns:0.8fr 1px 1.5fr 1px 1fr 1px 1fr;gap:8px;min-height:14px;align-items:stretch;text-align:center;font-size:11px;font-weight:700;color:#cfe7ff;">
+          <div id="gatheringBonusPetValue">+0%</div>
+          <div style="width:1px;align-self:stretch;background:#333;"></div>
+          <div id="gatheringBonusDoubleValue">+0%</div>
+          <div style="width:1px;align-self:stretch;background:#333;"></div>
+          <div id="gatheringBonusBuildingValue">+0%</div>
+          <div style="width:1px;align-self:stretch;background:#333;"></div>
+          <div id="gatheringBonusPotionValue">+0%</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div style="width:90%;max-width:700px;margin:0 auto 12px;display:flex;gap:10px;justify-content:center;">
+    <button id="backBtn">Back</button>
+    <button id="startBtn">Start</button>
+    <button id="stopBtn" disabled>Stop</button>
+  </div>
+
+  <div style="background:#151520;border:2px solid #333;border-radius:12px;padding:12px;max-width:900px;margin:0 auto;">
+    <div style="display:flex;gap:12px;align-items:center;">
+      <div style="display:flex;flex-direction:column;align-items:center;gap:8px;min-width:74px;">
+        <div style="font-weight:800;font-size:13px;line-height:1.05;text-align:center;" id="spotName">Region</div>
+        <img id="spotImg" src="" alt="Spot" style="width:74px;height:74px;border-radius:12px;border:2px solid #333;object-fit:cover;background:#0f0f16;">
+      </div>
+      <div style="flex:1;">
+        <div id="timerWrap" style="margin-top:10px;display:none;">
+          <div style="display:flex;justify-content:space-between;font-size:12px;opacity:.9;">
+            <span>Fishing...</span>
+            <span id="timerText">6.0s</span>
+          </div>
+          <div style="height:5px;background:#222;border:1px solid #333;border-radius:6px;margin-top:6px;overflow:hidden;">
+            <div id="timerBar" style="height:100%;width:0%;border-radius:6px;background:linear-gradient(90deg,#b63a3a,#e05555);"></div>
+          </div>
+        </div>
+
+        <div style="margin-top:10px;display:flex;gap:10px;flex-wrap:wrap;align-items:center;">
+          <div style="opacity:.85;font-size:12px;">Target amount:</div>
+          <input id="targetInput" type="number" min="1" step="1" placeholder="e.g. 100"
+            style="width:120px;padding:8px 10px;border-radius:10px;border:2px solid #333;background:#0f0f16;color:#fff;">
+          <button id="targetBtn">Fish Target</button>
+          <div id="targetStatus" style="opacity:.85;font-size:12px;"></div>
+        </div>
+      </div>
+    </div>
+
+    <div id="msg" style="margin-top:12px;opacity:.9;"></div>
+  </div>
+`;
 
 function loadSave(){
   try { return JSON.parse(localStorage.getItem(SAVE_KEY) || "{}") || {}; }
@@ -409,24 +492,45 @@ let cdAnim = null;
 let cdStart = 0;
 
 let targetRemaining = 0;
+let currentSpotId = "Mangrove_Spirit_Swamp";
 
-const backBtn = document.getElementById("backBtn");
-const startBtn = document.getElementById("startBtn");
-const stopBtn  = document.getElementById("stopBtn");
+let backBtn = null;
+let startBtn = null;
+let stopBtn  = null;
 
-const spotImg = document.getElementById("spotImg");
-const spotName = document.getElementById("spotName");
-const spotInfo = document.getElementById("spotInfo");
+let spotImg = null;
+let spotName = null;
+let spotInfo = null;
 
-const timerWrap = document.getElementById("timerWrap");
-const timerText = document.getElementById("timerText");
-const timerBar  = document.getElementById("timerBar");
+let timerWrap = null;
+let timerText = null;
+let timerBar  = null;
 
-const msgEl = document.getElementById("msg");
+let msgEl = null;
 
-const targetInput  = document.getElementById("targetInput");
-const targetBtn    = document.getElementById("targetBtn");
-const targetStatus = document.getElementById("targetStatus");
+let targetInput  = null;
+let targetBtn    = null;
+let targetStatus = null;
+
+function bindDom(){
+  backBtn = document.getElementById("backBtn");
+  startBtn = document.getElementById("startBtn");
+  stopBtn = document.getElementById("stopBtn");
+
+  spotImg = document.getElementById("spotImg");
+  spotName = document.getElementById("spotName");
+  spotInfo = document.getElementById("spotInfo");
+
+  timerWrap = document.getElementById("timerWrap");
+  timerText = document.getElementById("timerText");
+  timerBar = document.getElementById("timerBar");
+
+  msgEl = document.getElementById("msg");
+
+  targetInput = document.getElementById("targetInput");
+  targetBtn = document.getElementById("targetBtn");
+  targetStatus = document.getElementById("targetStatus");
+}
 
 function setMsg(t){
   if (msgEl) msgEl.innerHTML = t || "";
@@ -544,7 +648,7 @@ function fishTick(){
   if (!fishingActive) return;
   if (window.DS?.isPaused) return;
 
-  const spotId = getSpotFromUrl();
+  const spotId = currentSpotId || getSpotFromUrl();
   const spot = getSpotDef(spotId);
 
   const s = ensureFishing(loadSave());
@@ -633,10 +737,9 @@ function startTargetFishing(){
   else setMsg("Target set: " + targetRemaining);
 }
 
-window.addEventListener("DOMContentLoaded", () => {
-  const spotId = getSpotFromUrl();
-  const spot = getSpotDef(spotId);
-
+function initFishingActionRoute(spotId){
+  currentSpotId = spotId || getSpotFromUrl();
+  const spot = getSpotDef(currentSpotId);
   if (spotImg) spotImg.src = spot.img;
   if (spotName) spotName.textContent = spot.title;
   if (spotInfo) spotInfo.textContent = `Req Fishing Lv ${spot.req} - 70% / 30% fish`;
@@ -648,6 +751,7 @@ window.addEventListener("DOMContentLoaded", () => {
 
   backBtn?.addEventListener("click", () => {
     stopFishing(true);
+    if (window.DSUI?.navigateWithinShell?.("fishing.html")) return;
     window.location.href = "fishing.html";
   });
 
@@ -656,6 +760,36 @@ window.addEventListener("DOMContentLoaded", () => {
   targetBtn?.addEventListener("click", startTargetFishing);
 
   if (stopBtn) stopBtn.disabled = true;
+}
+
+function mountFishingAction(root = null, targetHref = "fishing_action.html"){
+  const left = root || document.getElementById("leftPanel");
+  if (!left) return false;
+  stopFishing(true);
+  left.innerHTML = FISHING_ACTION_TEMPLATE;
+  document.title = "Darkstone Chronicles - Fishing Action";
+  bindDom();
+  const parsed = (() => {
+    try { return new URL(targetHref, window.location.href); }
+    catch { return null; }
+  })();
+  const spotId = parsed?.searchParams.get("spot") || "Mangrove_Spirit_Swamp";
+  initFishingActionRoute(spotId);
+  return true;
+}
+
+function initStandaloneFishingAction(){
+  if (!document.getElementById("backBtn")) return false;
+  document.title = "Darkstone Chronicles - Fishing Action";
+  bindDom();
+  initFishingActionRoute(getSpotFromUrl());
+  return true;
+}
+
+window.DSFishingAction = { mount: mountFishingAction };
+
+window.addEventListener("DOMContentLoaded", () => {
+  initStandaloneFishingAction();
 });
 
 window.addEventListener("ds:save", () => {
@@ -663,8 +797,5 @@ window.addEventListener("ds:save", () => {
   renderFishingHeader();
   renderBonusBox(save);
 });
-
-
-
-
+})();
 

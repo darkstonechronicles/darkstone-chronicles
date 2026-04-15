@@ -1,4 +1,87 @@
+(() => {
+
 const SAVE_KEY = "darkstone_save_v1";
+const HUNTING_ACTION_TEMPLATE = `
+  <div style="max-width:340px;margin:0 auto 12px;">
+    <div style="background:#151520;border:2px solid #333;border-radius:12px;padding:10px 12px;width:100%;">
+      <div style="font-weight:900;font-size:18px;display:flex;align-items:center;justify-content:center;gap:8px;margin-bottom:8px;text-align:center;">
+        <span aria-hidden="true">&#127993;</span>
+        <span>Hunting Lvl: <span id="huntLevel">1</span></span>
+      </div>
+      <div style="width:100%;">
+        <div style="height:12px;background:#0f0f16;border:1px solid #2a2a3a;border-radius:999px;overflow:hidden;position:relative;">
+          <div id="huntXPBar" style="height:100%;width:0%;background:#ffaa00;"></div>
+          <div style="position:absolute;top:50%;left:8px;transform:translateY(-50%);font-size:11px;font-weight:800;line-height:1;color:#f4f1e8;text-shadow:0 1px 3px rgba(0,0,0,.75);pointer-events:none;">XP</div>
+          <div style="position:absolute;top:50%;right:8px;transform:translateY(-50%);font-size:11px;font-weight:800;line-height:1;color:#f4f1e8;text-shadow:0 1px 3px rgba(0,0,0,.75);pointer-events:none;"><span id="huntXPCurrent">0</span>/<span id="huntXPNext">100</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div style="max-width:340px;margin:0 auto 12px;">
+    <div id="gatheringBonusBox" style="background:#151520;border:2px solid #333;border-radius:12px;padding:12px;width:100%;min-height:56px;display:flex;align-items:flex-start;gap:10px;">
+      <div style="font-weight:800;font-size:14px;white-space:nowrap;line-height:1.05;text-align:center;">Bonus<br>XP</div>
+      <div style="width:1px;align-self:stretch;background:#333;"></div>
+      <div id="gatheringBonusContent" style="flex:1;display:flex;flex-direction:column;justify-content:flex-start;gap:2px;padding-top:2px;">
+        <div id="gatheringBonusTop" style="display:grid;grid-template-columns:0.8fr 1px 1.5fr 1px 1fr 1px 1fr;gap:8px;font-size:11px;font-weight:700;opacity:.9;text-align:center;align-items:center;">
+          <div>Pet</div>
+          <div style="width:1px;align-self:stretch;background:#333;"></div>
+          <div style="font-size:10px;line-height:1;white-space:nowrap;align-self:center;">Double Gather</div>
+          <div style="width:1px;align-self:stretch;background:#333;"></div>
+          <div>Building</div>
+          <div style="width:1px;align-self:stretch;background:#333;"></div>
+          <div>Potion</div>
+        </div>
+        <div style="height:1px;background:#333;width:100%;"></div>
+        <div id="gatheringBonusBottom" style="display:grid;grid-template-columns:0.8fr 1px 1.5fr 1px 1fr 1px 1fr;gap:8px;min-height:14px;align-items:stretch;text-align:center;font-size:11px;font-weight:700;color:#cfe7ff;">
+          <div id="gatheringBonusPetValue">+0%</div>
+          <div style="width:1px;align-self:stretch;background:#333;"></div>
+          <div id="gatheringBonusDoubleValue">+0%</div>
+          <div style="width:1px;align-self:stretch;background:#333;"></div>
+          <div id="gatheringBonusBuildingValue">+0%</div>
+          <div style="width:1px;align-self:stretch;background:#333;"></div>
+          <div id="gatheringBonusPotionValue">+0%</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div style="width:90%;max-width:700px;margin:0 auto 12px;display:flex;gap:10px;justify-content:center;">
+    <button id="backBtn">Back</button>
+    <button id="startBtn">Start</button>
+    <button id="stopBtn" disabled>Stop</button>
+  </div>
+
+  <div style="background:#151520;border:2px solid #333;border-radius:12px;padding:12px;max-width:900px;margin:0 auto;">
+    <div style="display:flex;gap:12px;align-items:center;">
+      <img id="targetImg" src="" alt="Target"
+        style="width:74px;height:74px;border-radius:12px;border:2px solid #333;object-fit:cover;background:#0f0f16;">
+      <div style="flex:1;">
+        <div style="font-weight:800;font-size:18px;" id="dropName">-</div>
+        <div id="gatheringPetBonusText" style="margin-top:4px;text-align:center;font-size:11px;opacity:.88;color:#cfe7ff;"></div>
+        <div id="timerWrap" style="margin-top:10px;display:none;">
+          <div style="display:flex;justify-content:space-between;font-size:12px;opacity:.9;">
+            <span>Hunting...</span>
+            <span id="timerText">6.0s</span>
+          </div>
+          <div style="height:5px;background:#222;border:1px solid #333;border-radius:6px;margin-top:6px;overflow:hidden;">
+            <div id="timerBar" style="height:100%;width:0%;border-radius:6px;background:linear-gradient(90deg,#b63a3a,#e05555);"></div>
+          </div>
+        </div>
+
+        <div style="margin-top:10px;display:flex;gap:10px;flex-wrap:wrap;align-items:center;">
+          <div style="opacity:.85;font-size:12px;">Target amount:</div>
+          <input id="targetInput" type="number" min="1" step="1" placeholder="e.g. 100"
+            style="width:120px;padding:8px 10px;border-radius:10px;border:2px solid #333;background:#0f0f16;color:#fff;">
+          <button id="targetBtn">Hunt Target</button>
+          <div id="targetStatus" style="opacity:.85;font-size:12px;"></div>
+        </div>
+      </div>
+    </div>
+
+    <div id="msg" style="margin-top:12px;opacity:.9;"></div>
+  </div>
+`;
 
 const num = (v, f = 0) => (Number.isFinite(Number(v)) ? Number(v) : f);
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
@@ -263,7 +346,7 @@ const TARGETS = [
 ];
 function getTargetId(){
   const p = new URLSearchParams(location.search);
-  return p.get("target") || "deer";
+  return p.get("target") || "shadow_hare";
 }
 function getTargetDef(id){
   return TARGETS.find(t => t.id === id) || TARGETS[0];
@@ -321,33 +404,64 @@ function consumeByName(save, name, qtyNeeded){
 // -------------------------
 // DOM
 // -------------------------
-const backBtn = document.getElementById("backBtn");
-const startBtn = document.getElementById("startBtn");
-const stopBtn  = document.getElementById("stopBtn");
+let backBtn = null;
+let startBtn = null;
+let stopBtn  = null;
 
-const targetImgEl = document.getElementById("targetImg");
-const targetNameEl = document.getElementById("targetName");
-const dropNameEl = document.getElementById("dropName");
+let targetImgEl = null;
+let targetNameEl = null;
+let dropNameEl = null;
 
-const timerWrap = document.getElementById("timerWrap");
-const timerText = document.getElementById("timerText");
-const timerBar  = document.getElementById("timerBar");
+let timerWrap = null;
+let timerText = null;
+let timerBar  = null;
 
-const msgEl = document.getElementById("msg");
+let msgEl = null;
 
-const targetInput  = document.getElementById("targetInput");
-const targetBtn    = document.getElementById("targetBtn");
-const targetStatus = document.getElementById("targetStatus");
+let targetInput  = null;
+let targetBtn    = null;
+let targetStatus = null;
 
-const lvlEl  = document.getElementById("huntLevel");
-const curEl  = document.getElementById("huntXPCurrent");
-const nextEl = document.getElementById("huntXPNext");
-const barEl  = document.getElementById("huntXPBar");
-const arrowEl = document.getElementById("arrowCount");
-const gatheringBonusPetValue = document.getElementById("gatheringBonusPetValue");
-const gatheringBonusDoubleValue = document.getElementById("gatheringBonusDoubleValue");
-const gatheringBonusBuildingValue = document.getElementById("gatheringBonusBuildingValue");
-const gatheringBonusPotionValue = document.getElementById("gatheringBonusPotionValue");
+let lvlEl  = null;
+let curEl  = null;
+let nextEl = null;
+let barEl  = null;
+let arrowEl = null;
+let gatheringBonusPetValue = null;
+let gatheringBonusDoubleValue = null;
+let gatheringBonusBuildingValue = null;
+let gatheringBonusPotionValue = null;
+let currentTargetId = "shadow_hare";
+
+function bindDom(){
+  backBtn = document.getElementById("backBtn");
+  startBtn = document.getElementById("startBtn");
+  stopBtn = document.getElementById("stopBtn");
+
+  targetImgEl = document.getElementById("targetImg");
+  targetNameEl = document.getElementById("targetName");
+  dropNameEl = document.getElementById("dropName");
+
+  timerWrap = document.getElementById("timerWrap");
+  timerText = document.getElementById("timerText");
+  timerBar = document.getElementById("timerBar");
+
+  msgEl = document.getElementById("msg");
+
+  targetInput = document.getElementById("targetInput");
+  targetBtn = document.getElementById("targetBtn");
+  targetStatus = document.getElementById("targetStatus");
+
+  lvlEl = document.getElementById("huntLevel");
+  curEl = document.getElementById("huntXPCurrent");
+  nextEl = document.getElementById("huntXPNext");
+  barEl = document.getElementById("huntXPBar");
+  arrowEl = document.getElementById("arrowCount");
+  gatheringBonusPetValue = document.getElementById("gatheringBonusPetValue");
+  gatheringBonusDoubleValue = document.getElementById("gatheringBonusDoubleValue");
+  gatheringBonusBuildingValue = document.getElementById("gatheringBonusBuildingValue");
+  gatheringBonusPotionValue = document.getElementById("gatheringBonusPotionValue");
+}
 
 // -------------------------
 // Pause from inspector
@@ -581,7 +695,7 @@ function huntTick(){
   if (!huntingActive) return;
   if (window.DS?.isPaused) return;
 
-  const targetId = getTargetId();
+  const targetId = currentTargetId || getTargetId();
   const t = getTargetDef(targetId);
 
   const save = ensureHunting(loadSave());
@@ -693,9 +807,9 @@ function startTarget(){
 // -------------------------
 // Boot
 // -------------------------
-window.addEventListener("DOMContentLoaded", () => {
-  const t = getTargetDef(getTargetId());
-
+function initHuntingActionRoute(targetId){
+  currentTargetId = targetId || getTargetId();
+  const t = getTargetDef(currentTargetId);
   if (targetImgEl) targetImgEl.src = t.img;
   if (targetNameEl) targetNameEl.textContent = t.name;
   if (dropNameEl) {
@@ -715,6 +829,7 @@ window.addEventListener("DOMContentLoaded", () => {
 
   backBtn?.addEventListener("click", () => {
     stopHunting(true);
+    if (window.DSUI?.navigateWithinShell?.("hunting.html")) return;
     window.location.href = "hunting.html";
   });
 
@@ -723,6 +838,36 @@ window.addEventListener("DOMContentLoaded", () => {
   targetBtn?.addEventListener("click", startTarget);
 
   if (stopBtn) stopBtn.disabled = true;
+}
+
+function mountHuntingAction(root = null, targetHref = "hunting_action.html"){
+  const left = root || document.getElementById("leftPanel");
+  if (!left) return false;
+  stopHunting(true);
+  left.innerHTML = HUNTING_ACTION_TEMPLATE;
+  document.title = "Darkstone Chronicles - Hunting Action";
+  bindDom();
+  const parsed = (() => {
+    try { return new URL(targetHref, window.location.href); }
+    catch { return null; }
+  })();
+  const targetId = parsed?.searchParams.get("target") || "shadow_hare";
+  initHuntingActionRoute(targetId);
+  return true;
+}
+
+function initStandaloneHuntingAction(){
+  if (!document.getElementById("backBtn")) return false;
+  document.title = "Darkstone Chronicles - Hunting Action";
+  bindDom();
+  initHuntingActionRoute(getTargetId());
+  return true;
+}
+
+window.DSHuntingAction = { mount: mountHuntingAction };
+
+window.addEventListener("DOMContentLoaded", () => {
+  initStandaloneHuntingAction();
 });
 
 window.addEventListener("ds:save", () => {
@@ -731,11 +876,5 @@ window.addEventListener("ds:save", () => {
   renderBonusBox(save);
 });
 
-
-
-
-
-
-
-
+})();
 
