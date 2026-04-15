@@ -1080,6 +1080,10 @@
         gap:16px;
         align-items:stretch;
       }
+      body.ds-home-page #rightColumn{
+        gap:18px;
+        padding-top:14px;
+      }
       #rightColumn > *{
         width:100%;
         max-width:none;
@@ -1484,8 +1488,19 @@
         justify-content:flex-start;
         flex-wrap:wrap;
       }
-      .dsHeaderAccount{
+      .dsHomeNavRow{
+        display:none;
+      }
+      .dsHeaderControls{
         margin-left:auto;
+        display:flex;
+        flex-direction:column;
+        align-items:flex-end;
+        gap:2px;
+        flex:0 0 auto;
+        pointer-events:auto;
+      }
+      .dsHeaderAccount{
         position:relative;
         flex:0 0 auto;
         z-index:120;
@@ -1691,6 +1706,22 @@
         padding:8px;box-sizing:border-box;
         pointer-events:auto;
       }
+      body.ds-home-page .dsNav{
+        width:100%;
+        margin:0;
+        grid-template-columns:repeat(8, minmax(0, 1fr));
+        gap:8px;
+        padding:10px 12px;
+        background:rgba(0, 0, 0, 0.05);
+        border:3px solid rgba(0, 0, 0, 0.55);
+        border-radius:0;
+      }
+      body.ds-home-page .dsHomeNavRow{
+        display:block;
+        width:100%;
+        margin-left:0;
+        pointer-events:auto;
+      }
       .dsNav button{
         width:100%;
         padding:9px 10px;border-radius:10px;border:2px solid #333;
@@ -1712,6 +1743,10 @@
         display:block;
         position:relative;
         transition:transform .14s ease, filter .14s ease;
+      }
+      body.ds-home-page .dsNavImageArt{
+        width:100%;
+        aspect-ratio: 3.35 / 1;
       }
       .dsNavImageArt::before{
         content:"";
@@ -1814,6 +1849,28 @@
         font-size:12px;
         letter-spacing:1px;
       }
+      body.ds-home-page .dsNavImageLabel{
+        padding:0 10px;
+        font-size:11px;
+        letter-spacing:.6px;
+        transform:translateY(-5px);
+      }
+      body.ds-home-page .dsNavImageLabelFight,
+      body.ds-home-page .dsNavImageLabelHome,
+      body.ds-home-page .dsNavImageLabelMarket,
+      body.ds-home-page .dsNavImageLabelBank{
+        font-size:11px;
+      }
+      body.ds-home-page .dsNavImageLabelDungeons,
+      body.ds-home-page .dsNavImageLabelBuildings{
+        font-size:10px;
+        letter-spacing:.45px;
+      }
+      body.ds-home-page .dsNavImageLabelChallenges,
+      body.ds-home-page .dsNavImageLabelProfessions{
+        font-size:9px;
+        letter-spacing:.3px;
+      }
 
       .navIcon{width:14px;height:14px;display:block;flex:0 0 auto;}
       .navEmoji{font-size:15px;line-height:1;display:block;flex:0 0 auto;}
@@ -1825,6 +1882,9 @@
         position:relative;
         margin-top:-110px;
         z-index:45;
+      }
+      body.ds-home-page #inventoryPanel{
+        margin-top:0;
       }
       #inventoryStickySlot{
         display:none;
@@ -2236,6 +2296,14 @@
         .dsNav{
           margin:0;
           grid-template-columns:repeat(2, minmax(0, 1fr));
+        }
+        body.ds-home-page .dsHomeNavRow{
+          margin-left:0;
+        }
+        body.ds-home-page .dsNav{
+          grid-template-columns:repeat(4, minmax(0, 1fr));
+          gap:8px;
+          width:100%;
         }
       }
 
@@ -3355,82 +3423,14 @@ function claimActiveChallengeFromQuest(){
   const xpNow = Math.max(0, num(save.heroXP, 0));
   const xpNext = Math.max(1, num(save.heroXPNext, 100));
   const xpPct = clamp((xpNow / xpNext) * 100, 0, 100);
+  const currentPage = normalizePagePath(window.location.pathname || "index.html");
+  document.body.classList.toggle("ds-home-page", currentPage === "index.html");
 
   const statPts = Math.max(0, num(save.heroStatPoints, 0));
   const authLabel = getAuthUserLabel();
   const isAdminUser = !!window.DSAuth?.isAdmin?.();
-
-  hudRoot.innerHTML = `
-    <div class="dsHeaderRow">
-      <div class="dsHeaderTop">
-        <div class="dsHeroPanel">
-          <div class="dsHeroPortrait" id="heroPortrait" title="Open Equipment">
-            <img src="${save.heroPortrait || "images/hero.png"}" alt="${save.heroName || "Hero"}">
-          </div>
-
-          <div class="dsHeroStats">
-            <p class="dsLine" style="display:flex;align-items:center;justify-content:space-between;gap:12px;">
-              <span class="dsHeroMetaText">${save.heroName || "Hero"}</span>
-              <span class="dsHeroMetaText">Level: ${lvl}</span>
-            </p>
-
-            <div class="dsBarStack">
-              <div class="dsBarWrap" title="Health">
-                <div class="dsBarFill" style="width:${hpPct}%;background:#2dff7c;"></div>
-                <div class="dsBarTextIn">HEALTH ${hpNow}/${hpMax}</div>
-                <div class="dsBarTimer" title="Next +20 HP">${hpRemain}</div>
-              </div>
-
-              <div class="dsBarWrap" title="Stamina">
-                <div class="dsBarFill" style="width:${stPct}%;background:#ff5252;"></div>
-                <div class="dsBarTextIn">STAMINA ${stNow}/${stMax}</div>
-                <div class="dsBarTimer" title="Next +10 ST">${stRemain}</div>
-              </div>
-
-              <div class="dsBarWrap" title="Hero XP (Fights)">
-                <div class="dsBarFill" style="width:${xpPct}%;background:#4aa3ff;"></div>
-                <div class="dsBarTextIn">XP ${xpNow}/${xpNext}</div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        ${statPts > 0 ? `
-        <div class="dsStatSide">
-          <button id="navStats" class="dsStatBtn" title="Allocate stat points">
-            +
-          </button>
-        </div>
-        ` : ""}
-        <div class="dsHeaderPresence">
-          <button id="dsPresenceBtn" class="dsAccountBtn dsAccountBtnFrame" type="button" aria-haspopup="menu" aria-expanded="${__presenceState.menuOpen ? "true" : "false"}">
-            <span class="dsAccountBtnFrameArt" aria-hidden="true">
-              <span class="dsAccountBtnFrameLabel">ONLINE : ${__presenceState.onlineCount}</span>
-            </span>
-          </button>
-          <div id="dsPresenceMenu" class="dsAccountMenu ${__presenceState.menuOpen ? "dsAccountMenuOpen" : ""}" role="menu" aria-hidden="${__presenceState.menuOpen ? "false" : "true"}" style="width:min(540px, calc(100vw - 24px));max-height:min(420px, 70vh);overflow:auto;right:0;left:auto;">
-            <div class="dsAccountLabel">PLAYER ACTIVITY</div>
-            <div class="dsAccountEmail">${__presenceState.onlineCount} online right now</div>
-            <div style="margin-top:8px;">
-              ${getPresenceMenuMarkup()}
-            </div>
-          </div>
-        </div>
-        <div class="dsHeaderAccount">
-          <button id="authAccountBtn" class="dsAccountBtn dsAccountBtnFrame" type="button" aria-haspopup="menu" aria-expanded="false">
-            <span class="dsAccountBtnFrameArt" aria-hidden="true">
-              <span class="dsAccountBtnFrameLabel">ACCOUNT</span>
-            </span>
-          </button>
-          <div id="authAccountMenu" class="dsAccountMenu" role="menu" aria-hidden="true">
-            <div class="dsAccountLabel">ACCOUNT</div>
-            <div class="dsAccountEmail">${authLabel || "Signed In"}</div>
-            ${isAdminUser ? `<button id="authAdminToolsBtn" class="dsAccountLogout" type="button" style="border-color:#4a6dc2;background:linear-gradient(180deg,#233b73,#18274f);color:#eef3ff;">Admin Tools</button>` : ``}
-            <button id="authLogoutBtn" class="dsAccountLogout" type="button">Logout</button>
-          </div>
-        </div>
-      </div>
-
+  const isHomePage = currentPage === "index.html";
+  const navMarkup = `
       <div class="dsNav">
           <button id="navHome" class="dsNavImageBtn" aria-label="Home" data-open-tab-href="index.html">
             <span class="dsNavImageArt dsNavImageArtHome" aria-hidden="true">
@@ -3472,7 +3472,83 @@ function claimActiveChallengeFromQuest(){
             <span class="dsNavImageLabel dsNavImageLabelBank">BANK</span>
           </span>
         </button>
+      </div>`;
+  const controlsMarkup = `
+        <div class="dsHeaderControls">
+          <div class="dsHeaderAccount">
+            <button id="authAccountBtn" class="dsAccountBtn dsAccountBtnFrame" type="button" aria-haspopup="menu" aria-expanded="false">
+              <span class="dsAccountBtnFrameArt" aria-hidden="true">
+                <span class="dsAccountBtnFrameLabel">ACCOUNT</span>
+              </span>
+            </button>
+            <div id="authAccountMenu" class="dsAccountMenu" role="menu" aria-hidden="true">
+              <div class="dsAccountLabel">ACCOUNT</div>
+              <div class="dsAccountEmail">${authLabel || "Signed In"}</div>
+              ${isAdminUser ? `<button id="authAdminToolsBtn" class="dsAccountLogout" type="button" style="border-color:#4a6dc2;background:linear-gradient(180deg,#233b73,#18274f);color:#eef3ff;">Admin Tools</button>` : ``}
+              <button id="authLogoutBtn" class="dsAccountLogout" type="button">Logout</button>
+            </div>
+          </div>
+          <div class="dsHeaderPresence">
+            <button id="dsPresenceBtn" class="dsAccountBtn dsAccountBtnFrame" type="button" aria-haspopup="menu" aria-expanded="${__presenceState.menuOpen ? "true" : "false"}">
+              <span class="dsAccountBtnFrameArt" aria-hidden="true">
+                <span class="dsAccountBtnFrameLabel">ONLINE : ${__presenceState.onlineCount}</span>
+              </span>
+            </button>
+            <div id="dsPresenceMenu" class="dsAccountMenu ${__presenceState.menuOpen ? "dsAccountMenuOpen" : ""}" role="menu" aria-hidden="${__presenceState.menuOpen ? "false" : "true"}" style="width:min(540px, calc(100vw - 24px));max-height:min(420px, 70vh);overflow:auto;right:0;left:auto;">
+              <div class="dsAccountLabel">PLAYER ACTIVITY</div>
+              <div class="dsAccountEmail">${__presenceState.onlineCount} online right now</div>
+              <div style="margin-top:8px;">
+                ${getPresenceMenuMarkup()}
+              </div>
+            </div>
+          </div>
+        </div>`;
+
+  hudRoot.innerHTML = `
+    <div class="dsHeaderRow">
+      <div class="dsHeaderTop">
+        <div class="dsHeroPanel">
+          <div class="dsHeroPortrait" id="heroPortrait" title="Open Equipment">
+            <img src="${save.heroPortrait || "images/hero.png"}" alt="${save.heroName || "Hero"}">
+          </div>
+          <div class="dsHeroStats">
+            <p class="dsLine" style="display:flex;align-items:center;justify-content:space-between;gap:12px;">
+              <span class="dsHeroMetaText">${save.heroName || "Hero"}</span>
+              <span class="dsHeroMetaText">Level: ${lvl}</span>
+            </p>
+
+            <div class="dsBarStack">
+              <div class="dsBarWrap" title="Health">
+                <div class="dsBarFill" style="width:${hpPct}%;background:#2dff7c;"></div>
+                <div class="dsBarTextIn">HEALTH ${hpNow}/${hpMax}</div>
+                <div class="dsBarTimer" title="Next +20 HP">${hpRemain}</div>
+              </div>
+
+              <div class="dsBarWrap" title="Stamina">
+                <div class="dsBarFill" style="width:${stPct}%;background:#ff5252;"></div>
+                <div class="dsBarTextIn">STAMINA ${stNow}/${stMax}</div>
+                <div class="dsBarTimer" title="Next +10 ST">${stRemain}</div>
+              </div>
+
+              <div class="dsBarWrap" title="Hero XP (Fights)">
+                <div class="dsBarFill" style="width:${xpPct}%;background:#4aa3ff;"></div>
+                <div class="dsBarTextIn">XP ${xpNow}/${xpNext}</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        ${statPts > 0 ? `
+        <div class="dsStatSide">
+          <button id="navStats" class="dsStatBtn" title="Allocate stat points">
+            +
+          </button>
+        </div>
+        ` : ""}
+        ${controlsMarkup}
       </div>
+
+      ${isHomePage ? `<div class="dsHomeNavRow">${navMarkup}</div>` : navMarkup}
     </div>
   `;
 

@@ -631,6 +631,9 @@ a:hover{ text-decoration: underline; }
   top: auto !important;
   left: auto !important;
 }
+body.ds-home-page #mainLayout #inventoryPanel{
+  margin-top: 0 !important;
+}
 
 /* ===== INVENTORY: 8 columns, NO scrollbars ===== */
 #inventoryPanel{
