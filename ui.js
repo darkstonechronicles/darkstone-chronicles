@@ -13,11 +13,13 @@
 
 (() => {
   const SAVE_KEY = "darkstone_save_v1";
+  const ACTION_LOCK_KEY = "ds_action_lock_v1";
   const INV_TAB_KEY = "darkstone_inventory_tab_v1";
   const EQUIP_STATS_MODE_KEY = "darkstone_equip_stats_mode_v1";
   const CHAT_KEY = "darkstone_chat_v1";
   const CHAT_TAB_KEY = "darkstone_chat_tab_v1";
   const PETS_PANEL_COLLAPSED_KEY = "darkstone_pets_panel_collapsed_v1";
+  const TAB_SYNC_CHANNEL = "darkstone_tab_sync_v1";
   const REFRESH_MS = 800;
   const GLOBAL_CHAT_FETCH_LIMIT = 80;
   const GLOBAL_CHAT_COOLDOWN_MS = 2000;
@@ -115,6 +117,14 @@
     window.DS.isPaused = false;
     window.dispatchEvent(new Event("ds:resume"));
   };
+
+  const __tabSyncClientId = (() => {
+    try {
+      if (window.crypto?.randomUUID) return window.crypto.randomUUID();
+    } catch {}
+    return `tab-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+  })();
+  let __tabSyncChannel = null;
 
   // ✅ Stats API (bulletproof: does NOT rely on ensureSave scope)
   window.DS.stats = window.DS.stats || {};
@@ -899,14 +909,77 @@
   // -------------------------
   // localStorage hook -> ds:save (same tab)
   // -------------------------
+  function notifySaveObservers() {
+    window.dispatchEvent(new Event("ds:save"));
+  }
+
+  function emitCrossTabSignal(type, payload = {}) {
+    try {
+      if (!("BroadcastChannel" in window)) return;
+      if (!__tabSyncChannel) __tabSyncChannel = new BroadcastChannel(TAB_SYNC_CHANNEL);
+      __tabSyncChannel.postMessage({
+        sourceId: __tabSyncClientId,
+        type: String(type || "").trim(),
+        at: Date.now(),
+        ...payload
+      });
+    } catch (error) {
+      console.warn("[UI] tab sync post failed", error);
+    }
+  }
+
+  function handleExternalSaveChange() {
+    notifySaveObservers();
+    forceRerenderNow();
+  }
+
+  function setupTabSyncOnce() {
+    if (window.__dsTabSyncReady) return;
+    window.__dsTabSyncReady = true;
+
+    if ("BroadcastChannel" in window) {
+      try {
+        __tabSyncChannel = new BroadcastChannel(TAB_SYNC_CHANNEL);
+        __tabSyncChannel.addEventListener("message", (event) => {
+          const data = event?.data || {};
+          if (!data || data.sourceId === __tabSyncClientId) return;
+          if (data.type === "save-updated") {
+            handleExternalSaveChange();
+            return;
+          }
+          if (data.type === "action-lock-updated") {
+            forceRerenderNow();
+          }
+        });
+      } catch (error) {
+        console.warn("[UI] tab sync channel setup failed", error);
+      }
+    }
+  }
+
   function hookLocalStorageOnce() {
     if (window.__dsHookedStorage) return;
     window.__dsHookedStorage = true;
 
     const _setItem = localStorage.setItem.bind(localStorage);
+    const _removeItem = localStorage.removeItem.bind(localStorage);
     localStorage.setItem = (k, v) => {
       _setItem(k, v);
-      if (k === SAVE_KEY) window.dispatchEvent(new Event("ds:save"));
+      if (k === SAVE_KEY) {
+        notifySaveObservers();
+        emitCrossTabSignal("save-updated");
+      } else if (k === ACTION_LOCK_KEY) {
+        emitCrossTabSignal("action-lock-updated");
+      }
+    };
+    localStorage.removeItem = (k) => {
+      _removeItem(k);
+      if (k === SAVE_KEY) {
+        notifySaveObservers();
+        emitCrossTabSignal("save-updated");
+      } else if (k === ACTION_LOCK_KEY) {
+        emitCrossTabSignal("action-lock-updated");
+      }
     };
   }
 
@@ -3107,7 +3180,7 @@ function claimActiveChallengeFromQuest(){
         ` : ""}
         <div class="dsHeaderPresence">
           <button id="dsPresenceBtn" class="dsAccountBtn" type="button" aria-haspopup="menu" aria-expanded="${__presenceState.menuOpen ? "true" : "false"}">
-            Players ${__presenceState.onlineCount} Online
+            Online : ${__presenceState.onlineCount}
           </button>
           <div id="dsPresenceMenu" class="dsAccountMenu ${__presenceState.menuOpen ? "dsAccountMenuOpen" : ""}" role="menu" aria-hidden="${__presenceState.menuOpen ? "false" : "true"}" style="width:min(540px, calc(100vw - 24px));max-height:min(420px, 70vh);overflow:auto;right:0;left:auto;">
             <div class="dsAccountLabel">PLAYER ACTIVITY</div>
@@ -3294,23 +3367,19 @@ function getPresenceMenuMarkup() {
   if (__presenceState.loading && !__presenceState.loaded) {
     return `<div style="font-size:12px;opacity:.82;">Loading players...</div>`;
   }
-  if (!__presenceState.players.length) {
-    return `<div style="font-size:12px;opacity:.82;">No players found yet.</div>`;
+  const onlinePlayers = __presenceState.players.filter((player) => player?.isOnline);
+  if (!onlinePlayers.length) {
+    return `<div style="font-size:12px;opacity:.82;">No players online right now.</div>`;
   }
 
-  return __presenceState.players.slice(0, 24).map((player) => `
+  return onlinePlayers.slice(0, 24).map((player) => `
     <div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-top:1px solid rgba(255,255,255,.06);">
       <div style="position:relative;flex:0 0 auto;">
         <img src="${player.avatarUrl || "images/hero.png"}" alt="${player.name}" style="width:38px;height:38px;border-radius:10px;border:1px solid rgba(255,255,255,.12);object-fit:cover;background:#10131d;">
-        <span style="position:absolute;right:-2px;bottom:-2px;width:11px;height:11px;border-radius:999px;border:2px solid #111723;background:${player.isOnline ? "#31d07f" : "#666f86"};"></span>
+        <span style="position:absolute;right:-2px;bottom:-2px;width:11px;height:11px;border-radius:999px;border:2px solid #111723;background:#31d07f;"></span>
       </div>
       <div style="min-width:0;flex:1;">
         <div style="font-size:13px;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${player.name}</div>
-        <div style="font-size:11px;opacity:.72;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${player.isOnline ? "Online now" : `Last seen ${formatPresenceAgo(player.lastSeenAt)}`}</div>
-      </div>
-      <div style="flex:0 0 auto;text-align:right;max-width:140px;">
-        <div style="font-size:11px;opacity:.82;">${player.lastSeenPage || "In Game"}</div>
-        <div style="font-size:10px;opacity:.58;">${formatPresenceExact(player.lastSeenAt)}</div>
       </div>
     </div>
   `).join("");
@@ -5234,6 +5303,7 @@ function renderAll() {
       }
 
       hookLocalStorageOnce();
+      setupTabSyncOnce();
       ensureCoreDOM();
       hookInvTabs();
       await loadLiveChatMessages("global");
@@ -5278,7 +5348,15 @@ function renderAll() {
         navigateWithinShell(targetHref, { force: true, skipHistory: true });
       });
       window.addEventListener("storage", (e) => {
-        if (e.key === CHAT_KEY || e.key === CHAT_TAB_KEY || e.key === SAVE_KEY) forceRerenderNow();
+        if (e.key === SAVE_KEY) {
+          handleExternalSaveChange();
+          return;
+        }
+        if (e.key === ACTION_LOCK_KEY) {
+          forceRerenderNow();
+          return;
+        }
+        if (e.key === CHAT_KEY || e.key === CHAT_TAB_KEY) forceRerenderNow();
       });
 
       renderAll();
