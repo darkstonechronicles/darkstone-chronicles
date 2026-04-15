@@ -66,23 +66,6 @@
     `).join("");
   }
 
-  async function resolveFunctionErrorMessage(error) {
-    if (!error) return "Could not create hero.";
-    if (typeof error.message === "string" && error.message && !/non-2xx status code/i.test(error.message)) {
-      return error.message;
-    }
-    const ctx = error.context;
-    if (ctx?.json) {
-      try {
-        const payload = await ctx.json();
-        if (typeof payload?.error === "string" && payload.error.trim()) return payload.error.trim();
-      } catch {
-        // ignore parse failure
-      }
-    }
-    return "Could not create hero.";
-  }
-
   async function createHero() {
     const heroName = String(heroNameInput?.value || "").trim();
     if (!heroName) {
@@ -105,26 +88,34 @@
     };
 
     const createBtn = el("createHeroBtn");
-    const client = window.DSAuth?.getClient?.();
+    const auth = window.DSAuth;
 
     try {
       if (createBtn) createBtn.disabled = true;
       setMessage("Creating hero...");
 
-      if (client?.functions?.invoke) {
-        const { data, error } = await client.functions.invoke("bootstrap-player", {
-          body: {
+      if (auth?.getSession && auth?.config?.url && auth?.config?.anonKey) {
+        const session = await auth.getSession();
+        const token = session?.access_token;
+        if (!token) throw new Error("Missing access token.");
+
+        const res = await fetch(`${auth.config.url}/functions/v1/bootstrap-player`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${token}`,
+            "apikey": auth.config.anonKey
+          },
+          body: JSON.stringify({
             heroName,
             heroPortrait: selectedHero.img,
             saveData: save
-          }
+          })
         });
 
-        if (error) {
-          throw new Error(await resolveFunctionErrorMessage(error));
-        }
-        if (data?.error) {
-          throw new Error(data.error);
+        const body = await res.json().catch(() => ({}));
+        if (!res.ok || body?.error) {
+          throw new Error(body?.error || body?.message || "Could not create hero.");
         }
       }
 
