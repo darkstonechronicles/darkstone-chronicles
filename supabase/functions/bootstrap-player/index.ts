@@ -29,6 +29,10 @@ function getSafeString(value: unknown, fallback = "") {
   return next || fallback;
 }
 
+function isUniqueViolation(message: string) {
+  return /duplicate key value|unique constraint|already exists/i.test(String(message || ""));
+}
+
 function buildPublicStats(payload: BootstrapPayload, email: string) {
   const save = payload.saveData && typeof payload.saveData === "object" ? payload.saveData : {};
   const heroName = getSafeString(
@@ -94,6 +98,25 @@ Deno.serve(async (req) => {
     "",
   );
   const stats = buildPublicStats(payload, email);
+  const explicitHeroName = getSafeString(payload.heroName ?? (payload.saveData as Record<string, unknown> | null)?.heroName, "");
+
+  if (explicitHeroName && (explicitHeroName.length < 3 || explicitHeroName.length > 20)) {
+    return json({ error: "Hero name must be between 3 and 20 characters." }, { status: 400 });
+  }
+
+  if (explicitHeroName) {
+    const { error: heroNameError } = await admin.from("hero_names").upsert({
+      user_id: user.id,
+      hero_name: explicitHeroName,
+    });
+
+    if (heroNameError) {
+      if (isUniqueViolation(heroNameError.message)) {
+        return json({ error: "That hero name is already taken." }, { status: 409 });
+      }
+      return json({ error: heroNameError.message }, { status: 500 });
+    }
+  }
 
   const { error: profileError } = await admin.from("profiles").upsert({
     id: user.id,

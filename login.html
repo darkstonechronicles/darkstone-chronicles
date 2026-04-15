@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Darkstone Chronicles - Login</title>
-  <link rel="stylesheet" href="style.css?v=20260415-125357">
+  <link rel="stylesheet" href="style.css?v=20260415-172928">
   <style id="dsBootShellStyles">
     html{background-color:var(--bg-fallback,#090a10);}
     body{margin:0;background:transparent;}
@@ -37,33 +37,56 @@
     </div>
   </div>
   <div class="charCreateWrap">
-    <div class="charCreateCard loginCard">
-      <h1>Darkstone Chronicles</h1>
-      <div id="loginSub" class="charCreateSub">Sign in to continue your adventure.</div>
+    <div class="charCreateCard loginCard loginCardFrame">
+      <div class="loginLayout">
+        <section class="loginHeroPanel">
+          <div class="loginEyebrow">Dark Fantasy Browser RPG</div>
+          <h1>Darkstone Chronicles</h1>
+          <div id="loginSub" class="charCreateSub loginSubWide">Sign in to continue your adventure.</div>
 
-      <div class="loginHighlights">
-        <div class="loginHighlight">Google login</div>
-        <div class="loginHighlight">Persistent account session</div>
-        <div class="loginHighlight">Ready for cloud save next</div>
-      </div>
+          <div class="loginHighlights">
+            <div class="loginHighlight">Google sign in</div>
+            <div class="loginHighlight">Persistent progress</div>
+            <div class="loginHighlight">Cross-device account</div>
+          </div>
 
-      <div class="charCreatePreview loginPreview">
-        <img src="images/heroes/hero_1.png" alt="Hero Preview">
-        <div class="charCreatePreviewMeta">
-          <div class="charCreatePreviewClass">Account Login</div>
-          <div class="charCreatePreviewName">Enter The Realm</div>
-        </div>
-      </div>
+          <div class="loginSceneCard">
+            <div class="loginSceneArt">
+              <img src="images/heroes/hero_1.png" alt="Hero Preview">
+            </div>
+            <div class="loginSceneText">
+              <div class="loginSceneLabel">Account Access</div>
+              <div class="loginSceneTitle">Enter The Realm</div>
+              <div class="loginSceneLore">
+                Return to your hero, your loot, and the long road through Darkstone.
+              </div>
+            </div>
+          </div>
+        </section>
 
-      <div id="loginStatus" class="charCreateMsg"></div>
+        <section class="loginActionPanel">
+          <div class="loginActionCard">
+            <div class="loginActionTitle">Continue</div>
+            <div class="loginActionText">
+              Use your Google account to load your current character and keep your session synced.
+            </div>
 
-      <div class="charCreateActions">
-        <button type="button" id="googleLoginBtn" class="townBtn loginBtn">Sign In With Google</button>
+            <div id="loginStatus" class="charCreateMsg loginStatusBox"></div>
+
+            <div class="charCreateActions loginActionsTight">
+              <button type="button" id="googleLoginBtn" class="townBtn loginBtn">Sign In With Google</button>
+            </div>
+
+            <div class="loginActionFooter">
+              Safe sign-in. No password screen inside the game client.
+            </div>
+          </div>
+        </section>
       </div>
     </div>
   </div>
 
-  <script src="auth.js?v=20260415-125357"></script>
-  <script src="login.js?v=20260415-125357"></script>
+  <script src="auth.js?v=20260415-172928"></script>
+  <script src="login.js?v=20260415-172928"></script>
 </body>
 </html>

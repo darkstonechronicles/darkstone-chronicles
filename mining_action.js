@@ -268,6 +268,9 @@ function itemStackKey(it){
   return [it.type||"", it.name||"", it.img||""].join("::");
 }
 function addToInventoryStack(save, item, qty){
+  if (window.DSInventory?.addItem) {
+    return window.DSInventory.addItem(save, item, qty, { stack: true, stackKeyFn: itemStackKey });
+  }
   const key = itemStackKey(item);
   const ex = save.inventory.find(i => i && itemStackKey(i) === key);
   if (ex){
@@ -275,18 +278,22 @@ function addToInventoryStack(save, item, qty){
   } else {
     save.inventory.push({ ...item, quantity: qty });
   }
+  return { ok: true, added: qty };
 }
 
 function addSigilToInventory(save, item, qty){
+  if (window.DSInventory?.addItem) {
+    return window.DSInventory.addItem(save, item, qty, { stack: true, stackKeyFn: itemStackKey, prepend: true });
+  }
   const key = itemStackKey(item);
   const exIdx = save.inventory.findIndex(i => i && itemStackKey(i) === key);
   if (exIdx >= 0){
     const ex = save.inventory[exIdx];
     ex.quantity = (Number(ex.quantity) || 1) + qty;
   } else {
-    // put it near the front so it is visible immediately
     save.inventory.unshift({ ...item, quantity: qty });
   }
+  return { ok: true, added: qty };
 }
 
 // -------------------------
@@ -528,6 +535,12 @@ function updateTargetUI(){
 function startMining(){
   if (window.DS?.isPaused) return;
   if (miningActive) return;
+  const startSave = ensureMining(loadSave());
+  if (window.DSInventory?.hasSpaceFor && !window.DSInventory.hasSpaceFor(startSave, 1)) {
+    setMsg("No more inventory space.");
+    renderMiningHeader();
+    return;
+  }
   const lock = acquireActionLock();
   if (!lock.ok){ setMsg(lock.msg); return; }
 
@@ -581,6 +594,14 @@ function mineTick(){
 
   const save = ensureMining(loadSave());
   const petBonus = getGatheringPetState(save);
+  if (window.DSInventory?.hasSpaceFor && !window.DSInventory.hasSpaceFor(save, 1)) {
+    setMsg("No more inventory space.");
+    stopMining(true);
+    setSave(save);
+    renderMiningHeader();
+    renderMiningBonusBox(save);
+    return;
+  }
 
     const effectiveLevel = save.miningLevel + getGatheringPotionBonus(save);
     if (effectiveLevel < ore.req){

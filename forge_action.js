@@ -378,6 +378,9 @@ function itemStackKey(it){
   ].join("::");
 }
 function addToInventoryStack(save, item, qty){
+  if (window.DSInventory?.addItem) {
+    return window.DSInventory.addItem(save, item, qty, { stack: true, stackKeyFn: itemStackKey });
+  }
   const key = itemStackKey(item);
   const ex = save.inventory.find(i => i && itemStackKey(i) === key);
   if (ex){
@@ -385,9 +388,13 @@ function addToInventoryStack(save, item, qty){
   } else {
     save.inventory.push({ ...item, quantity: qty });
   }
+  return { ok: true, added: qty };
 }
 
 function addSigilToInventory(save, item, qty){
+  if (window.DSInventory?.addItem) {
+    return window.DSInventory.addItem(save, item, qty, { stack: true, stackKeyFn: itemStackKey, prepend: true });
+  }
   const key = itemStackKey(item);
   const exIdx = save.inventory.findIndex(i => i && itemStackKey(i) === key);
   if (exIdx >= 0){
@@ -396,6 +403,7 @@ function addSigilToInventory(save, item, qty){
   } else {
     save.inventory.unshift({ ...item, quantity: qty });
   }
+  return { ok: true, added: qty };
 }
 
 // -------------------------

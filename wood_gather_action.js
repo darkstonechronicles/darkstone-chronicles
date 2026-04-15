@@ -235,10 +235,14 @@ function itemStackKey(it){
   return [it.type||"", it.name||"", it.img||""].join("::");
 }
 function addToInventoryStack(save, item, qty){
+  if (window.DSInventory?.addItem) {
+    return window.DSInventory.addItem(save, item, qty, { stack: true, stackKeyFn: itemStackKey });
+  }
   const key = itemStackKey(item);
   const ex = save.inventory.find(i => i && itemStackKey(i) === key);
   if (ex) ex.quantity = (Number(ex.quantity) || 1) + qty;
   else save.inventory.push({ ...item, quantity: qty });
+  return { ok: true, added: qty };
 }
 function incStat(save, key, amount = 1){
   if (!save || typeof save !== "object") return;
@@ -421,6 +425,12 @@ function updateTargetUI(){
 function startGather(){
   if (window.DS?.isPaused) return;
   if (active) return;
+  const startSave = ensureWood(loadSave());
+  if (window.DSInventory?.hasSpaceFor && !window.DSInventory.hasSpaceFor(startSave, 1)) {
+    setMsg("No more inventory space.");
+    renderHeader();
+    return;
+  }
   const lock = acquireActionLock();
   if (!lock.ok){ setMsg(lock.msg); return; }
   active = true;
@@ -456,6 +466,14 @@ function gatherTick(){
   if (!active || window.DS?.isPaused) return;
   const wood = getWoodDef(currentWoodId || "ash");
   const save = ensureWood(loadSave());
+  if (window.DSInventory?.hasSpaceFor && !window.DSInventory.hasSpaceFor(save, 1)) {
+    setMsg("No more inventory space.");
+    stopGather(true);
+    setSave(save);
+    renderHeader();
+    renderBonusBox(save);
+    return;
+  }
   const effectiveLevel = save.woodcuttingLevel + getGatheringPotionBonus(save);
   if (effectiveLevel < wood.req){
     setMsg(`Requires Woodcutting Level ${wood.req}.`);

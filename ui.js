@@ -4430,6 +4430,9 @@ function unequipQuickSlotToInventory(save, slotKey){
   const qty = num(it.quantity ?? it.qty, 1);
   let takeQty = Math.max(1, Math.floor(num(arguments[2], 1)));
   takeQty = clamp(takeQty, 1, qty);
+  if (!inventoryHasSpaceFor(save, takeQty)) {
+    return { ok:false, msg:"No more inventory space." };
+  }
   if (qty > takeQty) {
     it.quantity = qty - takeQty;
     addToStack(save.inventory, { ...it, quantity: takeQty }, takeQty);

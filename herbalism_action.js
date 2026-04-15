@@ -243,10 +243,14 @@ function itemStackKey(it){
   return [it.type || "", it.name || "", it.img || ""].join("::");
 }
 function addToInventoryStack(save, item, qty){
+  if (window.DSInventory?.addItem) {
+    return window.DSInventory.addItem(save, item, qty, { stack: true, stackKeyFn: itemStackKey });
+  }
   const key = itemStackKey(item);
   const ex = save.inventory.find((i) => i && itemStackKey(i) === key);
   if (ex) ex.quantity = (Number(ex.quantity) || 1) + qty;
   else save.inventory.push({ ...item, quantity: qty });
+  return { ok: true, added: qty };
 }
 function incStat(save, key, amount = 1){
   if (!save || typeof save !== "object") return;
@@ -433,6 +437,12 @@ function updateTargetUI(){
 
 function startGathering(){
   if (window.DS?.isPaused || gatheringActive) return;
+  const startSave = ensureHerbalism(loadSave());
+  if (window.DSInventory?.hasSpaceFor && !window.DSInventory.hasSpaceFor(startSave, 1)) {
+    setMsg("No more inventory space.");
+    renderHerbalismHeader();
+    return;
+  }
   const lock = acquireActionLock();
   if (!lock.ok) {
     setMsg(lock.msg);
@@ -471,6 +481,14 @@ function gatherTick(){
   if (!gatheringActive || window.DS?.isPaused) return;
   const zone = getZoneDef(currentZoneId || getZoneFromUrl());
   const save = ensureHerbalism(loadSave());
+  if (window.DSInventory?.hasSpaceFor && !window.DSInventory.hasSpaceFor(save, 1)) {
+    setMsg("No more inventory space.");
+    stopGathering(true);
+    setSave(save);
+    renderHerbalismHeader();
+    renderBonusBox(save);
+    return;
+  }
 
   const effectiveLevel = save.herbalismLevel + getGatheringPotionBonus(save);
   if (effectiveLevel < zone.req) {

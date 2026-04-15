@@ -121,6 +121,16 @@
     catch { return {}; }
   }
 
+  function hasInventorySpace(save, addUnits = 1) {
+    if (window.DSInventory?.hasSpaceFor) return window.DSInventory.hasSpaceFor(save, addUnits);
+    let used = 0;
+    for (const it of save.inventory || []) {
+      if (!it) continue;
+      used += Math.max(1, num(it.quantity ?? it.qty, 1));
+    }
+    return used + Math.max(1, num(addUnits, 1)) <= num(save.inventoryMaxSlots, 1000);
+  }
+
   function getPotionTier(item){
     if (!item) return 1;
     const id = String(item.id || "");
@@ -640,6 +650,11 @@
       return;
     }
     const stackQty = Math.max(1, num(item.quantity ?? item.qty, 1));
+    if (stackQty > 1 && !hasInventorySpace(save, 1)) {
+      if (el("enchMsg")) el("enchMsg").textContent = "No more inventory space.";
+      render();
+      return;
+    }
     const chance = successChance(save, item);
     const rolledSuccess = Math.random() <= chance;
     if (rolledSuccess) {
@@ -653,9 +668,18 @@
       applyEnchantStats(enchantedItem);
       setUpgName(enchantedItem);
       if (stackQty > 1) {
-        save.inventory.push(enchantedItem);
-        const newIndex = save.inventory.length - 1;
-        setPick(buildPick(newIndex, save.inventory[newIndex]));
+        if (window.DSInventory?.addItem) {
+          const res = window.DSInventory.addItem(save, enchantedItem, 1, { stack: false });
+          if (!res?.ok) {
+            if (el("enchMsg")) el("enchMsg").textContent = "No more inventory space.";
+            render();
+            return;
+          }
+        } else {
+          save.inventory.push(enchantedItem);
+        }
+        const newIndex = save.inventory.findIndex((invIt, invIdx) => invIdx !== idx && invIt === enchantedItem);
+        setPick(buildPick(newIndex >= 0 ? newIndex : (save.inventory.length - 1), save.inventory[newIndex >= 0 ? newIndex : (save.inventory.length - 1)]));
       } else {
         setPick(buildPick(idx, item));
       }

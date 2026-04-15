@@ -239,10 +239,14 @@ function itemStackKey(it){
   return [it.type || "", it.name || "", it.img || "", it.rarity || ""].join("::");
 }
 function addToInventoryStack(save, item, qty){
+  if (window.DSInventory?.addItem) {
+    return window.DSInventory.addItem(save, item, qty, { stack: true, stackKeyFn: itemStackKey });
+  }
   const key = itemStackKey(item);
   const ex = save.inventory.find((i) => i && itemStackKey(i) === key);
   if (ex) ex.quantity = (Number(ex.quantity) || 1) + qty;
   else save.inventory.push({ ...item, quantity: qty });
+  return { ok: true, added: qty };
 }
 function findStackByName(inv, name){
   return inv.findIndex((it) => it && (it.name || "").toLowerCase() === name.toLowerCase());

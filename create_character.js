@@ -3,15 +3,31 @@
 
   const el = (id) => document.getElementById(id);
   const heroNameInput = el("heroNameInput");
+  const heroChoiceGrid = el("heroChoiceGrid");
   const previewImg = el("heroPreviewImg");
-  const previewClass = el("heroPreviewClass");
-  const previewName = el("heroPreviewName");
   const msg = el("charCreateMsg");
 
+  const HERO_OPTIONS = Array.from({ length: 30 }, (_, idx) => {
+    const n = idx + 1;
+    const defaults = {
+      1: { key: "vanguard", label: "Vanguard" },
+      2: { key: "cryptblade", label: "Cryptblade" },
+      3: { key: "arcanist", label: "Arcanist" }
+    };
+    const fallback = {
+      key: `hero_${n}`,
+      label: `Hero ${n}`
+    };
+    const meta = defaults[n] || fallback;
+    return {
+      key: meta.key,
+      label: meta.label,
+      img: `images/heroes/hero_${n}.png`
+    };
+  });
+
   let selectedHero = {
-    key: "vanguard",
-    label: "Vanguard",
-    img: "images/heroes/hero_1.png"
+    ...HERO_OPTIONS[0]
   };
 
   function setMessage(text) {
@@ -19,11 +35,8 @@
   }
 
   function updatePreview() {
-    const name = String(heroNameInput?.value || "").trim() || "Hero";
     if (previewImg) previewImg.src = selectedHero.img;
     if (previewImg) previewImg.alt = selectedHero.label;
-    if (previewClass) previewClass.textContent = selectedHero.label;
-    if (previewName) previewName.textContent = name;
   }
 
   function chooseHero(button) {
@@ -33,16 +46,35 @@
     });
     selectedHero = {
       key: String(button.dataset.heroKey || "vanguard"),
-      label: String(button.querySelector("span")?.textContent || "Vanguard"),
+      label: String(button.dataset.heroLabel || "Vanguard"),
       img: String(button.dataset.heroImg || "images/heroes/hero_1.png")
     };
     updatePreview();
   }
 
-  function createHero() {
+  function renderHeroChoices() {
+    if (!heroChoiceGrid) return;
+    heroChoiceGrid.innerHTML = HERO_OPTIONS.map((hero, idx) => `
+      <button
+        type="button"
+        class="heroChoiceCard${idx === 0 ? " heroChoiceActive" : ""}"
+        data-hero-key="${hero.key}"
+        data-hero-label="${hero.label}"
+        data-hero-img="${hero.img}">
+        <img src="${hero.img}" alt="${hero.label}">
+      </button>
+    `).join("");
+  }
+
+  async function createHero() {
     const heroName = String(heroNameInput?.value || "").trim();
     if (!heroName) {
       setMessage("Enter a hero name.");
+      heroNameInput?.focus();
+      return;
+    }
+    if (heroName.length < 3) {
+      setMessage("Hero name must be at least 3 characters.");
       heroNameInput?.focus();
       return;
     }
@@ -55,8 +87,37 @@
       heroClass: selectedHero.key
     };
 
-    localStorage.setItem(SAVE_KEY, JSON.stringify(save));
-    window.location.href = "index.html";
+    const createBtn = el("createHeroBtn");
+    const client = window.DSAuth?.getClient?.();
+
+    try {
+      if (createBtn) createBtn.disabled = true;
+      setMessage("Creating hero...");
+
+      if (client?.functions?.invoke) {
+        const { data, error } = await client.functions.invoke("bootstrap-player", {
+          body: {
+            heroName,
+            heroPortrait: selectedHero.img,
+            saveData: save
+          }
+        });
+
+        if (error) {
+          throw new Error(error.message || "Could not create hero.");
+        }
+        if (data?.error) {
+          throw new Error(data.error);
+        }
+      }
+
+      localStorage.setItem(SAVE_KEY, JSON.stringify(save));
+      window.location.href = "index.html";
+    } catch (error) {
+      console.error("[create_character] create hero failed", error);
+      setMessage(error?.message || "Could not create hero.");
+      if (createBtn) createBtn.disabled = false;
+    }
   }
 
   window.addEventListener("DOMContentLoaded", async () => {
@@ -82,6 +143,8 @@
         }
       }
 
+      renderHeroChoices();
+
       document.querySelectorAll(".heroChoiceCard").forEach((button) => {
         button.addEventListener("click", () => chooseHero(button));
       });
@@ -95,7 +158,7 @@
         if (e.key === "Enter") createHero();
       });
 
-      el("createHeroBtn")?.addEventListener("click", createHero);
+      el("createHeroBtn")?.addEventListener("click", () => { void createHero(); });
       updatePreview();
       heroNameInput?.focus();
       window.__dsBootReady?.();

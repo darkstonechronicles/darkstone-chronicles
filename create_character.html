@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Create Hero - Darkstone Chronicles</title>
-  <link rel="stylesheet" href="style.css?v=20260415-125357">
+  <link rel="stylesheet" href="style.css?v=20260415-172928">
   <style id="dsBootShellStyles">
     html{background-color:var(--bg-fallback,#090a10);}
     body{margin:0;background:transparent;}
@@ -41,20 +41,7 @@
       <h1>Create Your Hero</h1>
       <div class="charCreateSub">Choose a portrait and enter a name to begin.</div>
 
-      <div id="heroChoiceGrid" class="heroChoiceGrid">
-        <button type="button" class="heroChoiceCard heroChoiceActive" data-hero-key="vanguard" data-hero-img="images/heroes/hero_1.png">
-          <img src="images/heroes/hero_1.png" alt="Vanguard">
-          <span>Vanguard</span>
-        </button>
-        <button type="button" class="heroChoiceCard" data-hero-key="cryptblade" data-hero-img="images/heroes/hero_2.png">
-          <img src="images/heroes/hero_2.png" alt="Cryptblade">
-          <span>Cryptblade</span>
-        </button>
-        <button type="button" class="heroChoiceCard" data-hero-key="arcanist" data-hero-img="images/heroes/hero_3.png">
-          <img src="images/heroes/hero_3.png" alt="Arcanist">
-          <span>Arcanist</span>
-        </button>
-      </div>
+      <div id="heroChoiceGrid" class="heroChoiceGrid"></div>
 
       <div class="charCreateField">
         <label for="heroNameInput">Hero Name</label>
@@ -63,10 +50,6 @@
 
       <div class="charCreatePreview">
         <img id="heroPreviewImg" src="images/heroes/hero_1.png" alt="Hero Preview">
-        <div class="charCreatePreviewMeta">
-          <div id="heroPreviewClass" class="charCreatePreviewClass">Vanguard</div>
-          <div id="heroPreviewName" class="charCreatePreviewName">Hero</div>
-        </div>
       </div>
 
       <div id="charCreateMsg" class="charCreateMsg"></div>
@@ -77,7 +60,7 @@
     </div>
   </div>
 
-  <script src="auth.js?v=20260415-125357"></script>
-  <script src="create_character.js?v=20260415-125357"></script>
+  <script src="auth.js?v=20260415-172928"></script>
+  <script src="create_character.js?v=20260415-172928"></script>
 </body>
 </html>

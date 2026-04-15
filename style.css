@@ -700,45 +700,63 @@ a:hover{ text-decoration: underline; }
 .heroChoiceGrid{
   margin-top:22px;
   display:grid;
-  grid-template-columns:repeat(3,minmax(0,1fr));
-  gap:16px;
+  grid-template-columns:repeat(auto-fit,minmax(84px,1fr));
+  gap:12px;
+  align-content:start;
+  max-height:184px;
+  overflow-y:auto;
+  overflow-x:hidden;
+  padding-right:6px;
 }
 
 .heroChoiceCard{
   appearance:none;
-  border:2px solid #333;
-  border-radius:16px;
-  background:#101019;
+  border:none;
+  border-radius:18px;
+  background:transparent;
   color:#f1f2f6;
-  padding:14px 12px;
+  padding:0;
   cursor:pointer;
   display:flex;
-  flex-direction:column;
   align-items:center;
-  gap:10px;
-  box-shadow:0 12px 24px rgba(0,0,0,.22);
+  justify-content:center;
+  box-shadow:none;
 }
 
 .heroChoiceCard img{
-  width:132px;
-  height:132px;
+  width:86px;
+  height:86px;
   object-fit:cover;
-  border-radius:14px;
+  border-radius:18px;
   border:2px solid rgba(255,255,255,.08);
   background:#0f0f16;
+  box-shadow:
+    0 10px 20px rgba(0,0,0,.22),
+    inset 0 1px 0 rgba(255,255,255,.05);
+  transition:transform .18s ease, box-shadow .18s ease, border-color .18s ease;
 }
 
 .heroChoiceCard span{
   font-size:20px;
   font-weight:900;
+  display:none;
 }
 
-.heroChoiceCard.heroChoiceActive{
+.heroChoiceCard:hover img,
+.heroChoiceCard:focus-visible img{
+  transform:translateY(-2px);
+  border-color:rgba(151,187,255,.34);
+  box-shadow:
+    0 14px 28px rgba(0,0,0,.28),
+    0 0 18px rgba(79,127,209,.18);
+}
+
+.heroChoiceCard.heroChoiceActive img{
   border-color:#4f7fd1;
   box-shadow:
-    0 14px 28px rgba(0,0,0,.3),
-    0 0 18px rgba(79,127,209,.18);
-  background:#152238;
+    0 16px 28px rgba(0,0,0,.3),
+    0 0 0 2px rgba(79,127,209,.18),
+    0 0 22px rgba(79,127,209,.22);
 }
 
 .charCreateField{
@@ -821,8 +839,68 @@ a:hover{ text-decoration: underline; }
 }
 
 .loginCard{
-  max-width:620px;
+  max-width:980px;
   margin:0 auto;
+}
+
+.loginCardFrame{
+  position:relative;
+  overflow:hidden;
+  background:
+    radial-gradient(circle at top left, rgba(122, 77, 34, .2), transparent 34%),
+    radial-gradient(circle at bottom right, rgba(71, 98, 158, .14), transparent 30%),
+    linear-gradient(180deg, rgba(255,255,255,.02), rgba(255,255,255,.01)),
+    #151520;
+}
+
+.loginCardFrame::before{
+  content:"";
+  position:absolute;
+  inset:0;
+  background:
+    linear-gradient(120deg, rgba(255,255,255,.045), transparent 30%),
+    repeating-linear-gradient(
+      90deg,
+      rgba(255,255,255,.018) 0,
+      rgba(255,255,255,.018) 1px,
+      transparent 1px,
+      transparent 28px
+    );
+  pointer-events:none;
+}
+
+.loginLayout{
+  position:relative;
+  z-index:1;
+  display:grid;
+  grid-template-columns:minmax(0, 1.2fr) minmax(300px, .8fr);
+  gap:24px;
+  align-items:stretch;
+}
+
+.loginHeroPanel{
+  min-width:0;
+}
+
+.loginEyebrow{
+  display:inline-flex;
+  align-items:center;
+  gap:8px;
+  padding:8px 12px;
+  border-radius:999px;
+  border:1px solid rgba(214,176,99,.28);
+  background:rgba(20,18,30,.72);
+  color:#e4c889;
+  font-size:12px;
+  font-weight:900;
+  text-transform:uppercase;
+  letter-spacing:.08em;
+}
+
+.loginSubWide{
+  max-width:520px;
+  margin-left:auto;
+  margin-right:auto;
 }
 
 .loginHighlights{
@@ -851,6 +929,126 @@ a:hover{ text-decoration: underline; }
   min-width:280px;
 }
 
+.loginSceneCard{
+  margin-top:22px;
+  display:grid;
+  grid-template-columns:120px minmax(0,1fr);
+  gap:18px;
+  align-items:center;
+  padding:18px;
+  border-radius:18px;
+  border:1px solid rgba(255,255,255,.08);
+  background:
+    linear-gradient(180deg, rgba(255,255,255,.035), rgba(255,255,255,.012)),
+    rgba(7,9,16,.56);
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.04),
+    0 16px 28px rgba(0,0,0,.18);
+}
+
+.loginSceneArt{
+  position:relative;
+}
+
+.loginSceneArt::after{
+  content:"";
+  position:absolute;
+  inset:-8px;
+  border-radius:20px;
+  background:radial-gradient(circle, rgba(88,117,187,.18), transparent 66%);
+  z-index:0;
+}
+
+.loginSceneArt img{
+  position:relative;
+  z-index:1;
+  width:120px;
+  height:120px;
+  object-fit:cover;
+  border-radius:18px;
+  border:2px solid rgba(255,255,255,.1);
+  background:#0f0f16;
+}
+
+.loginSceneText{
+  min-width:0;
+}
+
+.loginSceneLabel{
+  font-size:12px;
+  font-weight:900;
+  text-transform:uppercase;
+  letter-spacing:.08em;
+  color:#caa45c;
+}
+
+.loginSceneTitle{
+  margin-top:6px;
+  font-size:32px;
+  font-weight:900;
+  line-height:1.05;
+}
+
+.loginSceneLore{
+  margin-top:10px;
+  opacity:.82;
+  line-height:1.55;
+}
+
+.loginActionPanel{
+  display:flex;
+}
+
+.loginActionCard{
+  width:100%;
+  display:flex;
+  flex-direction:column;
+  justify-content:center;
+  padding:22px 20px;
+  border-radius:18px;
+  border:1px solid rgba(255,255,255,.08);
+  background:
+    linear-gradient(180deg, rgba(255,255,255,.045), rgba(255,255,255,.014)),
+    rgba(8,10,17,.72);
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.05),
+    0 16px 28px rgba(0,0,0,.22);
+}
+
+.loginActionTitle{
+  font-size:28px;
+  font-weight:900;
+  text-align:center;
+}
+
+.loginActionText{
+  margin-top:10px;
+  text-align:center;
+  opacity:.8;
+  line-height:1.55;
+}
+
+.loginStatusBox{
+  min-height:28px;
+  margin-top:18px;
+  padding:10px 12px;
+  border-radius:14px;
+  border:1px solid rgba(255,255,255,.08);
+  background:rgba(255,255,255,.03);
+  color:#e8e1cf;
+}
+
+.loginActionsTight{
+  margin-top:16px;
+}
+
+.loginActionFooter{
+  margin-top:14px;
+  text-align:center;
+  font-size:12px;
+  opacity:.62;
+}
+
 @media (max-width: 760px){
   .heroChoiceGrid{
     grid-template-columns:1fr;
@@ -868,5 +1066,24 @@ a:hover{ text-decoration: underline; }
   .loginHighlights{
     flex-direction:column;
     align-items:center;
+  }
+
+  .loginLayout{
+    grid-template-columns:1fr;
+    gap:18px;
+  }
+
+  .loginSceneCard{
+    grid-template-columns:1fr;
+    text-align:center;
+  }
+
+  .loginSceneArt{
+    display:flex;
+    justify-content:center;
+  }
+
+  .loginSceneTitle{
+    font-size:28px;
   }
 }
