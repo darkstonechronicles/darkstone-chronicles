@@ -11,6 +11,17 @@ param(
 
 $ErrorActionPreference = "Stop"
 
+function Test-GitHasWorkingChanges {
+  git diff --quiet --
+  if ($LASTEXITCODE -ne 0) { return $true }
+
+  git diff --cached --quiet --
+  if ($LASTEXITCODE -ne 0) { return $true }
+
+  $untracked = git ls-files --others --exclude-standard
+  return -not [string]::IsNullOrWhiteSpace(($untracked | Out-String))
+}
+
 function New-AssetVersion {
   $now = Get-Date
   return "{0}{1}{2}-{3}{4}{5}" -f $now.Year, $now.ToString("MM"), $now.ToString("dd"), $now.ToString("HH"), $now.ToString("mm"), $now.ToString("ss")
@@ -30,6 +41,11 @@ function Get-LiveContent {
   return (Invoke-WebRequest -Uri $Url -UseBasicParsing -Headers $headers).Content
 }
 
+if (-not (Test-GitHasWorkingChanges)) {
+  Write-Host "No local changes to release. Everything is already synced with git." -ForegroundColor Green
+  return
+}
+
 $assetVersion = New-AssetVersion
 
 Write-Host "Bumping asset version to $assetVersion..." -ForegroundColor Cyan
@@ -37,6 +53,12 @@ node scripts\bump-asset-version.js $assetVersion
 
 Write-Host "Staging files..." -ForegroundColor Cyan
 git add .
+
+git diff --cached --quiet --
+if ($LASTEXITCODE -eq 0) {
+  Write-Host "Nothing new to commit after staging. Live release skipped." -ForegroundColor Green
+  return
+}
 
 Write-Host "Creating commit..." -ForegroundColor Cyan
 git commit -m $Message
