@@ -1079,9 +1079,6 @@
         flex-direction:column;
         gap:16px;
         align-items:stretch;
-      }
-      body.ds-home-page #rightColumn{
-        gap:18px;
         padding-top:14px;
       }
       #rightColumn > *{
@@ -1090,14 +1087,39 @@
         box-sizing:border-box;
         align-self:stretch;
       }
+      .dsInnerCard{
+        border:1px solid rgba(122, 91, 49, .8);
+        background:linear-gradient(180deg, rgba(52,39,27,.78), rgba(20,18,20,.86));
+        box-shadow:
+          0 0 0 1px rgba(32,23,14,.82),
+          inset 0 1px 0 rgba(255,228,178,.06),
+          inset 0 0 0 1px rgba(255,214,143,.04),
+          inset 0 -10px 18px rgba(0,0,0,.14),
+          0 10px 18px rgba(0,0,0,.16);
+      }
+      #chatPlaceholderPanel,
+      #quickConsumablesPanel,
+      #petsPanel,
+      .dsHeroPanel{
+        background:
+          radial-gradient(circle at top, rgba(255,220,150,.06), transparent 28%),
+          linear-gradient(180deg, rgba(40,31,22,.94), rgba(17,15,18,.96));
+        border:1px solid rgba(138, 102, 52, .95);
+        border-radius:14px;
+        box-shadow:
+          0 0 0 1px rgba(34,24,12,.95),
+          0 0 0 3px rgba(106,76,36,.72),
+          0 0 0 4px rgba(20,14,10,.96),
+          inset 0 1px 0 rgba(255,228,178,.10),
+          inset 0 0 0 1px rgba(255,214,143,.07),
+          inset 0 -12px 22px rgba(0,0,0,.18),
+          0 16px 30px rgba(0,0,0,.24);
+      }
       #chatPlaceholderPanel{
         width:100%;
         min-width:0;
         margin-left:0;
         min-height:320px;
-        background:rgba(0, 0, 0, 0.40);
-        border:3px solid rgba(0, 0, 0, 0.55);
-        border-radius:12px;
         padding:12px;
         box-sizing:border-box;
         margin-top:0;
@@ -1106,9 +1128,6 @@
         width:100%;
         min-width:0;
         margin-left:0;
-        background:rgba(0, 0, 0, 0.40);
-        border:3px solid rgba(0, 0, 0, 0.55);
-        border-radius:12px;
         padding:10px;
         box-sizing:border-box;
         margin-top:10px;
@@ -1118,9 +1137,6 @@
         width:100%;
         min-width:0;
         margin-left:0;
-        background:rgba(0, 0, 0, 0.40);
-        border:3px solid rgba(0, 0, 0, 0.55);
-        border-radius:12px;
         padding:10px;
         box-sizing:border-box;
       }
@@ -1158,8 +1174,8 @@
       .petSlotCard{
         min-height:148px;
         border-radius:12px;
-        border:1px solid rgba(255,255,255,.10);
-        background:linear-gradient(180deg, rgba(255,255,255,.04), rgba(0,0,0,.10));
+        border:1px solid rgba(122, 91, 49, .8);
+        background:linear-gradient(180deg, rgba(52,39,27,.78), rgba(20,18,20,.86));
         padding:10px 8px;
         box-sizing:border-box;
         display:flex;
@@ -1167,6 +1183,12 @@
         gap:8px;
         justify-content:flex-start;
         align-items:center;
+        box-shadow:
+          0 0 0 1px rgba(32,23,14,.82),
+          inset 0 1px 0 rgba(255,228,178,.06),
+          inset 0 0 0 1px rgba(255,214,143,.04),
+          inset 0 -10px 18px rgba(0,0,0,.14),
+          0 10px 18px rgba(0,0,0,.16);
       }
       .petSlotCard.petSlotEmpty{
         border-style:dashed;
@@ -1324,11 +1346,17 @@
       }
       .quickMeatPopup{
         margin-top:10px;
-        border:1px solid rgba(255,255,255,.12);
+        border:1px solid rgba(122, 91, 49, .8);
         border-radius:10px;
-        background:#0f0f16;
+        background:linear-gradient(180deg, rgba(52,39,27,.78), rgba(20,18,20,.86));
         padding:10px;
         display:none;
+        box-shadow:
+          0 0 0 1px rgba(32,23,14,.82),
+          inset 0 1px 0 rgba(255,228,178,.06),
+          inset 0 0 0 1px rgba(255,214,143,.04),
+          inset 0 -10px 18px rgba(0,0,0,.14),
+          0 10px 18px rgba(0,0,0,.16);
       }
       .quickMeatRow{
         display:flex;
@@ -1376,11 +1404,17 @@
           overflow-y:auto;
           padding:6px 8px;
           border-radius:10px;
-          border:1px solid rgba(255,255,255,.08);
-          background:#101019;
+          border:1px solid rgba(122, 91, 49, .8);
+          background:linear-gradient(180deg, rgba(52,39,27,.78), rgba(20,18,20,.86));
           display:flex;
           flex-direction:column;
           gap:2px;
+          box-shadow:
+            0 0 0 1px rgba(32,23,14,.82),
+            inset 0 1px 0 rgba(255,228,178,.06),
+            inset 0 0 0 1px rgba(255,214,143,.04),
+            inset 0 -10px 18px rgba(0,0,0,.14),
+            0 10px 18px rgba(0,0,0,.16);
         }
         .chatMsg{
           padding:2px 0;
@@ -1489,7 +1523,10 @@
         flex-wrap:wrap;
       }
       .dsHomeNavRow{
-        display:none;
+        display:block;
+        width:100%;
+        margin-left:0;
+        pointer-events:auto;
       }
       .dsHeaderControls{
         margin-left:auto;
@@ -1587,11 +1624,14 @@
         width:min(320px, 78vw);
         padding:12px;
         border-radius:14px;
-        border:1px solid rgba(255,255,255,.10);
-        background:linear-gradient(180deg, rgba(24,26,38,.98), rgba(14,15,24,.98));
+        border:1px solid rgba(122, 91, 49, .8);
+        background:linear-gradient(180deg, rgba(52,39,27,.9), rgba(20,18,20,.94));
         box-shadow:
-          0 18px 42px rgba(0,0,0,.36),
-          0 0 0 1px rgba(0,0,0,.35);
+          0 0 0 1px rgba(32,23,14,.82),
+          inset 0 1px 0 rgba(255,228,178,.06),
+          inset 0 0 0 1px rgba(255,214,143,.04),
+          inset 0 -10px 18px rgba(0,0,0,.14),
+          0 18px 42px rgba(0,0,0,.36);
         display:none;
         z-index:160;
         pointer-events:auto;
@@ -1630,7 +1670,6 @@
         width:340px;
         max-width:340px;
         display:flex;gap:8px;align-items:flex-start;
-        background:rgba(0, 0, 0, 0.15);border:3px solid rgba(0, 0, 0, 0.55);border-radius:12px;
         padding:10px;box-sizing:border-box;
         pointer-events:auto;
       }
@@ -1696,15 +1735,28 @@
       }
 
       .dsNav{
-        width:calc(100% - 436px);
-        margin:0 auto 0 0;
+        width:100%;
+        margin:0;
         display:grid;
-        grid-template-columns:repeat(4, minmax(0, 1fr));
+        grid-template-columns:repeat(8, minmax(0, 1fr));
         gap:8px;
         align-items:stretch;
-        background:rgba(0, 0, 0, 0.20);border:3px solid rgba(0, 0, 0, 0.55);border-radius:12px;
-        padding:8px;box-sizing:border-box;
+        background:
+          radial-gradient(circle at top, rgba(255,220,150,.06), transparent 28%),
+          linear-gradient(180deg, rgba(40,31,22,.94), rgba(17,15,18,.96));
+        border:1px solid rgba(138, 102, 52, .95);
+        border-radius:14px;
+        padding:10px 12px;box-sizing:border-box;
         pointer-events:auto;
+        overflow:hidden;
+        box-shadow:
+          0 0 0 1px rgba(34,24,12,.95),
+          0 0 0 3px rgba(106,76,36,.72),
+          0 0 0 4px rgba(20,14,10,.96),
+          inset 0 1px 0 rgba(255,228,178,.10),
+          inset 0 0 0 1px rgba(255,214,143,.07),
+          inset 0 -12px 22px rgba(0,0,0,.18),
+          0 16px 30px rgba(0,0,0,.24);
       }
       body.ds-home-page .dsNav{
         width:100%;
@@ -1712,30 +1764,57 @@
         grid-template-columns:repeat(8, minmax(0, 1fr));
         gap:8px;
         padding:10px 12px;
-        background:rgba(0, 0, 0, 0.05);
-        border:3px solid rgba(0, 0, 0, 0.55);
-        border-radius:0;
-      }
-      body.ds-home-page .dsHomeNavRow{
-        display:block;
-        width:100%;
-        margin-left:0;
-        pointer-events:auto;
       }
       .dsNav button{
         width:100%;
-        padding:9px 10px;border-radius:10px;border:2px solid #333;
-        background:#1b1b24;color:#fff;cursor:pointer;
+        padding:9px 10px;
+        border-radius:11px;
+        border:1px solid rgba(126, 94, 50, .88);
+        background:
+          linear-gradient(180deg, rgba(86,64,38,.40), rgba(26,23,26,.18) 42%, rgba(0,0,0,.10) 100%),
+          linear-gradient(180deg, #34281d 0%, #1d1a1d 100%);
+        color:#f3ead6;
+        cursor:pointer;
         font-size:13px;
         display:flex;align-items:center;justify-content:center;gap:6px;
+        box-shadow:
+          0 0 0 1px rgba(28,20,12,.9),
+          inset 0 1px 0 rgba(255,228,178,.08),
+          inset 0 0 0 1px rgba(255,214,143,.04),
+          inset 0 -8px 14px rgba(0,0,0,.16),
+          0 8px 16px rgba(0,0,0,.18);
+        text-shadow:0 1px 0 rgba(0,0,0,.72);
+        transition:
+          transform .14s ease,
+          box-shadow .14s ease,
+          border-color .14s ease,
+          filter .14s ease;
       }
       .dsNav button.dsNavImageBtn{
         padding:0;
         border:0;
         background:transparent;
       }
-      .dsNav button:hover{filter:brightness(1.08);}
+      .dsNav button:hover{
+        filter:brightness(1.04);
+        border-color:rgba(171, 130, 67, .96);
+        box-shadow:
+          0 0 0 1px rgba(28,20,12,.92),
+          inset 0 1px 0 rgba(255,236,194,.12),
+          inset 0 0 0 1px rgba(255,214,143,.06),
+          inset 0 -8px 14px rgba(0,0,0,.14),
+          0 10px 18px rgba(0,0,0,.22);
+        transform:translateY(-1px);
+      }
       .dsNav button.dsNavImageBtn:hover{filter:none;}
+      .dsNav button:active{
+        transform:translateY(1px);
+        box-shadow:
+          0 0 0 1px rgba(28,20,12,.92),
+          inset 0 2px 3px rgba(0,0,0,.24),
+          inset 0 1px 0 rgba(255,228,178,.04),
+          0 5px 10px rgba(0,0,0,.16);
+      }
 
       .dsNavImageArt{
         width:min(100%, 168px);
@@ -1877,14 +1956,24 @@
 
       #inventoryPanel{
         width:100%;
-        background:rgba(0, 0, 0, 0.40);border:3px solid rgba(0, 0, 0, 0.55);border-radius:12px;
+        background:
+          radial-gradient(circle at top, rgba(255,220,150,.06), transparent 28%),
+          linear-gradient(180deg, rgba(40,31,22,.94), rgba(17,15,18,.96));
+        border:1px solid rgba(138, 102, 52, .95);
+        border-radius:14px;
         padding:8px 12px 6px;box-sizing:border-box;
         position:relative;
-        margin-top:-110px;
-        z-index:45;
-      }
-      body.ds-home-page #inventoryPanel{
         margin-top:0;
+        z-index:45;
+        overflow:hidden;
+        box-shadow:
+          0 0 0 1px rgba(34,24,12,.95),
+          0 0 0 3px rgba(106,76,36,.72),
+          0 0 0 4px rgba(20,14,10,.96),
+          inset 0 1px 0 rgba(255,228,178,.10),
+          inset 0 0 0 1px rgba(255,214,143,.07),
+          inset 0 -12px 22px rgba(0,0,0,.18),
+          0 16px 30px rgba(0,0,0,.24);
       }
       #inventoryStickySlot{
         display:none;
@@ -1924,12 +2013,18 @@
         position:relative;
         width:100%;
         height:286px;
-        border:1px solid rgba(255,255,255,.08);
+        border:1px solid rgba(122, 91, 49, .8);
         border-radius:12px;
         overflow:hidden;
         background:
-          radial-gradient(circle at center, rgba(255,255,255,.03), transparent 45%),
-          linear-gradient(180deg, rgba(255,255,255,.03), rgba(0,0,0,.08));
+          radial-gradient(circle at center, rgba(255,220,150,.05), transparent 45%),
+          linear-gradient(180deg, rgba(52,39,27,.78), rgba(20,18,20,.86));
+        box-shadow:
+          0 0 0 1px rgba(32,23,14,.82),
+          inset 0 1px 0 rgba(255,228,178,.06),
+          inset 0 0 0 1px rgba(255,214,143,.04),
+          inset 0 -10px 18px rgba(0,0,0,.14),
+          0 10px 18px rgba(0,0,0,.16);
       }
       .invEquipFigure{
         position:absolute;
@@ -2136,10 +2231,16 @@
         margin-top:6px;
       }
       .invEquipStat{
-        border:1px solid rgba(255,255,255,.08);
+        border:1px solid rgba(122, 91, 49, .8);
         border-radius:10px;
-        background:rgba(255,255,255,.03);
+        background:linear-gradient(180deg, rgba(52,39,27,.78), rgba(20,18,20,.86));
         padding:8px 10px;
+        box-shadow:
+          0 0 0 1px rgba(32,23,14,.82),
+          inset 0 1px 0 rgba(255,228,178,.06),
+          inset 0 0 0 1px rgba(255,214,143,.04),
+          inset 0 -10px 18px rgba(0,0,0,.14),
+          0 10px 18px rgba(0,0,0,.16);
       }
       .invEquipStatLabel{
         font-size:11px;
@@ -2155,8 +2256,14 @@
       .invMetaFooter{
         padding:6px 10px;
         border-radius:10px;
-        border:1px solid rgba(255,255,255,.08);
-        background:#101019;
+        border:1px solid rgba(122, 91, 49, .8);
+        background:linear-gradient(180deg, rgba(52,39,27,.78), rgba(20,18,20,.86));
+        box-shadow:
+          0 0 0 1px rgba(32,23,14,.82),
+          inset 0 1px 0 rgba(255,228,178,.06),
+          inset 0 0 0 1px rgba(255,214,143,.04),
+          inset 0 -10px 18px rgba(0,0,0,.14),
+          0 10px 18px rgba(0,0,0,.16);
       }
       .invMetaItem{
         display:flex;
@@ -2178,15 +2285,14 @@
         justify-content:center;
         padding:10px 10px 8px;
         border-radius:14px;
-        border:1px solid rgba(199,155,68,.28);
-        background:
-          linear-gradient(180deg, rgba(255,245,210,.05), rgba(255,255,255,.01) 30%, rgba(0,0,0,.10) 100%),
-          linear-gradient(180deg, #1c2028 0%, #12151c 100%);
+        border:1px solid rgba(122, 91, 49, .8);
+        background:linear-gradient(180deg, rgba(52,39,27,.78), rgba(20,18,20,.86));
         box-shadow:
-          0 0 0 1px rgba(0,0,0,.42),
-          0 14px 28px rgba(0,0,0,.22),
-          inset 0 1px 0 rgba(255,255,255,.05),
-          inset 0 -1px 0 rgba(0,0,0,.28);
+          0 0 0 1px rgba(32,23,14,.82),
+          inset 0 1px 0 rgba(255,228,178,.06),
+          inset 0 0 0 1px rgba(255,214,143,.04),
+          inset 0 -10px 18px rgba(0,0,0,.14),
+          0 10px 18px rgba(0,0,0,.16);
       }
       #questPanel{
         background:transparent;border:0;border-radius:0;
@@ -2195,9 +2301,15 @@
         flex:1 1 auto;
       }
       .questCard{
-        border:1px solid rgba(255,255,255,.08);
+        border:1px solid rgba(122, 91, 49, .8);
         border-radius:10px;padding:12px;margin:0;width:100%;box-sizing:border-box;
-        background:rgba(255,255,255,.03);
+        background:linear-gradient(180deg, rgba(52,39,27,.78), rgba(20,18,20,.86));
+        box-shadow:
+          0 0 0 1px rgba(32,23,14,.82),
+          inset 0 1px 0 rgba(255,228,178,.06),
+          inset 0 0 0 1px rgba(255,214,143,.04),
+          inset 0 -10px 18px rgba(0,0,0,.14),
+          0 10px 18px rgba(0,0,0,.16);
       }
       .questCard.questClickable{cursor:pointer;}
       .questCard.questClickable:hover{filter:brightness(1.08);}
@@ -2296,9 +2408,7 @@
         .dsNav{
           margin:0;
           grid-template-columns:repeat(2, minmax(0, 1fr));
-        }
-        body.ds-home-page .dsHomeNavRow{
-          margin-left:0;
+          padding:8px;
         }
         body.ds-home-page .dsNav{
           grid-template-columns:repeat(4, minmax(0, 1fr));
@@ -3432,45 +3542,37 @@ function claimActiveChallengeFromQuest(){
   const isHomePage = currentPage === "index.html";
   const navMarkup = `
       <div class="dsNav">
-          <button id="navHome" class="dsNavImageBtn" aria-label="Home" data-open-tab-href="index.html">
-            <span class="dsNavImageArt dsNavImageArtHome" aria-hidden="true">
-              <span class="dsNavImageLabel dsNavImageLabelHome">HOME</span>
-            </span>
-          </button>
-        <button id="navFight" class="dsNavImageBtn" aria-label="Fight" data-open-tab-href="fight.html">
-          <span class="dsNavImageArt dsNavImageArtFight" aria-hidden="true">
-            <span class="dsNavImageLabel dsNavImageLabelFight">FIGHT</span>
-          </span>
+        <button id="navHome" aria-label="Home" data-open-tab-href="index.html">
+          <span class="navEmoji" aria-hidden="true">🏠</span>
+          Home
         </button>
-        <button id="navDungeons" class="dsNavImageBtn" aria-label="Dungeons" data-open-tab-href="dungeons.html">
-          <span class="dsNavImageArt dsNavImageArtDungeons" aria-hidden="true">
-            <span class="dsNavImageLabel dsNavImageLabelDungeons">DUNGEONS</span>
-          </span>
+        <button id="navFight" aria-label="Fight" data-open-tab-href="fight.html">
+          <span class="navEmoji" aria-hidden="true">⚔️</span>
+          Fight
         </button>
-        <button id="navBuildings" class="dsNavImageBtn" aria-label="Buildings" data-open-tab-href="buildings.html">
-          <span class="dsNavImageArt dsNavImageArtBuildings" aria-hidden="true">
-            <span class="dsNavImageLabel dsNavImageLabelBuildings">BUILDINGS</span>
-          </span>
+        <button id="navDungeons" aria-label="Dungeons" data-open-tab-href="dungeons.html">
+          <span class="navEmoji" aria-hidden="true">🏰</span>
+          Dungeons
         </button>
-        <button id="navChallenges" class="dsNavImageBtn" aria-label="Challenges" data-open-tab-href="challenges.html">
-          <span class="dsNavImageArt dsNavImageArtChallenges" aria-hidden="true">
-            <span class="dsNavImageLabel dsNavImageLabelChallenges">CHALLENGES</span>
-          </span>
+        <button id="navBuildings" aria-label="Buildings" data-open-tab-href="buildings.html">
+          <span class="navEmoji" aria-hidden="true">🏢</span>
+          Buildings
         </button>
-        <button id="navProfessions" class="dsNavImageBtn" aria-label="Professions" data-open-tab-href="professions.html">
-          <span class="dsNavImageArt dsNavImageArtProfessions" aria-hidden="true">
-            <span class="dsNavImageLabel dsNavImageLabelProfessions">PROFESSIONS</span>
-          </span>
+        <button id="navChallenges" aria-label="Challenges" data-open-tab-href="challenges.html">
+          <span class="navEmoji" aria-hidden="true">🎯</span>
+          Challenges
         </button>
-        <button id="navMarket" class="dsNavImageBtn" aria-label="Market" data-open-tab-href="market.html">
-          <span class="dsNavImageArt dsNavImageArtMarket" aria-hidden="true">
-            <span class="dsNavImageLabel dsNavImageLabelMarket">MARKET</span>
-          </span>
+        <button id="navProfessions" aria-label="Professions" data-open-tab-href="professions.html">
+          <span class="navEmoji" aria-hidden="true">⚒️</span>
+          Professions
         </button>
-        <button id="navBank" class="dsNavImageBtn" aria-label="Bank" data-open-tab-href="bank.html">
-          <span class="dsNavImageArt dsNavImageArtBank" aria-hidden="true">
-            <span class="dsNavImageLabel dsNavImageLabelBank">BANK</span>
-          </span>
+        <button id="navMarket" aria-label="Market" data-open-tab-href="market.html">
+          <span class="navEmoji" aria-hidden="true">💰</span>
+          Market
+        </button>
+        <button id="navPartyHall" aria-label="Party Hall" data-open-tab-href="party_hall.html">
+          <span class="navEmoji" aria-hidden="true">👥</span>
+          Party Hall
         </button>
       </div>`;
   const controlsMarkup = `
@@ -3548,7 +3650,7 @@ function claimActiveChallengeFromQuest(){
         ${controlsMarkup}
       </div>
 
-      ${isHomePage ? `<div class="dsHomeNavRow">${navMarkup}</div>` : navMarkup}
+      <div class="dsHomeNavRow">${navMarkup}</div>
     </div>
   `;
 
@@ -3561,7 +3663,7 @@ function claimActiveChallengeFromQuest(){
   document.getElementById("navChallenges")?.addEventListener("click", () => navigateWithFade("challenges.html"));
   document.getElementById("navProfessions")?.addEventListener("click", () => navigateWithFade("professions.html"));
   document.getElementById("navMarket")?.addEventListener("click", () => navigateWithFade("market.html"));
-  document.getElementById("navBank")?.addEventListener("click", () => navigateWithFade("bank.html"));
+  document.getElementById("navPartyHall")?.addEventListener("click", () => navigateWithFade("party_hall.html"));
   bindPresenceMenu();
   const accountBtn = document.getElementById("authAccountBtn");
   const accountMenu = document.getElementById("authAccountMenu");
@@ -3907,7 +4009,7 @@ function normalizePagePath(path) {
   return normalized || "index.html";
 }
 
-const SHELL_ROUTES = new Set(["index.html", "fight.html", "dungeons.html", "dungeon_run.html", "buildings.html", "challenges.html", "market.html", "bank.html", "professions.html", "professions_overview.html", "equipment.html", "stats.html", "stats_alloc.html", "mining.html", "mining_action.html", "hunting.html", "hunting_action.html", "fishing.html", "fishing_action.html", "cooking.html", "cooking_action.html", "herbalism.html", "herbalism_action.html", "alchemy.html", "alchemy_tier.html", "alchemy_action.html", "carpentry.html", "woodcutting.html", "wood_gather_action.html", "wood_sawmill_action.html", "forge.html", "forge_action.html", "enchanting.html"]);
+const SHELL_ROUTES = new Set(["index.html", "fight.html", "dungeons.html", "dungeon_run.html", "buildings.html", "challenges.html", "market.html", "bank.html", "party_hall.html", "professions.html", "professions_overview.html", "equipment.html", "stats.html", "stats_alloc.html", "mining.html", "mining_action.html", "hunting.html", "hunting_action.html", "fishing.html", "fishing_action.html", "cooking.html", "cooking_action.html", "herbalism.html", "herbalism_action.html", "alchemy.html", "alchemy_tier.html", "alchemy_action.html", "carpentry.html", "woodcutting.html", "wood_gather_action.html", "wood_sawmill_action.html", "forge.html", "forge_action.html", "enchanting.html"]);
 const SHELL_INSTANT_ROUTES = new Set(["mining_action.html", "hunting_action.html", "fishing_action.html", "cooking_action.html", "herbalism_action.html", "alchemy_action.html", "wood_gather_action.html", "wood_sawmill_action.html", "forge_action.html"]);
 
 function canUseShellRouting(currentPage, targetPage) {
@@ -3971,6 +4073,13 @@ function mountShellView(targetPage, targetHref = targetPage) {
     window.DS_DUNGEON?.unmountDungeonList?.();
     window.DS_DUNGEON?.unmountDungeonRun?.();
     return !!window.DSBank?.mount?.(left);
+  }
+
+  if (targetPage === "party_hall.html") {
+    window.DSFight?.unmount?.();
+    window.DS_DUNGEON?.unmountDungeonList?.();
+    window.DS_DUNGEON?.unmountDungeonRun?.();
+    return !!window.DSPartyHall?.mount?.(left);
   }
 
   if (targetPage === "professions.html") {
@@ -5721,6 +5830,25 @@ function renderAll() {
     `;
   }
 
+  function ensureOptionalScript(src) {
+    return new Promise((resolve, reject) => {
+      const existing = Array.from(document.scripts).find((script) => {
+        const currentSrc = String(script.getAttribute("src") || "").split("?")[0];
+        return currentSrc === src;
+      });
+      if (existing) {
+        resolve();
+        return;
+      }
+      const script = document.createElement("script");
+      script.src = src;
+      script.async = false;
+      script.addEventListener("load", () => resolve(), { once: true });
+      script.addEventListener("error", () => reject(new Error(`Failed to load ${src}`)), { once: true });
+      document.body.appendChild(script);
+    });
+  }
+
   async function boot() {
     const shouldAnimateEntry = (() => {
       try {
@@ -5750,6 +5878,11 @@ function renderAll() {
         await window.DSAuth.refreshAdminStatus?.();
         await window.DSAuth.markPresenceNow?.(true);
       }
+
+      if (!window.DSPartyHall) {
+        await ensureOptionalScript("party.js");
+      }
+      await window.DSPartyHall?.initRealtime?.();
 
       const page = String(window.location.pathname || "").split("/").pop().toLowerCase();
       const rawSave = loadSave();

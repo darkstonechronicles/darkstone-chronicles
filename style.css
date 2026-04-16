@@ -42,6 +42,28 @@
     linear-gradient(180deg, rgba(255,220,220,.10), rgba(255,255,255,.03) 36%, rgba(0,0,0,.12) 100%),
     linear-gradient(180deg, #592329 0%, #301116 100%);
   --btn-premium-danger-border: #ad4f5b;
+  --panel-medieval-bg:
+    radial-gradient(circle at top, rgba(255,220,150,.06), transparent 28%),
+    linear-gradient(180deg, rgba(40,31,22,.94), rgba(17,15,18,.96));
+  --panel-medieval-border: rgba(138, 102, 52, .95);
+  --panel-medieval-shadow:
+    0 0 0 1px rgba(34,24,12,.95),
+    0 0 0 3px rgba(106,76,36,.72),
+    0 0 0 4px rgba(20,14,10,.96),
+    inset 0 1px 0 rgba(255,228,178,.10),
+    inset 0 0 0 1px rgba(255,214,143,.07),
+    inset 0 -12px 22px rgba(0,0,0,.18),
+    0 16px 30px rgba(0,0,0,.24);
+  --card-medieval-bg:
+    linear-gradient(180deg, rgba(52,39,27,.78), rgba(20,18,20,.86));
+  --card-medieval-border: rgba(122, 91, 49, .8);
+  --card-medieval-shadow:
+    0 0 0 1px rgba(32,23,14,.82),
+    inset 0 1px 0 rgba(255,228,178,.06),
+    inset 0 0 0 1px rgba(255,214,143,.04),
+    inset 0 -10px 18px rgba(0,0,0,.14),
+    0 10px 18px rgba(0,0,0,.16);
+
 }
 
 *{ box-sizing: border-box; }
@@ -92,16 +114,17 @@ a:hover{ text-decoration: underline; }
 
 /* Left panel (general pages) */
 #leftPanel{
-  background: #151520;
-  border: 3px solid #333;
-  border-radius: 12px;
+  background: var(--panel-medieval-bg);
+  border: 1px solid var(--panel-medieval-border);
+  border-radius: 14px;
   padding: 14px;
+  box-shadow: var(--panel-medieval-shadow);
 }
 
 #leftPanel:has(#homeHub){
-  background: rgba(0, 0, 0, 0.15);
-  border-color: rgba(0, 0, 0, 0.55);
-  box-shadow: none;
+  background: var(--panel-medieval-bg);
+  border-color: var(--panel-medieval-border);
+  box-shadow: var(--panel-medieval-shadow);
 }
 
 #leftPanel h1{
@@ -284,11 +307,12 @@ a:hover{ text-decoration: underline; }
 
 /* Town cards */
 .townCard{
-  background: var(--panel);
-  border: 2px solid var(--border);
-  border-radius: 12px;
+  background: var(--panel-medieval-bg);
+  border: 1px solid var(--panel-medieval-border);
+  border-radius: 14px;
   padding: 12px;
   text-align: left;
+  box-shadow: var(--panel-medieval-shadow);
 }
 
 .townTitle{
@@ -363,6 +387,19 @@ a:hover{ text-decoration: underline; }
     0 0 0 1px rgba(0,0,0,.55) inset,
     0 10px 26px rgba(0,0,0,.32);
   transition: transform .14s ease, border-color .14s ease, box-shadow .14s ease;
+}
+
+.hubNav .hubIconFrame{
+  border: 1px solid rgba(126, 94, 50, .88);
+  background:
+    linear-gradient(180deg, rgba(86,64,38,.24), rgba(18,18,22,.14) 46%, rgba(0,0,0,.08) 100%),
+    linear-gradient(180deg, #2e241b 0%, #151519 100%);
+  box-shadow:
+    0 0 0 1px rgba(28,20,12,.88),
+    inset 0 1px 0 rgba(255,228,178,.08),
+    inset 0 0 0 1px rgba(255,214,143,.04),
+    inset 0 -10px 16px rgba(0,0,0,.14),
+    0 10px 18px rgba(0,0,0,.18);
 }
 
 .hubIconArt{
@@ -491,6 +528,20 @@ a:hover{ text-decoration: underline; }
   text-shadow: 0 1px 0 rgba(0,0,0,.75);
 }
 
+.hubNav .hubLabel{
+  border: 1px solid rgba(126, 94, 50, .88);
+  background:
+    linear-gradient(180deg, rgba(86,64,38,.34), rgba(26,23,26,.16) 42%, rgba(0,0,0,.10) 100%),
+    linear-gradient(180deg, #34281d 0%, #1d1a1d 100%);
+  color: #f3ead6;
+  box-shadow:
+    0 0 0 1px rgba(28,20,12,.9),
+    inset 0 1px 0 rgba(255,228,178,.08),
+    inset 0 0 0 1px rgba(255,214,143,.04),
+    inset 0 -8px 14px rgba(0,0,0,.16),
+    0 8px 16px rgba(0,0,0,.18);
+}
+
 .hubNavBtn:hover .hubIconFrame{
   transform: translateY(-2px);
   border-color: rgba(210,210,210,.34);
@@ -518,18 +569,242 @@ a:hover{ text-decoration: underline; }
   border-color: #c7b37a;
 }
 
+.fightZoneCard{
+  width: 100%;
+  max-width: 132px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  text-align: center;
+  opacity: 1;
+}
+
+.fightZoneCardInner{
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+
+.fightZoneCard.isLocked{
+  opacity: .55;
+}
+
+.fightZoneImg{
+  width: 88px;
+  height: 88px;
+  border-radius: 10px;
+  border: 1px solid rgba(126, 94, 50, .88);
+  object-fit: cover;
+  background:
+    linear-gradient(180deg, rgba(86,64,38,.24), rgba(18,18,22,.14) 46%, rgba(0,0,0,.08) 100%),
+    linear-gradient(180deg, #2e241b 0%, #151519 100%);
+  box-shadow:
+    0 0 0 1px rgba(28,20,12,.88),
+    inset 0 1px 0 rgba(255,228,178,.08),
+    inset 0 0 0 1px rgba(255,214,143,.04),
+    inset 0 -10px 16px rgba(0,0,0,.14),
+    0 10px 18px rgba(0,0,0,.18);
+  transition: transform .14s ease, filter .14s ease, border-color .14s ease, box-shadow .14s ease;
+}
+
+.fightZoneCard.isLocked .fightZoneImg{
+  filter: grayscale(0.9);
+}
+
+.fightZoneInfo{
+  width: 126px;
+  min-height: 62px;
+  padding: 6px 7px;
+  border-radius: 10px;
+  border: 1px solid rgba(126, 94, 50, .88);
+  background:
+    linear-gradient(180deg, rgba(86,64,38,.34), rgba(26,23,26,.16) 42%, rgba(0,0,0,.10) 100%),
+    linear-gradient(180deg, #34281d 0%, #1d1a1d 100%);
+  color: #f3ead6;
+  line-height: 1.15;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  text-shadow:
+    0 1px 0 rgba(74, 47, 14, .95),
+    0 0 8px rgba(0,0,0,.34),
+    0 2px 6px rgba(0,0,0,.72);
+  box-shadow:
+    0 0 0 1px rgba(28,20,12,.9),
+    inset 0 1px 0 rgba(255,228,178,.08),
+    inset 0 0 0 1px rgba(255,214,143,.04),
+    inset 0 -8px 14px rgba(0,0,0,.16),
+    0 8px 16px rgba(0,0,0,.18);
+  transition: filter .14s ease, border-color .14s ease, box-shadow .14s ease;
+}
+
+.fightZoneName{
+  font-size: 12px;
+  font-weight: 900;
+  white-space: nowrap;
+}
+
+.fightZoneMeta{
+  margin-top: 3px;
+  font-size: 12px;
+  opacity: .9;
+}
+
+.fightZoneMeta.isLocked{
+  opacity: .85;
+}
+
+.fightZoneCard:not(.isLocked){
+  cursor: pointer;
+}
+
+.fightZoneCard:not(.isLocked):hover .fightZoneImg{
+  transform: translateY(-2px);
+  border-color: rgba(170, 131, 75, .96);
+  box-shadow:
+    0 0 0 1px rgba(28,20,12,.9),
+    inset 0 1px 0 rgba(255,228,178,.10),
+    inset 0 0 0 1px rgba(255,214,143,.05),
+    inset 0 -10px 16px rgba(0,0,0,.16),
+    0 14px 24px rgba(0,0,0,.24);
+}
+
+.fightZoneCard:not(.isLocked):hover .fightZoneInfo{
+  filter: brightness(1.07);
+  border-color: rgba(170, 131, 75, .96);
+  box-shadow:
+    0 0 0 1px rgba(28,20,12,.9),
+    inset 0 1px 0 rgba(255,228,178,.10),
+    inset 0 0 0 1px rgba(255,214,143,.05),
+    inset 0 -8px 14px rgba(0,0,0,.18),
+    0 10px 18px rgba(0,0,0,.22);
+}
+
+.fightZoneCard:focus-visible{
+  outline: none;
+}
+
+.fightZoneCard:focus-visible .fightZoneImg,
+.fightZoneCard:focus-visible .fightZoneInfo{
+  border-color: #c7b37a;
+}
+
+.fightMobCard{
+  position: relative;
+  overflow: visible;
+  padding: 10px;
+  border-radius: 14px;
+  border: 1px solid var(--card-medieval-border);
+  background: var(--card-medieval-bg);
+  box-shadow: var(--card-medieval-shadow);
+  text-align: left;
+  cursor: pointer;
+  transition: transform .14s ease, box-shadow .14s ease, border-color .14s ease, filter .14s ease;
+}
+
+.fightMobCard:hover{
+  transform: translateY(-2px);
+  border-color: rgba(170, 131, 75, .96);
+  box-shadow:
+    0 0 0 1px rgba(28,20,12,.9),
+    inset 0 1px 0 rgba(255,228,178,.08),
+    inset 0 0 0 1px rgba(255,214,143,.04),
+    inset 0 -8px 14px rgba(0,0,0,.16),
+    0 14px 24px rgba(0,0,0,.24);
+}
+
+.fightMobCardInner{
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.fightMobImg{
+  width: 96px;
+  height: 96px;
+  margin-bottom: 3px;
+  border-radius: 10px;
+  border: 1px solid rgba(126, 94, 50, .88);
+  object-fit: cover;
+  background:
+    linear-gradient(180deg, rgba(86,64,38,.24), rgba(18,18,22,.14) 46%, rgba(0,0,0,.08) 100%),
+    linear-gradient(180deg, #2e241b 0%, #151519 100%);
+  box-shadow:
+    0 0 0 1px rgba(28,20,12,.88),
+    inset 0 1px 0 rgba(255,228,178,.08),
+    inset 0 0 0 1px rgba(255,214,143,.04),
+    inset 0 -10px 16px rgba(0,0,0,.14),
+    0 10px 18px rgba(0,0,0,.18);
+}
+
+.fightMobName{
+  min-height: 26px;
+  font-size: 16px;
+  font-weight: 700;
+  line-height: 1.2;
+  text-align: center;
+  color: #f3ead6;
+  text-shadow:
+    0 1px 0 rgba(74, 47, 14, .95),
+    0 0 8px rgba(0,0,0,.3),
+    0 2px 6px rgba(0,0,0,.58);
+}
+
+.fightMobLevel{
+  margin: 0;
+  font-size: 13px;
+  opacity: .9;
+  color: #d9ccb0;
+}
+
+.fightMobStats{
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+  margin-top: 0;
+}
+
+.fightMobStat{
+  width: 44px;
+  height: 44px;
+  border-radius: 8px;
+  border: 1px solid rgba(126, 94, 50, .72);
+  background:
+    linear-gradient(180deg, rgba(86,64,38,.28), rgba(26,23,26,.14) 44%, rgba(0,0,0,.10) 100%),
+    linear-gradient(180deg, #2b2218 0%, #17171c 100%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  color: #f3ead6;
+  box-shadow:
+    0 0 0 1px rgba(28,20,12,.82),
+    inset 0 1px 0 rgba(255,228,178,.07),
+    inset 0 0 0 1px rgba(255,214,143,.035),
+    inset 0 -6px 12px rgba(0,0,0,.14);
+}
+
+.fightMobStatIcon{
+  font-size: 14px;
+  line-height: 1;
+}
+
+.fightMobStat > div:first-child{
+  font-size: 14px;
+  line-height: 1;
+}
+
 #professionsPanel{
   width: min(100%, 900px);
   margin: 10px auto 18px;
   padding: 16px;
   border-radius: 14px;
-  border: 1px solid rgba(255,255,255,.1);
-  background:
-    linear-gradient(180deg, rgba(255,255,255,.04), rgba(255,255,255,.01)),
-    rgba(10,10,15,.72);
-  box-shadow:
-    0 0 0 1px rgba(0,0,0,.42) inset,
-    0 18px 40px rgba(0,0,0,.26);
+  border: 1px solid var(--panel-medieval-border);
+  background: var(--panel-medieval-bg);
+  box-shadow: var(--panel-medieval-shadow);
 }
 
 #professionsPanel[hidden]{
@@ -625,14 +900,11 @@ a:hover{ text-decoration: underline; }
   margin-right: 0 !important;
   margin-bottom: 0 !important;
   margin-left: 0 !important;
-  margin-top: -110px !important;
+  margin-top: 0 !important;
   position: relative !important;
   z-index: 45 !important;
   top: auto !important;
   left: auto !important;
-}
-body.ds-home-page #mainLayout #inventoryPanel{
-  margin-top: 0 !important;
 }
 
 /* ===== INVENTORY: 8 columns, NO scrollbars ===== */
@@ -748,11 +1020,11 @@ body.ds-home-page #mainLayout #inventoryPanel{
 }
 
 .charCreateCard{
-  background:#151520;
-  border:2px solid #333;
+  background:var(--panel-medieval-bg);
+  border:1px solid var(--panel-medieval-border);
   border-radius:18px;
   padding:24px;
-  box-shadow:0 20px 40px rgba(0,0,0,.28);
+  box-shadow:var(--panel-medieval-shadow);
 }
 
 .charCreateCard h1{
@@ -861,8 +1133,18 @@ body.ds-home-page #mainLayout #inventoryPanel{
   justify-content:center;
   padding:16px;
   border-radius:16px;
-  border:1px solid rgba(255,255,255,.08);
-  background:rgba(255,255,255,.03);
+  border:1px solid var(--card-medieval-border);
+  background:var(--card-medieval-bg);
+  box-shadow:var(--card-medieval-shadow);
+}
+
+#statsPanel{
+  background:var(--card-medieval-bg) !important;
+  border:1px solid var(--card-medieval-border) !important;
+  box-shadow:var(--card-medieval-shadow) !important;
+  position:static;
+  overflow:visible;
+  isolation:auto;
 }
 
 .charCreatePreview img{

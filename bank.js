@@ -8,7 +8,7 @@
         <div id="bankFilterList" style="display:flex;flex-direction:column;gap:8px;"></div>
         <div id="bankGrid" style="display:grid;grid-template-columns:repeat(6,40px);gap:4px;justify-content:center;padding:4px;width:max-content;max-width:100%;"></div>
         <div style="width:1px;align-self:stretch;background:linear-gradient(180deg, rgba(199,155,68,.06), rgba(199,155,68,.42) 18%, rgba(199,155,68,.42) 82%, rgba(199,155,68,.06));"></div>
-        <div id="bankPreview" style="min-height:220px;display:flex;align-items:center;justify-content:center;"></div>
+        <div id="bankPreview" style="min-height:220px;display:flex;align-items:center;justify-content:center;border:1px solid rgba(122, 91, 49, .8);border-radius:12px;background:linear-gradient(180deg, rgba(52,39,27,.78), rgba(20,18,20,.86));box-shadow:0 0 0 1px rgba(32,23,14,.82),inset 0 1px 0 rgba(255,228,178,.06),inset 0 0 0 1px rgba(255,214,143,.04),inset 0 -10px 18px rgba(0,0,0,.14),0 10px 18px rgba(0,0,0,.16);padding:12px;"></div>
       </div>
       <div id="bankEmpty" style="display:none;opacity:.82;text-align:center;padding:18px 10px;">Your bank is empty.</div>
     </div>

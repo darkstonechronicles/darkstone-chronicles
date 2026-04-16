@@ -2509,25 +2509,17 @@ function showZones(){
     const locked = hero.level < (z.reqLevel ?? 1);
 
     const card = document.createElement("div");
-    card.className = "fightZoneCard";
-    card.style.width = "100%";
-    card.style.maxWidth = "132px";
-    card.style.padding = "0";
-    card.style.border = "0";
-    card.style.background = "transparent";
-    card.style.cursor = locked ? "not-allowed" : "pointer";
-    card.style.textAlign = "center";
-    card.style.opacity = locked ? "0.55" : "1";
+    card.className = `fightZoneCard${locked ? " isLocked" : ""}`;
+    if (locked) card.style.cursor = "not-allowed";
 
     card.innerHTML = `
-      <div class="fightZoneCardInner" style="display:flex;flex-direction:column;align-items:center;gap:10px;">
+      <div class="fightZoneCardInner">
         <img src="${z.img}" alt="${z.name}"
-             class="fightZoneImg"
-             style="width:88px;height:88px;border-radius:10px;border:2px solid #333;object-fit:cover;background:#0f0f16;filter:${locked ? "grayscale(0.9)" : "none"};">
-        <div class="fightZoneInfo" style="width:126px;min-height:62px;padding:6px 7px;border-radius:10px;border:3px solid rgba(0,0,0,.55);background:rgba(0,0,0,.15);color:#ead39b;line-height:1.15;display:flex;flex-direction:column;justify-content:center;text-shadow:0 1px 0 rgba(87, 58, 16, .95),0 0 8px rgba(0,0,0,.34),0 2px 6px rgba(0,0,0,.72);">
-          <div class="fightZoneName" style="font-size:12px;font-weight:900;white-space:nowrap;">${z.name}</div>
-          <div class="fightZoneMeta" style="opacity:.9;margin-top:3px;font-size:12px;">Req Lv ${z.reqLevel ?? 1}</div>
-          ${locked ? `<div class="fightZoneMeta" style="opacity:.85;margin-top:3px;font-size:12px;">Locked</div>` : ``}
+             class="fightZoneImg">
+        <div class="fightZoneInfo">
+          <div class="fightZoneName">${z.name}</div>
+          <div class="fightZoneMeta">Req Lv ${z.reqLevel ?? 1}</div>
+          ${locked ? `<div class="fightZoneMeta isLocked">Locked</div>` : ``}
         </div>
       </div>
     `;
@@ -2557,14 +2549,6 @@ zone.mobs.forEach(m => {
   const mob = getMobCombatStats(m);
   const card = document.createElement("div");
   card.className = "fightMobCard";
-  card.style.background = "#151520";
-  card.style.border = "2px solid #333";
-  card.style.borderRadius = "12px";
-  card.style.padding = "10px";
-  card.style.cursor = "pointer";
-  card.style.textAlign = "left";
-  card.style.position = "relative";
-  card.style.overflow = "visible";
 
   const loot = (MOB_UNIQUE_DROPS?.[zone.id]?.[m.id]) || [];
   const mythic = ZONE_MYTHIC?.[zone.id] || null;
@@ -2613,78 +2597,36 @@ zone.mobs.forEach(m => {
   }).join("") : `<div style="opacity:.8;font-size:12px;">No known drops.</div>`;
 
   card.innerHTML = `
-<div class="fightMobCardInner" style="text-align:center;display:flex;flex-direction:column;align-items:center;">
+<div class="fightMobCardInner">
 
   <button type="button" class="mobLootBtn" style="position:absolute;top:8px;right:8px;width:28px;height:28px;background:#222438;border:1px solid #3a3d5c;border-radius:8px;cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0;z-index:2;">
     <img src="images/ui/my_treasure_chest.png" alt="Loot" style="width:18px;height:18px;display:block;image-rendering:auto;">
   </button>
 
   <img src="${mob.img}" 
-    class="fightMobImg"
-    style="width:96px;height:96px;border-radius:10px;border:2px solid #333;object-fit:cover;margin-bottom:3px;">
+    class="fightMobImg">
 
-  <div class="fightMobName" style="
-    font-weight:bold;
-    font-size:16px;
-    line-height:1.2;
-    text-align:center;
-    min-height:26px;
-  ">
+  <div class="fightMobName">
     ${mob.name}
   </div>
 
-  <div class="fightMobLevel" style="
-    font-size:13px;
-    opacity:.9;
-    margin-top:0px;
-    margin-bottom:0px;
-  ">
+  <div class="fightMobLevel">
     Level ${mob.lvl}
   </div>
 
-  <div class="fightMobStats" style="display:flex;gap:8px;justify-content:center;margin-top:0px;">
+  <div class="fightMobStats">
 
-    <div style="
-      width:44px;
-      height:44px;
-      background:#1e1e2a;
-      border-radius:8px;
-      display:flex;
-      flex-direction:column;
-      align-items:center;
-      justify-content:center;
-      font-size:11px;
-    ">
+    <div class="fightMobStat">
       <div style="font-size:14px;">❤️</div>
       <div>${mob.hp}</div>
     </div>
 
-    <div style="
-      width:44px;
-      height:44px;
-      background:#1e1e2a;
-      border-radius:8px;
-      display:flex;
-      flex-direction:column;
-      align-items:center;
-      justify-content:center;
-      font-size:11px;
-    ">
+    <div class="fightMobStat">
       <div style="font-size:14px;">⚔️</div>
       <div>${mob.atk}</div>
     </div>
 
-    <div style="
-      width:44px;
-      height:44px;
-      background:#1e1e2a;
-      border-radius:8px;
-      display:flex;
-      flex-direction:column;
-      align-items:center;
-      justify-content:center;
-      font-size:11px;
-    ">
+    <div class="fightMobStat">
       <div style="font-size:14px;">🛡</div>
       <div>${mob.def}</div>
     </div>
@@ -3008,12 +2950,6 @@ function mountFight(root = null) {
   bindFightDom(document);
   if (!zonesGrid || !zonesWrap || !mobsWrap || !mobsGrid || !battleWrap) return false;
 
-  if (__fightRoot) {
-    __fightRoot.style.background = "rgba(0, 0, 0, 0.15)";
-    __fightRoot.style.border = "3px solid rgba(0, 0, 0, 0.55)";
-    __fightRoot.style.borderRadius = "12px";
-  }
-
   if (__fightMounted) detachFightEvents();
 
   __fightMounted = true;
@@ -3033,11 +2969,6 @@ function unmountFight() {
   if (!__fightMounted) return;
   stopAutoFight(true);
   detachFightEvents();
-  if (__fightRoot) {
-    __fightRoot.style.background = "";
-    __fightRoot.style.border = "";
-    __fightRoot.style.borderRadius = "";
-  }
   __fightMounted = false;
   currentZone = null;
   currentMobData = null;
