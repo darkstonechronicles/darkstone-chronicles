@@ -154,7 +154,16 @@
     return true;
   }
 
-  window.DSHerbalism = { mount: mountHerbalism };
+  window.DSHerbalism = {
+    mount: mountHerbalism,
+    getAdminItems: () => HERB_ZONES.map((zone) => ({
+      type: "material",
+      id: String(zone.herbName || "").toLowerCase().replace(/\s+/g, "_"),
+      name: zone.herbName,
+      img: `images/herbalism/herbs/${String(zone.herbName || "").toLowerCase().replace(/\s+/g, "_")}.png`,
+      quantity: 1
+    }))
+  };
   window.addEventListener("DOMContentLoaded", () => { initStandaloneHerbalism(); });
   window.addEventListener("ds:save", renderHerbalismView);
 })();

@@ -1803,7 +1803,7 @@
         color:#f3ead6;
         cursor:pointer;
         font-size:13px;
-        display:flex;align-items:center;justify-content:center;gap:6px;
+        display:flex;align-items:center;justify-content:center;gap:8px;
         box-shadow:
           0 0 0 1px rgba(28,20,12,.9),
           inset 0 1px 0 rgba(255,228,178,.08),
@@ -1818,12 +1818,21 @@
           filter .14s ease;
       }
       .dsNavIconImg{
-        width:20px;
-        height:20px;
+        width:24px;
+        height:24px;
         display:block;
         object-fit:contain;
-        flex:0 0 20px;
-        filter:drop-shadow(0 3px 6px rgba(0,0,0,.22));
+        flex:0 0 24px;
+        padding:2px;
+        border-radius:7px;
+        background:
+          linear-gradient(180deg, rgba(86,64,38,.20), rgba(20,18,20,.10) 46%, rgba(0,0,0,.06) 100%),
+          linear-gradient(180deg, rgba(48,36,25,.78) 0%, rgba(24,21,22,.88) 100%);
+        box-shadow:
+          0 0 0 1px rgba(28,20,12,.72),
+          inset 0 1px 0 rgba(255,228,178,.06),
+          inset 0 -6px 10px rgba(0,0,0,.12);
+        filter:drop-shadow(0 3px 6px rgba(0,0,0,.18));
       }
       .dsNav button.dsNavImageBtn{
         padding:0;
@@ -2590,7 +2599,14 @@
           min-height:36px;
           padding:7px 3px;
           font-size:10px;
-          gap:2px;
+          gap:4px;
+        }
+        .dsNavIconImg{
+          width:21px;
+          height:21px;
+          flex:0 0 21px;
+          padding:1px;
+          border-radius:6px;
         }
         .dsNav button.dsNavImageBtn{
           padding:0;
@@ -3594,9 +3610,9 @@ function claimActiveChallengeFromQuest(){
           <img class="dsNavIconImg" src="images/ui/buildings.png" alt="" aria-hidden="true">
           Buildings
         </button>
-        <button id="navChallenges" aria-label="Challenges" data-open-tab-href="challenges.html">
-          <img class="dsNavIconImg" src="images/ui/challenges.png" alt="" aria-hidden="true">
-          Challenges
+        <button id="navLeaderboards" aria-label="Leaderboards" data-open-tab-href="leaderboards.html">
+          <img class="dsNavIconImg" src="images/ui/stats.png" alt="" aria-hidden="true">
+          Leaderboards
         </button>
         <button id="navProfessions" aria-label="Professions" data-open-tab-href="professions.html">
           <img class="dsNavIconImg" src="images/ui/professions.png" alt="" aria-hidden="true">
@@ -3694,7 +3710,7 @@ function claimActiveChallengeFromQuest(){
   document.getElementById("navFight")?.addEventListener("click", () => navigateWithFade("fight.html"));
   document.getElementById("navDungeons")?.addEventListener("click", () => navigateWithFade("dungeons.html"));
   document.getElementById("navBuildings")?.addEventListener("click", () => navigateWithFade("buildings.html"));
-  document.getElementById("navChallenges")?.addEventListener("click", () => navigateWithFade("challenges.html"));
+  document.getElementById("navLeaderboards")?.addEventListener("click", () => navigateWithFade("leaderboards.html"));
   document.getElementById("navProfessions")?.addEventListener("click", () => navigateWithFade("professions.html"));
   document.getElementById("navMarket")?.addEventListener("click", () => navigateWithFade("market.html"));
   document.getElementById("navPartyHall")?.addEventListener("click", () => navigateWithFade("party_hall.html"));
@@ -3870,6 +3886,159 @@ function bindPresenceMenu() {
 
 let __adminPanelBound = false;
 let __adminPanelOpen = false;
+let __adminItemCatalog = [];
+
+function adminItemStackKey(item) {
+  return [
+    item?.type || "",
+    item?.id || "",
+    item?.name || "",
+    item?.slot || "",
+    item?.reqLevel ?? 1,
+    item?.atk ?? 0,
+    item?.def ?? 0,
+    item?.rarity || "",
+    item?.img || "",
+    item?.crafted ? "crafted" : "",
+    item?.setId || ""
+  ].join("::");
+}
+
+function normalizeAdminItem(raw) {
+  if (!raw || typeof raw !== "object") return null;
+  const item = { ...raw };
+  if (!item.name) return null;
+  item.name = String(item.name || "").trim();
+  if (!item.name) return null;
+  item.type = String(item.type || (item.slot ? "gear" : "material") || "material").trim();
+  if (item.id != null) item.id = String(item.id);
+  if (item.slot != null) item.slot = String(item.slot);
+  if (item.img != null) item.img = String(item.img);
+  if (item.rarity != null) item.rarity = String(item.rarity);
+  if (item.baseName != null) item.baseName = String(item.baseName);
+  if (item.setId != null) item.setId = String(item.setId);
+  if (item.atk != null) item.atk = num(item.atk, 0);
+  if (item.def != null) item.def = num(item.def, 0);
+  if (item.reqLevel != null) item.reqLevel = Math.max(1, Math.trunc(num(item.reqLevel, 1)));
+  if (item.healHp != null) item.healHp = num(item.healHp, 0);
+  if (item.healStamina != null) item.healStamina = num(item.healStamina, 0);
+  item.quantity = 1;
+  return item;
+}
+
+function adminItemThumbHtml(item) {
+  const fallback = String(item?.name || "?").slice(0, 2).toUpperCase();
+  if (!item?.img) return `<span style="font-size:10px;font-weight:900;">${fallback}</span>`;
+  return `<img src="${item.img}" alt="" style="width:100%;height:100%;object-fit:cover;display:block;" onerror="this.remove();const fb=document.createElement('span');fb.textContent='${fallback}';fb.style.fontSize='10px';fb.style.fontWeight='900';this.parentNode&&this.parentNode.appendChild(fb);">`;
+}
+
+function buildAdminItemCatalog() {
+  const manualItems = [
+    { type: "consumable", id: "arrows", name: "Arrows", img: "images/items/arrows.png" },
+    { type: "material", id: "empty_vial", name: "Empty Vial", img: "images/alchemy/items/empty_vial.png" }
+  ];
+  const getters = [
+    window.DSFight?.getAdminItems,
+    window.DS_DUNGEON?.getAdminItems,
+    window.DSMining?.getAdminItems,
+    window.DSWoodcutting?.getAdminItems,
+    window.DSHunting?.getAdminItems,
+    window.DSHerbalism?.getAdminItems,
+    window.DSFishingAction?.getAdminItems,
+    window.DSCooking?.getAdminItems,
+    window.DSAlchemyTier?.getAdminItems,
+    window.DSForgeAction?.getAdminItems
+  ];
+  const all = [...manualItems];
+  getters.forEach((getItems) => {
+    try {
+      const items = typeof getItems === "function" ? getItems() : [];
+      if (Array.isArray(items)) all.push(...items);
+    } catch (error) {
+      console.warn("[admin] item catalog source failed", error);
+    }
+  });
+  const deduped = new Map();
+  all.forEach((raw) => {
+    const item = normalizeAdminItem(raw);
+    if (!item) return;
+    deduped.set(adminItemStackKey(item), item);
+  });
+  return Array.from(deduped.values()).sort((a, b) => {
+    const nameCmp = String(a.name || "").localeCompare(String(b.name || ""), "en", { sensitivity: "base" });
+    if (nameCmp !== 0) return nameCmp;
+    return String(a.type || "").localeCompare(String(b.type || ""), "en", { sensitivity: "base" });
+  });
+}
+
+function renderAdminItemPicker(modal) {
+  if (!modal) return;
+  __adminItemCatalog = buildAdminItemCatalog();
+  const searchEl = modal.querySelector("#dsAdminItemSearch");
+  const qtyEl = modal.querySelector("#dsAdminItemQty");
+  const resultsEl = modal.querySelector("#dsAdminItemResults");
+  const selectedEl = modal.querySelector("#dsAdminItemSelected");
+  const giveBtn = modal.querySelector("#dsAdminGiveItem");
+  if (!searchEl || !qtyEl || !resultsEl || !selectedEl || !giveBtn) return;
+
+  const selectedKey = String(modal.dataset.adminSelectedItemKey || "");
+  const query = String(searchEl.value || "").trim().toLowerCase();
+  const results = __adminItemCatalog.filter((item) => {
+    if (!query) return true;
+    const hay = [
+      item.name,
+      item.id,
+      item.type,
+      item.slot,
+      item.rarity
+    ].map((part) => String(part || "").toLowerCase()).join(" ");
+    return hay.includes(query);
+  }).slice(0, 60);
+
+  const selectedItem = __adminItemCatalog.find((item) => adminItemStackKey(item) === selectedKey) || null;
+  selectedEl.textContent = selectedItem
+    ? `${selectedItem.name} (${selectedItem.type}${selectedItem.slot ? ` • ${selectedItem.slot}` : ""})`
+    : "No item selected.";
+  giveBtn.disabled = !selectedItem;
+
+  resultsEl.innerHTML = results.length ? "" : `<div style="padding:10px 12px;opacity:.72;color:#d9ccb0;">No items found.</div>`;
+  results.forEach((item) => {
+    const key = adminItemStackKey(item);
+    const row = document.createElement("button");
+    row.type = "button";
+    row.className = "townBtn";
+    row.style.width = "100%";
+    row.style.minHeight = "0";
+    row.style.padding = "8px 10px";
+    row.style.display = "flex";
+    row.style.justifyContent = "space-between";
+    row.style.alignItems = "center";
+    row.style.gap = "10px";
+    row.style.textAlign = "left";
+    if (selectedKey === key) {
+      row.style.borderColor = "rgba(166,124,64,.98)";
+      row.style.background = "linear-gradient(180deg, rgba(84,60,30,.98) 0%, rgba(58,40,20,.98) 100%)";
+      row.style.color = "#fff1cf";
+    }
+    row.innerHTML = `
+      <span style="display:flex;align-items:center;gap:10px;min-width:0;">
+        <span style="width:34px;height:34px;flex:0 0 34px;border-radius:8px;border:1px solid rgba(126,94,50,.88);background:linear-gradient(180deg, rgba(46,35,23,.96) 0%, rgba(24,20,19,.98) 100%);box-shadow:0 0 0 1px rgba(28,20,12,.84), inset 0 1px 0 rgba(255,228,178,.08);display:flex;align-items:center;justify-content:center;overflow:hidden;">
+          ${adminItemThumbHtml(item)}
+        </span>
+        <span style="display:flex;flex-direction:column;min-width:0;">
+          <span style="font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${item.name}</span>
+          <span style="font-size:11px;opacity:.78;">${item.type}${item.slot ? ` • ${item.slot}` : ""}${item.reqLevel ? ` • Lv ${item.reqLevel}` : ""}</span>
+        </span>
+      </span>
+      <span style="font-size:11px;opacity:.82;white-space:nowrap;">${item.rarity || item.crafted ? (item.rarity || "crafted") : ""}</span>
+    `;
+    row.addEventListener("click", () => {
+      modal.dataset.adminSelectedItemKey = key;
+      renderAdminItemPicker(modal);
+    });
+    resultsEl.appendChild(row);
+  });
+}
 
 function ensureAdminToolsModal() {
   let modal = document.getElementById("dsAdminModal");
@@ -3890,7 +4059,7 @@ function ensureAdminToolsModal() {
   ].join(";");
 
   modal.innerHTML = `
-    <div id="dsAdminModalCard" style="width:min(460px, calc(100vw - 24px));max-height:min(80vh, 720px);overflow:auto;border-radius:16px;border:1px solid rgba(255,255,255,.12);background:linear-gradient(180deg, rgba(20,23,36,.98), rgba(12,14,24,.98));box-shadow:0 24px 60px rgba(0,0,0,.42);padding:16px 16px 14px;">
+    <div id="dsAdminModalCard" style="width:min(760px, calc(100vw - 24px));max-height:min(84vh, 760px);overflow:auto;border-radius:16px;border:1px solid rgba(255,255,255,.12);background:linear-gradient(180deg, rgba(20,23,36,.98), rgba(12,14,24,.98));box-shadow:0 24px 60px rgba(0,0,0,.42);padding:16px 16px 14px;">
       <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:12px;">
         <div>
           <div style="font-size:11px;opacity:.68;font-weight:800;letter-spacing:.3px;">ADMIN ONLY</div>
@@ -3926,6 +4095,23 @@ function ensureAdminToolsModal() {
         <button id="dsAdminApplyGold" type="button" class="townBtn" style="width:100%;">Apply Gold</button>
         <button id="dsAdminApplyLevel" type="button" class="townBtn" style="width:100%;">Apply Level</button>
       </div>
+
+      <div style="margin-top:16px;padding-top:14px;border-top:1px solid rgba(255,255,255,.08);">
+        <div style="font-size:15px;font-weight:900;color:#f3ead6;margin-bottom:10px;">Grant Item</div>
+        <div style="display:grid;grid-template-columns:minmax(0,1fr) 96px auto;gap:10px;align-items:end;">
+          <label style="display:flex;flex-direction:column;gap:6px;">
+            <span style="font-size:12px;font-weight:800;opacity:.88;">Search Item</span>
+            <input id="dsAdminItemSearch" type="text" placeholder="e.g. War Sigil, Copper Ore, Ember Axe" style="height:38px;border-radius:10px;border:1px solid rgba(255,255,255,.12);background:#10131d;color:#eef2ff;padding:0 10px;">
+          </label>
+          <label style="display:flex;flex-direction:column;gap:6px;">
+            <span style="font-size:12px;font-weight:800;opacity:.88;">Qty</span>
+            <input id="dsAdminItemQty" type="number" min="1" step="1" value="1" style="height:38px;border-radius:10px;border:1px solid rgba(255,255,255,.12);background:#10131d;color:#eef2ff;padding:0 10px;">
+          </label>
+          <button id="dsAdminGiveItem" type="button" class="townBtn" style="width:170px;">Give Selected Item</button>
+        </div>
+        <div id="dsAdminItemSelected" style="margin-top:10px;padding:10px 12px;border-radius:12px;border:1px solid rgba(255,255,255,.08);background:rgba(255,255,255,.03);font-size:12px;color:#d9ccb0;">No item selected.</div>
+        <div id="dsAdminItemResults" style="margin-top:10px;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;max-height:300px;overflow:auto;padding-right:2px;"></div>
+      </div>
     </div>
   `;
 
@@ -3944,6 +4130,7 @@ function openAdminToolsModal() {
   const modal = ensureAdminToolsModal();
   modal.style.display = "flex";
   __adminPanelOpen = true;
+  renderAdminItemPicker(modal);
 }
 
 function bindAdminToolsModal() {
@@ -4025,6 +4212,25 @@ function bindAdminToolsModal() {
     runGrant({ set: { heroLevel: Math.trunc(level), heroXP: 0 } }, `Set hero level to ${Math.trunc(level)}.`);
   });
 
+  const itemSearch = modal.querySelector("#dsAdminItemSearch");
+  const itemQty = modal.querySelector("#dsAdminItemQty");
+  itemSearch?.addEventListener("input", () => renderAdminItemPicker(modal));
+  itemQty?.addEventListener("change", () => {
+    const qty = Math.max(1, Math.trunc(num(itemQty.value, 1)));
+    itemQty.value = String(qty);
+  });
+  modal.querySelector("#dsAdminGiveItem")?.addEventListener("click", () => {
+    const key = String(modal.dataset.adminSelectedItemKey || "");
+    const item = __adminItemCatalog.find((entry) => adminItemStackKey(entry) === key);
+    if (!item) {
+      setStatus("Select an item first.", true);
+      return;
+    }
+    const qty = Math.max(1, Math.trunc(num(itemQty?.value, 1)));
+    if (itemQty) itemQty.value = String(qty);
+    runGrant({ items: [{ ...item, quantity: qty }] }, `Granted ${qty}x ${item.name}.`);
+  });
+
   document.addEventListener("keydown", (e) => {
     if (e.key === "Escape" && __adminPanelOpen) closeAdminToolsModal();
   });
@@ -4043,7 +4249,7 @@ function normalizePagePath(path) {
   return normalized || "index.html";
 }
 
-const SHELL_ROUTES = new Set(["index.html", "fight.html", "dungeons.html", "dungeon_run.html", "buildings.html", "challenges.html", "market.html", "bank.html", "party_hall.html", "professions.html", "professions_overview.html", "equipment.html", "stats.html", "stats_alloc.html", "mining.html", "mining_action.html", "hunting.html", "hunting_action.html", "fishing.html", "fishing_action.html", "cooking.html", "cooking_action.html", "herbalism.html", "herbalism_action.html", "alchemy.html", "alchemy_tier.html", "alchemy_action.html", "carpentry.html", "woodcutting.html", "wood_gather_action.html", "wood_sawmill_action.html", "forge.html", "forge_action.html", "enchanting.html"]);
+const SHELL_ROUTES = new Set(["index.html", "fight.html", "dungeons.html", "dungeon_run.html", "buildings.html", "challenges.html", "leaderboards.html", "market.html", "bank.html", "party_hall.html", "professions.html", "professions_overview.html", "equipment.html", "stats.html", "stats_alloc.html", "mining.html", "mining_action.html", "hunting.html", "hunting_action.html", "fishing.html", "fishing_action.html", "cooking.html", "cooking_action.html", "herbalism.html", "herbalism_action.html", "alchemy.html", "alchemy_tier.html", "alchemy_action.html", "carpentry.html", "woodcutting.html", "wood_gather_action.html", "wood_sawmill_action.html", "forge.html", "forge_action.html", "enchanting.html"]);
 const SHELL_INSTANT_ROUTES = new Set(["mining_action.html", "hunting_action.html", "fishing_action.html", "cooking_action.html", "herbalism_action.html", "alchemy_action.html", "wood_gather_action.html", "wood_sawmill_action.html", "forge_action.html"]);
 
 function canUseShellRouting(currentPage, targetPage) {
@@ -4114,6 +4320,13 @@ function mountShellView(targetPage, targetHref = targetPage) {
     window.DS_DUNGEON?.unmountDungeonList?.();
     window.DS_DUNGEON?.unmountDungeonRun?.();
     return !!window.DSPartyHall?.mount?.(left);
+  }
+
+  if (targetPage === "leaderboards.html") {
+    window.DSFight?.unmount?.();
+    window.DS_DUNGEON?.unmountDungeonList?.();
+    window.DS_DUNGEON?.unmountDungeonRun?.();
+    return !!window.DSLeaderboards?.mount?.(left);
   }
 
   if (targetPage === "professions.html") {

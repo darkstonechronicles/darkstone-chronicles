@@ -6,10 +6,10 @@
 
     <div id="buildingsWrap" style="max-width:900px;margin:0 auto;display:grid;gap:18px;">
       <div id="buildingsGrid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:16px;justify-items:center;"></div>
-      <div id="buildingDetail" style="display:none;background:#151520;border:2px solid #333;border-radius:14px;padding:16px;"></div>
+      <div id="buildingDetail" style="display:none;background:var(--card-medieval-bg);border:1px solid var(--card-medieval-border);border-radius:14px;padding:16px;box-shadow:var(--card-medieval-shadow);"></div>
     </div>
 
-    <div id="msg" style="margin-top:10px;text-align:center;opacity:.9;"></div>
+    <div id="msg" style="margin-top:10px;text-align:center;opacity:.9;color:#d9ccb0;"></div>
   `;
 
   let selectedBuildingId = null;
@@ -175,12 +175,12 @@
       card.style.gap = "10px";
       card.style.cursor = "pointer";
       card.innerHTML = `
-        <span style="width:84px;height:84px;padding:4px;border-radius:8px;border:2px solid ${isSelected ? "#d4a04f" : "#333"};background:#0f0f16;box-shadow:${isSelected ? "0 0 0 1px #e0b36a inset, 0 10px 24px rgba(0,0,0,.32)" : "0 0 0 1px rgba(255,255,255,.04) inset, 0 10px 24px rgba(0,0,0,.26)"};">
+        <span style="width:84px;height:84px;padding:4px;border-radius:10px;border:1px solid ${isSelected ? "rgba(166,124,64,.98)" : "rgba(126,94,50,.88)"};background:linear-gradient(180deg, rgba(46,35,23,.96) 0%, rgba(24,20,19,.98) 100%);box-shadow:${isSelected ? "0 0 0 1px rgba(60,40,16,.82), inset 0 1px 0 rgba(255,232,184,.12), inset 0 -10px 18px rgba(0,0,0,.22), 0 12px 20px rgba(0,0,0,.2)" : "0 0 0 1px rgba(28,20,12,.84), inset 0 1px 0 rgba(255,228,178,.08), inset 0 -10px 16px rgba(0,0,0,.14), 0 10px 18px rgba(0,0,0,.18)"};">
           <img src="${b.img}" alt="${b.name}" style="width:100%;height:100%;display:block;object-fit:cover;border-radius:6px;">
         </span>
-        <span style="min-width:138px;padding:8px 10px;border-radius:10px;border:1px solid ${isSelected ? "#e0b36a" : "rgba(255,255,255,.12)"};background:${isSelected ? "#2a2212" : "#101019"};text-align:center;line-height:1.2;">
-          <span style="display:block;font-size:14px;font-weight:900;">${b.name}</span>
-          <span style="display:block;margin-top:4px;font-size:12px;opacity:.85;">Level ${lvl}/${MAX_LEVEL}</span>
+        <span style="min-width:138px;padding:8px 10px;border-radius:10px;border:1px solid ${isSelected ? "rgba(166,124,64,.98)" : "rgba(126,94,50,.88)"};background:linear-gradient(180deg, rgba(86,64,38,.34), rgba(26,23,26,.16) 42%, rgba(0,0,0,.10) 100%), linear-gradient(180deg, #34281d 0%, #1d1a1d 100%);text-align:center;line-height:1.2;box-shadow:${isSelected ? "0 0 0 1px rgba(60,40,16,.82), inset 0 1px 0 rgba(255,232,184,.12), inset 0 -10px 18px rgba(0,0,0,.22), 0 12px 20px rgba(0,0,0,.2)" : "0 0 0 1px rgba(28,20,12,.9), inset 0 1px 0 rgba(255,228,178,.08), inset 0 0 0 1px rgba(255,214,143,.04), inset 0 -8px 14px rgba(0,0,0,.16), 0 8px 16px rgba(0,0,0,.18)"};">
+          <span style="display:block;font-size:14px;font-weight:900;color:#f3ead6;text-shadow:0 1px 0 rgba(74,47,14,.95),0 0 8px rgba(0,0,0,.3),0 2px 6px rgba(0,0,0,.58);">${b.name}</span>
+          <span style="display:block;margin-top:4px;font-size:12px;opacity:.9;color:#e7d7b6;">Level ${lvl}/${MAX_LEVEL}</span>
         </span>
       `;
       card.addEventListener("click", () => {
@@ -206,20 +206,20 @@
     detail.style.display = "block";
     detail.innerHTML = `
       <div style="display:flex;gap:14px;align-items:flex-start;flex-wrap:wrap;">
-        <img src="${b.img}" alt="${b.name}" style="width:96px;height:96px;border-radius:12px;border:2px solid #333;object-fit:cover;background:#0f0f16;">
+        <img src="${b.img}" alt="${b.name}" style="width:96px;height:96px;border-radius:12px;border:1px solid rgba(126,94,50,.88);object-fit:cover;background:linear-gradient(180deg, rgba(46,35,23,.96) 0%, rgba(24,20,19,.98) 100%);box-shadow:0 0 0 1px rgba(28,20,12,.84), inset 0 1px 0 rgba(255,228,178,.08), inset 0 -10px 16px rgba(0,0,0,.14), 0 10px 18px rgba(0,0,0,.18);">
         <div style="flex:1;min-width:240px;">
           <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;">
-            <div style="font-size:22px;font-weight:900;">${b.name}</div>
-            <div style="padding:6px 10px;border-radius:999px;background:#101019;border:1px solid rgba(255,255,255,.08);">Level ${lvl}/${MAX_LEVEL}</div>
+            <div style="font-size:22px;font-weight:900;color:#f3ead6;text-shadow:0 1px 0 rgba(74,47,14,.95),0 0 8px rgba(0,0,0,.3),0 2px 6px rgba(0,0,0,.58);">${b.name}</div>
+            <div style="padding:6px 10px;border-radius:999px;background:linear-gradient(180deg, rgba(46,35,23,.96) 0%, rgba(24,20,19,.98) 100%);border:1px solid rgba(126,94,50,.88);color:#f3ead6;box-shadow:0 0 0 1px rgba(28,20,12,.84), inset 0 1px 0 rgba(255,228,178,.08), inset 0 -10px 16px rgba(0,0,0,.14);">Level ${lvl}/${MAX_LEVEL}</div>
           </div>
-          <div style="margin-top:6px;opacity:.86;">${b.desc}</div>
-          <div style="margin-top:12px;font-size:14px;">Current bonus: <b>+${bonusPct(lvl, b.bonusPerLevel).toFixed(2)}%</b> ${b.bonusText}</div>
-          <div style="margin-top:6px;font-size:14px;">Next level bonus: <b>+${bonusPct(nextLvl, b.bonusPerLevel).toFixed(2)}%</b> ${b.bonusText}</div>
+          <div style="margin-top:6px;opacity:.9;color:#d9ccb0;">${b.desc}</div>
+          <div style="margin-top:12px;font-size:14px;color:#f3ead6;">Current bonus: <b>+${bonusPct(lvl, b.bonusPerLevel).toFixed(2)}%</b> ${b.bonusText}</div>
+          <div style="margin-top:6px;font-size:14px;color:#f3ead6;">Next level bonus: <b>+${bonusPct(nextLvl, b.bonusPerLevel).toFixed(2)}%</b> ${b.bonusText}</div>
         </div>
       </div>
-      <div style="margin-top:14px;padding:12px;border-radius:12px;background:#101019;border:1px solid rgba(255,255,255,.08);">
-        <div style="font-size:15px;font-weight:900;margin-bottom:8px;">Upgrade Requirements</div>
-        <div style="font-size:13px;opacity:.92;">${costLines}</div>
+      <div style="margin-top:14px;padding:12px;border-radius:12px;background:linear-gradient(180deg, rgba(46,35,23,.92) 0%, rgba(18,18,22,.96) 100%);border:1px solid rgba(126,94,50,.88);box-shadow:0 0 0 1px rgba(28,20,12,.84), inset 0 1px 0 rgba(255,228,178,.06), inset 0 -10px 16px rgba(0,0,0,.14);">
+        <div style="font-size:15px;font-weight:900;margin-bottom:8px;color:#f3ead6;text-shadow:0 1px 0 rgba(74,47,14,.95),0 0 8px rgba(0,0,0,.3),0 2px 6px rgba(0,0,0,.58);">Upgrade Requirements</div>
+        <div style="font-size:13px;opacity:.96;color:#f3ead6;">${costLines}</div>
       </div>
       <div style="margin-top:12px;display:flex;justify-content:flex-end;">
         <button id="upgradeSelectedBtn" ${maxed ? "disabled" : ""}>${maxed ? "Max Level" : `Upgrade to Lv ${nextLvl}`}</button>

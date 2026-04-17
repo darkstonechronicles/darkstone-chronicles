@@ -161,7 +161,16 @@
     return true;
   }
 
-  window.DSMining = { mount: mountMining };
+  window.DSMining = {
+    mount: mountMining,
+    getAdminItems: () => ORES.map((o) => ({
+      type: "ore",
+      id: o.id,
+      name: o.name,
+      img: o.img,
+      quantity: 1
+    }))
+  };
   window.addEventListener("DOMContentLoaded", () => { initStandaloneMining(); });
   window.addEventListener("ds:save", renderMiningView);
 })();

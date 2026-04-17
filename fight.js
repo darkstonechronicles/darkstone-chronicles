@@ -2983,7 +2983,11 @@ function unmountFight() {
 // =========================
 window.DSFight = {
   mount: mountFight,
-  unmount: unmountFight
+  unmount: unmountFight,
+  getAdminItems: () => [
+    { ...WAR_SIGIL_ITEM, quantity: 1 },
+    ...Object.values(ITEM_LIBRARY || {}).map((item) => ({ ...(item || {}), quantity: 1 }))
+  ]
 };
 
 if (document.getElementById("zonesGrid")) {

@@ -22,26 +22,26 @@
 
   /* Premium buttons */
   --btn-premium-bg:
-    linear-gradient(180deg, rgba(255,255,255,.08), rgba(255,255,255,.02) 42%, rgba(0,0,0,.10) 100%),
-    linear-gradient(180deg, #242833 0%, #171a22 100%);
-  --btn-premium-border: #4a5060;
+    linear-gradient(180deg, rgba(185,235,228,.08), rgba(255,255,255,.02) 42%, rgba(0,0,0,.10) 100%),
+    linear-gradient(180deg, #2f5b58 0%, #1d3838 100%);
+  --btn-premium-border: #4d7d77;
   --btn-premium-highlight: rgba(255,255,255,.14);
   --btn-premium-shadow:
     0 12px 24px rgba(0,0,0,.26),
     0 0 0 1px rgba(0,0,0,.45),
     inset 0 1px 0 rgba(255,255,255,.08),
     inset 0 -1px 0 rgba(0,0,0,.35);
-  --btn-premium-hover-border: #646d82;
-  --btn-premium-hover-glow: rgba(189, 204, 255, .14);
+  --btn-premium-hover-border: #67a49b;
+  --btn-premium-hover-glow: rgba(93, 179, 163, .18);
   --btn-premium-primary-bg:
-    linear-gradient(180deg, rgba(255,245,210,.16), rgba(255,255,255,.04) 36%, rgba(0,0,0,.10) 100%),
-    linear-gradient(180deg, #6f5320 0%, #3e2d11 100%);
-  --btn-premium-primary-border: #c79b44;
-  --btn-premium-primary-glow: rgba(228, 181, 77, .18);
+    linear-gradient(180deg, rgba(255,225,225,.12), rgba(255,255,255,.03) 36%, rgba(0,0,0,.12) 100%),
+    linear-gradient(180deg, #6a2f38 0%, #421920 100%);
+  --btn-premium-primary-border: #b86672;
+  --btn-premium-primary-glow: rgba(186, 96, 108, .18);
   --btn-premium-danger-bg:
-    linear-gradient(180deg, rgba(255,220,220,.10), rgba(255,255,255,.03) 36%, rgba(0,0,0,.12) 100%),
-    linear-gradient(180deg, #592329 0%, #301116 100%);
-  --btn-premium-danger-border: #ad4f5b;
+    linear-gradient(180deg, rgba(255,255,255,.05), rgba(255,255,255,.02) 36%, rgba(0,0,0,.12) 100%),
+    linear-gradient(180deg, #383c46 0%, #20232b 100%);
+  --btn-premium-danger-border: #6f7686;
   --panel-medieval-bg:
     radial-gradient(circle at top, rgba(255,220,150,.06), transparent 28%),
     linear-gradient(180deg, rgba(40,31,22,.94), rgba(17,15,18,.96));
@@ -242,11 +242,11 @@ a:hover{ text-decoration: underline; }
 #attackBtn:hover,
 #targetBtn:hover,
 #actions button:hover{
-  border-color: #dfb15a;
+  border-color: #ce7a87;
   box-shadow:
     0 14px 28px rgba(0,0,0,.32),
     0 0 0 1px rgba(0,0,0,.5),
-    0 0 22px rgba(228, 181, 77, .24),
+    0 0 22px rgba(186, 96, 108, .24),
     inset 0 1px 0 rgba(255,255,255,.14),
     inset 0 -1px 0 rgba(0,0,0,.26);
 }
@@ -258,7 +258,7 @@ a:hover{ text-decoration: underline; }
   box-shadow:
     0 12px 24px rgba(0,0,0,.28),
     0 0 0 1px rgba(0,0,0,.45),
-    0 0 16px rgba(173, 79, 91, .16),
+    0 0 16px rgba(111, 118, 134, .16),
     inset 0 1px 0 rgba(255,255,255,.08),
     inset 0 -1px 0 rgba(0,0,0,.32);
 }

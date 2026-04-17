@@ -203,7 +203,30 @@ function initStandaloneAlchemyTier(){
   return true;
 }
 
-window.DSAlchemyTier = { mount: mountAlchemyTier };
+window.DSAlchemyTier = {
+  mount: mountAlchemyTier,
+  getAdminItems: () => {
+    const herbItems = HERBS.map((herb) => ({
+      type: "material",
+      id: String(herb.herbName || "").toLowerCase().replace(/\s+/g, "_"),
+      name: herb.herbName,
+      img: `images/herbalism/herbs/${String(herb.herbName || "").toLowerCase().replace(/\s+/g, "_")}.png`,
+      quantity: 1
+    }));
+    const potionItems = HERBS.flatMap((herb) => POTION_TYPES.map((potion) => ({
+      type: "consumable",
+      id: `${potion.id}_${herb.tier}`,
+      name: `${potion.label} ${ROMAN[herb.tier - 1]}`,
+      img: `images/alchemy/potions/${potion.id}_${herb.tier}.png`,
+      quantity: 1
+    })));
+    return [
+      { type: "material", id: "empty_vial", name: "Empty Vial", img: "images/alchemy/items/empty_vial.png", quantity: 1 },
+      ...herbItems,
+      ...potionItems
+    ];
+  }
+};
 window.addEventListener("DOMContentLoaded", () => { initStandaloneAlchemyTier(); });
 window.addEventListener("ds:save", () => {
   if (!document.getElementById("potionGrid")) return;

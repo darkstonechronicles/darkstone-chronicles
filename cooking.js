@@ -397,7 +397,27 @@ function initStandaloneCooking() {
   return true;
 }
 
-window.DSCooking = { mount: mountCooking };
+window.DSCooking = {
+  mount: mountCooking,
+  getAdminItems: () => RECIPES.flatMap((recipe) => ([
+    {
+      type: recipe.in?.type || "material",
+      id: recipe.in?.id,
+      name: recipe.in?.name,
+      img: recipe.in?.img,
+      quantity: 1
+    },
+    {
+      type: recipe.out?.type || "food",
+      id: recipe.out?.id,
+      name: recipe.out?.name,
+      img: recipe.out?.img,
+      healHp: recipe.out?.healHp,
+      healStamina: recipe.out?.healStamina,
+      quantity: 1
+    }
+  ]))
+};
 
 window.addEventListener("DOMContentLoaded", () => {
   initStandaloneCooking();

@@ -157,12 +157,28 @@ function buildPublicStats(save: Record<string, unknown>, email: string) {
   const fallbackName = email.split("@")[0] || "Hero";
   const heroName = String(save.heroName || save.playerName || fallbackName).trim() || fallbackName;
   const heroLevel = Math.max(1, safeInt(save.heroLevel, 1));
+  const heroXP = Math.max(0, safeInt(save.heroXP, 0));
+  const miningLevel = Math.max(1, safeInt(save.miningLevel, 1));
+  const miningXP = Math.max(0, safeInt(save.miningXP, 0));
+  const totalStats = save.stats && typeof save.stats === "object"
+    ? (((save.stats as Record<string, unknown>).total as Record<string, unknown> | undefined) || {})
+    : {};
+  const dungeonsCompleted = Math.max(0, safeInt(totalStats.dungeonsCompleted, 0));
   const totalGold = Math.max(0, safeInt(save.gold, 0));
   const combatPower = Math.max(
     0,
     safeInt(save.heroAttack ?? save.heroAtk, 0) + safeInt(save.heroDefense ?? save.heroDef, 0),
   );
-  return { hero_name: heroName, hero_level: heroLevel, total_gold: totalGold, combat_power: combatPower };
+  return {
+    hero_name: heroName,
+    hero_level: heroLevel,
+    hero_xp: heroXP,
+    mining_level: miningLevel,
+    mining_xp: miningXP,
+    dungeons_completed: dungeonsCompleted,
+    total_gold: totalGold,
+    combat_power: combatPower,
+  };
 }
 
 Deno.serve(async (req) => {

@@ -2171,7 +2171,10 @@
     runAgainActive,
     getActive: () => loadActive(),
     getPending: () => loadPending(),
-    clearActive
+    clearActive,
+    getAdminItems: () => [
+      { ...CRYPT_SIGIL_ITEM, quantity: 1 }
+    ]
   };
 
   // ===== Auto-start if we are on dungeon_run.html =====

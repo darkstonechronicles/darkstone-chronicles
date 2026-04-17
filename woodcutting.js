@@ -153,7 +153,16 @@
     return true;
   }
 
-  window.DSWoodcutting = { mount: mountWoodcutting };
+  window.DSWoodcutting = {
+    mount: mountWoodcutting,
+    getAdminItems: () => WOODS.map((w) => ({
+      type: "material",
+      id: `${w.id}_log`,
+      name: `${w.name} Log`,
+      img: w.img,
+      quantity: 1
+    }))
+  };
   window.addEventListener("DOMContentLoaded", () => { initStandaloneWoodcutting(); });
   window.addEventListener("ds:save", renderWoodcuttingView);
 })();

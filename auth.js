@@ -173,6 +173,10 @@
     return {
       hero_name: String(next.heroName || next.playerName || fallbackName).trim() || fallbackName,
       hero_level: Math.max(1, Number(next.heroLevel || 1) || 1),
+      hero_xp: Math.max(0, Number(next.heroXP || 0) || 0),
+      mining_level: Math.max(1, Number(next.miningLevel || 1) || 1),
+      mining_xp: Math.max(0, Number(next.miningXP || 0) || 0),
+      dungeons_completed: Math.max(0, Number(next?.stats?.total?.dungeonsCompleted || 0) || 0),
       total_gold: Math.max(0, Number(next.gold || 0) || 0),
       combat_power: Math.max(0, (Number(next.heroAtk || 0) || 0) + (Number(next.heroDef || 0) || 0))
     };

@@ -3,18 +3,18 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Darkstone Chronicles - Party Hall</title>
+  <title>Darkstone Chronicles - Leaderboards</title>
   <link rel="stylesheet" href="style.css?v=20260417-204338"/>
 </head>
 <body>
   <div id="hudRoot"></div>
   <div id="mainLayout">
     <div id="leftPanel">
-      <div id="partyHallRoot" style="max-width:980px;margin:0 auto;">
-        <div style="text-align:center;margin-bottom:12px;">
-          <h1 style="margin:0;color:#ead39b;">PARTY HALL</h1>
-        </div>
-        <div id="partyHallCard"></div>
+      <div id="leaderboardsRoot" style="max-width:980px;margin:0 auto;">
+        <h1 style="margin-bottom:6px;">Leaderboards</h1>
+        <div style="opacity:.85;margin-bottom:14px;">Hero Level leaderboard.</div>
+        <div id="leaderboardsCategoryGrid" class="leaderboardsCategoryGrid" style="display:flex;flex-wrap:wrap;gap:14px;align-items:flex-start;"></div>
+        <div id="leaderboardsView" style="margin-top:18px;"></div>
       </div>
     </div>
     <div id="inventoryPanel"></div>
@@ -33,5 +33,6 @@
   <script src="stats.js?v=20260417-204338"></script>
   <script src="stats_alloc.js?v=20260417-204338"></script>
   <script src="party.js?v=20260417-204338"></script>
+  <script src="leaderboards.js?v=20260417-204338"></script>
 </body>
 </html>

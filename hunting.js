@@ -212,7 +212,16 @@
     return true;
   }
 
-  window.DSHunting = { mount: mountHunting };
+  window.DSHunting = {
+    mount: mountHunting,
+    getAdminItems: () => TARGETS.map((t) => ({
+      type: "meat",
+      id: `${t.id}_raw`,
+      name: t.rawName,
+      img: t.rawImg,
+      quantity: 1
+    }))
+  };
   window.addEventListener("DOMContentLoaded", () => { initStandaloneHunting(); });
   window.addEventListener("ds:save", renderHuntingView);
 })();

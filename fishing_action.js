@@ -790,7 +790,16 @@ function initStandaloneFishingAction(){
   return true;
 }
 
-window.DSFishingAction = { mount: mountFishingAction };
+window.DSFishingAction = {
+  mount: mountFishingAction,
+  getAdminItems: () => SPOTS.flatMap((spot) => (spot.fish || []).map((fish) => ({
+    type: "fish",
+    id: fish.id,
+    name: fish.name,
+    img: fish.img,
+    quantity: 1
+  })))
+};
 
 window.addEventListener("DOMContentLoaded", () => {
   initStandaloneFishingAction();

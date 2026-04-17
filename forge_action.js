@@ -939,7 +939,39 @@ function initStandaloneForgeAction(){
   return true;
 }
 
-window.DSForgeAction = { mount: mountForgeAction };
+window.DSForgeAction = {
+  mount: mountForgeAction,
+  getAdminItems: () => {
+    const barItems = MATERIALS.map((material) => ({
+      type: "material",
+      id: `${material.id}_bar`,
+      name: `${material.name} Bar`,
+      img: `${BAR_IMG}/${material.id}_bar.png`,
+      quantity: 1
+    }));
+    const craftedItems = MATERIALS.flatMap((material) => CRAFT_SLOTS.map((slotDef) => {
+      const suffix = slotDef.id === "main_hand" ? (MAIN_HAND_NAMES[material.id] || slotDef.name) : slotDef.name;
+      return {
+        type: "gear",
+        id: `${material.id}_${slotDef.id}`,
+        name: `${material.name} ${suffix}`,
+        slot: slotDef.slot,
+        atk: slotDef.atk,
+        def: slotDef.def,
+        reqLevel: material.reqLevel,
+        rarity: "crafted",
+        crafted: true,
+        img: `${CRAFT_IMG}/${material.id}/${material.id}_${slotDef.id}.png`,
+        quantity: 1
+      };
+    }));
+    return [
+      { ...ORE_SIGIL_ITEM, quantity: 1 },
+      ...barItems,
+      ...craftedItems
+    ];
+  }
+};
 
 window.addEventListener("DOMContentLoaded", () => {
   initStandaloneForgeAction();

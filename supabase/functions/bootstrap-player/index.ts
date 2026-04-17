@@ -35,11 +35,18 @@ function isUniqueViolation(message: string) {
 
 function buildPublicStats(payload: BootstrapPayload, email: string) {
   const save = payload.saveData && typeof payload.saveData === "object" ? payload.saveData : {};
+  const totalStats = typeof (save as Record<string, unknown>).stats === "object"
+    ? (((save as Record<string, unknown>).stats as Record<string, unknown>).total as Record<string, unknown> | undefined) || {}
+    : {};
   const heroName = getSafeString(
     payload.heroName ?? (save as Record<string, unknown>).heroName,
     email.split("@")[0] || "Hero",
   );
   const heroLevel = Math.max(1, Number((save as Record<string, unknown>).heroLevel ?? 1) || 1);
+  const heroXP = Math.max(0, Number((save as Record<string, unknown>).heroXP ?? 0) || 0);
+  const miningLevel = Math.max(1, Number((save as Record<string, unknown>).miningLevel ?? 1) || 1);
+  const miningXP = Math.max(0, Number((save as Record<string, unknown>).miningXP ?? 0) || 0);
+  const dungeonsCompleted = Math.max(0, Number(totalStats.dungeonsCompleted ?? 0) || 0);
   const totalGold = Math.max(0, Number((save as Record<string, unknown>).gold ?? 0) || 0);
   const combatPower = Math.max(
     0,
@@ -47,7 +54,7 @@ function buildPublicStats(payload: BootstrapPayload, email: string) {
       Number((save as Record<string, unknown>).heroDef ?? 0),
   );
 
-  return { heroName, heroLevel, totalGold, combatPower };
+  return { heroName, heroLevel, heroXP, miningLevel, miningXP, dungeonsCompleted, totalGold, combatPower };
 }
 
 Deno.serve(async (req) => {
@@ -164,6 +171,10 @@ Deno.serve(async (req) => {
     user_id: user.id,
     hero_name: stats.heroName,
     hero_level: stats.heroLevel,
+    hero_xp: stats.heroXP,
+    mining_level: stats.miningLevel,
+    mining_xp: stats.miningXP,
+    dungeons_completed: stats.dungeonsCompleted,
     total_gold: stats.totalGold,
     combat_power: stats.combatPower,
   });
