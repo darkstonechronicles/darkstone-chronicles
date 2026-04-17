@@ -104,9 +104,7 @@
 
   function initExistingHome() {
     if (!el("homeHub")) return false;
-    document.title = "Darkstone Chronicles";
-    bindHomeNav(document);
-    return true;
+    return mountHome();
   }
 
   window.DSHome = {
