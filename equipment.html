@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Equipment - Darkstone Chronicles</title>
-  <link rel="stylesheet" href="style.css?v=20260416-232347" />
+  <link rel="stylesheet" href="style.css?v=20260417-145207" />
   <style id="dsBootShellStyles">
     html{background-color:var(--bg-fallback,#090a10);}
     body{margin:0;background:transparent;}
@@ -42,14 +42,14 @@
   <div id="mainLayout">
     <div id="leftPanel">
       <div class="equipWrap" style="max-width:900px;margin:0 auto;">
-        <div class="equipCard" style="background:#151520;border:2px solid #333;border-radius:12px;padding:10px 12px;">
+        <div class="equipCard" style="background:var(--card-medieval-bg);border:1px solid var(--card-medieval-border);border-radius:14px;padding:12px;box-shadow:var(--card-medieval-shadow);">
           <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;">
-            <div style="font-weight:900;">Equipped</div>
-            <div style="opacity:.8;font-size:12px;">Click a slot to unequip</div>
+            <div style="font-weight:900;color:#f3ead6;text-shadow:0 1px 0 rgba(74,47,14,.95),0 0 8px rgba(0,0,0,.3),0 2px 6px rgba(0,0,0,.58);">Equipped</div>
+            <div style="opacity:.84;font-size:12px;color:#d9ccb0;">Click a slot to unequip</div>
           </div>
 
           <div style="display:flex;gap:10px;align-items:stretch;margin-top:10px;">
-            <div id="paperdoll" style="flex:0 0 58%;position:relative;height:350px;border:1px solid #2a2a3a;border-radius:12px;overflow:hidden;background:#0f0f16;">
+            <div id="paperdoll" style="flex:0 0 58%;position:relative;height:350px;border:1px solid var(--card-medieval-border);border-radius:14px;overflow:hidden;background:var(--card-medieval-bg);box-shadow:var(--card-medieval-shadow);">
               <div class="knightBg" aria-hidden="true"></div>
 
               <div id="slot_helmet" class="pdSlot" data-slot="helmet" style="left:46%;top:6px;"></div>
@@ -68,8 +68,8 @@
               <div id="slot_amulet"    class="pdSlot" data-slot="amulet"    style="left:76%;top:270px;"></div>
             </div>
 
-            <div id="statsPanel" style="flex:1;min-width:0;background:#151520;border:2px solid #333;border-radius:12px;padding:9px 10px;">
-              <div style="font-weight:900;">Stats Breakdown</div>
+            <div id="statsPanel" style="flex:1;min-width:0;background:var(--card-medieval-bg);border:1px solid var(--card-medieval-border);border-radius:14px;padding:12px;box-shadow:var(--card-medieval-shadow);">
+              <div style="font-weight:900;color:#f3ead6;text-shadow:0 1px 0 rgba(74,47,14,.95),0 0 8px rgba(0,0,0,.3),0 2px 6px rgba(0,0,0,.58);">Stats Breakdown</div>
 
               <div id="statsTabs" style="display:flex;gap:8px;flex-wrap:nowrap;margin-top:8px;">
                 <button id="tabFight" type="button" style="flex:1;min-width:0;">Fighting Fields</button>
@@ -77,30 +77,30 @@
               </div>
 
               <div style="margin-top:8px;">
-                <table id="statsTable" style="width:100%;border-collapse:collapse;font-size:11px;table-layout:fixed;">
+                <table id="statsTable" style="width:100%;border-collapse:collapse;font-size:11px;table-layout:fixed;color:#f3ead6;">
                   <thead>
                     <tr>
-                      <th style="text-align:left;padding:6px;border-bottom:1px solid #2a2a3a;">Stat</th>
-                      <th style="text-align:right;padding:6px;border-bottom:1px solid #2a2a3a;">Base</th>
-                      <th style="text-align:right;padding:6px;border-bottom:1px solid #2a2a3a;">Equip/Pet</th>
-                      <th style="text-align:right;padding:6px;border-bottom:1px solid #2a2a3a;">Bonus</th>
-                      <th style="text-align:right;padding:6px;border-bottom:1px solid #2a2a3a;">Total</th>
+                      <th style="text-align:left;padding:6px;border-bottom:1px solid rgba(166,124,64,.38);color:#f3ead6;">Stat</th>
+                      <th style="text-align:right;padding:6px;border-bottom:1px solid rgba(166,124,64,.38);color:#f3ead6;">Base</th>
+                      <th style="text-align:right;padding:6px;border-bottom:1px solid rgba(166,124,64,.38);color:#f3ead6;">Equip/Pet</th>
+                      <th style="text-align:right;padding:6px;border-bottom:1px solid rgba(166,124,64,.38);color:#f3ead6;">Bonus</th>
+                      <th style="text-align:right;padding:6px;border-bottom:1px solid rgba(166,124,64,.38);color:#f3ead6;">Total</th>
                     </tr>
                   </thead>
                   <tbody>
                     <tr>
-                      <td style="padding:6px;border-bottom:1px solid #2a2a3a;">Attack</td>
-                      <td id="baseAtk"  style="padding:6px;text-align:right;border-bottom:1px solid #2a2a3a;">0</td>
-                      <td id="gearAtk"  style="padding:6px;text-align:right;border-bottom:1px solid #2a2a3a;">+0</td>
-                      <td id="pctAtk"   style="padding:6px;text-align:right;border-bottom:1px solid #2a2a3a;">0%</td>
-                      <td id="totalAtk" style="padding:6px;text-align:right;border-bottom:1px solid #2a2a3a;font-weight:900;">0</td>
+                      <td style="padding:6px;border-bottom:1px solid rgba(166,124,64,.28);color:#f3ead6;">Attack</td>
+                      <td id="baseAtk"  style="padding:6px;text-align:right;border-bottom:1px solid rgba(166,124,64,.28);color:#f3ead6;">0</td>
+                      <td id="gearAtk"  style="padding:6px;text-align:right;border-bottom:1px solid rgba(166,124,64,.28);color:#f3ead6;">+0</td>
+                      <td id="pctAtk"   style="padding:6px;text-align:right;border-bottom:1px solid rgba(166,124,64,.28);color:#f3ead6;">0%</td>
+                      <td id="totalAtk" style="padding:6px;text-align:right;border-bottom:1px solid rgba(166,124,64,.28);font-weight:900;color:#fff1cf;">0</td>
                     </tr>
                     <tr>
-                      <td style="padding:6px;">Defense</td>
-                      <td id="baseDef"  style="padding:6px;text-align:right;">0</td>
-                      <td id="gearDef"  style="padding:6px;text-align:right;">+0</td>
-                      <td id="pctDef"   style="padding:6px;text-align:right;">0%</td>
-                      <td id="totalDef" style="padding:6px;text-align:right;font-weight:900;">0</td>
+                      <td style="padding:6px;color:#f3ead6;">Defense</td>
+                      <td id="baseDef"  style="padding:6px;text-align:right;color:#f3ead6;">0</td>
+                      <td id="gearDef"  style="padding:6px;text-align:right;color:#f3ead6;">+0</td>
+                      <td id="pctDef"   style="padding:6px;text-align:right;color:#f3ead6;">0%</td>
+                      <td id="totalDef" style="padding:6px;text-align:right;font-weight:900;color:#fff1cf;">0</td>
                     </tr>
                   </tbody>
                 </table>
@@ -120,39 +120,39 @@
     </div>
   </div>
 
-  <script src="auth.js?v=20260416-232347"></script>
-  <script src="ui.js?v=20260416-232347"></script>
-  <script src="index.js?v=20260416-232347"></script>
-  <script src="fight.js?v=20260416-232347"></script>
-  <script src="dungeon.js?v=20260416-232347"></script>
-  <script src="buildings.js?v=20260416-232347"></script>
-  <script src="challenges.js?v=20260416-232347"></script>
-  <script src="market.js?v=20260416-232347"></script>
-  <script src="bank.js?v=20260416-232347"></script>
-  <script src="professions.js?v=20260416-232347"></script>
-  <script src="mining.js?v=20260416-232347"></script>
-  <script src="hunting.js?v=20260416-232347"></script>
-  <script src="fishing.js?v=20260416-232347"></script>
-  <script src="cooking.js?v=20260416-232347"></script>
-  <script src="herbalism.js?v=20260416-232347"></script>
-  <script src="alchemy.js?v=20260416-232347"></script>
-  <script src="alchemy_tier.js?v=20260416-232347"></script>
-  <script src="alchemy_action.js?v=20260416-232347"></script>
-  <script src="wood_sawmill.js?v=20260416-232347"></script>
-  <script src="woodcutting.js?v=20260416-232347"></script>
-  <script src="wood_gather_action.js?v=20260416-232347"></script>
-  <script src="wood_sawmill_action.js?v=20260416-232347"></script>
-  <script src="professions_overview.js?v=20260416-232347"></script>
-  <script src="equipment.js?v=20260416-232347"></script>
-  <script src="stats.js?v=20260416-232347"></script>
-  <script src="stats_alloc.js?v=20260416-232347"></script>
-  <script src="forge.js?v=20260416-232347"></script>
-  <script src="enchanting.js?v=20260416-232347"></script>
-  <script src="mining_action.js?v=20260416-232347"></script>
-  <script src="hunting_action.js?v=20260416-232347"></script>
-  <script src="fishing_action.js?v=20260416-232347"></script>
-  <script src="cooking_action.js?v=20260416-232347"></script>
-  <script src="herbalism_action.js?v=20260416-232347"></script>
-  <script src="forge_action.js?v=20260416-232347"></script>
+  <script src="auth.js?v=20260417-145207"></script>
+  <script src="ui.js?v=20260417-145207"></script>
+  <script src="index.js?v=20260417-145207"></script>
+  <script src="fight.js?v=20260417-145207"></script>
+  <script src="dungeon.js?v=20260417-145207"></script>
+  <script src="buildings.js?v=20260417-145207"></script>
+  <script src="challenges.js?v=20260417-145207"></script>
+  <script src="market.js?v=20260417-145207"></script>
+  <script src="bank.js?v=20260417-145207"></script>
+  <script src="professions.js?v=20260417-145207"></script>
+  <script src="mining.js?v=20260417-145207"></script>
+  <script src="hunting.js?v=20260417-145207"></script>
+  <script src="fishing.js?v=20260417-145207"></script>
+  <script src="cooking.js?v=20260417-145207"></script>
+  <script src="herbalism.js?v=20260417-145207"></script>
+  <script src="alchemy.js?v=20260417-145207"></script>
+  <script src="alchemy_tier.js?v=20260417-145207"></script>
+  <script src="alchemy_action.js?v=20260417-145207"></script>
+  <script src="wood_sawmill.js?v=20260417-145207"></script>
+  <script src="woodcutting.js?v=20260417-145207"></script>
+  <script src="wood_gather_action.js?v=20260417-145207"></script>
+  <script src="wood_sawmill_action.js?v=20260417-145207"></script>
+  <script src="professions_overview.js?v=20260417-145207"></script>
+  <script src="equipment.js?v=20260417-145207"></script>
+  <script src="stats.js?v=20260417-145207"></script>
+  <script src="stats_alloc.js?v=20260417-145207"></script>
+  <script src="forge.js?v=20260417-145207"></script>
+  <script src="enchanting.js?v=20260417-145207"></script>
+  <script src="mining_action.js?v=20260417-145207"></script>
+  <script src="hunting_action.js?v=20260417-145207"></script>
+  <script src="fishing_action.js?v=20260417-145207"></script>
+  <script src="cooking_action.js?v=20260417-145207"></script>
+  <script src="herbalism_action.js?v=20260417-145207"></script>
+  <script src="forge_action.js?v=20260417-145207"></script>
 </body>
 </html>

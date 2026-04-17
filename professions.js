@@ -8,70 +8,70 @@
     <div id="homeHub">
       <button class="hubNav" id="goMine" data-open-tab-href="mining.html">
         <span class="hubIconFrame">
-          <span class="hubEmoji" aria-hidden="true">&#9935;&#65039;</span>
+          <img class="hubIconImg" src="images/ui/mining.png" alt="" aria-hidden="true">
         </span>
         <span class="hubLabel">Mining</span>
       </button>
 
       <button class="hubNav" id="goForge" data-open-tab-href="forge.html">
         <span class="hubIconFrame">
-          <span class="hubEmoji" aria-hidden="true">&#9874;&#65039;</span>
+          <img class="hubIconImg" src="images/ui/forge.png" alt="" aria-hidden="true">
         </span>
         <span class="hubLabel">Forge</span>
       </button>
 
       <button class="hubNav" id="goWoodcut" data-open-tab-href="woodcutting.html">
         <span class="hubIconFrame">
-          <span class="hubEmoji" aria-hidden="true">&#129717;</span>
+          <img class="hubIconImg" src="images/ui/woodcutting.png" alt="" aria-hidden="true">
         </span>
         <span class="hubLabel">Woodcutting</span>
       </button>
 
       <button class="hubNav" id="goCarp" data-open-tab-href="carpentry.html">
         <span class="hubIconFrame">
-          <span class="hubEmoji" aria-hidden="true">&#129717;</span>
+          <img class="hubIconImg" src="images/ui/carpentry.png" alt="" aria-hidden="true">
         </span>
         <span class="hubLabel">Carpentry</span>
       </button>
 
       <button class="hubNav" id="goHunt" data-open-tab-href="hunting.html">
         <span class="hubIconFrame">
-          <span class="hubEmoji" aria-hidden="true">&#127993;</span>
+          <img class="hubIconImg" src="images/ui/hunting.png" alt="" aria-hidden="true">
         </span>
         <span class="hubLabel">Hunting</span>
       </button>
 
       <button class="hubNav" id="goFish" data-open-tab-href="fishing.html">
         <span class="hubIconFrame">
-          <span class="hubEmoji" aria-hidden="true">&#127907;</span>
+          <img class="hubIconImg" src="images/ui/fishing.png" alt="" aria-hidden="true">
         </span>
         <span class="hubLabel">Fishing</span>
       </button>
 
       <button class="hubNav" id="goCook" data-open-tab-href="cooking.html">
         <span class="hubIconFrame">
-          <span class="hubEmoji" aria-hidden="true">&#127859;</span>
+          <img class="hubIconImg" src="images/ui/cooking.png" alt="" aria-hidden="true">
         </span>
         <span class="hubLabel">Cooking</span>
       </button>
 
       <button class="hubNav" id="goEnchant" data-open-tab-href="enchanting.html">
         <span class="hubIconFrame">
-          <span class="hubEmoji" aria-hidden="true">&#10024;</span>
+          <img class="hubIconImg" src="images/ui/enchanting.png" alt="" aria-hidden="true">
         </span>
         <span class="hubLabel">Enchanting</span>
       </button>
 
       <button class="hubNav" id="goHerb" data-open-tab-href="herbalism.html">
         <span class="hubIconFrame">
-          <span class="hubEmoji" aria-hidden="true">&#127807;</span>
+          <img class="hubIconImg" src="images/ui/herbalism.png" alt="" aria-hidden="true">
         </span>
         <span class="hubLabel">Herbalism</span>
       </button>
 
       <button class="hubNav" id="goAlchemy" data-open-tab-href="alchemy.html">
         <span class="hubIconFrame">
-          <span class="hubEmoji" aria-hidden="true">&#9879;&#65039;</span>
+          <img class="hubIconImg" src="images/ui/alchemy.png" alt="" aria-hidden="true">
         </span>
         <span class="hubLabel">Alchemy</span>
       </button>

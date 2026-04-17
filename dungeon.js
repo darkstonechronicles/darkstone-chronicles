@@ -1772,15 +1772,18 @@
   function openDungeonLootPanelFor(lootPanel, currentOpenPanelRef, anchorEl = null) {
     if (!lootPanel) return currentOpenPanelRef || null;
     if (currentOpenPanelRef && currentOpenPanelRef !== lootPanel) {
+      currentOpenPanelRef.closest?.(".dungeonCard")?.classList.remove("lootOpen");
       currentOpenPanelRef.style.display = "none";
     }
     applyDungeonLootPanelLayout(lootPanel, anchorEl);
+    lootPanel.closest?.(".dungeonCard")?.classList.add("lootOpen");
     lootPanel.style.display = "block";
     return lootPanel;
   }
 
   function closeDungeonLootPanelFor(lootPanel, currentOpenPanelRef) {
     if (!lootPanel) return currentOpenPanelRef || null;
+    lootPanel.closest?.(".dungeonCard")?.classList.remove("lootOpen");
     lootPanel.style.display = "none";
     return currentOpenPanelRef === lootPanel ? null : currentOpenPanelRef;
   }
@@ -1827,9 +1830,6 @@
 
     ensureDungeonListStyles();
     left.innerHTML = DUNGEON_LIST_TEMPLATE;
-    left.style.background = "rgba(0, 0, 0, 0.15)";
-    left.style.border = "3px solid rgba(0, 0, 0, 0.55)";
-    left.style.borderRadius = "12px";
     document.title = "Darkstone Chronicles - Dungeons";
 
     const msgEl = document.getElementById("msg");
@@ -1883,15 +1883,6 @@
     dungeons.forEach((d) => {
       const card = document.createElement("div");
       card.className = "dungeonCard";
-      card.style.width = "100%";
-      card.style.maxWidth = "180px";
-      card.style.padding = "0";
-      card.style.border = "0";
-      card.style.background = "transparent";
-      card.style.cursor = "default";
-      card.style.textAlign = "center";
-      card.style.position = "relative";
-      card.style.overflow = "visible";
 
       const lootItems = [...(d.setItems || [])];
       lootItems.push({ type:"material", name:"Crypt Sigil", rarity:"rare", img:"images/items/sigils/crypt_sigil.png", _label:"Bonus Drop" });
@@ -1936,36 +1927,36 @@
         <button type="button" class="dungeonLootBtn" style="position:absolute;top:8px;right:8px;width:28px;height:28px;background:#222438;border:1px solid #3a3d5c;border-radius:8px;cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0;z-index:2;">
           <img src="images/ui/my_treasure_chest.png" alt="Loot" style="width:18px;height:18px;display:block;image-rendering:auto;">
         </button>
-        <div class="dungeonCardInner" style="display:flex;flex-direction:column;align-items:center;gap:10px;">
+        <div class="dungeonCardInner">
           <button type="button" class="dungeonEnterBtn" aria-label="Enter ${d.name}">
-            <img src="${d.thumb}" alt="${d.name}" class="dungeonCardImg" style="width:96px;height:96px;border-radius:10px;border:2px solid #333;object-fit:cover;background:#0f0f16;">
+            <img src="${d.thumb}" alt="${d.name}" class="dungeonCardImg">
           </button>
-          <div class="dungeonInfo" style="width:170px;min-height:124px;padding:5px 8px 8px;border-radius:10px;border:1px solid rgba(255,255,255,.12);background:#101019;line-height:1.15;display:flex;flex-direction:column;justify-content:flex-start;">
-            <div class="dungeonName" style="font-size:14px;font-weight:900;min-height:28px;display:flex;align-items:center;justify-content:center;text-align:center;white-space:nowrap;">${d.name}</div>
-            <div class="dungeonReq" style="opacity:.9;margin-top:3px;font-size:12px;">Req Lv ${d.reqLevel}</div>
-            <div class="dungeonCost" style="opacity:.9;margin-top:6px;font-size:12px;">Cost: ${d.entryCost} Stamina</div>
-            <div class="dungeonStats" style="margin-top:8px;padding-top:7px;border-top:1px solid rgba(255,255,255,.08);display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;">
-              <div class="dungeonStatBox" style="border-radius:10px;background:#1a1a28;padding:6px 4px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;">
-                <div class="dungeonStatIcon" style="font-size:16px;line-height:1;" aria-hidden="true">&#128151;</div>
-                <div class="dungeonStatValue" style="font-size:12px;line-height:1;font-weight:800;">${new Intl.NumberFormat("el-GR").format(Number(d.boss?.hp || 0))}</div>
+          <div class="dungeonInfo">
+            <div class="dungeonName">${d.name}</div>
+            <div class="dungeonReq">Req Lv ${d.reqLevel}</div>
+            <div class="dungeonCost">Cost: ${d.entryCost} Stamina</div>
+            <div class="dungeonStats">
+              <div class="dungeonStatBox">
+                <div class="dungeonStatIcon" aria-hidden="true">&#128151;</div>
+                <div class="dungeonStatValue">${new Intl.NumberFormat("el-GR").format(Number(d.boss?.hp || 0))}</div>
               </div>
-              <div class="dungeonStatBox" style="border-radius:10px;background:#1a1a28;padding:6px 4px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;">
-                <div class="dungeonStatIcon" style="font-size:16px;line-height:1;" aria-hidden="true">&#9876;&#65039;</div>
-                <div class="dungeonStatValue" style="font-size:12px;line-height:1;font-weight:800;">${new Intl.NumberFormat("el-GR").format(Number(d.boss?.atk || 0))}</div>
+              <div class="dungeonStatBox">
+                <div class="dungeonStatIcon" aria-hidden="true">&#9876;&#65039;</div>
+                <div class="dungeonStatValue">${new Intl.NumberFormat("el-GR").format(Number(d.boss?.atk || 0))}</div>
               </div>
-              <div class="dungeonStatBox" style="border-radius:10px;background:#1a1a28;padding:6px 4px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;">
-                <div class="dungeonStatIcon" style="font-size:16px;line-height:1;" aria-hidden="true">&#128737;&#65039;</div>
-                <div class="dungeonStatValue" style="font-size:12px;line-height:1;font-weight:800;">${new Intl.NumberFormat("el-GR").format(Number(d.boss?.def || 0))}</div>
+              <div class="dungeonStatBox">
+                <div class="dungeonStatIcon" aria-hidden="true">&#128737;&#65039;</div>
+                <div class="dungeonStatValue">${new Intl.NumberFormat("el-GR").format(Number(d.boss?.def || 0))}</div>
               </div>
             </div>
           </div>
         </div>
-        <div class="dungeonLootPanel" style="display:none;position:absolute;left:calc(100% + 8px);top:8px;width:260px;max-width:min(260px,calc(100vw - 40px));z-index:20;background:#10121c;border:1px solid #3a3d5c;border-radius:12px;padding:10px;box-shadow:0 10px 24px rgba(0,0,0,.45);">
-          <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:8px;">
-            <div style="font-weight:800;font-size:12px;opacity:.95;">Drops</div>
+        <div class="dungeonLootPanel">
+          <div class="dungeonLootPanelHeader">
+            <div class="dungeonLootPanelTitle">Drops</div>
             <button type="button" class="dungeonLootClose" style="background:#222438;border:1px solid #3a3d5c;color:#ddd;width:24px;height:24px;border-radius:999px;font-size:12px;cursor:pointer;">x</button>
           </div>
-          <div style="display:flex;flex-direction:column;gap:6px;">
+          <div class="dungeonLootPanelList">
             ${lootHtml}
           </div>
         </div>
@@ -2005,16 +1996,14 @@
 
     cardsWrap.onclick = (e) => {
       if (e.target === cardsWrap && __dungeonListOpenPanel) {
-        __dungeonListOpenPanel.style.display = "none";
-        __dungeonListOpenPanel = null;
+        __dungeonListOpenPanel = closeDungeonLootPanelFor(__dungeonListOpenPanel, __dungeonListOpenPanel);
       }
     };
 
     __dungeonListOutsideClick = (e) => {
       if (e.target?.closest?.(".dungeonLootBtn, .dungeonLootPanel, .dungeonLootClose")) return;
       if (__dungeonListOpenPanel) {
-        __dungeonListOpenPanel.style.display = "none";
-        __dungeonListOpenPanel = null;
+        __dungeonListOpenPanel = closeDungeonLootPanelFor(__dungeonListOpenPanel, __dungeonListOpenPanel);
       }
     };
     document.addEventListener("click", __dungeonListOutsideClick);

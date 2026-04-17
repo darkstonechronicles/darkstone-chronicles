@@ -10,18 +10,19 @@
 
   const num = (v, f = 0) => (Number.isFinite(Number(v)) ? Number(v) : f);
   const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+  const cp = (...codes) => String.fromCodePoint(...codes);
 
   const TRACKS = [
-    { key: "mining", label: "Mining", emoji: "β›οΈ" },
-    { key: "blacksmith", label: "Forge", emoji: "β’οΈ" },
-    { key: "woodcutting", label: "Woodcutting", emoji: "πµ" },
-    { key: "carpentry", label: "Carpentry", emoji: "π" },
-    { key: "hunting", label: "Hunting", emoji: "πΉ" },
-    { key: "fishing", label: "Fishing", emoji: "π£" },
-    { key: "cooking", label: "Cooking", emoji: "π³" },
-    { key: "enchanting", label: "Enchanting", emoji: "β¨" },
-    { key: "herbalism", label: "Herbalism", emoji: "πΏ" },
-    { key: "alchemy", label: "Alchemy", emoji: "β—οΈ" }
+    { key: "mining", label: "Mining", emoji: cp(0x26CF, 0xFE0F) },
+    { key: "blacksmith", label: "Forge", emoji: cp(0x2692, 0xFE0F) },
+    { key: "woodcutting", label: "Woodcutting", emoji: cp(0x1FAB5) },
+    { key: "carpentry", label: "Carpentry", emoji: cp(0x1FAB5) },
+    { key: "hunting", label: "Hunting", emoji: cp(0x1F3F9) },
+    { key: "fishing", label: "Fishing", emoji: cp(0x1F3A3) },
+    { key: "cooking", label: "Cooking", emoji: cp(0x1F373) },
+    { key: "enchanting", label: "Enchanting", emoji: cp(0x2728) },
+    { key: "herbalism", label: "Herbalism", emoji: cp(0x1F33F) },
+    { key: "alchemy", label: "Alchemy", emoji: cp(0x2697, 0xFE0F) }
   ];
 
   function roundLevelXP(v){
@@ -85,7 +86,7 @@
     const pct = clamp((xp / Math.max(1, next)) * 100, 0, 100);
     const [colorA, colorB] = progressColors(pct);
     return `
-      <div style="height:12px;background:#0f0f16;border:2px solid #333;border-radius:999px;overflow:hidden;margin-top:10px;">
+      <div style="height:12px;background:linear-gradient(180deg,#1b191c,#111116);border:1px solid rgba(126,94,50,.62);border-radius:999px;overflow:hidden;margin-top:6px;box-shadow:0 0 0 1px rgba(28,20,12,.65), inset 0 1px 0 rgba(255,228,178,.05);">
         <div style="height:100%;width:${pct}%;background:linear-gradient(90deg,${colorA},${colorB});"></div>
       </div>
     `;
@@ -93,13 +94,13 @@
 
   function card(title, level, xp, next, emoji) {
     return `
-      <div style="background:#151520;border:2px solid #333;border-radius:12px;padding:10px 11px;">
+      <div style="background:linear-gradient(180deg, rgba(86,64,38,.34), rgba(26,23,26,.16) 42%, rgba(0,0,0,.10) 100%), linear-gradient(180deg, #34281d 0%, #1d1a1d 100%);border:1px solid rgba(126,94,50,.88);border-radius:12px;padding:10px 11px;box-shadow:0 0 0 1px rgba(28,20,12,.84), inset 0 1px 0 rgba(255,228,178,.08), inset 0 0 0 1px rgba(255,214,143,.04), inset 0 -10px 16px rgba(0,0,0,.14), 0 10px 18px rgba(0,0,0,.18);">
         <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;">
-          <div style="font-weight:900;font-size:12px;line-height:1.15;min-width:0;flex:1;">${emoji} ${title}</div>
-          <div style="font-weight:900;font-size:11px;line-height:1.15;white-space:nowrap;flex:0 0 auto;">Lv ${level}</div>
+          <div style="font-weight:900;font-size:12px;line-height:1.15;min-width:0;flex:1;color:#f3ead6;text-shadow:0 1px 0 rgba(74,47,14,.95),0 0 8px rgba(0,0,0,.3),0 2px 6px rgba(0,0,0,.58);">${emoji} ${title}</div>
+          <div style="font-weight:900;font-size:11px;line-height:1.15;white-space:nowrap;flex:0 0 auto;color:#e7d7b6;">Lv ${level}</div>
         </div>
-        <div style="opacity:.86;margin-top:5px;font-size:11px;">${xp} / ${next}</div>
-        ${progressBar(xp, next).replace("margin-top:10px;", "margin-top:6px;")}
+        <div style="opacity:.88;margin-top:5px;font-size:11px;color:#f3ead6;">${xp} / ${next}</div>
+        ${progressBar(xp, next)}
       </div>
     `;
   }
@@ -114,7 +115,7 @@
     if (!grid) return;
 
     grid.innerHTML = [
-      card("Hero Level", heroLevel, heroXP, heroXPNext, "π›΅οΈ"),
+      card("Hero Level", heroLevel, heroXP, heroXPNext, cp(0x1F9D9, 0x200D, 0x2642, 0xFE0F)),
       ...TRACKS.map((track) => {
         const data = getTrack(save, track.key);
         return card(track.label, data.level, data.xp, data.next, track.emoji);

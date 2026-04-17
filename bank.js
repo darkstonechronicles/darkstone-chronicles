@@ -3,14 +3,14 @@
   const BANK_TEMPLATE = `
     <h1>Bank</h1>
 
-    <div style="display:flex;justify-content:center;padding:12px 10px;border-radius:14px;border:1px solid rgba(199,155,68,.28);background:linear-gradient(180deg, rgba(255,245,210,.05), rgba(255,255,255,.01) 30%, rgba(0,0,0,.10) 100%),linear-gradient(180deg, #1c2028 0%, #12151c 100%);box-shadow:0 0 0 1px rgba(0,0,0,.42),0 14px 28px rgba(0,0,0,.22),inset 0 1px 0 rgba(255,255,255,.05),inset 0 -1px 0 rgba(0,0,0,.28);max-width:900px;margin:0 auto 12px;">
+    <div style="display:flex;justify-content:center;padding:12px 10px;border-radius:14px;border:1px solid var(--card-medieval-border);background:var(--card-medieval-bg);box-shadow:var(--card-medieval-shadow);max-width:900px;margin:0 auto 12px;">
       <div style="width:100%;max-width:700px;display:grid;grid-template-columns:120px max-content 1px 1fr;gap:14px;align-items:start;">
         <div id="bankFilterList" style="display:flex;flex-direction:column;gap:8px;"></div>
         <div id="bankGrid" style="display:grid;grid-template-columns:repeat(6,40px);gap:4px;justify-content:center;padding:4px;width:max-content;max-width:100%;"></div>
         <div style="width:1px;align-self:stretch;background:linear-gradient(180deg, rgba(199,155,68,.06), rgba(199,155,68,.42) 18%, rgba(199,155,68,.42) 82%, rgba(199,155,68,.06));"></div>
         <div id="bankPreview" style="min-height:220px;display:flex;align-items:center;justify-content:center;border:1px solid rgba(122, 91, 49, .8);border-radius:12px;background:linear-gradient(180deg, rgba(52,39,27,.78), rgba(20,18,20,.86));box-shadow:0 0 0 1px rgba(32,23,14,.82),inset 0 1px 0 rgba(255,228,178,.06),inset 0 0 0 1px rgba(255,214,143,.04),inset 0 -10px 18px rgba(0,0,0,.14),0 10px 18px rgba(0,0,0,.16);padding:12px;"></div>
       </div>
-      <div id="bankEmpty" style="display:none;opacity:.82;text-align:center;padding:18px 10px;">Your bank is empty.</div>
+      <div id="bankEmpty" style="display:none;opacity:.88;text-align:center;padding:18px 10px;color:#d9ccb0;">Your bank is empty.</div>
     </div>
   `;
 
@@ -170,6 +170,7 @@
     FILTERS.forEach((filter) => {
       const btn = document.createElement("button");
       btn.type = "button";
+      btn.className = "townBtn";
       btn.textContent = `${filter.label} (${counts[filter.id] || 0})`;
       btn.style.width = "100%";
       btn.style.height = "34px";
@@ -180,9 +181,13 @@
       btn.style.justifyContent = "space-between";
       btn.style.display = "flex";
       btn.style.alignItems = "center";
+      btn.style.fontWeight = "900";
+      btn.style.color = "#f3ead6";
       if (activeFilter === filter.id) {
-        btn.style.borderColor = "#c79b44";
-        btn.style.background = "linear-gradient(180deg, rgba(255,245,210,.16), rgba(255,255,255,.04) 36%, rgba(0,0,0,.10) 100%), linear-gradient(180deg, #6f5320 0%, #3e2d11 100%)";
+        btn.style.borderColor = "rgba(166, 124, 64, .98)";
+        btn.style.background = "linear-gradient(180deg, rgba(84,60,30,.98) 0%, rgba(58,40,20,.98) 100%)";
+        btn.style.color = "#fff1cf";
+        btn.style.boxShadow = "0 0 0 1px rgba(60,40,16,.82), inset 0 1px 0 rgba(255,232,184,.12), inset 0 -10px 18px rgba(0,0,0,.22), 0 12px 20px rgba(0,0,0,.2)";
       }
       btn.addEventListener("click", () => {
         activeFilter = filter.id;
@@ -200,7 +205,7 @@
     const item = Number.isFinite(selectedIndex) ? save.bank[selectedIndex] : null;
 
     if (!item) {
-      bankPreview.innerHTML = `<div style="opacity:.6;font-size:12px;text-align:center;">Select an item</div>`;
+      bankPreview.innerHTML = `<div style="opacity:.72;font-size:12px;text-align:center;color:#d9ccb0;">Select an item</div>`;
       return;
     }
 
@@ -210,12 +215,12 @@
     bankPreview.innerHTML = `
       <div style="width:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;text-align:center;">
         <img src="${item.img || ""}" alt="${item.name || "Item"}" style="width:92px;height:92px;border-radius:12px;border:2px solid ${border};background:${imgBg};object-fit:cover;">
-        <div style="font-weight:800;font-size:13px;line-height:1.2;">${item.name || "Item"}</div>
+        <div style="font-weight:800;font-size:13px;line-height:1.2;color:#f3ead6;text-shadow:0 1px 0 rgba(74,47,14,.95),0 0 8px rgba(0,0,0,.3),0 2px 6px rgba(0,0,0,.58);">${item.name || "Item"}</div>
         <div style="display:flex;align-items:center;justify-content:center;gap:6px;flex-wrap:nowrap;width:100%;max-width:160px;">
-          <button id="bankWithdrawBtn" type="button" style="min-width:96px;padding:8px 10px;font-size:12px;">Withdraw</button>
-          <input id="bankWithdrawQty" type="number" min="1" max="${q}" value="${q}" style="width:52px;min-width:52px;padding:7px 6px;border-radius:10px;border:2px solid #333;background:#0f0f16;color:#fff;outline:none;text-align:center;">
+          <button id="bankWithdrawBtn" class="townBtn" type="button" style="min-width:96px;padding:8px 10px;font-size:12px;">Withdraw</button>
+          <input id="bankWithdrawQty" type="number" min="1" max="${q}" value="${q}" style="width:52px;min-width:52px;padding:7px 6px;border-radius:10px;border:1px solid rgba(126,94,50,.88);background:linear-gradient(180deg, rgba(46,35,23,.96) 0%, rgba(24,20,19,.98) 100%);color:#f3ead6;outline:none;text-align:center;box-shadow:0 0 0 1px rgba(28,20,12,.84), inset 0 1px 0 rgba(255,228,178,.08), inset 0 -10px 16px rgba(0,0,0,.14);">
         </div>
-        <div id="bankMsg" style="margin-top:4px;text-align:center;opacity:.9;font-size:12px;"></div>
+        <div id="bankMsg" style="margin-top:4px;text-align:center;opacity:.9;font-size:12px;color:#d9ccb0;"></div>
       </div>
     `;
 
@@ -345,9 +350,10 @@
       const empty = document.createElement("div");
       empty.className = "dsSlot";
       empty.style.cursor = "default";
-      empty.style.background = "#0d1016";
-      empty.style.border = "1px solid #262a35";
-      empty.style.opacity = "0.55";
+      empty.style.background = "linear-gradient(180deg, rgba(24,20,19,.92), rgba(14,15,20,.96))";
+      empty.style.border = "1px solid rgba(72,56,34,.64)";
+      empty.style.boxShadow = "0 0 0 1px rgba(28,20,12,.58), inset 0 1px 0 rgba(255,228,178,.03)";
+      empty.style.opacity = "0.72";
       bankGrid.appendChild(empty);
     }
 

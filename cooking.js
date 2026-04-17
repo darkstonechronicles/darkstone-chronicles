@@ -1,13 +1,13 @@
 const SAVE_KEY = "darkstone_save_v1";
 const COOKING_TEMPLATE = `
-  <div style="max-width:340px;margin:0 auto 12px;">
-    <div style="background:#151520;border:2px solid #333;border-radius:12px;padding:10px 12px;width:100%;">
-      <div style="font-weight:900;font-size:18px;display:flex;align-items:center;justify-content:center;gap:8px;margin-bottom:8px;text-align:center;">
+  <div class="profXpShell">
+    <div class="profXpCard">
+      <div class="profXpHead">
         <span aria-hidden="true">&#127859;</span>
         <span>Cooking Lvl: <span id="cookLevel">1</span></span>
       </div>
       <div style="width:100%;">
-        <div style="height:12px;background:#0f0f16;border:1px solid #2a2a3a;border-radius:999px;overflow:hidden;position:relative;">
+        <div class="profXpTrack">
           <div id="cookXPBar" style="height:100%;width:0%;background:#ffaa00;"></div>
           <div style="position:absolute;top:50%;left:8px;transform:translateY(-50%);font-size:11px;font-weight:800;line-height:1;color:#f4f1e8;text-shadow:0 1px 3px rgba(0,0,0,.75);pointer-events:none;">XP</div>
           <div style="position:absolute;top:50%;right:8px;transform:translateY(-50%);font-size:11px;font-weight:800;line-height:1;color:#f4f1e8;text-shadow:0 1px 3px rgba(0,0,0,.75);pointer-events:none;"><span id="cookXPCurrent">0</span>/<span id="cookXPNext">100</span></div>
@@ -16,9 +16,9 @@ const COOKING_TEMPLATE = `
     </div>
   </div>
 
-  <div style="max-width:900px;margin:0 auto;">
-    <h2 style="margin:0 0 10px;">Choose a Recipe</h2>
-    <div id="recipeGrid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px;"></div>
+  <div class="profSection">
+    <h2 class="profSectionTitle">Choose a Recipe</h2>
+    <div id="recipeGrid" class="profChoiceGrid" style="grid-template-columns:repeat(auto-fit,minmax(240px,1fr));"></div>
     <div id="emptyRecipesMsg" style="display:none;margin-top:10px;opacity:.78;font-style:italic;text-align:center;">
       You do not have anything to cook.
     </div>
@@ -307,8 +307,7 @@ function renderRecipes(){
     const enough = have >= r.in.qty;
 
     const card = document.createElement("div");
-    card.style.background = "#151520";
-    card.style.border = "2px solid #333";
+    card.className = "profChoiceCard";
     card.style.borderRadius = "12px";
     card.style.padding = "12px";
     card.style.textAlign = "left";
@@ -323,7 +322,7 @@ function renderRecipes(){
   <div style="display:flex;flex-direction:column;align-items:center;justify-content:flex-start;height:100%;">
 
     <img src="${r.in.img}" alt="${r.in.name}"
-      style="width:80px;height:80px;border-radius:14px;border:2px solid #333;object-fit:cover;background:#0f0f16;">
+      class="profChoiceThumb" style="width:80px;height:80px;border-radius:14px;object-fit:cover;">
 
     <div style="
       margin-top:6px;
@@ -338,7 +337,7 @@ function renderRecipes(){
 
   <div>
 
-    <div style="
+    <div class="profChoiceTitle" style="
   font-weight:900;
   font-size:16px;
   height:38px;
@@ -348,15 +347,15 @@ function renderRecipes(){
       ${r.title}
     </div>
 
-    <div style="opacity:.85;font-size:12px;">
+    <div class="profChoiceMeta" style="font-size:12px;">
       Req Cooking Lv <b>${r.req}</b> • ${effectText(r.out)}
     </div>
 
-    <div style="opacity:.85;font-size:12px;margin-top:4px;">
+    <div class="profChoiceMeta" style="font-size:12px;margin-top:4px;">
       Need: <b>${r.in.name}</b> x${r.in.qty}
     </div>
 
-    <div style="opacity:.85;font-size:12px;margin-top:2px;">
+    <div class="profChoiceMeta" style="font-size:12px;margin-top:2px;">
       You have: <b>${have}</b>
     </div>
 

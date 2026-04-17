@@ -1,14 +1,14 @@
 (() => {
   const SAVE_KEY = "darkstone_save_v1";
   const HUNTING_TEMPLATE = `
-    <div style="max-width:340px;margin:0 auto 12px;">
-      <div style="background:#151520;border:2px solid #333;border-radius:12px;padding:10px 12px;width:100%;">
-        <div style="font-weight:900;font-size:18px;display:flex;align-items:center;justify-content:center;gap:8px;margin-bottom:8px;text-align:center;">
+    <div class="profXpShell">
+      <div class="profXpCard">
+        <div class="profXpHead">
           <span aria-hidden="true">&#127993;</span>
           <span>Hunting Lvl: <span id="huntLevel">1</span></span>
         </div>
         <div style="width:100%;">
-          <div style="height:12px;background:#0f0f16;border:1px solid #2a2a3a;border-radius:999px;overflow:hidden;position:relative;">
+          <div class="profXpTrack">
             <div id="huntXPBar" style="height:100%;width:0%;background:#ffaa00;"></div>
             <div style="position:absolute;top:50%;left:8px;transform:translateY(-50%);font-size:11px;font-weight:800;line-height:1;color:#f4f1e8;text-shadow:0 1px 3px rgba(0,0,0,.75);pointer-events:none;">XP</div>
             <div style="position:absolute;top:50%;right:8px;transform:translateY(-50%);font-size:11px;font-weight:800;line-height:1;color:#f4f1e8;text-shadow:0 1px 3px rgba(0,0,0,.75);pointer-events:none;"><span id="huntXPCurrent">0</span>/<span id="huntXPNext">100</span></div>
@@ -17,9 +17,9 @@
       </div>
     </div>
 
-    <div style="max-width:900px;margin:0 auto;">
-      <h2 style="margin:0 0 10px;">Choose a Target</h2>
-      <div id="targetGrid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;"></div>
+    <div class="profSection">
+      <h2 class="profSectionTitle">Choose a Target</h2>
+      <div id="targetGrid" class="profChoiceGrid" style="grid-template-columns:repeat(auto-fit,minmax(200px,1fr));"></div>
       <div id="msg" style="margin-top:12px;opacity:.9;text-align:center;"></div>
     </div>
   `;
@@ -147,9 +147,7 @@
       const effectiveLevel = s.huntingLevel + getGatheringPotionBonus(s);
       const locked = effectiveLevel < t.req;
       const card = document.createElement("div");
-      card.style.background = "#151520";
-      card.style.border = "2px solid #333";
-      card.style.borderRadius = "12px";
+      card.className = "profChoiceCard";
       card.style.padding = "12px";
       card.style.cursor = locked ? "not-allowed" : "pointer";
       card.style.opacity = locked ? ".6" : "1";
@@ -157,11 +155,11 @@
 
       card.innerHTML = `
         <div style="display:flex;gap:12px;align-items:center;">
-          <img src="${t.img}" alt="${t.name}" style="width:74px;height:74px;border-radius:12px;border:2px solid #333;object-fit:cover;background:#0f0f16;">
+          <img src="${t.img}" alt="${t.name}" class="profChoiceThumb" style="width:74px;height:74px;border-radius:12px;object-fit:cover;">
           <div style="flex:1;text-align:left;">
-            <div style="font-weight:900;font-size:18px;">${t.name}</div>
-            <div style="opacity:.85;font-size:12px;margin-top:4px;">Requires Hunting Level <b>${t.req}</b></div>
-            <div style="opacity:.85;font-size:12px;margin-top:6px;display:flex;align-items:center;gap:6px;">
+            <div class="profChoiceTitle" style="font-weight:900;font-size:18px;">${t.name}</div>
+            <div class="profChoiceMeta" style="font-size:12px;margin-top:4px;">Requires Hunting Level <b>${t.req}</b></div>
+            <div class="profChoiceMeta" style="font-size:12px;margin-top:6px;display:flex;align-items:center;gap:6px;">
               <span>Drops:</span>
               <img src="${t.rawImg}" style="width:22px;height:22px;border-radius:6px;border:1px solid #333;background:#0f0f16;">
               <b>${t.rawName}</b>

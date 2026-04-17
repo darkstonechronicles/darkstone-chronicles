@@ -222,8 +222,9 @@
       const btn = document.createElement("button");
       btn.type = "button";
       btn.className = "townBtn";
-      btn.style.background = active ? "#2a2212" : "#101019";
-      btn.style.borderColor = active ? "#e0b36a" : "#333";
+      btn.style.background = active ? "linear-gradient(180deg, rgba(86,64,38,.34), rgba(26,23,26,.16) 42%, rgba(0,0,0,.10) 100%), linear-gradient(180deg, #34281d 0%, #1d1a1d 100%)" : "var(--card-medieval-bg)";
+      btn.style.borderColor = active ? "#e0b36a" : "var(--card-medieval-border)";
+      btn.style.boxShadow = "var(--card-medieval-shadow)";
       btn.style.display = "flex";
       btn.style.alignItems = "center";
       btn.style.justifyContent = "center";
@@ -267,15 +268,15 @@
 
     list.style.display = "block";
     list.innerHTML = `
-      <div style="background:#151520;border:2px solid #333;border-radius:14px;padding:16px;">
+      <div style="background:var(--card-medieval-bg);border:1px solid var(--card-medieval-border);border-radius:14px;padding:16px;box-shadow:var(--card-medieval-shadow);">
         <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;">
           <div>
-            <div style="font-size:20px;font-weight:900;">${option.name}</div>
-            <div style="opacity:.86;margin-top:4px;">${statusText}</div>
+            <div style="font-size:20px;font-weight:900;color:#f3ead6;text-shadow:0 1px 0 rgba(74, 47, 14, .95),0 0 8px rgba(0,0,0,.3),0 2px 6px rgba(0,0,0,.58);">${option.name}</div>
+            <div style="opacity:.86;margin-top:4px;color:#d9ccb0;">${statusText}</div>
           </div>
           <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;justify-content:flex-end;">
             ${active ? `<button class="townBtn" id="cancelChallengeBtn" ${canCancel ? "" : "disabled"} style="width:auto;min-width:132px;padding:8px 12px;">Cancel (-${fmt(CANCEL_COST_GOLD)} gold)</button>` : ""}
-            <div style="padding:8px 12px;border-radius:999px;background:#101019;border:1px solid rgba(255,255,255,.08);font-weight:800;">
+            <div style="padding:8px 12px;border-radius:999px;background:linear-gradient(180deg, #1b191c, #111116);border:1px solid rgba(126, 94, 50, .62);box-shadow:0 0 0 1px rgba(28,20,12,.65), inset 0 1px 0 rgba(255,228,178,.04);font-weight:800;color:#f3ead6;">
               Challenge Points: ${fmt(totalPoints)}
             </div>
           </div>
@@ -290,13 +291,13 @@
             const hasOtherActive = !!active && !isActive;
             const canStart = !active;
             return `
-              <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;padding:12px;border-radius:12px;border:1px solid ${isActive ? "#e0b36a" : "rgba(255,255,255,.08)"};background:${isActive ? "#2a2212" : "#101019"};">
+              <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;padding:12px;border-radius:12px;border:1px solid ${isActive ? "#e0b36a" : "var(--card-medieval-border)"};background:${isActive ? "linear-gradient(180deg, rgba(86,64,38,.34), rgba(26,23,26,.16) 42%, rgba(0,0,0,.10) 100%), linear-gradient(180deg, #34281d 0%, #1d1a1d 100%)" : "var(--card-medieval-bg)"};box-shadow:var(--card-medieval-shadow);">
                 <div>
-                  <div style="font-weight:900;">${fmt(row.target)} ${option.unit}</div>
-                  <div style="opacity:.82;font-size:12px;margin-top:4px;">Reward: ${row.points} point${row.points === 1 ? "" : "s"} | Claimed: ${fmt(claimedCount)} time${claimedCount === 1 ? "" : "s"}</div>
+                  <div style="font-weight:900;color:#f3ead6;text-shadow:0 1px 0 rgba(74, 47, 14, .95),0 0 8px rgba(0,0,0,.3),0 2px 6px rgba(0,0,0,.58);">${fmt(row.target)} ${option.unit}</div>
+                  <div style="opacity:.82;font-size:12px;margin-top:4px;color:#d9ccb0;">Reward: ${row.points} point${row.points === 1 ? "" : "s"} | Claimed: ${fmt(claimedCount)} time${claimedCount === 1 ? "" : "s"}</div>
                 </div>
                 <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;justify-content:flex-end;">
-                  <div style="font-weight:800;color:${complete ? "#f0c36f" : "#cfd3da"};">${fmt(progress)}/${fmt(row.target)}</div>
+                  <div style="font-weight:800;color:${complete ? "#f0c36f" : "#f3ead6"};">${fmt(progress)}/${fmt(row.target)}</div>
                   ${isActive
                     ? `<button class="townBtn challengeActionBtn" data-action="${complete ? "claim" : "active"}" data-target="${row.target}" ${complete ? "" : "disabled"} style="width:auto;min-width:92px;padding:8px 12px;">${complete ? "Claim" : "Started"}</button>`
                     : `<button class="townBtn challengeActionBtn" data-action="start" data-target="${row.target}" ${canStart ? "" : "disabled"} style="width:auto;min-width:92px;padding:8px 12px;">${hasOtherActive ? "Locked" : "Start"}</button>`

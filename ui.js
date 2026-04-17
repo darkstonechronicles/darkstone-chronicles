@@ -1551,20 +1551,47 @@
       }
       .dsAccountBtn{
         min-height:42px;
-        padding:10px 14px;
-        border-radius:12px;
-        border:1px solid rgba(255,255,255,.12);
-        background:linear-gradient(180deg, rgba(255,255,255,.06), rgba(0,0,0,.10));
-        color:#f3f5fb;
+        min-width:170px;
+        padding:9px 10px;
+        border-radius:11px;
+        border:1px solid rgba(126, 94, 50, .88);
+        background:
+          linear-gradient(180deg, rgba(86,64,38,.40), rgba(26,23,26,.18) 42%, rgba(0,0,0,.10) 100%),
+          linear-gradient(180deg, #34281d 0%, #1d1a1d 100%);
+        color:#f3ead6;
+        font-size:13px;
         font-weight:800;
-        letter-spacing:.2px;
+        letter-spacing:0;
         cursor:pointer;
         box-shadow:
-          0 12px 24px rgba(0,0,0,.22),
-          inset 0 1px 0 rgba(255,255,255,.06);
+          0 0 0 1px rgba(28,20,12,.9),
+          inset 0 1px 0 rgba(255,228,178,.08),
+          inset 0 0 0 1px rgba(255,214,143,.04),
+          inset 0 -8px 14px rgba(0,0,0,.16),
+          0 8px 16px rgba(0,0,0,.18);
         pointer-events:auto;
+        display:inline-flex;
+        align-items:center;
+        justify-content:center;
+        gap:6px;
+        text-shadow:0 1px 0 rgba(0,0,0,.72);
+        transition:
+          transform .14s ease,
+          box-shadow .14s ease,
+          border-color .14s ease,
+          filter .14s ease;
       }
-      .dsAccountBtn:hover{filter:brightness(1.05);}
+      .dsAccountBtn:hover{
+        filter:brightness(1.04);
+        border-color:rgba(171, 130, 67, .96);
+        box-shadow:
+          0 0 0 1px rgba(28,20,12,.92),
+          inset 0 1px 0 rgba(255,236,194,.12),
+          inset 0 0 0 1px rgba(255,214,143,.06),
+          inset 0 -8px 14px rgba(0,0,0,.14),
+          0 10px 18px rgba(0,0,0,.22);
+        transform:translateY(-1px);
+      }
       .dsAccountBtnFrame{
         width:170px;
         height:50px;
@@ -1789,6 +1816,14 @@
           box-shadow .14s ease,
           border-color .14s ease,
           filter .14s ease;
+      }
+      .dsNavIconImg{
+        width:20px;
+        height:20px;
+        display:block;
+        object-fit:contain;
+        flex:0 0 20px;
+        filter:drop-shadow(0 3px 6px rgba(0,0,0,.22));
       }
       .dsNav button.dsNavImageBtn{
         padding:0;
@@ -2471,6 +2506,7 @@
         }
         .dsAccountBtn{
           min-height:38px;
+          min-width:132px;
           padding:8px 12px;
         }
         .dsAccountBtnFrameArt{
@@ -3543,45 +3579,44 @@ function claimActiveChallengeFromQuest(){
   const navMarkup = `
       <div class="dsNav">
         <button id="navHome" aria-label="Home" data-open-tab-href="index.html">
-          <span class="navEmoji" aria-hidden="true">🏠</span>
+          <img class="dsNavIconImg" src="images/ui/home.png" alt="" aria-hidden="true">
           Home
         </button>
         <button id="navFight" aria-label="Fight" data-open-tab-href="fight.html">
-          <span class="navEmoji" aria-hidden="true">⚔️</span>
+          <img class="dsNavIconImg" src="images/ui/fight.png" alt="" aria-hidden="true">
           Fight
         </button>
         <button id="navDungeons" aria-label="Dungeons" data-open-tab-href="dungeons.html">
-          <span class="navEmoji" aria-hidden="true">🏰</span>
+          <img class="dsNavIconImg" src="images/ui/dungeons.png" alt="" aria-hidden="true">
           Dungeons
         </button>
         <button id="navBuildings" aria-label="Buildings" data-open-tab-href="buildings.html">
-          <span class="navEmoji" aria-hidden="true">🏢</span>
+          <img class="dsNavIconImg" src="images/ui/buildings.png" alt="" aria-hidden="true">
           Buildings
         </button>
         <button id="navChallenges" aria-label="Challenges" data-open-tab-href="challenges.html">
-          <span class="navEmoji" aria-hidden="true">🎯</span>
+          <img class="dsNavIconImg" src="images/ui/challenges.png" alt="" aria-hidden="true">
           Challenges
         </button>
         <button id="navProfessions" aria-label="Professions" data-open-tab-href="professions.html">
-          <span class="navEmoji" aria-hidden="true">⚒️</span>
+          <img class="dsNavIconImg" src="images/ui/professions.png" alt="" aria-hidden="true">
           Professions
         </button>
         <button id="navMarket" aria-label="Market" data-open-tab-href="market.html">
-          <span class="navEmoji" aria-hidden="true">💰</span>
+          <img class="dsNavIconImg" src="images/ui/market.png" alt="" aria-hidden="true">
           Market
         </button>
         <button id="navPartyHall" aria-label="Party Hall" data-open-tab-href="party_hall.html">
-          <span class="navEmoji" aria-hidden="true">👥</span>
+          <img class="dsNavIconImg" src="images/ui/party.png" alt="" aria-hidden="true">
           Party Hall
         </button>
       </div>`;
   const controlsMarkup = `
         <div class="dsHeaderControls">
           <div class="dsHeaderAccount">
-            <button id="authAccountBtn" class="dsAccountBtn dsAccountBtnFrame" type="button" aria-haspopup="menu" aria-expanded="false">
-              <span class="dsAccountBtnFrameArt" aria-hidden="true">
-                <span class="dsAccountBtnFrameLabel">ACCOUNT</span>
-              </span>
+            <button id="authAccountBtn" class="dsAccountBtn" type="button" aria-haspopup="menu" aria-expanded="false">
+              <span class="navEmoji" aria-hidden="true">👤</span>
+              Account
             </button>
             <div id="authAccountMenu" class="dsAccountMenu" role="menu" aria-hidden="true">
               <div class="dsAccountLabel">ACCOUNT</div>
@@ -3591,10 +3626,9 @@ function claimActiveChallengeFromQuest(){
             </div>
           </div>
           <div class="dsHeaderPresence">
-            <button id="dsPresenceBtn" class="dsAccountBtn dsAccountBtnFrame" type="button" aria-haspopup="menu" aria-expanded="${__presenceState.menuOpen ? "true" : "false"}">
-              <span class="dsAccountBtnFrameArt" aria-hidden="true">
-                <span class="dsAccountBtnFrameLabel">ONLINE : ${__presenceState.onlineCount}</span>
-              </span>
+            <button id="dsPresenceBtn" class="dsAccountBtn" type="button" aria-haspopup="menu" aria-expanded="${__presenceState.menuOpen ? "true" : "false"}">
+              <span class="navEmoji" aria-hidden="true">👥</span>
+              Online : ${__presenceState.onlineCount}
             </button>
             <div id="dsPresenceMenu" class="dsAccountMenu ${__presenceState.menuOpen ? "dsAccountMenuOpen" : ""}" role="menu" aria-hidden="${__presenceState.menuOpen ? "false" : "true"}" style="width:min(540px, calc(100vw - 24px));max-height:min(420px, 70vh);overflow:auto;right:0;left:auto;">
               <div class="dsAccountLabel">PLAYER ACTIVITY</div>

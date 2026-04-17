@@ -3,13 +3,13 @@
 const SAVE_KEY = "darkstone_save_v1";
 const HUNTING_ACTION_TEMPLATE = `
   <div style="max-width:340px;margin:0 auto 12px;">
-    <div style="background:#151520;border:2px solid #333;border-radius:12px;padding:10px 12px;width:100%;">
+    <div class="profXpCard">
       <div style="font-weight:900;font-size:18px;display:flex;align-items:center;justify-content:center;gap:8px;margin-bottom:8px;text-align:center;">
         <span aria-hidden="true">&#127993;</span>
         <span>Hunting Lvl: <span id="huntLevel">1</span></span>
       </div>
       <div style="width:100%;">
-        <div style="height:12px;background:#0f0f16;border:1px solid #2a2a3a;border-radius:999px;overflow:hidden;position:relative;">
+        <div class="profXpTrack">
           <div id="huntXPBar" style="height:100%;width:0%;background:#ffaa00;"></div>
           <div style="position:absolute;top:50%;left:8px;transform:translateY(-50%);font-size:11px;font-weight:800;line-height:1;color:#f4f1e8;text-shadow:0 1px 3px rgba(0,0,0,.75);pointer-events:none;">XP</div>
           <div style="position:absolute;top:50%;right:8px;transform:translateY(-50%);font-size:11px;font-weight:800;line-height:1;color:#f4f1e8;text-shadow:0 1px 3px rgba(0,0,0,.75);pointer-events:none;"><span id="huntXPCurrent">0</span>/<span id="huntXPNext">100</span></div>
@@ -19,7 +19,7 @@ const HUNTING_ACTION_TEMPLATE = `
   </div>
 
   <div style="max-width:340px;margin:0 auto 12px;">
-    <div id="gatheringBonusBox" style="background:#151520;border:2px solid #333;border-radius:12px;padding:12px;width:100%;min-height:56px;display:flex;align-items:flex-start;gap:10px;">
+    <div id="gatheringBonusBox" class="profBonusCard" style="padding:12px;width:100%;min-height:56px;display:flex;align-items:flex-start;gap:10px;">
       <div style="font-weight:800;font-size:14px;white-space:nowrap;line-height:1.05;text-align:center;">Bonus<br>XP</div>
       <div style="width:1px;align-self:stretch;background:#333;"></div>
       <div id="gatheringBonusContent" style="flex:1;display:flex;flex-direction:column;justify-content:flex-start;gap:2px;padding-top:2px;">
@@ -52,10 +52,10 @@ const HUNTING_ACTION_TEMPLATE = `
     <button id="stopBtn" disabled>Stop</button>
   </div>
 
-  <div style="background:#151520;border:2px solid #333;border-radius:12px;padding:12px;max-width:900px;margin:0 auto;">
+  <div class="profActionCard">
     <div style="display:flex;gap:12px;align-items:center;">
       <img id="targetImg" src="" alt="Target"
-        style="width:74px;height:74px;border-radius:12px;border:2px solid #333;object-fit:cover;background:#0f0f16;">
+        class="profChoiceThumb" style="width:74px;height:74px;border-radius:12px;object-fit:cover;">
       <div style="flex:1;">
         <div style="font-weight:800;font-size:18px;" id="dropName">-</div>
         <div id="gatheringPetBonusText" style="margin-top:4px;text-align:center;font-size:11px;opacity:.88;color:#cfe7ff;"></div>
@@ -72,7 +72,7 @@ const HUNTING_ACTION_TEMPLATE = `
         <div style="margin-top:10px;display:flex;gap:10px;flex-wrap:wrap;align-items:center;">
           <div style="opacity:.85;font-size:12px;">Target amount:</div>
           <input id="targetInput" type="number" min="1" step="1" placeholder="e.g. 100"
-            style="width:120px;padding:8px 10px;border-radius:10px;border:2px solid #333;background:#0f0f16;color:#fff;">
+            class="profTargetInput">
           <button id="targetBtn">Hunt Target</button>
           <div id="targetStatus" style="opacity:.85;font-size:12px;"></div>
         </div>

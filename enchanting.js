@@ -7,13 +7,13 @@
       Select gear from your inventory and enchant it with the matching tier bar and plank.
     </div>
 
-    <div style="max-width:340px;margin:0 auto 12px;">
-      <div style="background:#151520;border:2px solid #333;border-radius:12px;padding:10px 12px;">
-        <div style="font-weight:900;font-size:18px;display:flex;align-items:center;justify-content:center;gap:8px;margin-bottom:8px;text-align:center;">
+    <div class="profXpShell">
+      <div class="profXpCard">
+        <div class="profXpHead">
           <span aria-hidden="true">&#10024;</span>
           <span>Enchanting Lvl: <span id="enchLevel">1</span></span>
         </div>
-        <div style="height:12px;background:#0f0f16;border:1px solid #2a2a3a;border-radius:999px;overflow:hidden;position:relative;">
+        <div class="profXpTrack">
           <div id="enchXPBar" style="height:100%;width:0%;background:linear-gradient(90deg,#d18a1f,#f3c463);"></div>
           <div style="position:absolute;top:50%;left:8px;transform:translateY(-50%);font-size:11px;font-weight:800;line-height:1;color:#f4f1e8;text-shadow:0 1px 3px rgba(0,0,0,.75);pointer-events:none;">XP</div>
           <div style="position:absolute;top:50%;right:8px;transform:translateY(-50%);font-size:11px;font-weight:800;line-height:1;color:#f4f1e8;text-shadow:0 1px 3px rgba(0,0,0,.75);pointer-events:none;"><span id="enchXPCurrent">0</span>/<span id="enchXPNext">100</span></div>
@@ -21,12 +21,12 @@
       </div>
     </div>
 
-    <div id="selectedCard" style="background:#151520;border:2px solid #333;border-radius:12px;padding:12px;display:none;">
+    <div id="selectedCard" class="profActionCard" style="display:none;">
       <div style="font-weight:900;font-size:16px;margin-bottom:10px;">Selected Item</div>
 
       <div id="selWrap" style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;">
         <div id="selImgFrame" style="position:relative;width:84px;height:84px;display:none;">
-          <img id="selImg" src="" alt="" style="width:84px;height:84px;border-radius:12px;border:2px solid #333;object-fit:cover;background:#0f0f16;">
+          <img id="selImg" src="" alt="" class="profChoiceThumb" style="width:84px;height:84px;border-radius:12px;object-fit:cover;">
           <div id="selUpgBadge" style="position:absolute;top:-8px;right:-8px;min-width:28px;height:28px;padding:0 8px;border-radius:999px;background:#d18a1f;color:#111;font-weight:900;font-size:13px;display:none;align-items:center;justify-content:center;border:2px solid #f6d58d;"></div>
         </div>
         <div style="min-width:260px;flex:1;">
@@ -52,7 +52,7 @@
       <div id="enchMsg" style="margin-top:10px;opacity:.92;"></div>
     </div>
 
-    <div id="listCard" style="background:#151520;border:2px solid #333;border-radius:12px;padding:12px;margin-top:12px;">
+    <div id="listCard" class="profActionCard" style="margin-top:12px;">
       <div style="font-weight:900;font-size:16px;margin-bottom:10px;">Select Item For Enchant</div>
       <div id="gearList" style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;"></div>
     </div>
@@ -461,7 +461,7 @@
       node.style.gap = "10px";
       node.style.padding = "10px";
       node.style.borderRadius = "10px";
-      node.style.border = index === selectedIndex ? "2px solid #f1d18a" : `2px solid ${colors.border}`;
+      node.style.border = index === selectedIndex ? "2px solid #f1d18a" : `1px solid ${colors.border}`;
       node.style.background = colors.bg;
       node.style.color = "#fff";
       node.style.textAlign = "left";
@@ -473,7 +473,7 @@
       const qty = Math.max(1, num(item.quantity ?? item.qty, 1));
       node.innerHTML = `
         <div style="position:relative;width:54px;height:54px;flex:0 0 auto;">
-          <img src="${item.img || ""}" alt="${item.name || "Item"}" style="width:54px;height:54px;border-radius:10px;border:1px solid ${colors.border};object-fit:cover;background:${colors.bg};">
+          <img src="${item.img || ""}" alt="${item.name || "Item"}" class="profChoiceThumb" style="width:54px;height:54px;border-radius:10px;object-fit:cover;background:${colors.bg};border-color:${colors.border};">
           ${upg > 0 ? `<div style="position:absolute;top:-6px;right:-6px;min-width:24px;height:24px;padding:0 6px;border-radius:999px;background:#d18a1f;color:#111;font-weight:900;font-size:11px;display:flex;align-items:center;justify-content:center;border:2px solid #f6d58d;">+${upg}</div>` : ``}
         </div>
         <div style="flex:1;min-width:0;">

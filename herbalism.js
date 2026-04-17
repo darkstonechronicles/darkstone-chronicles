@@ -1,14 +1,14 @@
 (() => {
   const SAVE_KEY = "darkstone_save_v1";
   const HERBALISM_TEMPLATE = `
-    <div style="max-width:340px;margin:0 auto 12px;">
-      <div style="background:#151520;border:2px solid #333;border-radius:12px;padding:10px 12px;width:100%;">
-        <div style="font-weight:900;font-size:18px;display:flex;align-items:center;justify-content:center;gap:8px;margin-bottom:8px;text-align:center;">
+    <div class="profXpShell">
+      <div class="profXpCard">
+        <div class="profXpHead">
           <span aria-hidden="true">&#127807;</span>
           <span>Herbalism Lvl: <span id="herbLevel">1</span></span>
         </div>
         <div style="width:100%;">
-          <div style="height:12px;background:#0f0f16;border:1px solid #2a2a3a;border-radius:999px;overflow:hidden;position:relative;">
+          <div class="profXpTrack">
             <div id="herbXPBar" style="height:100%;width:0%;background:#ffaa00;"></div>
             <div style="position:absolute;top:50%;left:8px;transform:translateY(-50%);font-size:11px;font-weight:800;line-height:1;color:#f4f1e8;text-shadow:0 1px 3px rgba(0,0,0,.75);pointer-events:none;">XP</div>
             <div style="position:absolute;top:50%;right:8px;transform:translateY(-50%);font-size:11px;font-weight:800;line-height:1;color:#f4f1e8;text-shadow:0 1px 3px rgba(0,0,0,.75);pointer-events:none;"><span id="herbXPCurrent">0</span>/<span id="herbXPNext">100</span></div>
@@ -17,9 +17,9 @@
       </div>
     </div>
 
-    <div style="max-width:900px;margin:0 auto;">
-      <h2 style="margin:0 0 10px;">Choose a Zone</h2>
-      <div id="herbGrid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px;"></div>
+    <div class="profSection">
+      <h2 class="profSectionTitle">Choose a Zone</h2>
+      <div id="herbGrid" class="profChoiceGrid" style="grid-template-columns:repeat(auto-fit,minmax(220px,1fr));"></div>
     </div>
   `;
 
@@ -104,20 +104,18 @@
       const effectiveLevel = save.herbalismLevel + getGatheringPotionBonus(save);
       const locked = effectiveLevel < zone.req;
       const card = document.createElement("div");
-      card.style.background = "#151520";
-      card.style.border = "2px solid #333";
-      card.style.borderRadius = "12px";
+      card.className = "profChoiceCard";
       card.style.padding = "12px";
       card.style.cursor = locked ? "not-allowed" : "pointer";
       card.style.opacity = locked ? "0.55" : "1";
       if (!locked) card.dataset.openTabHref = `herbalism_action.html?zone=${encodeURIComponent(zone.id)}`;
       card.innerHTML = `
         <div style="display:flex;gap:10px;align-items:center;">
-          <img src="${zone.zoneImg}" alt="${zone.name}" style="width:64px;height:64px;border-radius:10px;border:2px solid #333;object-fit:cover;background:#0f0f16;">
+          <img src="${zone.zoneImg}" alt="${zone.name}" class="profChoiceThumb" style="width:64px;height:64px;border-radius:10px;object-fit:cover;">
           <div style="min-width:0;">
-            <div style="font-size:16px;font-weight:700;">${zone.name}</div>
-            <div style="opacity:.9;font-size:12px;margin-top:4px;">Req Herbalism Lv <b>${zone.req}</b></div>
-            <div style="opacity:.85;font-size:12px;margin-top:4px;">Gather: ${zone.herbName}</div>
+            <div class="profChoiceTitle" style="font-size:16px;font-weight:700;">${zone.name}</div>
+            <div class="profChoiceMeta" style="font-size:12px;margin-top:4px;">Req Herbalism Lv <b>${zone.req}</b></div>
+            <div class="profChoiceMeta" style="opacity:.85;font-size:12px;margin-top:4px;">Gather: ${zone.herbName}</div>
           </div>
         </div>
       `;

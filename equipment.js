@@ -5,14 +5,14 @@
   const SAVE_KEY = "darkstone_save_v1";
   const EQUIPMENT_TEMPLATE = `
     <div class="equipWrap" style="max-width:900px;margin:0 auto;">
-      <div class="equipCard" style="background:#151520;border:2px solid #333;border-radius:12px;padding:10px 12px;">
+      <div class="equipCard" style="background:var(--card-medieval-bg);border:1px solid var(--card-medieval-border);border-radius:14px;padding:12px;box-shadow:var(--card-medieval-shadow);">
         <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;">
-          <div style="font-weight:900;">Equipped</div>
-          <div style="opacity:.8;font-size:12px;">Click a slot to unequip</div>
+          <div style="font-weight:900;color:#f3ead6;text-shadow:0 1px 0 rgba(74,47,14,.95),0 0 8px rgba(0,0,0,.3),0 2px 6px rgba(0,0,0,.58);">Equipped</div>
+          <div style="opacity:.84;font-size:12px;color:#d9ccb0;">Click a slot to unequip</div>
         </div>
 
         <div style="display:flex;gap:10px;align-items:stretch;margin-top:10px;">
-          <div id="paperdoll" style="flex:0 0 58%;position:relative;height:350px;border:1px solid #2a2a3a;border-radius:12px;overflow:hidden;background:#0f0f16;">
+          <div id="paperdoll" style="flex:0 0 58%;position:relative;height:350px;border:1px solid var(--card-medieval-border);border-radius:14px;overflow:hidden;background:var(--card-medieval-bg);box-shadow:var(--card-medieval-shadow);">
             <div class="knightBg" aria-hidden="true"></div>
 
             <div id="slot_helmet" class="pdSlot" data-slot="helmet" style="left:46%;top:6px;"></div>
@@ -31,8 +31,8 @@
             <div id="slot_amulet" class="pdSlot" data-slot="amulet" style="left:76%;top:270px;"></div>
           </div>
 
-          <div id="statsPanel" style="flex:1;min-width:0;background:#151520;border:2px solid #333;border-radius:12px;padding:9px 10px;">
-            <div style="font-weight:900;">Stats Breakdown</div>
+          <div id="statsPanel" style="flex:1;min-width:0;background:var(--card-medieval-bg);border:1px solid var(--card-medieval-border);border-radius:14px;padding:12px;box-shadow:var(--card-medieval-shadow);">
+            <div style="font-weight:900;color:#f3ead6;text-shadow:0 1px 0 rgba(74,47,14,.95),0 0 8px rgba(0,0,0,.3),0 2px 6px rgba(0,0,0,.58);">Stats Breakdown</div>
 
             <div id="statsTabs" style="display:flex;gap:8px;flex-wrap:nowrap;margin-top:8px;">
               <button id="tabFight" type="button" style="flex:1;min-width:0;">Fighting Fields</button>
@@ -40,30 +40,30 @@
             </div>
 
             <div style="margin-top:8px;">
-              <table id="statsTable" style="width:100%;border-collapse:collapse;font-size:11px;table-layout:fixed;">
+              <table id="statsTable" style="width:100%;border-collapse:collapse;font-size:11px;table-layout:fixed;color:#f3ead6;">
                 <thead>
                   <tr>
-                    <th style="text-align:left;padding:6px;border-bottom:1px solid #2a2a3a;">Stat</th>
-                    <th style="text-align:right;padding:6px;border-bottom:1px solid #2a2a3a;">Base</th>
-                    <th style="text-align:right;padding:6px;border-bottom:1px solid #2a2a3a;">Equip/Pet</th>
-                    <th style="text-align:right;padding:6px;border-bottom:1px solid #2a2a3a;">Bonus</th>
-                    <th style="text-align:right;padding:6px;border-bottom:1px solid #2a2a3a;">Total</th>
+                    <th style="text-align:left;padding:6px;border-bottom:1px solid rgba(166,124,64,.38);color:#f3ead6;">Stat</th>
+                    <th style="text-align:right;padding:6px;border-bottom:1px solid rgba(166,124,64,.38);color:#f3ead6;">Base</th>
+                    <th style="text-align:right;padding:6px;border-bottom:1px solid rgba(166,124,64,.38);color:#f3ead6;">Equip/Pet</th>
+                    <th style="text-align:right;padding:6px;border-bottom:1px solid rgba(166,124,64,.38);color:#f3ead6;">Bonus</th>
+                    <th style="text-align:right;padding:6px;border-bottom:1px solid rgba(166,124,64,.38);color:#f3ead6;">Total</th>
                   </tr>
                 </thead>
                 <tbody>
                   <tr>
-                    <td style="padding:6px;border-bottom:1px solid #2a2a3a;">Attack</td>
-                    <td id="baseAtk" style="padding:6px;text-align:right;border-bottom:1px solid #2a2a3a;">0</td>
-                    <td id="gearAtk" style="padding:6px;text-align:right;border-bottom:1px solid #2a2a3a;">+0</td>
-                    <td id="pctAtk" style="padding:6px;text-align:right;border-bottom:1px solid #2a2a3a;">0%</td>
-                    <td id="totalAtk" style="padding:6px;text-align:right;border-bottom:1px solid #2a2a3a;font-weight:900;">0</td>
+                    <td style="padding:6px;border-bottom:1px solid rgba(166,124,64,.28);color:#f3ead6;">Attack</td>
+                    <td id="baseAtk" style="padding:6px;text-align:right;border-bottom:1px solid rgba(166,124,64,.28);color:#f3ead6;">0</td>
+                    <td id="gearAtk" style="padding:6px;text-align:right;border-bottom:1px solid rgba(166,124,64,.28);color:#f3ead6;">+0</td>
+                    <td id="pctAtk" style="padding:6px;text-align:right;border-bottom:1px solid rgba(166,124,64,.28);color:#f3ead6;">0%</td>
+                    <td id="totalAtk" style="padding:6px;text-align:right;border-bottom:1px solid rgba(166,124,64,.28);font-weight:900;color:#fff1cf;">0</td>
                   </tr>
                   <tr>
-                    <td style="padding:6px;">Defense</td>
-                    <td id="baseDef" style="padding:6px;text-align:right;">0</td>
-                    <td id="gearDef" style="padding:6px;text-align:right;">+0</td>
-                    <td id="pctDef" style="padding:6px;text-align:right;">0%</td>
-                    <td id="totalDef" style="padding:6px;text-align:right;font-weight:900;">0</td>
+                    <td style="padding:6px;color:#f3ead6;">Defense</td>
+                    <td id="baseDef" style="padding:6px;text-align:right;color:#f3ead6;">0</td>
+                    <td id="gearDef" style="padding:6px;text-align:right;color:#f3ead6;">+0</td>
+                    <td id="pctDef" style="padding:6px;text-align:right;color:#f3ead6;">0%</td>
+                    <td id="totalDef" style="padding:6px;text-align:right;font-weight:900;color:#fff1cf;">0</td>
                   </tr>
                 </tbody>
               </table>
@@ -302,10 +302,10 @@
       .knightBg{
         position:absolute; inset:0;
         background:
-          radial-gradient(70% 60% at 5 30%, rgba(255,255,255,.08), transparent 60%),
-          radial-gradient(70% 60% at 50% 75%, rgba(255,255,255,.05), transparent 65%),
-          linear-gradient(180deg, rgba(255,255,255,.05), rgba(0,0,0,0)),
-          #0f0f16;
+          radial-gradient(circle at top left, rgba(122,77,34,.18), transparent 34%),
+          radial-gradient(circle at bottom right, rgba(71,98,158,.08), transparent 30%),
+          linear-gradient(180deg, rgba(255,255,255,.03), rgba(255,255,255,.01)),
+          #151520;
         opacity:.95;
         pointer-events:none;
       }
@@ -326,9 +326,15 @@
         width:54px;height:54px;
         transform:translateX(-50%);
         border-radius:11px;
-        border:2px solid rgba(120,120,160,.65);
-        background: rgba(15,15,22,.25);
-        box-shadow: 0 8px 18px rgba(0,0,0,.32);
+        border:1px solid rgba(166,124,64,.82);
+        background:
+          linear-gradient(180deg, rgba(46,35,23,.96) 0%, rgba(24,20,19,.98) 100%);
+        box-shadow:
+          0 0 0 1px rgba(34,24,14,.84),
+          inset 0 1px 0 rgba(255,224,171,.08),
+          inset 0 0 0 1px rgba(255,214,143,.04),
+          inset 0 -10px 16px rgba(0,0,0,.18),
+          0 10px 18px rgba(0,0,0,.2);
         display:flex;align-items:center;justify-content:center;
         cursor:pointer;
         user-select:none;
@@ -341,8 +347,19 @@
       #paperdoll .pdSlot.dsRarity-mythic{background:var(--rarity-mythic);}
       #paperdoll .pdSlot.dsSetItem{background:var(--rarity-set);}
       #paperdoll .pdSlot.dsCraftedItem{background:var(--rarity-crafted);}
-      .pdSlot:hover{filter:brightness(1.12);}
-      .pdSlot.hasItem{border-color: rgba(170,170,220,.85);}
+      .pdSlot:hover{
+        filter:brightness(1.06);
+        transform:translateX(-50%) translateY(-1px);
+      }
+      .pdSlot.hasItem{
+        border-color:rgba(205,163,96,.94);
+        box-shadow:
+          0 0 0 1px rgba(34,24,14,.84),
+          inset 0 1px 0 rgba(255,233,186,.11),
+          inset 0 0 0 1px rgba(255,214,143,.05),
+          inset 0 -10px 16px rgba(0,0,0,.18),
+          0 12px 20px rgba(0,0,0,.22);
+      }
       .pdSlot img{
         width:48px;height:48px;border-radius:9px;
         object-fit:cover;display:block;
@@ -385,7 +402,8 @@
       .pdStatSep{color:rgba(255,255,255,.6);padding:0 4px;}
       .pdEmpty{
         font-size:11px;
-        opacity:.85;
+        opacity:.92;
+        color:#f1e3be;
         text-align:center;
         line-height:1.05;
         padding:0 4px;
@@ -394,20 +412,31 @@
 
       #statsTabs button{
         padding:6px 10px;
-        border-radius:10px;
-        border:2px solid #333;
-        background:#1b1b24;
-        color:#eee;
+        border-radius:14px;
+        border:1px solid rgba(126,94,50,.88);
+        background:
+          linear-gradient(180deg, rgba(70,78,101,.96) 0%, rgba(40,48,67,.98) 100%);
+        color:#f3ead6;
         cursor:pointer;
         font-weight:800;
         font-size:12px;
+        box-shadow:
+          0 0 0 1px rgba(28,20,12,.84),
+          inset 0 1px 0 rgba(255,255,255,.07),
+          inset 0 -10px 18px rgba(0,0,0,.18),
+          0 10px 18px rgba(0,0,0,.18);
       }
       #statsTabs button:hover{filter:brightness(1.08);}
       #statsTabs button.statsTabActive{
-        border-color:#e0b36a;
-        background:#d4a04f;
-        color:#1a1206;
-        text-shadow:none;
+        border-color:rgba(166,124,64,.98);
+        background:linear-gradient(180deg, rgba(84,60,30,.98) 0%, rgba(58,40,20,.98) 100%);
+        color:#fff1cf;
+        text-shadow:0 1px 0 rgba(74,47,14,.95);
+        box-shadow:
+          0 0 0 1px rgba(60,40,16,.82),
+          inset 0 1px 0 rgba(255,232,184,.12),
+          inset 0 -10px 18px rgba(0,0,0,.22),
+          0 12px 20px rgba(0,0,0,.2);
         filter:none;
       }
     `;

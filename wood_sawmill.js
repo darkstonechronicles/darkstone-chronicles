@@ -1,14 +1,14 @@
 (() => {
   const SAVE_KEY = "darkstone_save_v1";
   const CARPENTRY_TEMPLATE = `
-    <div style="max-width:340px;margin:0 auto 12px;">
-      <div style="background:#151520;border:2px solid #333;border-radius:12px;padding:10px 12px;width:100%;">
-        <div style="font-weight:900;font-size:18px;display:flex;align-items:center;justify-content:center;gap:8px;margin-bottom:8px;text-align:center;">
+    <div class="profXpShell">
+      <div class="profXpCard">
+        <div class="profXpHead">
           <span aria-hidden="true">&#129717;</span>
           <span>Carpentry Lvl: <span id="woodLevel">1</span></span>
         </div>
         <div style="width:100%;">
-          <div style="height:12px;background:#0f0f16;border:1px solid #2a2a3a;border-radius:999px;overflow:hidden;position:relative;">
+          <div class="profXpTrack">
             <div id="woodXPBar" style="height:100%;width:0%;background:#ffd27d;"></div>
             <div style="position:absolute;top:50%;left:8px;transform:translateY(-50%);font-size:11px;font-weight:800;line-height:1;color:#f4f1e8;text-shadow:0 1px 3px rgba(0,0,0,.75);pointer-events:none;">XP</div>
             <div style="position:absolute;top:50%;right:8px;transform:translateY(-50%);font-size:11px;font-weight:800;line-height:1;color:#f4f1e8;text-shadow:0 1px 3px rgba(0,0,0,.75);pointer-events:none;"><span id="woodXPCurrent">0</span>/<span id="woodXPNext">100</span></div>
@@ -17,10 +17,10 @@
       </div>
     </div>
 
-    <div style="max-width:900px;margin:0 auto;">
+    <div class="profSection">
       <div id="woodPlanksPanel">
-        <h2 style="margin:0 0 10px;">Choose a Plank to Craft</h2>
-        <div id="plankGrid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px;"></div>
+        <h2 class="profSectionTitle">Choose a Plank to Craft</h2>
+        <div id="plankGrid" class="profChoiceGrid" style="grid-template-columns:repeat(auto-fit,minmax(220px,1fr));"></div>
       </div>
     </div>
   `;
@@ -101,9 +101,7 @@
       const effectiveLevel = save.carpentryLevel + getArtisanPotionBonus(save);
       const locked = effectiveLevel < r.req;
       const card = document.createElement("div");
-      card.style.background = "#151520";
-      card.style.border = "2px solid #333";
-      card.style.borderRadius = "12px";
+      card.className = "profChoiceCard";
       card.style.padding = "12px";
       card.style.cursor = locked ? "not-allowed" : "pointer";
       card.style.opacity = locked ? "0.55" : "1";
@@ -118,14 +116,13 @@
       img.style.width = "64px";
       img.style.height = "64px";
       img.style.borderRadius = "12px";
-      img.style.border = "2px solid #333";
+      img.className = "profChoiceThumb";
       img.style.objectFit = "cover";
-      img.style.background = "#0f0f16";
       img.onerror = () => { img.style.display = "none"; };
 
       const info = document.createElement("div");
       info.style.flex = "1";
-      info.innerHTML = `<div style="font-weight:900;font-size:16px;">${r.name}</div><div style="opacity:.88;margin-top:4px;">Req Lv ${r.req}</div><div style="opacity:.85;margin-top:6px;">${r.inputText}</div>`;
+      info.innerHTML = `<div class="profChoiceTitle" style="font-weight:900;font-size:16px;">${r.name}</div><div class="profChoiceMeta" style="margin-top:4px;">Req Lv ${r.req}</div><div class="profChoiceMeta" style="opacity:.85;margin-top:6px;">${r.inputText}</div>`;
 
       card.appendChild(img);
       card.appendChild(info);

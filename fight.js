@@ -1981,7 +1981,7 @@ const FIGHT_TEMPLATE = `
       <div id="dropChanceBox" style="display:none;text-align:center;padding:6px 10px;border-radius:999px;border:2px solid #2b6a8a;background:#12212a;color:#8fd8ff;font-weight:700;font-size:12px;letter-spacing:.3px;">Drop Chance +0%</div>
     </div>
 
-    <div style="position:relative;display:grid;grid-template-columns:1fr auto 1fr;align-items:start;gap:16px;background:#151520;border-radius:12px;border:2px solid #333;padding:34px 12px 18px;min-height:186px;box-sizing:border-box;">
+    <div id="vsCard" style="position:relative;display:grid;grid-template-columns:1fr auto 1fr;align-items:start;gap:16px;background:#151520;border-radius:12px;border:2px solid #333;padding:34px 12px 18px;min-height:186px;box-sizing:border-box;">
       <div style="display:flex;justify-content:center;align-items:start;align-self:start;min-width:0;">
         <div style="min-width:0;display:flex;flex-direction:column;align-items:center;gap:4px;position:relative;width:168px;">
           <div id="heroInfo" style="position:absolute;left:50%;top:-28px;transform:translateX(-50%);font-size:13px;opacity:.9;text-align:center;white-space:nowrap;"></div>
@@ -2198,15 +2198,18 @@ let cdStart = 0;
 function openLootPanelFor(lootPanel, currentOpenPanelRef, anchorEl = null) {
   if (!lootPanel) return currentOpenPanelRef || null;
   if (currentOpenPanelRef && currentOpenPanelRef !== lootPanel) {
+    currentOpenPanelRef.closest?.(".fightMobCard")?.classList.remove("lootOpen");
     currentOpenPanelRef.style.display = "none";
   }
   applyLootPanelLayout(lootPanel, anchorEl);
+  lootPanel.closest?.(".fightMobCard")?.classList.add("lootOpen");
   lootPanel.style.display = "block";
   return lootPanel;
 }
 
 function closeLootPanelFor(lootPanel, currentOpenPanelRef) {
   if (!lootPanel) return currentOpenPanelRef || null;
+  lootPanel.closest?.(".fightMobCard")?.classList.remove("lootOpen");
   lootPanel.style.display = "none";
   return currentOpenPanelRef === lootPanel ? null : currentOpenPanelRef;
 }
@@ -2635,12 +2638,12 @@ zone.mobs.forEach(m => {
 
 </div>
 
-<div class="mobLootPanel" style="display:none;position:absolute;left:calc(100% + 8px);top:8px;width:260px;max-width:min(260px,calc(100vw - 40px));z-index:20;background:#10121c;border:1px solid #3a3d5c;border-radius:12px;padding:10px;box-shadow:0 10px 24px rgba(0,0,0,.45);">
-  <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:8px;">
-    <div style="font-weight:800;font-size:12px;opacity:.95;">Drops</div>
+<div class="mobLootPanel">
+  <div class="mobLootPanelHeader">
+    <div class="mobLootPanelTitle">Drops</div>
     <button type="button" class="mobLootClose" style="background:#222438;border:1px solid #3a3d5c;color:#ddd;width:24px;height:24px;border-radius:999px;font-size:12px;cursor:pointer;">x</button>
   </div>
-  <div style="display:flex;flex-direction:column;gap:6px;">
+  <div class="mobLootPanelList">
     ${lootHtml}
   </div>
 </div>
