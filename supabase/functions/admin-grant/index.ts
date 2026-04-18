@@ -170,6 +170,8 @@ function buildPublicStats(save: Record<string, unknown>, email: string) {
   const huntingXP = Math.max(0, safeInt(save.huntingXP, 0));
   const fishingLevel = Math.max(1, safeInt(save.fishingLevel, 1));
   const fishingXP = Math.max(0, safeInt(save.fishingXP, 0));
+  const cookingLevel = Math.max(1, safeInt(save.cookingLevel, 1));
+  const cookingXP = Math.max(0, safeInt(save.cookingXP, 0));
   const totalStats = save.stats && typeof save.stats === "object"
     ? (((save.stats as Record<string, unknown>).total as Record<string, unknown> | undefined) || {})
     : {};
@@ -195,6 +197,8 @@ function buildPublicStats(save: Record<string, unknown>, email: string) {
     hunting_xp: huntingXP,
     fishing_level: fishingLevel,
     fishing_xp: fishingXP,
+    cooking_level: cookingLevel,
+    cooking_xp: cookingXP,
     dungeons_completed: dungeonsCompleted,
     total_gold: totalGold,
     combat_power: combatPower,
