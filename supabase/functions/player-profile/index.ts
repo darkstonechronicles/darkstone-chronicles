@@ -144,13 +144,17 @@ Deno.serve(async (req) => {
     auth: { persistSession: false, autoRefreshToken: false },
   });
 
-  const {
-    data: { user },
-    error: userError,
-  } = await userClient.auth.getUser();
-
-  if (userError || !user) {
-    return json({ error: "Invalid or expired session." }, { status: 401 });
+  const authRes = await fetch(`${supabaseUrl}/auth/v1/user`, {
+    method: "GET",
+    headers: {
+      Authorization: authHeader,
+      apikey: anonKey,
+    },
+  });
+  const authBody = await authRes.json().catch(() => ({}));
+  const user = authRes.ok && authBody && typeof authBody === "object" ? authBody as JsonRecord : null;
+  if (!authRes.ok || !user?.id) {
+    return json({ error: String((authBody as JsonRecord)?.message || (authBody as JsonRecord)?.error || "Invalid or expired session.") }, { status: 401 });
   }
 
   let payload: JsonRecord = {};

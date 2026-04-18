@@ -4525,8 +4525,11 @@ function navigateWithinShell(targetHref, options = {}) {
   const currentPage = normalizePagePath(window.location.pathname || "index.html");
   if (!canUseShellRouting(currentPage, targetPage)) return false;
   if (targetPage === currentPage && !options.force) {
-    restoreLeftPanelNodes();
-    window.DS?.resume?.();
+    const didMountSameRoute = mountShellView(targetPage, targetHref);
+    if (!didMountSameRoute) {
+      restoreLeftPanelNodes();
+      window.DS?.resume?.();
+    }
     return true;
   }
 

@@ -923,7 +923,7 @@
 
       const selectedStillExists = playersPanelState.players.some((player) => player.id === playersPanelState.selectedUserId);
       if (!selectedStillExists) {
-        playersPanelState.selectedUserId = playersPanelState.players[0]?.id || "";
+        playersPanelState.selectedUserId = "";
         playersPanelState.selectedProfile = null;
         playersPanelState.equipmentOpen = false;
       }
