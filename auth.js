@@ -46,15 +46,6 @@
       invalidated: false,
       checking: null,
       justClaimedActiveSession: false
-    },
-    debug: {
-      lastPrepareDecision: "",
-      lastLocalSummary: null,
-      lastRemoteSummary: null,
-      lastAppliedSummary: null,
-      lastSyncSummary: null,
-      lastSyncStatus: "",
-      lastSyncError: ""
     }
   };
 
@@ -250,44 +241,6 @@
     return String(localStorage.getItem(SAVE_OWNER_KEY) || "").trim();
   }
 
-  function getInventoryUnits(save) {
-    let used = 0;
-    const items = Array.isArray(save?.inventory) ? save.inventory : [];
-    for (const item of items) {
-      if (!item) continue;
-      used += Math.max(1, Number(item.quantity ?? item.qty ?? 1) || 1);
-    }
-    return used;
-  }
-
-  function summarizeSave(save, extra = {}) {
-    const next = save && typeof save === "object" ? save : {};
-    return {
-      heroLevel: Math.max(1, Number(next.heroLevel || 1) || 1),
-      heroXP: Math.max(0, Number(next.heroXP || 0) || 0),
-      gold: Math.max(0, Number(next.gold || 0) || 0),
-      inventoryStacks: Array.isArray(next.inventory) ? next.inventory.length : 0,
-      inventoryUnits: getInventoryUnits(next),
-      stamina: Math.max(0, Number(next.stamina || 0) || 0),
-      lastActiveTs: Math.max(0, Number(next.lastActiveTs || 0) || 0),
-      ...extra
-    };
-  }
-
-  function updateDebugState(patch = {}) {
-    state.debug = { ...state.debug, ...(patch && typeof patch === "object" ? patch : {}) };
-  }
-
-  function getDebugSnapshot() {
-    return {
-      cloudRevision: Number(state.cloud.revision || 0) || 0,
-      cloudReady: !!state.cloud.ready,
-      syncing: !!state.cloud.syncing,
-      pendingSync: !!state.cloud.pendingSync,
-      ...state.debug
-    };
-  }
-
   function normalizeRemoteSavePayload(remote) {
     return remote?.save_data && typeof remote.save_data === "object" ? remote.save_data : {};
   }
@@ -296,12 +249,6 @@
     const remoteSave = normalizeRemoteSavePayload(remote);
     writeLocalSave(remoteSave, state.user?.id || "");
     state.cloud.revision = Math.max(1, Number(remote?.revision || 1) || 1);
-    updateDebugState({
-      lastAppliedSummary: summarizeSave(remoteSave, {
-        source: "remote-apply",
-        revision: state.cloud.revision
-      })
-    });
     window.dispatchEvent(new Event("ds:save"));
     return remoteSave;
   }
@@ -521,24 +468,11 @@
     state.cloud.syncing = true;
     try {
       const localSave = readLocalSave();
-      updateDebugState({
-        lastLocalSummary: summarizeSave(localSave, { source: "sync-local", revision: Number(state.cloud.revision || 0) || 0 }),
-        lastSyncStatus: "saving",
-        lastSyncError: ""
-      });
       const saveResult = await writeRemoteSaveWithRevision(localSave);
       if (!saveResult.ok) {
         if (saveResult.reason === "stale-remote" || saveResult.reason === "conflict") {
           localStorage.setItem(SAVE_OWNER_KEY, state.user.id);
           markLocalSaveSynced();
-          updateDebugState({
-            lastSyncSummary: summarizeSave(readLocalSave(), {
-              source: "sync-remote-won",
-              revision: Number(state.cloud.revision || 0) || 0
-            }),
-            lastSyncStatus: "synced",
-            lastSyncError: ""
-          });
           window.dispatchEvent(new CustomEvent("ds:cloud-save", {
             detail: { status: "synced", revision: state.cloud.revision, source: "remote" }
           }));
@@ -550,23 +484,11 @@
       await upsertProfileAndStats(localSave);
       localStorage.setItem(SAVE_OWNER_KEY, state.user.id);
       markLocalSaveSynced();
-      updateDebugState({
-        lastSyncSummary: summarizeSave(localSave, {
-          source: "sync-write",
-          revision: Number(state.cloud.revision || 0) || 0
-        }),
-        lastSyncStatus: "synced",
-        lastSyncError: ""
-      });
       window.dispatchEvent(new CustomEvent("ds:cloud-save", {
         detail: { status: "synced", revision: state.cloud.revision }
       }));
     } catch (error) {
       console.error("[auth] cloud save sync failed", error);
-      updateDebugState({
-        lastSyncStatus: "error",
-        lastSyncError: error?.message || String(error)
-      });
       window.dispatchEvent(new CustomEvent("ds:cloud-save", {
         detail: { status: "error", error: error?.message || String(error) }
       }));
@@ -605,10 +527,6 @@
       const localOwnerId = getLocalOwnerId();
       const remote = await fetchRemoteSave();
       const remoteSave = normalizeRemoteSavePayload(remote);
-      updateDebugState({
-        lastLocalSummary: summarizeSave(localSave, { source: "prepare-local", revision: Number(state.cloud.revision || 0) || 0 }),
-        lastRemoteSummary: summarizeSave(remoteSave, { source: "prepare-remote", revision: Number(remote?.revision || 0) || 0 })
-      });
       const remoteHasSave = hasMeaningfulSave(remoteSave);
       const localHasSave = hasMeaningfulSave(localSave);
       const ownerMatches = !localOwnerId || localOwnerId === state.user.id;
@@ -622,37 +540,21 @@
         (hasUnsyncedLocalSave() || localSaveIsRecent);
 
       if (preferLocalSave) {
-        updateDebugState({ lastPrepareDecision: "prefer-local" });
         const saveResult = await writeRemoteSaveWithRevision(localSave, { allowRemoteOverride: true });
         if (saveResult.ok) {
           await upsertProfileAndStats(localSave);
           localStorage.setItem(SAVE_OWNER_KEY, state.user.id);
           markLocalSaveSynced();
-          updateDebugState({
-            lastAppliedSummary: summarizeSave(localSave, {
-              source: "prepare-local-kept",
-              revision: Number(state.cloud.revision || 0) || 0
-            })
-          });
         }
       } else if (remoteHasSave) {
-        updateDebugState({ lastPrepareDecision: "apply-remote" });
         applyRemoteSaveSnapshot(remote);
       } else if (localHasSave && ownerMatches) {
-        updateDebugState({ lastPrepareDecision: "init-from-local" });
         const saveResult = await writeRemoteSaveWithRevision(localSave, { allowCreate: true });
         if (!saveResult.ok) throw new Error(saveResult.reason || "Cloud save init failed.");
         await upsertProfileAndStats(localSave);
         localStorage.setItem(SAVE_OWNER_KEY, state.user.id);
         markLocalSaveSynced();
-        updateDebugState({
-          lastAppliedSummary: summarizeSave(localSave, {
-            source: "prepare-init-local",
-            revision: Number(state.cloud.revision || 0) || 0
-          })
-        });
       } else {
-        updateDebugState({ lastPrepareDecision: "init-empty" });
         if (!ownerMatches) {
           writeLocalSave({}, state.user.id);
         }
@@ -1110,7 +1012,6 @@
     syncCloudSaveNow,
     isAdmin,
     invokeAdminGrant,
-    invokeSendItem,
-    getDebugSnapshot
+    invokeSendItem
   };
 })();
