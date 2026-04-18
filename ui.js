@@ -1040,7 +1040,7 @@
         margin:12px auto 10px;
         padding:0 10px;
         position:relative;
-        z-index:40;
+        z-index:260;
         pointer-events:none;
       }
       #hudRoot,
@@ -1542,13 +1542,13 @@
       .dsHeaderAccount{
         position:relative;
         flex:0 0 auto;
-        z-index:120;
+        z-index:280;
         pointer-events:auto;
       }
       .dsHeaderPresence{
         position:relative;
         flex:0 0 auto;
-        z-index:120;
+        z-index:280;
         pointer-events:auto;
       }
       .dsAccountBtn{
@@ -1662,7 +1662,7 @@
           inset 0 -10px 18px rgba(0,0,0,.14),
           0 18px 42px rgba(0,0,0,.36);
         display:none;
-        z-index:160;
+        z-index:320;
         pointer-events:auto;
       }
       .dsAccountMenu.dsAccountMenuOpen{
