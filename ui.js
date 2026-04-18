@@ -6138,6 +6138,9 @@ function renderAll() {
       if (!window.DSPartyHall) {
         await ensureOptionalScript("party.js");
       }
+      if (!window.DSLeaderboards) {
+        await ensureOptionalScript("leaderboards.js");
+      }
       await window.DSPartyHall?.initRealtime?.();
 
       const page = String(window.location.pathname || "").split("/").pop().toLowerCase();
