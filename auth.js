@@ -44,7 +44,8 @@
     sessionGuard: {
       clientSessionId: "",
       invalidated: false,
-      checking: null
+      checking: null,
+      justClaimedActiveSession: false
     }
   };
 
@@ -326,6 +327,7 @@
       .eq("id", state.user.id);
     if (error) throw error;
     state.sessionGuard.invalidated = false;
+    state.sessionGuard.justClaimedActiveSession = true;
     return true;
   }
 
@@ -459,7 +461,7 @@
       const remoteHasSave = hasMeaningfulSave(remoteSave);
       const localHasSave = hasMeaningfulSave(localSave);
       const ownerMatches = !localOwnerId || localOwnerId === state.user.id;
-      const preferLocalSave = localHasSave && ownerMatches && hasUnsyncedLocalSave();
+      const preferLocalSave = localHasSave && ownerMatches && hasUnsyncedLocalSave() && !state.sessionGuard.justClaimedActiveSession;
 
       if (preferLocalSave) {
         await upsertProfileAndStats(localSave);
@@ -506,6 +508,7 @@
 
       state.cloud.userId = state.user.id;
       state.cloud.ready = true;
+      state.sessionGuard.justClaimedActiveSession = false;
       window.dispatchEvent(new CustomEvent("ds:cloud-save", {
         detail: { status: "ready", revision: state.cloud.revision }
       }));
@@ -748,6 +751,7 @@
       state.admin.checking = null;
       state.sessionGuard.invalidated = false;
       state.sessionGuard.checking = null;
+      state.sessionGuard.justClaimedActiveSession = false;
       if (!state.user?.id) {
         stopPresenceHeartbeat();
         state.cloud.userId = "";
