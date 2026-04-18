@@ -270,11 +270,11 @@
     grid.style.gap = "14px";
     grid.style.alignItems = "start";
     grid.innerHTML = CATEGORY_DEFS.map((category) => `
-      <button class="hubNav" type="button" data-leaderboards-category="${esc(category.key)}" style="display:flex;flex-direction:column;align-items:center;justify-content:flex-start;width:100%;max-width:none;min-width:0;border:${state.activeCategory === category.key ? "2px solid rgba(199,155,68,.9)" : "2px solid transparent"};border-radius:14px;padding:8px 8px 10px;background:${state.activeCategory === category.key ? "rgba(199,155,68,.10)" : "transparent"};">
-        <span class="hubIconFrame">
+      <button class="leaderboardCategoryBtn" type="button" data-leaderboards-category="${esc(category.key)}" style="appearance:none;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;gap:10px;width:100%;max-width:none;min-width:0;padding:8px 8px 10px;border:${state.activeCategory === category.key ? "2px solid rgba(199,155,68,.9)" : "2px solid transparent"};border-radius:14px;background:${state.activeCategory === category.key ? "rgba(199,155,68,.10)" : "transparent"};color:#f4f1e8;cursor:pointer;">
+        <span class="leaderboardCategoryIconFrame" style="width:76px;height:76px;padding:4px;border-radius:6px;border:1px solid rgba(126, 94, 50, .88);background:linear-gradient(180deg, rgba(86,64,38,.24), rgba(18,18,22,.14) 46%, rgba(0,0,0,.08) 100%), linear-gradient(180deg, #2e241b 0%, #151519 100%);box-shadow:0 0 0 1px rgba(28,20,12,.88), inset 0 1px 0 rgba(255,228,178,.08), inset 0 0 0 1px rgba(255,214,143,.04), inset 0 -10px 16px rgba(0,0,0,.14), 0 10px 18px rgba(0,0,0,.18);">
           <img class="hubIconImg" src="${esc(category.icon)}" alt="" aria-hidden="true">
         </span>
-        <span class="hubLabel">${esc(category.label)}</span>
+        <span class="leaderboardCategoryLabel" style="display:block;font-size:14px;font-weight:800;line-height:1.2;text-align:center;color:#f4f1e8;">${esc(category.label)}</span>
       </button>
     `).join("");
 
