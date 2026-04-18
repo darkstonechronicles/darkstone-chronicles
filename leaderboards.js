@@ -89,6 +89,16 @@
       pageTitle: "Cooking Level",
       subtitle: "Top players by cooking level.",
       valueHeader: "Level / XP"
+    },
+    {
+      key: "herbalism_level",
+      label: "Herbalism",
+      source: "public",
+      field: "herbalism_level",
+      icon: "images/ui/herbalism.png",
+      pageTitle: "Herbalism Level",
+      subtitle: "Top players by herbalism level.",
+      valueHeader: "Level / XP"
     }
   ];
 
@@ -142,7 +152,7 @@
     try {
       const [profilesRes, publicRes] = await Promise.all([
         client.from("profiles").select("id, display_name, avatar_url"),
-        client.from("player_public_stats").select("user_id, hero_name, hero_level, hero_xp, mining_level, mining_xp, forge_level, forge_xp, woodcutting_level, woodcutting_xp, carpentry_level, carpentry_xp, hunting_level, hunting_xp, fishing_level, fishing_xp, cooking_level, cooking_xp, dungeons_completed")
+        client.from("player_public_stats").select("user_id, hero_name, hero_level, hero_xp, mining_level, mining_xp, forge_level, forge_xp, woodcutting_level, woodcutting_xp, carpentry_level, carpentry_xp, hunting_level, hunting_xp, fishing_level, fishing_xp, cooking_level, cooking_xp, herbalism_level, herbalism_xp, dungeons_completed")
       ]);
 
       if (profilesRes.error) throw profilesRes.error;
@@ -306,7 +316,24 @@
       .sort((a, b) => b.value - a.value || b.xp - a.xp || a.name.localeCompare(b.name));
   }
 
+  function buildHerbalismRows() {
+    const map = profileMap();
+    return state.publicStats
+      .map((row) => {
+        const profile = map.get(String(row.user_id || "")) || {};
+        return {
+          id: String(row.user_id || ""),
+          name: String(profile.display_name || row.hero_name || "Hero").trim() || "Hero",
+          avatar: String(profile.avatar_url || "images/hero.png").trim() || "images/hero.png",
+          value: Math.max(1, num(row.herbalism_level, 1)),
+          xp: Math.max(0, num(row.herbalism_xp, 0))
+        };
+      })
+      .sort((a, b) => b.value - a.value || b.xp - a.xp || a.name.localeCompare(b.name));
+  }
+
   function getRowsForCategory(category) {
+    if (category?.key === "herbalism_level") return buildHerbalismRows();
     if (category?.key === "cooking_level") return buildCookingRows();
     if (category?.key === "fishing_level") return buildFishingRows();
     if (category?.key === "hunting_level") return buildHuntingRows();
@@ -391,7 +418,7 @@
                   <div style="opacity:.72;font-size:12px;">${row.id && row.id === myId ? "You" : "Player"}</div>
                 </div>
               </div>
-              <div style="text-align:right;font-weight:900;font-size:18px;color:#ead39b;white-space:nowrap;">${category.key === "hero_level" || category.key === "mining_level" || category.key === "forge_level" || category.key === "woodcutting_level" || category.key === "carpentry_level" || category.key === "hunting_level" || category.key === "fishing_level" || category.key === "cooking_level" ? `${row.value} [${fmt(row.xp)} XP]` : fmt(row.value)}</div>
+              <div style="text-align:right;font-weight:900;font-size:18px;color:#ead39b;white-space:nowrap;">${category.key === "hero_level" || category.key === "mining_level" || category.key === "forge_level" || category.key === "woodcutting_level" || category.key === "carpentry_level" || category.key === "hunting_level" || category.key === "fishing_level" || category.key === "cooking_level" || category.key === "herbalism_level" ? `${row.value} [${fmt(row.xp)} XP]` : fmt(row.value)}</div>
             </div>
           `).join("") : `<div style="padding:18px 14px;">No leaderboard data yet.</div>`}
         </section>
