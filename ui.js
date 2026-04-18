@@ -6082,6 +6082,16 @@ function renderAll() {
     renderAll();
   }
 
+  let __saveRenderQueued = false;
+  function scheduleSaveRerender() {
+    if (__saveRenderQueued) return;
+    __saveRenderQueued = true;
+    requestAnimationFrame(() => {
+      __saveRenderQueued = false;
+      forceRerenderNow();
+    });
+  }
+
   function showBootError(message) {
     document.body.style.opacity = "1";
     document.body.style.filter = "none";
@@ -6197,6 +6207,9 @@ function renderAll() {
           console.error("[UI] admin refresh failed", error);
         }
         forceRerenderNow();
+      });
+      window.addEventListener("ds:save", () => {
+        scheduleSaveRerender();
       });
       window.addEventListener("resize", syncRightColumnToNav);
       window.addEventListener("popstate", (event) => {
