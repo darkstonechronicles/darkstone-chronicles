@@ -60,6 +60,8 @@ function buildPublicStats(payload: BootstrapPayload, email: string) {
   const cookingXP = Math.max(0, Number((save as Record<string, unknown>).cookingXP ?? 0) || 0);
   const herbalismLevel = Math.max(1, Number((save as Record<string, unknown>).herbalismLevel ?? 1) || 1);
   const herbalismXP = Math.max(0, Number((save as Record<string, unknown>).herbalismXP ?? 0) || 0);
+  const alchemyLevel = Math.max(1, Number((save as Record<string, unknown>).alchemyLevel ?? 1) || 1);
+  const alchemyXP = Math.max(0, Number((save as Record<string, unknown>).alchemyXP ?? 0) || 0);
   const dungeonsCompleted = Math.max(0, Number(totalStats.dungeonsCompleted ?? 0) || 0);
   const totalGold = Math.max(0, Number((save as Record<string, unknown>).gold ?? 0) || 0);
   const combatPower = Math.max(
@@ -68,7 +70,7 @@ function buildPublicStats(payload: BootstrapPayload, email: string) {
       Number((save as Record<string, unknown>).heroDef ?? 0),
   );
 
-  return { heroName, heroLevel, heroXP, miningLevel, miningXP, forgeLevel, forgeXP, woodcuttingLevel, woodcuttingXP, carpentryLevel, carpentryXP, huntingLevel, huntingXP, fishingLevel, fishingXP, cookingLevel, cookingXP, herbalismLevel, herbalismXP, dungeonsCompleted, totalGold, combatPower };
+  return { heroName, heroLevel, heroXP, miningLevel, miningXP, forgeLevel, forgeXP, woodcuttingLevel, woodcuttingXP, carpentryLevel, carpentryXP, huntingLevel, huntingXP, fishingLevel, fishingXP, cookingLevel, cookingXP, herbalismLevel, herbalismXP, alchemyLevel, alchemyXP, dungeonsCompleted, totalGold, combatPower };
 }
 
 Deno.serve(async (req) => {
@@ -202,6 +204,8 @@ Deno.serve(async (req) => {
     cooking_xp: stats.cookingXP,
     herbalism_level: stats.herbalismLevel,
     herbalism_xp: stats.herbalismXP,
+    alchemy_level: stats.alchemyLevel,
+    alchemy_xp: stats.alchemyXP,
     dungeons_completed: stats.dungeonsCompleted,
     total_gold: stats.totalGold,
     combat_power: stats.combatPower,

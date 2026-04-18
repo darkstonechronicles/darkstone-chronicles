@@ -294,6 +294,8 @@
       cooking_xp: Math.max(0, Number(next.cookingXP || 0) || 0),
       herbalism_level: Math.max(1, Number(next.herbalismLevel || 1) || 1),
       herbalism_xp: Math.max(0, Number(next.herbalismXP || 0) || 0),
+      alchemy_level: Math.max(1, Number(next.alchemyLevel || 1) || 1),
+      alchemy_xp: Math.max(0, Number(next.alchemyXP || 0) || 0),
       dungeons_completed: Math.max(0, Number(next?.stats?.total?.dungeonsCompleted || 0) || 0),
       total_gold: Math.max(0, Number(next.gold || 0) || 0),
       combat_power: Math.max(0, (Number(next.heroAtk || 0) || 0) + (Number(next.heroDef || 0) || 0))
