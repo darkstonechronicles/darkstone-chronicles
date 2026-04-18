@@ -93,9 +93,32 @@
         </div>
       </div>
       <div id="playersPanelStatus" style="margin-bottom:12px;padding:10px 12px;border-radius:12px;border:1px solid rgba(255,255,255,.08);background:rgba(255,255,255,.03);font-size:13px;color:#eef2ff;">Loading players...</div>
-      <div style="display:grid;grid-template-columns:minmax(280px, 360px) minmax(0,1fr);gap:14px;align-items:start;">
-        <div id="playersPanelList" style="display:grid;gap:8px;"></div>
-        <div id="playersPanelProfile" style="padding:12px;border-radius:14px;border:1px solid rgba(255,255,255,.08);background:rgba(255,255,255,.03);min-height:320px;"></div>
+      <div id="playersPanelList" style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;"></div>
+    </div>
+  `;
+  const PLAYER_PROFILE_VIEW_TEMPLATE = `
+    <div id="playerProfileViewRoot" style="max-width:980px;margin:0 auto;">
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:14px;">
+        <div>
+          <h1 id="playerProfileTitle" style="margin-bottom:6px;">Player Profile</h1>
+          <div id="playerProfileSubtitle" style="opacity:.86;">Loading profile...</div>
+        </div>
+        <button id="playerProfileBackBtn" type="button" style="min-width:0;padding:8px 12px;border-radius:10px;border:1px solid rgba(166,124,64,.82);background:linear-gradient(180deg,#4e3a22,#2b2015);color:#fff3d7;font-weight:800;cursor:pointer;">Back To Players</button>
+      </div>
+      <div id="playerProfileStatus" style="display:none;margin-bottom:12px;padding:10px 12px;border-radius:12px;border:1px solid rgba(255,255,255,.08);background:rgba(255,255,255,.03);font-size:13px;color:#eef2ff;"></div>
+      <div style="display:grid;gap:14px;">
+        <div style="padding:18px 16px;border-radius:16px;border:1px solid rgba(166,124,64,.72);background:linear-gradient(180deg, rgba(56,42,24,.52), rgba(22,18,20,.94));box-shadow:0 18px 38px rgba(0,0,0,.24);">
+          <div style="display:grid;justify-items:center;gap:10px;text-align:center;">
+            <div id="playerProfileAvatarWrap" style="width:124px;height:124px;border-radius:24px;border:1px solid rgba(166,124,64,.72);background:#0f1219;overflow:hidden;box-shadow:0 12px 28px rgba(0,0,0,.28);"></div>
+            <div id="playerProfileName" style="font-size:28px;font-weight:900;color:#f3ead6;line-height:1.1;">Hero</div>
+            <div id="playerProfileMeta" style="font-size:13px;color:#d9ccb0;">Offline</div>
+            <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:center;">
+              <button id="playerTabOverview" type="button" style="min-width:160px;height:42px;border-radius:12px;border:1px solid rgba(166,124,64,.86);background:linear-gradient(180deg,#6c4a24,#3b2814);color:#fff2d6;font-size:13px;font-weight:900;cursor:pointer;">Overview</button>
+              <button id="playerTabEquipment" type="button" style="min-width:160px;height:42px;border-radius:12px;border:1px solid rgba(166,124,64,.56);background:linear-gradient(180deg,#3d3220,#241b14);color:#eadcbc;font-size:13px;font-weight:900;cursor:pointer;">Equipment</button>
+            </div>
+          </div>
+        </div>
+        <div id="playerProfileContent" style="min-height:320px;"></div>
       </div>
     </div>
   `;
@@ -131,7 +154,7 @@
     selectedUserId: "",
     selectedProfile: null,
     profileError: "",
-    equipmentOpen: false
+    profileTab: "overview"
   };
 
   function loadSave() {
@@ -214,8 +237,22 @@
     return {
       root: document.getElementById("playersViewRoot"),
       status: document.getElementById("playersPanelStatus"),
-      list: document.getElementById("playersPanelList"),
-      profile: document.getElementById("playersPanelProfile")
+      list: document.getElementById("playersPanelList")
+    };
+  }
+
+  function getPlayerProfileElements() {
+    return {
+      root: document.getElementById("playerProfileViewRoot"),
+      title: document.getElementById("playerProfileTitle"),
+      subtitle: document.getElementById("playerProfileSubtitle"),
+      status: document.getElementById("playerProfileStatus"),
+      avatarWrap: document.getElementById("playerProfileAvatarWrap"),
+      name: document.getElementById("playerProfileName"),
+      meta: document.getElementById("playerProfileMeta"),
+      tabOverview: document.getElementById("playerTabOverview"),
+      tabEquipment: document.getElementById("playerTabEquipment"),
+      content: document.getElementById("playerProfileContent")
     };
   }
 
@@ -787,91 +824,115 @@
     if (els.list) {
       els.list.innerHTML = playersPanelState.players.length
         ? playersPanelState.players.map((player) => {
-            const active = playersPanelState.selectedUserId === player.id;
             return `
-              <div style="display:grid;grid-template-columns:auto minmax(0,1fr);gap:10px;align-items:center;padding:10px;border-radius:12px;border:1px solid ${active ? "rgba(199,155,68,.98)" : "rgba(255,255,255,.08)"};background:${active ? "linear-gradient(180deg, rgba(111,83,32,.58), rgba(48,34,18,.92))" : "rgba(255,255,255,.03)"};">
-                <button type="button" data-player-panel-avatar-id="${esc(player.id)}" style="width:56px;height:56px;border-radius:14px;border:1px solid rgba(166,124,64,.64);background:#0f1219;display:flex;align-items:center;justify-content:center;overflow:hidden;cursor:pointer;padding:0;">
+              <button type="button" data-player-panel-avatar-id="${esc(player.id)}" style="display:grid;grid-template-columns:auto minmax(0,1fr);gap:10px;align-items:center;padding:12px;border-radius:14px;border:1px solid rgba(255,255,255,.08);background:rgba(255,255,255,.03);cursor:pointer;text-align:left;color:inherit;">
+                <span style="width:60px;height:60px;border-radius:16px;border:1px solid rgba(166,124,64,.64);background:#0f1219;display:flex;align-items:center;justify-content:center;overflow:hidden;">
                   <img src="${esc(player.avatarUrl || "images/hero.png")}" alt="${esc(player.name || "Hero")}" style="width:100%;height:100%;object-fit:cover;">
-                </button>
-                <div style="min-width:0;display:grid;gap:4px;">
-                  <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+                </span>
+                <span style="min-width:0;display:grid;gap:4px;">
+                  <span style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
                     <span style="font-size:15px;font-weight:900;color:#f3ead6;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${esc(player.name || "Hero")}${player.isSelf ? " (You)" : ""}</span>
                     <span style="padding:3px 8px;border-radius:999px;font-size:11px;font-weight:900;color:${player.isOnline ? "#e6ffef" : "#f3ead6"};background:${player.isOnline ? "rgba(25,107,61,.55)" : "rgba(255,255,255,.08)"};">${player.isOnline ? "Online" : "Offline"}</span>
-                  </div>
-                  <div style="font-size:12px;color:#d9ccb0;">Level ${fmt(player.heroLevel || 1)} - XP ${fmt(player.heroXP || 0)}</div>
-                  <div style="font-size:12px;color:#c6cbd8;">${esc(formatPresenceLabel(player))}</div>
-                </div>
-              </div>
+                  </span>
+                  <span style="font-size:12px;color:#d9ccb0;">Level ${fmt(player.heroLevel || 1)} - XP ${fmt(player.heroXP || 0)}</span>
+                  <span style="font-size:12px;color:#c6cbd8;">${esc(formatPresenceLabel(player))}</span>
+                </span>
+              </button>
             `;
           }).join("")
         : `<div style="padding:14px;border-radius:12px;border:1px solid rgba(255,255,255,.08);background:rgba(255,255,255,.03);opacity:.82;">No players found yet.</div>`;
     }
+  }
 
-    if (!els.profile) return;
+  function renderPlayerProfileView() {
+    const els = getPlayerProfileElements();
+    if (!els.root) return;
 
-    if (!playersPanelState.selectedUserId) {
-      els.profile.innerHTML = `<div style="display:grid;place-items:center;min-height:300px;color:#d9ccb0;opacity:.86;">Click a player portrait to open the profile details here.</div>`;
-      return;
-    }
-
-    if (playersPanelState.profileLoading) {
-      els.profile.innerHTML = `<div style="display:grid;place-items:center;min-height:300px;color:#f3ead6;">Loading profile...</div>`;
-      return;
-    }
-
-    if (playersPanelState.profileError) {
-      els.profile.innerHTML = `<div style="display:grid;gap:10px;"><div style="padding:12px;border-radius:12px;border:1px solid rgba(179,72,92,.45);background:rgba(78,22,34,.4);color:#ffd8de;">${esc(playersPanelState.profileError)}</div></div>`;
-      return;
-    }
-
+    const currentPlayer = playersPanelState.players.find((player) => player.id === playersPanelState.selectedUserId) || null;
     const profilePayload = playersPanelState.selectedProfile || {};
     const profile = profilePayload.profile || {};
     const overview = profilePayload.overview || {};
     const equipment = profilePayload.equipment || {};
     const summary = buildOverviewSummary(overview);
-    const currentPlayer = playersPanelState.players.find((player) => player.id === playersPanelState.selectedUserId) || null;
 
-    els.profile.innerHTML = `
-      <div style="display:grid;gap:14px;">
-        <div style="display:grid;grid-template-columns:auto minmax(0,1fr);gap:14px;align-items:start;">
-          <div style="display:grid;gap:10px;justify-items:center;">
-            <div style="width:112px;height:112px;border-radius:20px;border:1px solid rgba(166,124,64,.7);background:#0f1219;overflow:hidden;box-shadow:0 10px 24px rgba(0,0,0,.28);">
-              <img src="${esc(profile.avatarUrl || currentPlayer?.avatarUrl || "images/hero.png")}" alt="${esc(profile.name || currentPlayer?.name || "Hero")}" style="width:100%;height:100%;object-fit:cover;">
-            </div>
-            <button type="button" id="playersPanelEquipToggle" style="min-width:180px;height:40px;border-radius:12px;border:1px solid rgba(166,124,64,.86);background:linear-gradient(180deg,#6c4a24,#3b2814);color:#fff2d6;font-size:13px;font-weight:900;cursor:pointer;">${playersPanelState.equipmentOpen ? "Hide Equipment" : "View Equipment"}</button>
-          </div>
-          <div style="min-width:0;display:grid;gap:8px;">
-            <div style="font-size:24px;font-weight:900;color:#f3ead6;line-height:1.1;">${esc(profile.name || currentPlayer?.name || "Hero")}</div>
-            <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
-              <span style="padding:4px 10px;border-radius:999px;font-size:11px;font-weight:900;color:${currentPlayer?.isOnline ? "#e6ffef" : "#f3ead6"};background:${currentPlayer?.isOnline ? "rgba(25,107,61,.55)" : "rgba(255,255,255,.08)"};">${currentPlayer?.isOnline ? "Online" : "Offline"}</span>
-              <span style="font-size:12px;color:#d9ccb0;">Last activity: ${esc(formatLastActivity(profile.lastSeenAt || currentPlayer?.lastSeenAt))}</span>
-            </div>
-            <div style="font-size:13px;color:#c6cbd8;">Last page: ${esc(window.DSAuth?.getPresencePageLabel?.(profile.lastSeenPage || currentPlayer?.lastSeenPage || "") || "In Game")}</div>
-            <div style="padding:12px;border-radius:12px;border:1px solid rgba(166,124,64,.32);background:rgba(0,0,0,.14);display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;">
-              ${summary.map((entry) => `
-                <div style="padding:10px;border-radius:12px;border:1px solid rgba(255,255,255,.06);background:rgba(255,255,255,.03);">
-                  <div style="font-size:11px;font-weight:800;letter-spacing:.3px;color:#cbb58b;opacity:.9;">${esc(entry.label)}</div>
-                  <div style="margin-top:4px;font-size:14px;font-weight:900;color:#f3ead6;line-height:1.35;">${esc(entry.value)}</div>
-                </div>
-              `).join("")}
-            </div>
+    if (els.title) els.title.textContent = profile.name || currentPlayer?.name || "Player Profile";
+    if (els.subtitle) {
+      els.subtitle.textContent = currentPlayer
+        ? `${currentPlayer.isOnline ? "Online" : "Offline"} - ${formatPresenceLabel(currentPlayer)}`
+        : "Public player profile";
+    }
+    if (els.name) els.name.textContent = profile.name || currentPlayer?.name || "Hero";
+    if (els.meta) {
+      els.meta.textContent = currentPlayer
+        ? `Level ${fmt(currentPlayer.heroLevel || 1)} - ${formatPresenceLabel(currentPlayer)}`
+        : "Public player profile";
+    }
+    if (els.avatarWrap) {
+      els.avatarWrap.innerHTML = `<img src="${esc(profile.avatarUrl || currentPlayer?.avatarUrl || "images/hero.png")}" alt="${esc(profile.name || currentPlayer?.name || "Hero")}" style="width:100%;height:100%;object-fit:cover;">`;
+    }
+    if (els.status) {
+      if (playersPanelState.profileLoading) {
+        els.status.style.display = "";
+        els.status.textContent = "Loading profile...";
+        els.status.style.color = "#eef2ff";
+        els.status.style.borderColor = "rgba(255,255,255,.08)";
+        els.status.style.background = "rgba(255,255,255,.03)";
+      } else if (playersPanelState.profileError) {
+        els.status.style.display = "";
+        els.status.textContent = playersPanelState.profileError;
+        els.status.style.color = "#ffd8de";
+        els.status.style.borderColor = "rgba(179,72,92,.4)";
+        els.status.style.background = "rgba(78,22,34,.4)";
+      } else {
+        els.status.style.display = "none";
+      }
+    }
+    if (els.tabOverview) {
+      const active = playersPanelState.profileTab === "overview";
+      els.tabOverview.style.background = active ? "linear-gradient(180deg,#6c4a24,#3b2814)" : "linear-gradient(180deg,#3d3220,#241b14)";
+      els.tabOverview.style.borderColor = active ? "rgba(166,124,64,.86)" : "rgba(166,124,64,.56)";
+      els.tabOverview.style.color = active ? "#fff2d6" : "#eadcbc";
+    }
+    if (els.tabEquipment) {
+      const active = playersPanelState.profileTab === "equipment";
+      els.tabEquipment.style.background = active ? "linear-gradient(180deg,#6c4a24,#3b2814)" : "linear-gradient(180deg,#3d3220,#241b14)";
+      els.tabEquipment.style.borderColor = active ? "rgba(166,124,64,.86)" : "rgba(166,124,64,.56)";
+      els.tabEquipment.style.color = active ? "#fff2d6" : "#eadcbc";
+    }
+    if (!els.content) return;
+
+    if (playersPanelState.profileLoading) {
+      els.content.innerHTML = `<div style="display:grid;place-items:center;min-height:320px;padding:20px;border-radius:16px;border:1px solid rgba(166,124,64,.3);background:rgba(255,255,255,.03);color:#f3ead6;">Loading profile...</div>`;
+      return;
+    }
+
+    if (playersPanelState.profileError) {
+      els.content.innerHTML = `<div style="display:grid;place-items:center;min-height:320px;padding:20px;border-radius:16px;border:1px solid rgba(166,124,64,.3);background:rgba(255,255,255,.03);color:#d9ccb0;">Could not load this player profile.</div>`;
+      return;
+    }
+
+    if (playersPanelState.profileTab === "equipment") {
+      els.content.innerHTML = `
+        <div style="padding:16px;border-radius:16px;border:1px solid rgba(166,124,64,.72);background:linear-gradient(180deg, rgba(56,42,24,.32), rgba(22,18,20,.94));box-shadow:0 18px 38px rgba(0,0,0,.24);">
+          <div style="font-size:18px;font-weight:900;color:#f3ead6;margin-bottom:12px;text-align:center;">Equipment</div>
+          <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;">
+            ${renderPlayerEquipmentGrid(equipment)}
           </div>
         </div>
-        ${playersPanelState.equipmentOpen ? `
-          <div style="display:grid;gap:10px;">
-            <div style="font-size:16px;font-weight:900;color:#f3ead6;">Equipped Gear</div>
-            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px;">
-              ${renderPlayerEquipmentGrid(equipment)}
-            </div>
+      `;
+      return;
+    }
+
+    els.content.innerHTML = `
+      <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;">
+        ${summary.map((entry) => `
+          <div style="background:linear-gradient(180deg, rgba(86,64,38,.34), rgba(26,23,26,.16) 42%, rgba(0,0,0,.10) 100%), linear-gradient(180deg, #34281d 0%, #1d1a1d 100%);border:1px solid rgba(126,94,50,.88);border-radius:12px;padding:10px 11px;box-shadow:0 0 0 1px rgba(28,20,12,.84), inset 0 1px 0 rgba(255,228,178,.08), inset 0 -10px 16px rgba(0,0,0,.14), 0 10px 18px rgba(0,0,0,.18);">
+            <div style="font-size:12px;font-weight:900;color:#f3ead6;text-shadow:0 1px 0 rgba(74,47,14,.95),0 0 8px rgba(0,0,0,.3),0 2px 6px rgba(0,0,0,.58);">${esc(entry.label)}</div>
+            <div style="margin-top:8px;font-size:18px;font-weight:900;color:#fff1cf;line-height:1.3;">${esc(entry.value)}</div>
           </div>
-        ` : ""}
+        `).join("")}
       </div>
     `;
-
-    document.getElementById("playersPanelEquipToggle")?.addEventListener("click", () => {
-      playersPanelState.equipmentOpen = !playersPanelState.equipmentOpen;
-      renderPlayersPanel();
-    });
   }
 
   async function loadPlayersPanel(force = false) {
@@ -925,7 +986,7 @@
       if (!selectedStillExists) {
         playersPanelState.selectedUserId = "";
         playersPanelState.selectedProfile = null;
-        playersPanelState.equipmentOpen = false;
+        playersPanelState.profileTab = "overview";
       }
 
       renderPlayersPanel();
@@ -950,10 +1011,11 @@
     playersPanelState.profileError = "";
     if (!sameUser || options.force) {
       playersPanelState.selectedProfile = null;
-      playersPanelState.equipmentOpen = false;
+      playersPanelState.profileTab = "overview";
     }
+    if (options.mountView !== false) mountPlayerProfileView();
     playersPanelState.profileLoading = true;
-    renderPlayersPanel();
+    renderPlayerProfileView();
 
     try {
       const result = await window.DSAuth?.invokePlayerProfile?.({ targetUserId });
@@ -967,7 +1029,7 @@
     } finally {
       if (playersPanelState.selectedUserId === targetUserId) {
         playersPanelState.profileLoading = false;
-        renderPlayersPanel();
+        renderPlayerProfileView();
       }
     }
   }
@@ -978,13 +1040,40 @@
     document.getElementById("playersPanelList")?.addEventListener("click", (e) => {
       const avatarBtn = e.target.closest("[data-player-panel-avatar-id]");
       if (!avatarBtn) return;
-      openPlayersPanelProfile(String(avatarBtn.dataset.playerPanelAvatarId || ""));
+      openPlayersPanelProfile(String(avatarBtn.dataset.playerPanelAvatarId || ""), { mountView: true });
     });
+  }
+
+  function bindPlayerProfileView() {
+    document.getElementById("playerProfileBackBtn")?.addEventListener("click", () => mountPlayersView());
+    document.getElementById("playerTabOverview")?.addEventListener("click", () => {
+      playersPanelState.profileTab = "overview";
+      renderPlayerProfileView();
+    });
+    document.getElementById("playerTabEquipment")?.addEventListener("click", () => {
+      playersPanelState.profileTab = "equipment";
+      renderPlayerProfileView();
+    });
+  }
+
+  function mountPlayerProfileView() {
+    const left = el("leftPanel");
+    if (!left) return false;
+    left.innerHTML = PLAYER_PROFILE_VIEW_TEMPLATE;
+    document.title = "Darkstone Chronicles";
+    bindPlayerProfileView();
+    renderPlayerProfileView();
+    return true;
   }
 
   function mountPlayersView() {
     const left = el("leftPanel");
     if (!left) return false;
+    playersPanelState.selectedUserId = "";
+    playersPanelState.selectedProfile = null;
+    playersPanelState.profileError = "";
+    playersPanelState.profileLoading = false;
+    playersPanelState.profileTab = "overview";
     left.innerHTML = PLAYERS_VIEW_TEMPLATE;
     document.title = "Darkstone Chronicles";
     bindPlayersPanel();
