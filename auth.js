@@ -5,6 +5,7 @@
   const SAVE_META_KEY = "darkstone_save_meta_v1";
   const ACTIVE_SESSION_KEY = "darkstone_active_client_session_v1";
   const ACTIVE_SESSION_PENDING_KEY = "ds:claim-active-session";
+  const ACTIVE_SESSION_HANDOFF_GRACE_MS = 1500;
   const CLOUD_SAVE_DEBOUNCE_MS = 250;
   const SUPABASE_SCRIPT_SRC = "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js";
   const PRESENCE_HEARTBEAT_MS = 45 * 1000;
@@ -167,17 +168,18 @@
 
   function markPendingActiveSessionClaim() {
     try {
-      sessionStorage.setItem(ACTIVE_SESSION_PENDING_KEY, "1");
+      sessionStorage.setItem(ACTIVE_SESSION_PENDING_KEY, String(Date.now()));
     } catch {}
   }
 
   function consumePendingActiveSessionClaim() {
     try {
-      const pending = sessionStorage.getItem(ACTIVE_SESSION_PENDING_KEY) === "1";
+      const raw = String(sessionStorage.getItem(ACTIVE_SESSION_PENDING_KEY) || "").trim();
       sessionStorage.removeItem(ACTIVE_SESSION_PENDING_KEY);
-      return pending;
+      const requestedAt = Number(raw || 0);
+      return Number.isFinite(requestedAt) && requestedAt > 0 ? requestedAt : 0;
     } catch {
-      return false;
+      return 0;
     }
   }
 
@@ -722,9 +724,14 @@
     state.session = data?.session || null;
     state.user = data?.session?.user || null;
     ensureClientSessionId(false);
-    const shouldClaimActiveSession = consumePendingActiveSessionClaim();
+    const pendingClaimRequestedAt = consumePendingActiveSessionClaim();
     if (state.user?.id) {
-      if (shouldClaimActiveSession) {
+      if (pendingClaimRequestedAt > 0) {
+        const elapsed = Math.max(0, Date.now() - pendingClaimRequestedAt);
+        const waitMs = Math.max(0, ACTIVE_SESSION_HANDOFF_GRACE_MS - elapsed);
+        if (waitMs > 0) {
+          await new Promise((resolve) => window.setTimeout(resolve, waitMs));
+        }
         await validateActiveSession({ forceClaim: true, resetClientSessionId: true });
       } else {
         await validateActiveSession({ claimIfMissing: true });
@@ -748,11 +755,6 @@
         state.cloud.revision = 0;
       } else {
         startPresenceHeartbeat();
-        if (event === "SIGNED_IN") {
-          validateActiveSession({ forceClaim: true, resetClientSessionId: true }).catch((error) => {
-            console.error("[auth] active session claim failed", error);
-          });
-        }
       }
       window.dispatchEvent(new CustomEvent("ds:auth", {
         detail: {
