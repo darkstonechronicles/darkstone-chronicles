@@ -286,6 +286,8 @@
       woodcutting_xp: Math.max(0, Number(next.woodcuttingXP || next.woodworkingXP || 0) || 0),
       carpentry_level: Math.max(1, Number(next.carpentryLevel || 1) || 1),
       carpentry_xp: Math.max(0, Number(next.carpentryXP || 0) || 0),
+      hunting_level: Math.max(1, Number(next.huntingLevel || 1) || 1),
+      hunting_xp: Math.max(0, Number(next.huntingXP || 0) || 0),
       dungeons_completed: Math.max(0, Number(next?.stats?.total?.dungeonsCompleted || 0) || 0),
       total_gold: Math.max(0, Number(next.gold || 0) || 0),
       combat_power: Math.max(0, (Number(next.heroAtk || 0) || 0) + (Number(next.heroDef || 0) || 0))
