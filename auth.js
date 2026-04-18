@@ -530,15 +530,13 @@
       const localHasSave = hasMeaningfulSave(localSave);
       const ownerMatches = !localOwnerId || localOwnerId === state.user.id;
       const localLastSaveAt = Math.max(0, Number(localMeta.lastLocalSaveAt || 0) || 0);
-      const remoteUpdatedAtMs = remote?.updated_at ? new Date(remote.updated_at).getTime() : 0;
-      const localLooksNewerThanRemote = localLastSaveAt > 0 && remoteUpdatedAtMs > 0 && localLastSaveAt > (remoteUpdatedAtMs + 1000);
       const recentLocalWindowMs = 10 * 60 * 1000;
       const localSaveIsRecent = localLastSaveAt > 0 && (Date.now() - localLastSaveAt) <= recentLocalWindowMs;
       const preferLocalSave =
         localHasSave &&
         ownerMatches &&
         !state.sessionGuard.justClaimedActiveSession &&
-        (hasUnsyncedLocalSave() || (localSaveIsRecent && localLooksNewerThanRemote));
+        (hasUnsyncedLocalSave() || localSaveIsRecent);
 
       if (preferLocalSave) {
         const saveResult = await writeRemoteSaveWithRevision(localSave);
