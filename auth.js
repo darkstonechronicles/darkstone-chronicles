@@ -385,11 +385,12 @@
 
     const nextSave = localSave && typeof localSave === "object" ? localSave : {};
     const allowCreate = options.allowCreate !== false;
+    const allowRemoteOverride = options.allowRemoteOverride === true;
     const knownRevision = Math.max(0, Number(state.cloud.revision || 0) || 0);
     const remote = await fetchRemoteSave();
     const remoteRevision = Math.max(0, Number(remote?.revision || 0) || 0);
 
-    if (remote && remoteRevision > knownRevision) {
+    if (remote && remoteRevision > knownRevision && !allowRemoteOverride) {
       applyRemoteSaveSnapshot(remote);
       return { ok: false, reason: "stale-remote", remote };
     }
@@ -622,7 +623,7 @@
 
       if (preferLocalSave) {
         updateDebugState({ lastPrepareDecision: "prefer-local" });
-        const saveResult = await writeRemoteSaveWithRevision(localSave);
+        const saveResult = await writeRemoteSaveWithRevision(localSave, { allowRemoteOverride: true });
         if (saveResult.ok) {
           await upsertProfileAndStats(localSave);
           localStorage.setItem(SAVE_OWNER_KEY, state.user.id);
