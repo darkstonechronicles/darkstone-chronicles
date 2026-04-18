@@ -241,6 +241,18 @@
     return String(localStorage.getItem(SAVE_OWNER_KEY) || "").trim();
   }
 
+  function normalizeRemoteSavePayload(remote) {
+    return remote?.save_data && typeof remote.save_data === "object" ? remote.save_data : {};
+  }
+
+  function applyRemoteSaveSnapshot(remote) {
+    const remoteSave = normalizeRemoteSavePayload(remote);
+    writeLocalSave(remoteSave, state.user?.id || "");
+    state.cloud.revision = Math.max(1, Number(remote?.revision || 1) || 1);
+    window.dispatchEvent(new Event("ds:save"));
+    return remoteSave;
+  }
+
   function hasMeaningfulSave(save) {
     const next = save && typeof save === "object" ? save : {};
     return Object.keys(next).length > 0 && (
@@ -313,6 +325,65 @@
       .maybeSingle();
     if (error) throw error;
     return data || null;
+  }
+
+  async function writeRemoteSaveWithRevision(localSave, options = {}) {
+    if (!state.client || !state.user?.id) return { ok: false, reason: "no-session" };
+
+    const nextSave = localSave && typeof localSave === "object" ? localSave : {};
+    const allowCreate = options.allowCreate !== false;
+    const knownRevision = Math.max(0, Number(state.cloud.revision || 0) || 0);
+    const remote = await fetchRemoteSave();
+    const remoteRevision = Math.max(0, Number(remote?.revision || 0) || 0);
+
+    if (remote && remoteRevision > knownRevision) {
+      applyRemoteSaveSnapshot(remote);
+      return { ok: false, reason: "stale-remote", remote };
+    }
+
+    const nowIso = new Date().toISOString();
+    if (remote) {
+      const nextRevision = remoteRevision + 1;
+      const { data, error } = await state.client
+        .from("player_saves")
+        .update({
+          save_data: nextSave,
+          revision: nextRevision,
+          last_synced_at: nowIso
+        })
+        .eq("user_id", state.user.id)
+        .eq("revision", remoteRevision)
+        .select("revision")
+        .maybeSingle();
+
+      if (error) throw error;
+      if (!data) {
+        const latestRemote = await fetchRemoteSave();
+        if (latestRemote) {
+          applyRemoteSaveSnapshot(latestRemote);
+          return { ok: false, reason: "conflict", remote: latestRemote };
+        }
+        throw new Error("Cloud save update conflicted.");
+      }
+
+      state.cloud.revision = nextRevision;
+      return { ok: true, revision: nextRevision };
+    }
+
+    if (!allowCreate) {
+      return { ok: false, reason: "missing-remote" };
+    }
+
+    const initialRevision = Math.max(1, knownRevision || 1);
+    const { error: insertError } = await state.client.from("player_saves").upsert({
+      user_id: state.user.id,
+      save_data: nextSave,
+      revision: initialRevision,
+      last_synced_at: nowIso
+    });
+    if (insertError) throw insertError;
+    state.cloud.revision = initialRevision;
+    return { ok: true, revision: initialRevision };
   }
 
   async function claimActiveSession(resetClientSessionId = false) {
@@ -396,28 +467,24 @@
     state.cloud.syncing = true;
     try {
       const localSave = readLocalSave();
-      const stats = buildPublicStats(localSave, state.user);
-      const nextRevision = Math.max(1, Number(state.cloud.revision || 0) + 1);
+      const saveResult = await writeRemoteSaveWithRevision(localSave);
+      if (!saveResult.ok) {
+        if (saveResult.reason === "stale-remote" || saveResult.reason === "conflict") {
+          localStorage.setItem(SAVE_OWNER_KEY, state.user.id);
+          markLocalSaveSynced();
+          window.dispatchEvent(new CustomEvent("ds:cloud-save", {
+            detail: { status: "synced", revision: state.cloud.revision, source: "remote" }
+          }));
+          return;
+        }
+        throw new Error(saveResult.reason || "Cloud save sync failed.");
+      }
 
-      const { error: saveError } = await state.client.from("player_saves").upsert({
-        user_id: state.user.id,
-        save_data: localSave,
-        revision: nextRevision,
-        last_synced_at: new Date().toISOString()
-      });
-      if (saveError) throw saveError;
-
-      const { error: statsError } = await state.client.from("player_public_stats").upsert({
-        user_id: state.user.id,
-        ...stats
-      });
-      if (statsError) throw statsError;
-
-      state.cloud.revision = nextRevision;
+      await upsertProfileAndStats(localSave);
       localStorage.setItem(SAVE_OWNER_KEY, state.user.id);
       markLocalSaveSynced();
       window.dispatchEvent(new CustomEvent("ds:cloud-save", {
-        detail: { status: "synced", revision: nextRevision }
+        detail: { status: "synced", revision: state.cloud.revision }
       }));
     } catch (error) {
       console.error("[auth] cloud save sync failed", error);
@@ -457,38 +524,25 @@
       const localSave = readLocalSave();
       const localOwnerId = getLocalOwnerId();
       const remote = await fetchRemoteSave();
-      const remoteSave = remote?.save_data && typeof remote.save_data === "object" ? remote.save_data : {};
+      const remoteSave = normalizeRemoteSavePayload(remote);
       const remoteHasSave = hasMeaningfulSave(remoteSave);
       const localHasSave = hasMeaningfulSave(localSave);
       const ownerMatches = !localOwnerId || localOwnerId === state.user.id;
       const preferLocalSave = localHasSave && ownerMatches && hasUnsyncedLocalSave() && !state.sessionGuard.justClaimedActiveSession;
 
       if (preferLocalSave) {
-        await upsertProfileAndStats(localSave);
-        const nextRevision = Math.max(1, Number(remote?.revision || 0) + 1);
-        const { error: saveError } = await state.client.from("player_saves").upsert({
-          user_id: state.user.id,
-          save_data: localSave,
-          revision: nextRevision,
-          last_synced_at: new Date().toISOString()
-        });
-        if (saveError) throw saveError;
-        state.cloud.revision = nextRevision;
-        localStorage.setItem(SAVE_OWNER_KEY, state.user.id);
-        markLocalSaveSynced();
+        const saveResult = await writeRemoteSaveWithRevision(localSave);
+        if (saveResult.ok) {
+          await upsertProfileAndStats(localSave);
+          localStorage.setItem(SAVE_OWNER_KEY, state.user.id);
+          markLocalSaveSynced();
+        }
       } else if (remoteHasSave) {
-        writeLocalSave(remoteSave, state.user.id);
-        state.cloud.revision = Number(remote?.revision || 1) || 1;
+        applyRemoteSaveSnapshot(remote);
       } else if (localHasSave && ownerMatches) {
+        const saveResult = await writeRemoteSaveWithRevision(localSave, { allowCreate: true });
+        if (!saveResult.ok) throw new Error(saveResult.reason || "Cloud save init failed.");
         await upsertProfileAndStats(localSave);
-        const { error: saveError } = await state.client.from("player_saves").upsert({
-          user_id: state.user.id,
-          save_data: localSave,
-          revision: 1,
-          last_synced_at: new Date().toISOString()
-        });
-        if (saveError) throw saveError;
-        state.cloud.revision = 1;
         localStorage.setItem(SAVE_OWNER_KEY, state.user.id);
         markLocalSaveSynced();
       } else {
