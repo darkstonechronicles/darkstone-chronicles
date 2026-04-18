@@ -4517,7 +4517,11 @@ function navigateWithinShell(targetHref, options = {}) {
   const targetPage = normalizePagePath(targetHref);
   const currentPage = normalizePagePath(window.location.pathname || "index.html");
   if (!canUseShellRouting(currentPage, targetPage)) return false;
-  if (targetPage === currentPage && !options.force) return true;
+  if (targetPage === currentPage && !options.force) {
+    restoreLeftPanelNodes();
+    window.DS?.resume?.();
+    return true;
+  }
 
   if (SHELL_INSTANT_ROUTES.has(targetPage)) {
     const didMount = mountShellView(targetPage, targetHref);
@@ -4558,10 +4562,11 @@ function navigateWithFade(targetHref) {
   const targetPage = normalizePagePath(targetHref);
   const currentPage = normalizePagePath(window.location.pathname || "index.html");
   if (!targetPage) return;
-  if (targetPage === currentPage) return;
 
   restoreLeftPanelNodes();
   window.DS?.resume?.();
+
+  if (targetPage === currentPage) return;
 
   if (navigateWithinShell(targetHref)) return;
 
