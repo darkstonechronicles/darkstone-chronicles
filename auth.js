@@ -842,26 +842,15 @@
     const targetUserId = String(payload?.targetUserId || "").trim();
     if (!targetUserId) throw new Error("Player id is required.");
 
-    const session = await getSession();
-    const token = session?.access_token;
-    if (!token) throw new Error("Missing access token.");
-
-    const res = await fetch(`${CONFIG.url}/functions/v1/player-profile`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${token}`,
-        "apikey": CONFIG.anonKey
-      },
-      body: JSON.stringify({ targetUserId })
+    const { data, error } = await state.client.rpc("get_public_player_profile", {
+      p_target_user_id: targetUserId
     });
-
-    const body = await res.json().catch(() => ({}));
-    if (!res.ok || !body?.ok) {
-      throw new Error(body?.error || body?.message || `Player profile failed (${res.status})`);
+    if (error) throw new Error(error.message || "Player profile failed.");
+    if (!data || data.ok !== true) {
+      throw new Error(String(data?.error || "Player profile failed."));
     }
 
-    return body;
+    return data;
   }
 
   const ready = (async () => {

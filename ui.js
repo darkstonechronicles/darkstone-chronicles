@@ -4570,13 +4570,10 @@ function navigateWithinShell(targetHref, options = {}) {
 
 function navigateWithFade(targetHref) {
   const targetPage = normalizePagePath(targetHref);
-  const currentPage = normalizePagePath(window.location.pathname || "index.html");
   if (!targetPage) return;
 
   restoreLeftPanelNodes();
   window.DS?.resume?.();
-
-  if (targetPage === currentPage) return;
 
   if (navigateWithinShell(targetHref)) return;
 
