@@ -5,6 +5,7 @@
   const SAVE_META_KEY = "darkstone_save_meta_v1";
   const ACTIVE_SESSION_KEY = "darkstone_active_client_session_v1";
   const ACTIVE_SESSION_PENDING_KEY = "ds:claim-active-session";
+  const CLOUD_SAVE_DEBOUNCE_MS = 250;
   const SUPABASE_SCRIPT_SRC = "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js";
   const PRESENCE_HEARTBEAT_MS = 45 * 1000;
   const PRESENCE_MIN_UPDATE_MS = 20 * 1000;
@@ -29,6 +30,7 @@
       ready: false,
       preparing: null,
       syncing: false,
+      pendingSync: false,
       syncTimer: 0,
       revision: 0,
       suppressSync: false
@@ -420,16 +422,24 @@
       }));
     } finally {
       state.cloud.syncing = false;
+      if (state.cloud.pendingSync) {
+        state.cloud.pendingSync = false;
+        scheduleCloudSaveSync(0);
+      }
     }
   }
 
-  function scheduleCloudSaveSync() {
+  function scheduleCloudSaveSync(delayMs = CLOUD_SAVE_DEBOUNCE_MS) {
     if (!state.user?.id || !state.cloud.ready || state.cloud.suppressSync) return;
+    if (state.cloud.syncing) {
+      state.cloud.pendingSync = true;
+      return;
+    }
     if (state.cloud.syncTimer) window.clearTimeout(state.cloud.syncTimer);
     state.cloud.syncTimer = window.setTimeout(() => {
       state.cloud.syncTimer = 0;
       syncCloudSaveNow();
-    }, 900);
+    }, Math.max(0, Number(delayMs) || 0));
   }
 
   async function preparePlayerState() {
