@@ -1,4 +1,8 @@
 (() => {
+  function currentPage() {
+    return String(window.location.pathname || "").split("/").pop().toLowerCase() || "index.html";
+  }
+
   const PROFESSIONS_TEMPLATE = `
     <h1 style="margin-bottom:6px;">Professions</h1>
     <div style="opacity:.85;margin-bottom:14px;">
@@ -117,10 +121,8 @@
   }
 
   function initStandaloneProfessions() {
-    if (!el("goMine")) return false;
-    document.title = "Darkstone Chronicles - Professions";
-    bindProfessionsNav(document);
-    return true;
+    if (currentPage() !== "professions.html") return false;
+    return mountProfessions();
   }
 
   window.DSProfessions = {
