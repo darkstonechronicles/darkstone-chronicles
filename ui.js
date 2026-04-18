@@ -467,12 +467,44 @@
 
   function hydrateCloudSyncUiState() {
     const meta = loadSaveMeta();
+    const lastLocalSaveAt = Number(meta.lastLocalSaveAt || 0);
     const lastCloudSyncAt = Number(meta.lastCloudSyncAt || 0);
     if (lastCloudSyncAt > 0) {
       __cloudSyncUiState.lastSyncedAt = lastCloudSyncAt;
-      if (__cloudSyncUiState.status === "idle") {
+      if (lastCloudSyncAt >= lastLocalSaveAt || __cloudSyncUiState.status === "idle") {
         __cloudSyncUiState.status = "synced";
       }
+    }
+    if (lastLocalSaveAt > lastCloudSyncAt) {
+      __cloudSyncUiState.status = "saving";
+    }
+  }
+
+  function reconcileCloudSyncUiState() {
+    const meta = loadSaveMeta();
+    const lastLocalSaveAt = Number(meta.lastLocalSaveAt || 0);
+    const lastCloudSyncAt = Number(meta.lastCloudSyncAt || 0);
+    if (lastCloudSyncAt > 0) {
+      __cloudSyncUiState.lastSyncedAt = lastCloudSyncAt;
+    }
+
+    if (__cloudSyncUiState.status === "error") {
+      if (lastCloudSyncAt >= lastLocalSaveAt && lastCloudSyncAt > 0) {
+        __cloudSyncUiState.status = "synced";
+        __cloudSyncUiState.error = "";
+      }
+      return;
+    }
+
+    if (lastLocalSaveAt > lastCloudSyncAt) {
+      __cloudSyncUiState.status = "saving";
+      return;
+    }
+
+    if (lastCloudSyncAt > 0) {
+      __cloudSyncUiState.status = "synced";
+    } else if (__cloudSyncUiState.status !== "saving") {
+      __cloudSyncUiState.status = "idle";
     }
   }
 
@@ -496,9 +528,14 @@
       bg = "linear-gradient(180deg, rgba(92,36,47,.96), rgba(46,18,24,.96))";
     }
 
+    const meta = loadSaveMeta();
+    const pendingForMs = Math.max(0, Number(meta.lastLocalSaveAt || 0) - Number(meta.lastCloudSyncAt || 0));
+    const pendingAgeSec = Math.max(0, Math.floor((Date.now() - Number(meta.lastLocalSaveAt || 0)) / 1000));
     const detail = status === "error"
       ? (String(__cloudSyncUiState.error || "Save failed").trim() || "Save failed")
-      : `Last: ${formatSyncClock(__cloudSyncUiState.lastSyncedAt)}`;
+      : status === "saving"
+        ? `Pending ${pendingAgeSec}s`
+        : `Last: ${formatSyncClock(__cloudSyncUiState.lastSyncedAt)}`;
 
     return `
       <div id="dsCloudSyncBadge" title="${esc(detail)}" style="margin-top:6px;display:inline-flex;align-self:flex-end;flex-direction:column;gap:2px;padding:8px 10px;border-radius:12px;border:1px solid ${tone};background:${bg};box-shadow:0 12px 26px rgba(0,0,0,.24);min-width:138px;">
@@ -3983,7 +4020,10 @@ function updateCloudSyncUi(detail = {}) {
     __cloudSyncUiState.status = "error";
     __cloudSyncUiState.error = String(detail?.error || "Save failed").trim();
     forceRerenderNow();
+    return;
   }
+  reconcileCloudSyncUiState();
+  forceRerenderNow();
 }
 
 let __adminPanelBound = false;
@@ -6273,11 +6313,17 @@ function renderAll() {
           console.error("[UI] background presence refresh failed", error);
         });
       }, 60000);
+      setInterval(() => {
+        reconcileCloudSyncUiState();
+        forceRerenderNow();
+      }, 1500);
 
       hydrateCloudSyncUiState();
+      reconcileCloudSyncUiState();
       window.addEventListener("ds:save", () => {
         __cloudSyncUiState.status = "saving";
         __cloudSyncUiState.error = "";
+        reconcileCloudSyncUiState();
         forceRerenderNow();
       });
       window.addEventListener("ds:cloud-save", (event) => {
