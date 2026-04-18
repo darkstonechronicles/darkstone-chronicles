@@ -39,6 +39,16 @@
       pageTitle: "Forge Level",
       subtitle: "Top players by forge level.",
       valueHeader: "Level / XP"
+    },
+    {
+      key: "woodcutting_level",
+      label: "Woodcutting",
+      source: "public",
+      field: "woodcutting_level",
+      icon: "images/ui/woodcutting.png",
+      pageTitle: "Woodcutting Level",
+      subtitle: "Top players by woodcutting level.",
+      valueHeader: "Level / XP"
     }
   ];
 
@@ -90,7 +100,7 @@
     try {
       const [profilesRes, publicRes] = await Promise.all([
         client.from("profiles").select("id, display_name, avatar_url"),
-        client.from("player_public_stats").select("user_id, hero_name, hero_level, hero_xp, mining_level, mining_xp, forge_level, forge_xp, dungeons_completed")
+        client.from("player_public_stats").select("user_id, hero_name, hero_level, hero_xp, mining_level, mining_xp, forge_level, forge_xp, woodcutting_level, woodcutting_xp, dungeons_completed")
       ]);
 
       if (profilesRes.error) throw profilesRes.error;
@@ -174,7 +184,24 @@
       .sort((a, b) => b.value - a.value || b.xp - a.xp || a.name.localeCompare(b.name));
   }
 
+  function buildWoodcuttingRows() {
+    const map = profileMap();
+    return state.publicStats
+      .map((row) => {
+        const profile = map.get(String(row.user_id || "")) || {};
+        return {
+          id: String(row.user_id || ""),
+          name: String(profile.display_name || row.hero_name || "Hero").trim() || "Hero",
+          avatar: String(profile.avatar_url || "images/hero.png").trim() || "images/hero.png",
+          value: Math.max(1, num(row.woodcutting_level, 1)),
+          xp: Math.max(0, num(row.woodcutting_xp, 0))
+        };
+      })
+      .sort((a, b) => b.value - a.value || b.xp - a.xp || a.name.localeCompare(b.name));
+  }
+
   function getRowsForCategory(category) {
+    if (category?.key === "woodcutting_level") return buildWoodcuttingRows();
     if (category?.key === "forge_level") return buildForgeRows();
     if (category?.key === "mining_level") return buildMiningRows();
     if (category?.key === "dungeons_completed") return buildDungeonRows();
@@ -254,7 +281,7 @@
                   <div style="opacity:.72;font-size:12px;">${row.id && row.id === myId ? "You" : "Player"}</div>
                 </div>
               </div>
-              <div style="text-align:right;font-weight:900;font-size:18px;color:#ead39b;white-space:nowrap;">${category.key === "hero_level" || category.key === "mining_level" || category.key === "forge_level" ? `${row.value} [${fmt(row.xp)} XP]` : fmt(row.value)}</div>
+              <div style="text-align:right;font-weight:900;font-size:18px;color:#ead39b;white-space:nowrap;">${category.key === "hero_level" || category.key === "mining_level" || category.key === "forge_level" || category.key === "woodcutting_level" ? `${row.value} [${fmt(row.xp)} XP]` : fmt(row.value)}</div>
             </div>
           `).join("") : `<div style="padding:18px 14px;">No leaderboard data yet.</div>`}
         </section>

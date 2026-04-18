@@ -162,6 +162,8 @@ function buildPublicStats(save: Record<string, unknown>, email: string) {
   const miningXP = Math.max(0, safeInt(save.miningXP, 0));
   const forgeLevel = Math.max(1, safeInt(save.blacksmithLevel ?? save.forgeLevel, 1));
   const forgeXP = Math.max(0, safeInt(save.blacksmithXP ?? save.forgeXP, 0));
+  const woodcuttingLevel = Math.max(1, safeInt(save.woodcuttingLevel ?? save.woodworkingLevel, 1));
+  const woodcuttingXP = Math.max(0, safeInt(save.woodcuttingXP ?? save.woodworkingXP, 0));
   const totalStats = save.stats && typeof save.stats === "object"
     ? (((save.stats as Record<string, unknown>).total as Record<string, unknown> | undefined) || {})
     : {};
@@ -179,6 +181,8 @@ function buildPublicStats(save: Record<string, unknown>, email: string) {
     mining_xp: miningXP,
     forge_level: forgeLevel,
     forge_xp: forgeXP,
+    woodcutting_level: woodcuttingLevel,
+    woodcutting_xp: woodcuttingXP,
     dungeons_completed: dungeonsCompleted,
     total_gold: totalGold,
     combat_power: combatPower,
