@@ -280,6 +280,8 @@
       hero_xp: Math.max(0, Number(next.heroXP || 0) || 0),
       mining_level: Math.max(1, Number(next.miningLevel || 1) || 1),
       mining_xp: Math.max(0, Number(next.miningXP || 0) || 0),
+      forge_level: Math.max(1, Number(next.forgeLevel || 1) || 1),
+      forge_xp: Math.max(0, Number(next.forgeXP || 0) || 0),
       dungeons_completed: Math.max(0, Number(next?.stats?.total?.dungeonsCompleted || 0) || 0),
       total_gold: Math.max(0, Number(next.gold || 0) || 0),
       combat_power: Math.max(0, (Number(next.heroAtk || 0) || 0) + (Number(next.heroDef || 0) || 0))
