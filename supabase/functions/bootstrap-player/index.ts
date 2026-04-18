@@ -50,6 +50,8 @@ function buildPublicStats(payload: BootstrapPayload, email: string) {
   const forgeXP = Math.max(0, Number((save as Record<string, unknown>).blacksmithXP ?? (save as Record<string, unknown>).forgeXP ?? 0) || 0);
   const woodcuttingLevel = Math.max(1, Number((save as Record<string, unknown>).woodcuttingLevel ?? (save as Record<string, unknown>).woodworkingLevel ?? 1) || 1);
   const woodcuttingXP = Math.max(0, Number((save as Record<string, unknown>).woodcuttingXP ?? (save as Record<string, unknown>).woodworkingXP ?? 0) || 0);
+  const carpentryLevel = Math.max(1, Number((save as Record<string, unknown>).carpentryLevel ?? 1) || 1);
+  const carpentryXP = Math.max(0, Number((save as Record<string, unknown>).carpentryXP ?? 0) || 0);
   const dungeonsCompleted = Math.max(0, Number(totalStats.dungeonsCompleted ?? 0) || 0);
   const totalGold = Math.max(0, Number((save as Record<string, unknown>).gold ?? 0) || 0);
   const combatPower = Math.max(
@@ -58,7 +60,7 @@ function buildPublicStats(payload: BootstrapPayload, email: string) {
       Number((save as Record<string, unknown>).heroDef ?? 0),
   );
 
-  return { heroName, heroLevel, heroXP, miningLevel, miningXP, forgeLevel, forgeXP, woodcuttingLevel, woodcuttingXP, dungeonsCompleted, totalGold, combatPower };
+  return { heroName, heroLevel, heroXP, miningLevel, miningXP, forgeLevel, forgeXP, woodcuttingLevel, woodcuttingXP, carpentryLevel, carpentryXP, dungeonsCompleted, totalGold, combatPower };
 }
 
 Deno.serve(async (req) => {
@@ -182,6 +184,8 @@ Deno.serve(async (req) => {
     forge_xp: stats.forgeXP,
     woodcutting_level: stats.woodcuttingLevel,
     woodcutting_xp: stats.woodcuttingXP,
+    carpentry_level: stats.carpentryLevel,
+    carpentry_xp: stats.carpentryXP,
     dungeons_completed: stats.dungeonsCompleted,
     total_gold: stats.totalGold,
     combat_power: stats.combatPower,
