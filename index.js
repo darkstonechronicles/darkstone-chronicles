@@ -71,11 +71,37 @@
         </button>
         <div class="hubLabel">Send Item</div>
       </div>
+      <div class="hubNav">
+        <button class="hubNavBtn" id="goPlayers" type="button" aria-label="Players">
+          <span class="hubIconFrame" aria-hidden="true"><img class="hubIconImg" src="images/ui/stats.png" alt=""></span>
+        </button>
+        <div class="hubLabel">Players</div>
+      </div>
     </div>
   `;
 
   const el = (id, scope = document) => scope.getElementById(id);
   const num = (v, f = 0) => (Number.isFinite(Number(v)) ? Number(v) : f);
+  const fmt = (v) => new Intl.NumberFormat("el-GR").format(num(v, 0));
+  const PLAYER_EQUIP_SLOTS = [
+    "helmet", "shoulders", "chest", "bracers",
+    "mainHand", "offHand", "gloves", "belt",
+    "pants", "boots", "ring", "amulet"
+  ];
+  const PLAYER_SLOT_LABELS = {
+    helmet: "Helmet",
+    shoulders: "Shoulders",
+    chest: "Chest",
+    bracers: "Bracers",
+    mainHand: "Main Hand",
+    offHand: "Off Hand",
+    gloves: "Gloves",
+    belt: "Belt",
+    pants: "Pants",
+    boots: "Boots",
+    ring: "Ring",
+    amulet: "Amulet"
+  };
 
   function loadSave() {
     try { return JSON.parse(localStorage.getItem("darkstone_save_v1") || "{}") || {}; }
@@ -93,6 +119,64 @@
 
   function isGearItem(item) {
     return (item?.type === "gear") || Boolean(item?.slot);
+  }
+
+  function currentUserId() {
+    return String(window.DSAuth?.getUser?.()?.id || "").trim();
+  }
+
+  function formatLastActivity(iso) {
+    if (!iso) return "No activity yet";
+    const at = new Date(iso);
+    if (Number.isNaN(at.getTime())) return "No activity yet";
+    const diff = Math.max(0, Date.now() - at.getTime());
+    const mins = Math.floor(diff / 60000);
+    if (mins < 1) return "Just now";
+    if (mins < 60) return `${mins}m ago`;
+    const hours = Math.floor(mins / 60);
+    if (hours < 24) return `${hours}h ago`;
+    const days = Math.floor(hours / 24);
+    if (days < 7) return `${days}d ago`;
+    return at.toLocaleString("el-GR", {
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit"
+    });
+  }
+
+  function formatPresenceLabel(player) {
+    if (!player) return "Offline";
+    if (player.isOnline) return "Online now";
+    const pageLabel = player.lastSeenPage
+      ? (window.DSAuth?.getPresencePageLabel?.(player.lastSeenPage) || "In Game")
+      : "In Game";
+    return `${formatLastActivity(player.lastSeenAt)} - ${pageLabel}`;
+  }
+
+  function buildOverviewSummary(overview = {}) {
+    const professionStats = overview.stats && typeof overview.stats === "object" ? overview.stats : {};
+    return [
+      { label: "Hero Level", value: `${fmt(overview.heroLevel || 1)} / ${fmt(overview.heroXP || 0)} XP` },
+      { label: "Combat Power", value: fmt(overview.combatPower || 0) },
+      { label: "Gold", value: fmt(overview.totalGold || 0) },
+      { label: "Dungeons", value: fmt(overview.dungeonsCompleted || 0) },
+      { label: "HP", value: `${fmt(overview.heroHP || 0)} / ${fmt(overview.heroHPMax || 0)}` },
+      { label: "Stamina", value: `${fmt(overview.stamina || 0)} / ${fmt(overview.staminaMax || 0)}` },
+      { label: "Attack", value: fmt(overview.heroAttack || 0) },
+      { label: "Defense", value: fmt(overview.heroDefense || 0) },
+      { label: "Mining", value: `Lv ${fmt(professionStats.mining?.level || 1)} / ${fmt(professionStats.mining?.xp || 0)} XP` },
+      { label: "Forge", value: `Lv ${fmt(professionStats.forge?.level || 1)} / ${fmt(professionStats.forge?.xp || 0)} XP` },
+      { label: "Woodcutting", value: `Lv ${fmt(professionStats.woodcutting?.level || 1)} / ${fmt(professionStats.woodcutting?.xp || 0)} XP` },
+      { label: "Carpentry", value: `Lv ${fmt(professionStats.carpentry?.level || 1)} / ${fmt(professionStats.carpentry?.xp || 0)} XP` },
+      { label: "Hunting", value: `Lv ${fmt(professionStats.hunting?.level || 1)} / ${fmt(professionStats.hunting?.xp || 0)} XP` },
+      { label: "Fishing", value: `Lv ${fmt(professionStats.fishing?.level || 1)} / ${fmt(professionStats.fishing?.xp || 0)} XP` },
+      { label: "Cooking", value: `Lv ${fmt(professionStats.cooking?.level || 1)} / ${fmt(professionStats.cooking?.xp || 0)} XP` },
+      { label: "Herbalism", value: `Lv ${fmt(professionStats.herbalism?.level || 1)} / ${fmt(professionStats.herbalism?.xp || 0)} XP` },
+      { label: "Alchemy", value: `Lv ${fmt(professionStats.alchemy?.level || 1)} / ${fmt(professionStats.alchemy?.xp || 0)} XP` },
+      { label: "Enchanting", value: `Lv ${fmt(professionStats.enchanting?.level || 1)} / ${fmt(professionStats.enchanting?.xp || 0)} XP` }
+    ];
   }
 
   function getSendableInventoryEntries() {
@@ -329,6 +413,326 @@
     renderSendItemModal();
   }
 
+  function ensurePlayersModal() {
+    let modal = document.getElementById("dsPlayersModal");
+    if (modal) return modal;
+
+    modal = document.createElement("div");
+    modal.id = "dsPlayersModal";
+    modal.__playersState = {
+      open: false,
+      loading: false,
+      profileLoading: false,
+      players: [],
+      status: "",
+      error: false,
+      selectedUserId: "",
+      selectedProfile: null,
+      profileError: "",
+      equipmentOpen: false
+    };
+    modal.style.cssText = [
+      "display:none",
+      "position:fixed",
+      "inset:0",
+      "z-index:360",
+      "background:rgba(5,7,12,.72)",
+      "backdrop-filter:blur(8px)",
+      "padding:16px",
+      "align-items:center",
+      "justify-content:center"
+    ].join(";");
+
+    modal.innerHTML = `
+      <div id="dsPlayersCard" style="width:min(1180px, calc(100vw - 24px));max-height:min(88vh, 920px);overflow:auto;border-radius:16px;border:1px solid rgba(166,124,64,.72);background:linear-gradient(180deg, rgba(34,26,20,.98), rgba(15,12,14,.98));box-shadow:0 24px 60px rgba(0,0,0,.42);padding:16px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:12px;flex-wrap:wrap;">
+          <div>
+            <div style="font-size:12px;font-weight:800;opacity:.72;letter-spacing:.4px;">TEMPORARY FEATURE</div>
+            <div style="font-size:22px;font-weight:900;color:#f3ead6;">Players</div>
+          </div>
+          <div style="display:flex;gap:8px;align-items:center;">
+            <button id="dsPlayersRefresh" type="button" style="min-width:0;padding:8px 12px;border-radius:10px;border:1px solid rgba(166,124,64,.82);background:linear-gradient(180deg,#6c4a24,#3b2814);color:#fff3d7;font-weight:800;cursor:pointer;">Refresh</button>
+            <button id="dsPlayersClose" type="button" style="min-width:0;padding:8px 12px;border-radius:10px;border:1px solid rgba(166,124,64,.82);background:linear-gradient(180deg,#4e3a22,#2b2015);color:#fff3d7;font-weight:800;cursor:pointer;">Close</button>
+          </div>
+        </div>
+
+        <div id="dsPlayersStatus" style="margin-bottom:12px;padding:10px 12px;border-radius:12px;border:1px solid rgba(255,255,255,.08);background:rgba(255,255,255,.03);font-size:13px;color:#eef2ff;">Loading players...</div>
+
+        <div style="display:grid;grid-template-columns:minmax(300px, 380px) minmax(0,1fr);gap:14px;align-items:start;">
+          <div style="min-width:0;">
+            <div id="dsPlayersList" style="display:grid;gap:8px;"></div>
+          </div>
+          <div style="min-width:0;">
+            <div id="dsPlayerProfilePane" style="padding:12px;border-radius:14px;border:1px solid rgba(255,255,255,.08);background:rgba(255,255,255,.03);min-height:320px;"></div>
+          </div>
+        </div>
+      </div>
+    `;
+
+    const close = () => {
+      modal.__playersState.open = false;
+      modal.style.display = "none";
+    };
+
+    modal.addEventListener("click", (e) => {
+      if (e.target === modal) close();
+    });
+    modal.querySelector("#dsPlayersClose")?.addEventListener("click", close);
+    modal.querySelector("#dsPlayersRefresh")?.addEventListener("click", () => {
+      loadPlayersDirectory(true);
+    });
+    modal.querySelector("#dsPlayersList")?.addEventListener("click", (e) => {
+      const avatarBtn = e.target.closest("[data-player-avatar-id]");
+      if (!avatarBtn) return;
+      openPlayerProfile(String(avatarBtn.dataset.playerAvatarId || ""));
+    });
+    modal.querySelector("#dsPlayerProfilePane")?.addEventListener("click", (e) => {
+      const equipBtn = e.target.closest("[data-player-equip-toggle]");
+      if (!equipBtn) return;
+      const state = modal.__playersState || {};
+      state.equipmentOpen = !state.equipmentOpen;
+      renderPlayersModal();
+    });
+
+    document.body.appendChild(modal);
+    return modal;
+  }
+
+  async function loadPlayersDirectory(force = false) {
+    const modal = ensurePlayersModal();
+    const state = modal.__playersState || {};
+    if (state.loading && !force) return;
+
+    state.loading = true;
+    state.status = "Loading players...";
+    state.error = false;
+    renderPlayersModal();
+
+    try {
+      await window.DSAuth?.ready;
+      const client = window.DSAuth?.getClient?.();
+      if (!client) throw new Error("Player service is unavailable.");
+
+      const [presence, publicStatsRes] = await Promise.all([
+        window.DSAuth?.fetchPresenceSnapshot?.(),
+        client.from("player_public_stats").select("user_id, hero_name, hero_level, hero_xp, combat_power, total_gold, dungeons_completed")
+      ]);
+
+      if (publicStatsRes?.error) throw publicStatsRes.error;
+
+      const publicRows = Array.isArray(publicStatsRes?.data) ? publicStatsRes.data : [];
+      const publicMap = new Map(publicRows.map((row) => [String(row.user_id || ""), row]));
+      const me = currentUserId();
+
+      const players = (Array.isArray(presence?.players) ? presence.players : [])
+        .map((player) => {
+          const stats = publicMap.get(String(player.id || "")) || {};
+          return {
+            ...player,
+            heroLevel: Math.max(1, num(stats.hero_level, 1)),
+            heroXP: Math.max(0, num(stats.hero_xp, 0)),
+            combatPower: Math.max(0, num(stats.combat_power, 0)),
+            totalGold: Math.max(0, num(stats.total_gold, 0)),
+            dungeonsCompleted: Math.max(0, num(stats.dungeons_completed, 0)),
+            isSelf: String(player.id || "") === me
+          };
+        })
+        .sort((a, b) => {
+          if (a.isOnline !== b.isOnline) return a.isOnline ? -1 : 1;
+          if (a.heroLevel !== b.heroLevel) return b.heroLevel - a.heroLevel;
+          const aSeen = a.lastSeenAt ? new Date(a.lastSeenAt).getTime() : 0;
+          const bSeen = b.lastSeenAt ? new Date(b.lastSeenAt).getTime() : 0;
+          return bSeen - aSeen || String(a.name || "").localeCompare(String(b.name || ""));
+        });
+
+      state.players = players;
+      state.status = `${players.filter((player) => player.isOnline).length} online - ${players.length} total players`;
+      state.error = false;
+
+      const selectedStillExists = players.some((player) => player.id === state.selectedUserId);
+      if (!selectedStillExists) {
+        state.selectedUserId = players[0]?.id || "";
+        state.selectedProfile = null;
+        state.equipmentOpen = false;
+      }
+
+      renderPlayersModal();
+      if (state.selectedUserId) {
+        await openPlayerProfile(state.selectedUserId, { force });
+      }
+    } catch (error) {
+      state.status = error?.message || "Failed to load players.";
+      state.error = true;
+      renderPlayersModal();
+    } finally {
+      state.loading = false;
+      renderPlayersModal();
+    }
+  }
+
+  async function openPlayerProfile(userId, options = {}) {
+    const modal = ensurePlayersModal();
+    const state = modal.__playersState || {};
+    const targetUserId = String(userId || "").trim();
+    if (!targetUserId) return;
+    const sameUser = state.selectedUserId === targetUserId;
+    state.selectedUserId = targetUserId;
+    state.profileError = "";
+    if (!sameUser || options.force) {
+      state.selectedProfile = null;
+      state.equipmentOpen = false;
+    }
+    state.profileLoading = true;
+    renderPlayersModal();
+
+    try {
+      const result = await window.DSAuth?.invokePlayerProfile?.({ targetUserId });
+      if (state.selectedUserId !== targetUserId) return;
+      state.selectedProfile = result || null;
+      state.profileError = "";
+    } catch (error) {
+      if (state.selectedUserId !== targetUserId) return;
+      state.selectedProfile = null;
+      state.profileError = error?.message || "Failed to load player profile.";
+    } finally {
+      if (state.selectedUserId === targetUserId) {
+        state.profileLoading = false;
+        renderPlayersModal();
+      }
+    }
+  }
+
+  function renderPlayerEquipmentGrid(equipment = {}) {
+    return PLAYER_EQUIP_SLOTS.map((slot) => {
+      const item = equipment?.[slot] || null;
+      const slotLabel = PLAYER_SLOT_LABELS[slot] || slot;
+      const stats = [];
+      if (num(item?.atk, 0) > 0) stats.push(`ATK +${fmt(item.atk)}`);
+      if (num(item?.def, 0) > 0) stats.push(`DEF +${fmt(item.def)}`);
+      return `
+        <div style="padding:10px;border-radius:12px;border:1px solid rgba(166,124,64,.42);background:rgba(0,0,0,.16);display:grid;gap:6px;">
+          <div style="font-size:11px;font-weight:800;color:#cbb58b;letter-spacing:.3px;">${esc(slotLabel)}</div>
+          <div style="display:flex;align-items:center;gap:10px;min-width:0;">
+            <span style="width:44px;height:44px;flex:0 0 auto;border-radius:10px;border:1px solid rgba(166,124,64,.56);background:#0f1219;display:flex;align-items:center;justify-content:center;overflow:hidden;">
+              ${item?.img ? `<img src="${esc(item.img)}" alt="${esc(item.name || slotLabel)}" style="width:100%;height:100%;object-fit:cover;">` : `<span style="font-size:10px;font-weight:900;color:#8c8570;">Empty</span>`}
+            </span>
+            <span style="min-width:0;display:grid;gap:2px;">
+              <span style="font-size:13px;font-weight:900;color:#f3ead6;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${esc(item?.name || "Empty Slot")}</span>
+              <span style="font-size:11px;opacity:.8;color:#d9ccb0;">${item ? esc(stats.join(" / ") || item.rarity || "Equipped item") : "Nothing equipped"}</span>
+            </span>
+          </div>
+        </div>
+      `;
+    }).join("");
+  }
+
+  function renderPlayersModal() {
+    const modal = ensurePlayersModal();
+    const state = modal.__playersState || {};
+    const statusEl = modal.querySelector("#dsPlayersStatus");
+    const listEl = modal.querySelector("#dsPlayersList");
+    const paneEl = modal.querySelector("#dsPlayerProfilePane");
+
+    if (statusEl) {
+      statusEl.textContent = state.status || "Browse all players in the game.";
+      statusEl.style.color = state.error ? "#ffd8de" : "#eef2ff";
+      statusEl.style.borderColor = state.error ? "rgba(179,72,92,.4)" : "rgba(255,255,255,.08)";
+      statusEl.style.background = state.error ? "rgba(78,22,34,.4)" : "rgba(255,255,255,.03)";
+    }
+
+    if (listEl) {
+      listEl.innerHTML = state.players.length
+        ? state.players.map((player) => {
+            const active = state.selectedUserId === player.id;
+            return `
+              <div style="display:grid;grid-template-columns:auto minmax(0,1fr);gap:10px;align-items:center;padding:10px;border-radius:12px;border:1px solid ${active ? "rgba(199,155,68,.98)" : "rgba(255,255,255,.08)"};background:${active ? "linear-gradient(180deg, rgba(111,83,32,.58), rgba(48,34,18,.92))" : "rgba(255,255,255,.03)"};">
+                <button type="button" data-player-avatar-id="${esc(player.id)}" style="width:56px;height:56px;border-radius:14px;border:1px solid rgba(166,124,64,.64);background:#0f1219;display:flex;align-items:center;justify-content:center;overflow:hidden;cursor:pointer;padding:0;">
+                  <img src="${esc(player.avatarUrl || "images/hero.png")}" alt="${esc(player.name || "Hero")}" style="width:100%;height:100%;object-fit:cover;">
+                </button>
+                <div style="min-width:0;display:grid;gap:4px;">
+                  <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+                    <span style="font-size:15px;font-weight:900;color:#f3ead6;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${esc(player.name || "Hero")}${player.isSelf ? " (You)" : ""}</span>
+                    <span style="padding:3px 8px;border-radius:999px;font-size:11px;font-weight:900;color:${player.isOnline ? "#e6ffef" : "#f3ead6"};background:${player.isOnline ? "rgba(25,107,61,.55)" : "rgba(255,255,255,.08)"};">${player.isOnline ? "Online" : "Offline"}</span>
+                  </div>
+                  <div style="font-size:12px;color:#d9ccb0;">Level ${fmt(player.heroLevel || 1)} - XP ${fmt(player.heroXP || 0)}</div>
+                  <div style="font-size:12px;color:#c6cbd8;">${esc(formatPresenceLabel(player))}</div>
+                </div>
+              </div>
+            `;
+          }).join("")
+        : `<div style="padding:14px;border-radius:12px;border:1px solid rgba(255,255,255,.08);background:rgba(255,255,255,.03);opacity:.82;">No players found yet.</div>`;
+    }
+
+    if (!paneEl) return;
+
+    if (!state.selectedUserId) {
+      paneEl.innerHTML = `<div style="display:grid;place-items:center;min-height:300px;color:#d9ccb0;opacity:.86;">Choose a player portrait to open the profile window.</div>`;
+      return;
+    }
+
+    if (state.profileLoading) {
+      paneEl.innerHTML = `<div style="display:grid;place-items:center;min-height:300px;color:#f3ead6;">Loading profile...</div>`;
+      return;
+    }
+
+    if (state.profileError) {
+      paneEl.innerHTML = `<div style="display:grid;gap:10px;"><div style="padding:12px;border-radius:12px;border:1px solid rgba(179,72,92,.45);background:rgba(78,22,34,.4);color:#ffd8de;">${esc(state.profileError)}</div></div>`;
+      return;
+    }
+
+    const profilePayload = state.selectedProfile || {};
+    const profile = profilePayload.profile || {};
+    const overview = profilePayload.overview || {};
+    const equipment = profilePayload.equipment || {};
+    const summary = buildOverviewSummary(overview);
+    const currentPlayer = state.players.find((player) => player.id === state.selectedUserId) || null;
+
+    paneEl.innerHTML = `
+      <div style="display:grid;gap:14px;">
+        <div style="display:grid;grid-template-columns:auto minmax(0,1fr);gap:14px;align-items:start;">
+          <div style="display:grid;gap:10px;justify-items:center;">
+            <div style="width:112px;height:112px;border-radius:20px;border:1px solid rgba(166,124,64,.7);background:#0f1219;overflow:hidden;box-shadow:0 10px 24px rgba(0,0,0,.28);">
+              <img src="${esc(profile.avatarUrl || currentPlayer?.avatarUrl || "images/hero.png")}" alt="${esc(profile.name || currentPlayer?.name || "Hero")}" style="width:100%;height:100%;object-fit:cover;">
+            </div>
+            <button type="button" data-player-equip-toggle="1" style="min-width:180px;height:40px;border-radius:12px;border:1px solid rgba(166,124,64,.86);background:linear-gradient(180deg,#6c4a24,#3b2814);color:#fff2d6;font-size:13px;font-weight:900;cursor:pointer;">${state.equipmentOpen ? "Hide Equipment" : "View Equipment"}</button>
+          </div>
+          <div style="min-width:0;display:grid;gap:8px;">
+            <div style="font-size:24px;font-weight:900;color:#f3ead6;line-height:1.1;">${esc(profile.name || currentPlayer?.name || "Hero")}</div>
+            <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+              <span style="padding:4px 10px;border-radius:999px;font-size:11px;font-weight:900;color:${currentPlayer?.isOnline ? "#e6ffef" : "#f3ead6"};background:${currentPlayer?.isOnline ? "rgba(25,107,61,.55)" : "rgba(255,255,255,.08)"};">${currentPlayer?.isOnline ? "Online" : "Offline"}</span>
+              <span style="font-size:12px;color:#d9ccb0;">Last activity: ${esc(formatLastActivity(profile.lastSeenAt || currentPlayer?.lastSeenAt))}</span>
+            </div>
+            <div style="font-size:13px;color:#c6cbd8;">Last page: ${esc(window.DSAuth?.getPresencePageLabel?.(profile.lastSeenPage || currentPlayer?.lastSeenPage || "") || "In Game")}</div>
+            <div style="padding:12px;border-radius:12px;border:1px solid rgba(166,124,64,.32);background:rgba(0,0,0,.14);display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;">
+              ${summary.map((entry) => `
+                <div style="padding:10px;border-radius:12px;border:1px solid rgba(255,255,255,.06);background:rgba(255,255,255,.03);">
+                  <div style="font-size:11px;font-weight:800;letter-spacing:.3px;color:#cbb58b;opacity:.9;">${esc(entry.label)}</div>
+                  <div style="margin-top:4px;font-size:14px;font-weight:900;color:#f3ead6;line-height:1.35;">${esc(entry.value)}</div>
+                </div>
+              `).join("")}
+            </div>
+          </div>
+        </div>
+        ${state.equipmentOpen ? `
+          <div style="display:grid;gap:10px;">
+            <div style="font-size:16px;font-weight:900;color:#f3ead6;">Equipped Gear</div>
+            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px;">
+              ${renderPlayerEquipmentGrid(equipment)}
+            </div>
+          </div>
+        ` : ""}
+      </div>
+    `;
+  }
+
+  function openPlayersModal() {
+    const modal = ensurePlayersModal();
+    modal.__playersState.open = true;
+    modal.style.display = "flex";
+    renderPlayersModal();
+    loadPlayersDirectory();
+  }
+
   function navigateHomeTarget(href) {
     if (window.DSUI?.navigateWithinShell?.(href)) return;
     window.location.href = href;
@@ -360,6 +764,12 @@
       sendBtn.dataset.dsHomeBound = "1";
       sendBtn.addEventListener("click", () => openSendItemModal());
     }
+
+    const playersBtn = el("goPlayers", scope);
+    if (playersBtn && playersBtn.dataset.dsHomeBound !== "1") {
+      playersBtn.dataset.dsHomeBound = "1";
+      playersBtn.addEventListener("click", () => openPlayersModal());
+    }
   }
 
   function mountHome(root = null) {
@@ -379,7 +789,8 @@
 
   window.DSHome = {
     mount: mountHome,
-    openSendItemModal
+    openSendItemModal,
+    openPlayersModal
   };
 
   window.addEventListener("DOMContentLoaded", () => {

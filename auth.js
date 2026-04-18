@@ -833,6 +833,37 @@
     return data;
   }
 
+  async function invokePlayerProfile(payload = {}) {
+    await ready;
+    if (!state.client || !state.user?.id) {
+      throw new Error("No active session.");
+    }
+
+    const targetUserId = String(payload?.targetUserId || "").trim();
+    if (!targetUserId) throw new Error("Player id is required.");
+
+    const session = await getSession();
+    const token = session?.access_token;
+    if (!token) throw new Error("Missing access token.");
+
+    const res = await fetch(`${CONFIG.url}/functions/v1/player-profile`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${token}`,
+        "apikey": CONFIG.anonKey
+      },
+      body: JSON.stringify({ targetUserId })
+    });
+
+    const body = await res.json().catch(() => ({}));
+    if (!res.ok || !body?.ok) {
+      throw new Error(body?.error || body?.message || `Player profile failed (${res.status})`);
+    }
+
+    return body;
+  }
+
   const ready = (async () => {
     if (!isConfigured()) return false;
     if (!window.supabase?.createClient) {
@@ -1020,6 +1051,7 @@
     syncCloudSaveNow,
     isAdmin,
     invokeAdminGrant,
-    invokeSendItem
+    invokeSendItem,
+    invokePlayerProfile
   };
 })();
