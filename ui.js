@@ -13,6 +13,7 @@
 
 (() => {
   const SAVE_KEY = "darkstone_save_v1";
+  const SAVE_META_KEY = "darkstone_save_meta_v1";
   const ACTION_LOCK_KEY = "ds_action_lock_v1";
   const INV_TAB_KEY = "darkstone_inventory_tab_v1";
   const EQUIP_STATS_MODE_KEY = "darkstone_equip_stats_mode_v1";
@@ -125,6 +126,12 @@
     return `tab-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
   })();
   let __tabSyncChannel = null;
+  const __cloudSyncUiState = {
+    status: "idle",
+    lastSyncedAt: 0,
+    revision: 0,
+    error: ""
+  };
 
   // ✅ Stats API (bulletproof: does NOT rely on ensureSave scope)
   window.DS.stats = window.DS.stats || {};
@@ -152,6 +159,12 @@
   // -------------------------
   const num = (v, f = 0) => (Number.isFinite(Number(v)) ? Number(v) : f);
   const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+  const esc = (v) => String(v ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
   const stripPlus = (name) => String(name || "").replace(/\s*\+\d+$/, "");
   function roundLevelXP(v){
     v = Math.max(1, Math.round(Number(v) || 1));
@@ -435,6 +448,64 @@
   function loadSave() {
     try { return JSON.parse(localStorage.getItem(SAVE_KEY) || "{}") || {}; }
     catch { return {}; }
+  }
+
+  function loadSaveMeta() {
+    try { return JSON.parse(localStorage.getItem(SAVE_META_KEY) || "{}") || {}; }
+    catch { return {}; }
+  }
+
+  function formatSyncClock(ts) {
+    const ms = Number(ts || 0);
+    if (!Number.isFinite(ms) || ms <= 0) return "--:--:--";
+    return new Date(ms).toLocaleTimeString("el-GR", {
+      hour: "2-digit",
+      minute: "2-digit",
+      second: "2-digit"
+    });
+  }
+
+  function hydrateCloudSyncUiState() {
+    const meta = loadSaveMeta();
+    const lastCloudSyncAt = Number(meta.lastCloudSyncAt || 0);
+    if (lastCloudSyncAt > 0) {
+      __cloudSyncUiState.lastSyncedAt = lastCloudSyncAt;
+      if (__cloudSyncUiState.status === "idle") {
+        __cloudSyncUiState.status = "synced";
+      }
+    }
+  }
+
+  function getCloudSyncBadgeMarkup() {
+    const status = String(__cloudSyncUiState.status || "idle");
+    let label = "Sync Idle";
+    let tone = "rgba(102,110,132,.95)";
+    let bg = "linear-gradient(180deg, rgba(52,58,78,.96), rgba(24,28,40,.96))";
+
+    if (status === "saving") {
+      label = "Saving...";
+      tone = "rgba(199,155,68,.98)";
+      bg = "linear-gradient(180deg, rgba(108,74,36,.96), rgba(59,40,20,.96))";
+    } else if (status === "synced" || status === "ready") {
+      label = "Synced";
+      tone = "rgba(74,169,104,.98)";
+      bg = "linear-gradient(180deg, rgba(32,86,49,.96), rgba(18,46,29,.96))";
+    } else if (status === "error") {
+      label = "Sync Error";
+      tone = "rgba(179,72,92,.98)";
+      bg = "linear-gradient(180deg, rgba(92,36,47,.96), rgba(46,18,24,.96))";
+    }
+
+    const detail = status === "error"
+      ? (String(__cloudSyncUiState.error || "Save failed").trim() || "Save failed")
+      : `Last: ${formatSyncClock(__cloudSyncUiState.lastSyncedAt)}`;
+
+    return `
+      <div id="dsCloudSyncBadge" title="${esc(detail)}" style="margin-top:6px;display:inline-flex;align-self:flex-end;flex-direction:column;gap:2px;padding:8px 10px;border-radius:12px;border:1px solid ${tone};background:${bg};box-shadow:0 12px 26px rgba(0,0,0,.24);min-width:138px;">
+        <div style="font-size:11px;font-weight:900;letter-spacing:.4px;color:#f7edd8;text-transform:uppercase;">${label}</div>
+        <div style="font-size:11px;font-weight:700;color:#eadfca;opacity:.9;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${esc(detail)}</div>
+      </div>
+    `;
   }
 
   function hasCreatedHero(save) {
@@ -3660,6 +3731,7 @@ function claimActiveChallengeFromQuest(){
               </div>
             </div>
           </div>
+          ${getCloudSyncBadgeMarkup()}
         </div>`;
 
   hudRoot.innerHTML = `
@@ -3888,6 +3960,30 @@ function bindPresenceMenu() {
   document.addEventListener("keydown", (e) => {
     if (e.key === "Escape") closeMenu();
   });
+}
+
+function updateCloudSyncUi(detail = {}) {
+  const status = String(detail?.status || "").trim().toLowerCase();
+  if (status === "ready") {
+    __cloudSyncUiState.status = "ready";
+    __cloudSyncUiState.revision = Math.max(__cloudSyncUiState.revision, num(detail?.revision, 0));
+    hydrateCloudSyncUiState();
+    forceRerenderNow();
+    return;
+  }
+  if (status === "synced") {
+    __cloudSyncUiState.status = "synced";
+    __cloudSyncUiState.revision = Math.max(__cloudSyncUiState.revision, num(detail?.revision, 0));
+    __cloudSyncUiState.lastSyncedAt = Date.now();
+    __cloudSyncUiState.error = "";
+    forceRerenderNow();
+    return;
+  }
+  if (status === "error") {
+    __cloudSyncUiState.status = "error";
+    __cloudSyncUiState.error = String(detail?.error || "Save failed").trim();
+    forceRerenderNow();
+  }
 }
 
 let __adminPanelBound = false;
@@ -6178,7 +6274,15 @@ function renderAll() {
         });
       }, 60000);
 
-      window.addEventListener("ds:save", forceRerenderNow);
+      hydrateCloudSyncUiState();
+      window.addEventListener("ds:save", () => {
+        __cloudSyncUiState.status = "saving";
+        __cloudSyncUiState.error = "";
+        forceRerenderNow();
+      });
+      window.addEventListener("ds:cloud-save", (event) => {
+        updateCloudSyncUi(event?.detail || {});
+      });
       window.addEventListener("ds:presence-updated", () => {
         refreshPresenceSnapshot(true).catch((error) => {
           console.error("[UI] presence refresh after heartbeat failed", error);
