@@ -62,6 +62,8 @@ function buildPublicStats(payload: BootstrapPayload, email: string) {
   const herbalismXP = Math.max(0, Number((save as Record<string, unknown>).herbalismXP ?? 0) || 0);
   const alchemyLevel = Math.max(1, Number((save as Record<string, unknown>).alchemyLevel ?? 1) || 1);
   const alchemyXP = Math.max(0, Number((save as Record<string, unknown>).alchemyXP ?? 0) || 0);
+  const enchantingLevel = Math.max(1, Number((save as Record<string, unknown>).enchantingLevel ?? 1) || 1);
+  const enchantingXP = Math.max(0, Number((save as Record<string, unknown>).enchantingXP ?? 0) || 0);
   const dungeonsCompleted = Math.max(0, Number(totalStats.dungeonsCompleted ?? 0) || 0);
   const totalGold = Math.max(0, Number((save as Record<string, unknown>).gold ?? 0) || 0);
   const combatPower = Math.max(
@@ -70,7 +72,7 @@ function buildPublicStats(payload: BootstrapPayload, email: string) {
       Number((save as Record<string, unknown>).heroDef ?? 0),
   );
 
-  return { heroName, heroLevel, heroXP, miningLevel, miningXP, forgeLevel, forgeXP, woodcuttingLevel, woodcuttingXP, carpentryLevel, carpentryXP, huntingLevel, huntingXP, fishingLevel, fishingXP, cookingLevel, cookingXP, herbalismLevel, herbalismXP, alchemyLevel, alchemyXP, dungeonsCompleted, totalGold, combatPower };
+  return { heroName, heroLevel, heroXP, miningLevel, miningXP, forgeLevel, forgeXP, woodcuttingLevel, woodcuttingXP, carpentryLevel, carpentryXP, huntingLevel, huntingXP, fishingLevel, fishingXP, cookingLevel, cookingXP, herbalismLevel, herbalismXP, alchemyLevel, alchemyXP, enchantingLevel, enchantingXP, dungeonsCompleted, totalGold, combatPower };
 }
 
 Deno.serve(async (req) => {
@@ -206,6 +208,8 @@ Deno.serve(async (req) => {
     herbalism_xp: stats.herbalismXP,
     alchemy_level: stats.alchemyLevel,
     alchemy_xp: stats.alchemyXP,
+    enchanting_level: stats.enchantingLevel,
+    enchanting_xp: stats.enchantingXP,
     dungeons_completed: stats.dungeonsCompleted,
     total_gold: stats.totalGold,
     combat_power: stats.combatPower,
