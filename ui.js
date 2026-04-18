@@ -509,6 +509,7 @@
   }
 
   function getCloudSyncBadgeMarkup() {
+    const debug = window.DSAuth?.getDebugSnapshot?.() || {};
     const status = String(__cloudSyncUiState.status || "idle");
     let label = "Sync Idle";
     let tone = "rgba(102,110,132,.95)";
@@ -536,11 +537,20 @@
       : status === "saving"
         ? `Pending ${pendingAgeSec}s`
         : `Last: ${formatSyncClock(__cloudSyncUiState.lastSyncedAt)}`;
+    const local = debug?.lastLocalSummary || null;
+    const remote = debug?.lastRemoteSummary || null;
+    const applied = debug?.lastAppliedSummary || null;
+    const debugLine = local || remote || applied
+      ? `L ${num(local?.heroXP, 0)}/${num(local?.inventoryUnits, 0)} | R ${num(remote?.heroXP, 0)}/${num(remote?.inventoryUnits, 0)} | A ${num(applied?.heroXP, 0)}/${num(applied?.inventoryUnits, 0)}`
+      : "";
+    const debugDecision = String(debug?.lastPrepareDecision || "").trim();
 
     return `
       <div id="dsCloudSyncBadge" title="${esc(detail)}" style="margin-top:6px;display:inline-flex;align-self:flex-end;flex-direction:column;gap:2px;padding:8px 10px;border-radius:12px;border:1px solid ${tone};background:${bg};box-shadow:0 12px 26px rgba(0,0,0,.24);min-width:138px;">
         <div style="font-size:11px;font-weight:900;letter-spacing:.4px;color:#f7edd8;text-transform:uppercase;">${label}</div>
         <div style="font-size:11px;font-weight:700;color:#eadfca;opacity:.9;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${esc(detail)}</div>
+        ${debugDecision ? `<div style="font-size:10px;font-weight:700;color:#d7c8a5;opacity:.84;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${esc(debugDecision)}</div>` : ``}
+        ${debugLine ? `<div style="font-size:10px;font-weight:700;color:#d7c8a5;opacity:.84;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${esc(debugLine)}</div>` : ``}
       </div>
     `;
   }
