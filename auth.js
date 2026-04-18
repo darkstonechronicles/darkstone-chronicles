@@ -522,13 +522,23 @@
 
     state.cloud.preparing = (async () => {
       const localSave = readLocalSave();
+      const localMeta = readLocalSaveMeta();
       const localOwnerId = getLocalOwnerId();
       const remote = await fetchRemoteSave();
       const remoteSave = normalizeRemoteSavePayload(remote);
       const remoteHasSave = hasMeaningfulSave(remoteSave);
       const localHasSave = hasMeaningfulSave(localSave);
       const ownerMatches = !localOwnerId || localOwnerId === state.user.id;
-      const preferLocalSave = localHasSave && ownerMatches && hasUnsyncedLocalSave() && !state.sessionGuard.justClaimedActiveSession;
+      const localLastSaveAt = Math.max(0, Number(localMeta.lastLocalSaveAt || 0) || 0);
+      const remoteUpdatedAtMs = remote?.updated_at ? new Date(remote.updated_at).getTime() : 0;
+      const localLooksNewerThanRemote = localLastSaveAt > 0 && remoteUpdatedAtMs > 0 && localLastSaveAt > (remoteUpdatedAtMs + 1000);
+      const recentLocalWindowMs = 10 * 60 * 1000;
+      const localSaveIsRecent = localLastSaveAt > 0 && (Date.now() - localLastSaveAt) <= recentLocalWindowMs;
+      const preferLocalSave =
+        localHasSave &&
+        ownerMatches &&
+        !state.sessionGuard.justClaimedActiveSession &&
+        (hasUnsyncedLocalSave() || (localSaveIsRecent && localLooksNewerThanRemote));
 
       if (preferLocalSave) {
         const saveResult = await writeRemoteSaveWithRevision(localSave);
