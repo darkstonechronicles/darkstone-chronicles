@@ -46,8 +46,8 @@ function buildPublicStats(payload: BootstrapPayload, email: string) {
   const heroXP = Math.max(0, Number((save as Record<string, unknown>).heroXP ?? 0) || 0);
   const miningLevel = Math.max(1, Number((save as Record<string, unknown>).miningLevel ?? 1) || 1);
   const miningXP = Math.max(0, Number((save as Record<string, unknown>).miningXP ?? 0) || 0);
-  const forgeLevel = Math.max(1, Number((save as Record<string, unknown>).forgeLevel ?? 1) || 1);
-  const forgeXP = Math.max(0, Number((save as Record<string, unknown>).forgeXP ?? 0) || 0);
+  const forgeLevel = Math.max(1, Number((save as Record<string, unknown>).blacksmithLevel ?? (save as Record<string, unknown>).forgeLevel ?? 1) || 1);
+  const forgeXP = Math.max(0, Number((save as Record<string, unknown>).blacksmithXP ?? (save as Record<string, unknown>).forgeXP ?? 0) || 0);
   const dungeonsCompleted = Math.max(0, Number(totalStats.dungeonsCompleted ?? 0) || 0);
   const totalGold = Math.max(0, Number((save as Record<string, unknown>).gold ?? 0) || 0);
   const combatPower = Math.max(

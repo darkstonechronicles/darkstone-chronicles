@@ -160,8 +160,8 @@ function buildPublicStats(save: Record<string, unknown>, email: string) {
   const heroXP = Math.max(0, safeInt(save.heroXP, 0));
   const miningLevel = Math.max(1, safeInt(save.miningLevel, 1));
   const miningXP = Math.max(0, safeInt(save.miningXP, 0));
-  const forgeLevel = Math.max(1, safeInt(save.forgeLevel, 1));
-  const forgeXP = Math.max(0, safeInt(save.forgeXP, 0));
+  const forgeLevel = Math.max(1, safeInt(save.blacksmithLevel ?? save.forgeLevel, 1));
+  const forgeXP = Math.max(0, safeInt(save.blacksmithXP ?? save.forgeXP, 0));
   const totalStats = save.stats && typeof save.stats === "object"
     ? (((save.stats as Record<string, unknown>).total as Record<string, unknown> | undefined) || {})
     : {};

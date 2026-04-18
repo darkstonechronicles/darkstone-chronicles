@@ -46,7 +46,7 @@
     <div id="leaderboardsRoot" style="max-width:980px;margin:0 auto;">
       <h1 style="margin-bottom:6px;">Leaderboards</h1>
       <div style="opacity:.85;margin-bottom:14px;">Choose a leaderboard category.</div>
-      <div id="leaderboardsCategoryGrid" class="leaderboardsCategoryGrid" style="display:flex;flex-wrap:wrap;gap:14px;align-items:flex-start;"></div>
+      <div id="leaderboardsCategoryGrid" class="leaderboardsCategoryGrid" style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px;align-items:start;"></div>
       <div id="leaderboardsView" style="margin-top:18px;"></div>
     </div>
   `;
@@ -184,8 +184,12 @@
   function renderCategoryGrid() {
     const grid = document.getElementById("leaderboardsCategoryGrid");
     if (!grid) return;
+    grid.style.display = "grid";
+    grid.style.gridTemplateColumns = "repeat(4, minmax(0, 1fr))";
+    grid.style.gap = "14px";
+    grid.style.alignItems = "start";
     grid.innerHTML = CATEGORY_DEFS.map((category) => `
-      <button class="hubNav" type="button" data-leaderboards-category="${esc(category.key)}" style="display:flex;flex-direction:column;align-items:center;justify-content:flex-start;flex:0 0 150px;width:150px;max-width:150px;border:${state.activeCategory === category.key ? "2px solid rgba(199,155,68,.9)" : "2px solid transparent"};border-radius:14px;padding:8px 8px 10px;background:${state.activeCategory === category.key ? "rgba(199,155,68,.10)" : "transparent"};">
+      <button class="hubNav" type="button" data-leaderboards-category="${esc(category.key)}" style="display:flex;flex-direction:column;align-items:center;justify-content:flex-start;width:100%;max-width:none;min-width:0;border:${state.activeCategory === category.key ? "2px solid rgba(199,155,68,.9)" : "2px solid transparent"};border-radius:14px;padding:8px 8px 10px;background:${state.activeCategory === category.key ? "rgba(199,155,68,.10)" : "transparent"};">
         <span class="hubIconFrame">
           <img class="hubIconImg" src="${esc(category.icon)}" alt="" aria-hidden="true">
         </span>
@@ -271,10 +275,8 @@
 
   function initStandaloneLeaderboards() {
     if (!document.getElementById("leaderboardsRoot")) return false;
+    mountLeaderboards(document.getElementById("leftPanel"));
     document.title = "Darkstone Chronicles - Leaderboards";
-    renderCategoryGrid();
-    renderLeaderboardView();
-    loadLeaderboardData(true);
     return true;
   }
 
