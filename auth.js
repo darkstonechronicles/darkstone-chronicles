@@ -856,7 +856,18 @@
     originalSetItem(key, value);
     if (key === SAVE_KEY) {
       if (!state.cloud.suppressSync) markLocalSaveChanged();
-      scheduleCloudSaveSync();
+      if (state.user?.id && state.cloud.ready && !state.cloud.suppressSync) {
+        if (state.cloud.syncing) {
+          state.cloud.pendingSync = true;
+        } else {
+          syncCloudSaveNow().catch((error) => {
+            console.error("[auth] immediate cloud save sync failed", error);
+            scheduleCloudSaveSync();
+          });
+        }
+      } else {
+        scheduleCloudSaveSync();
+      }
     }
   };
 
