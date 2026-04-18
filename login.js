@@ -19,11 +19,16 @@
     const loginBtn = el("googleLoginBtn");
     const sub = el("loginSub");
     const returnTo = auth.getReturnTo();
+    const params = new URLSearchParams(window.location.search || "");
+    const reason = String(params.get("reason") || "").trim().toLowerCase();
 
     if (sub) {
       sub.textContent = returnTo === "index.html"
         ? "Sign in to continue your adventure."
         : `Sign in to continue to ${returnTo.replace(/\.html([?#].*)?$/i, "")}.`;
+    }
+    if (reason === "session-replaced") {
+      setStatus("This account was opened on another device. Sign in again to continue.", true);
     }
 
     if (!auth.isConfigured()) {

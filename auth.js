@@ -3,6 +3,8 @@
   const SAVE_KEY = "darkstone_save_v1";
   const SAVE_OWNER_KEY = "darkstone_save_owner_v1";
   const SAVE_META_KEY = "darkstone_save_meta_v1";
+  const ACTIVE_SESSION_KEY = "darkstone_active_client_session_v1";
+  const ACTIVE_SESSION_PENDING_KEY = "ds:claim-active-session";
   const SUPABASE_SCRIPT_SRC = "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js";
   const PRESENCE_HEARTBEAT_MS = 45 * 1000;
   const PRESENCE_MIN_UPDATE_MS = 20 * 1000;
@@ -35,6 +37,11 @@
       timer: 0,
       lastSentAt: 0,
       sending: null
+    },
+    sessionGuard: {
+      clientSessionId: "",
+      invalidated: false,
+      checking: null
     }
   };
 
@@ -127,6 +134,49 @@
     const target = queryTarget || storedTarget || "index.html";
     if (!/^[a-z0-9_.-]+\.html([?#].*)?$/i.test(target)) return "index.html";
     return target;
+  }
+
+  function generateClientSessionId() {
+    try {
+      if (window.crypto?.randomUUID) return window.crypto.randomUUID();
+    } catch {}
+    return `ds-${Date.now()}-${Math.random().toString(36).slice(2, 12)}`;
+  }
+
+  function ensureClientSessionId(reset = false) {
+    try {
+      if (!reset) {
+        const existing = String(localStorage.getItem(ACTIVE_SESSION_KEY) || "").trim();
+        if (existing) {
+          state.sessionGuard.clientSessionId = existing;
+          return existing;
+        }
+      }
+      const next = generateClientSessionId();
+      localStorage.setItem(ACTIVE_SESSION_KEY, next);
+      state.sessionGuard.clientSessionId = next;
+      return next;
+    } catch {
+      const fallback = generateClientSessionId();
+      state.sessionGuard.clientSessionId = fallback;
+      return fallback;
+    }
+  }
+
+  function markPendingActiveSessionClaim() {
+    try {
+      sessionStorage.setItem(ACTIVE_SESSION_PENDING_KEY, "1");
+    } catch {}
+  }
+
+  function consumePendingActiveSessionClaim() {
+    try {
+      const pending = sessionStorage.getItem(ACTIVE_SESSION_PENDING_KEY) === "1";
+      sessionStorage.removeItem(ACTIVE_SESSION_PENDING_KEY);
+      return pending;
+    } catch {
+      return false;
+    }
   }
 
   function readLocalSave() {
@@ -249,8 +299,94 @@
     if (statsError) throw statsError;
   }
 
+  async function fetchProfileSessionState() {
+    if (!state.client || !state.user?.id) return null;
+    const { data, error } = await state.client
+      .from("profiles")
+      .select("active_session_id, active_session_claimed_at")
+      .eq("id", state.user.id)
+      .maybeSingle();
+    if (error) throw error;
+    return data || null;
+  }
+
+  async function claimActiveSession(resetClientSessionId = false) {
+    if (!state.client || !state.user?.id) return false;
+    const clientSessionId = ensureClientSessionId(resetClientSessionId);
+    const { error } = await state.client
+      .from("profiles")
+      .update({
+        active_session_id: clientSessionId,
+        active_session_claimed_at: new Date().toISOString()
+      })
+      .eq("id", state.user.id);
+    if (error) throw error;
+    state.sessionGuard.invalidated = false;
+    return true;
+  }
+
+  async function handleSessionReplaced() {
+    if (state.sessionGuard.invalidated) return false;
+    state.sessionGuard.invalidated = true;
+    stopPresenceHeartbeat();
+    if (state.cloud.syncTimer) {
+      window.clearTimeout(state.cloud.syncTimer);
+      state.cloud.syncTimer = 0;
+    }
+    state.cloud.ready = false;
+    state.cloud.syncing = false;
+    try {
+      alert("Your account was opened on another device. Please sign in again.");
+    } catch {}
+    try {
+      await state.client?.auth?.signOut?.({ scope: "local" });
+    } catch (error) {
+      console.error("[auth] local sign out after session replace failed", error);
+    }
+    const target = `${LOGIN_PAGE}?reason=session-replaced`;
+    window.location.replace(target);
+    return false;
+  }
+
+  async function validateActiveSession(options = {}) {
+    const { claimIfMissing = false, forceClaim = false, resetClientSessionId = false } = options || {};
+    if (!state.client || !state.user?.id) return false;
+    if (state.sessionGuard.invalidated) return false;
+    if (state.sessionGuard.checking) return state.sessionGuard.checking;
+
+    state.sessionGuard.checking = (async () => {
+      if (forceClaim) {
+        await claimActiveSession(resetClientSessionId);
+        return true;
+      }
+
+      const remote = await fetchProfileSessionState();
+      const remoteSessionId = String(remote?.active_session_id || "").trim();
+      const localSessionId = ensureClientSessionId(resetClientSessionId);
+
+      if (!remoteSessionId) {
+        if (claimIfMissing) {
+          await claimActiveSession(false);
+          return true;
+        }
+        return true;
+      }
+
+      if (remoteSessionId === localSessionId) return true;
+      await handleSessionReplaced();
+      return false;
+    })();
+
+    try {
+      return await state.sessionGuard.checking;
+    } finally {
+      state.sessionGuard.checking = null;
+    }
+  }
+
   async function syncCloudSaveNow() {
     if (!state.client || !state.user?.id || state.cloud.syncing || !state.cloud.ready) return;
+    if (!(await validateActiveSession())) return;
     state.cloud.syncing = true;
     try {
       const localSave = readLocalSave();
@@ -299,6 +435,7 @@
   async function preparePlayerState() {
     await ready;
     if (!state.client || !state.user?.id) return { ok: false, reason: "no-session" };
+    if (!(await validateActiveSession({ claimIfMissing: true }))) return { ok: false, reason: "session-replaced" };
     if (state.cloud.ready && state.cloud.userId === state.user.id) return { ok: true };
     if (state.cloud.preparing) return state.cloud.preparing;
 
@@ -425,6 +562,7 @@
   async function markPresenceNow(force = false) {
     await ready;
     if (!state.client || !state.user?.id) return false;
+    if (!(await validateActiveSession())) return false;
     if (state.presence.sending) return state.presence.sending;
 
     const now = Date.now();
@@ -573,6 +711,15 @@
     const { data } = await state.client.auth.getSession();
     state.session = data?.session || null;
     state.user = data?.session?.user || null;
+    ensureClientSessionId(false);
+    const shouldClaimActiveSession = consumePendingActiveSessionClaim();
+    if (state.user?.id) {
+      if (shouldClaimActiveSession) {
+        await validateActiveSession({ forceClaim: true, resetClientSessionId: true });
+      } else {
+        await validateActiveSession({ claimIfMissing: true });
+      }
+    }
     if (state.user?.id) startPresenceHeartbeat();
 
     state.client.auth.onAuthStateChange((event, session) => {
@@ -582,6 +729,8 @@
       state.admin.checked = false;
       state.admin.isAdmin = false;
       state.admin.checking = null;
+      state.sessionGuard.invalidated = false;
+      state.sessionGuard.checking = null;
       if (!state.user?.id) {
         stopPresenceHeartbeat();
         state.cloud.userId = "";
@@ -589,6 +738,11 @@
         state.cloud.revision = 0;
       } else {
         startPresenceHeartbeat();
+        if (event === "SIGNED_IN") {
+          validateActiveSession({ forceClaim: true, resetClientSessionId: true }).catch((error) => {
+            console.error("[auth] active session claim failed", error);
+          });
+        }
       }
       window.dispatchEvent(new CustomEvent("ds:auth", {
         detail: {
@@ -615,7 +769,11 @@
     if (!isConfigured()) return { ok: false, reason: "not-configured" };
 
     const session = await getSession();
-    if (session?.user) return { ok: true, session, user: session.user };
+    if (session?.user) {
+      const activeOk = await validateActiveSession({ claimIfMissing: true });
+      if (activeOk) return { ok: true, session, user: session.user };
+      return { ok: false, reason: "session-replaced" };
+    }
 
     if (currentPage() !== LOGIN_PAGE) {
       sessionStorage.setItem("ds:returnTo", currentRelativeUrl());
@@ -630,6 +788,7 @@
 
     const cleanReturnTo = /^[a-z0-9_.-]+\.html([?#].*)?$/i.test(String(returnTo || "")) ? String(returnTo) : "index.html";
     sessionStorage.setItem("ds:returnTo", cleanReturnTo);
+    markPendingActiveSessionClaim();
 
     const redirectTo = new URL(cleanReturnTo, `${window.location.origin}/`).toString();
     const { error } = await state.client.auth.signInWithOAuth({
@@ -647,7 +806,8 @@
       window.clearTimeout(state.cloud.syncTimer);
       state.cloud.syncTimer = 0;
     }
-    await state.client.auth.signOut();
+    state.sessionGuard.invalidated = false;
+    await state.client.auth.signOut({ scope: "local" });
     window.location.replace(LOGIN_PAGE);
   }
 
