@@ -80,6 +80,26 @@
     </div>
   `;
 
+  const PLAYERS_VIEW_TEMPLATE = `
+    <div id="playersViewRoot" style="max-width:980px;margin:0 auto;">
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:12px;">
+        <div>
+          <h1 style="margin-bottom:6px;">Players</h1>
+          <div style="opacity:.86;">All players in the game, online and offline, with last activity.</div>
+        </div>
+        <div style="display:flex;gap:8px;align-items:center;">
+          <button id="playersBackHome" type="button" style="min-width:0;padding:8px 12px;border-radius:10px;border:1px solid rgba(166,124,64,.82);background:linear-gradient(180deg,#4e3a22,#2b2015);color:#fff3d7;font-weight:800;cursor:pointer;">Back</button>
+          <button id="playersRefreshBtn" type="button" style="min-width:0;padding:8px 12px;border-radius:10px;border:1px solid rgba(166,124,64,.82);background:linear-gradient(180deg,#6c4a24,#3b2814);color:#fff3d7;font-weight:800;cursor:pointer;">Refresh</button>
+        </div>
+      </div>
+      <div id="playersPanelStatus" style="margin-bottom:12px;padding:10px 12px;border-radius:12px;border:1px solid rgba(255,255,255,.08);background:rgba(255,255,255,.03);font-size:13px;color:#eef2ff;">Loading players...</div>
+      <div style="display:grid;grid-template-columns:minmax(280px, 360px) minmax(0,1fr);gap:14px;align-items:start;">
+        <div id="playersPanelList" style="display:grid;gap:8px;"></div>
+        <div id="playersPanelProfile" style="padding:12px;border-radius:14px;border:1px solid rgba(255,255,255,.08);background:rgba(255,255,255,.03);min-height:320px;"></div>
+      </div>
+    </div>
+  `;
+
   const el = (id, scope = document) => scope.getElementById(id);
   const num = (v, f = 0) => (Number.isFinite(Number(v)) ? Number(v) : f);
   const fmt = (v) => new Intl.NumberFormat("el-GR").format(num(v, 0));
@@ -101,6 +121,17 @@
     boots: "Boots",
     ring: "Ring",
     amulet: "Amulet"
+  };
+  const playersPanelState = {
+    loading: false,
+    profileLoading: false,
+    players: [],
+    status: "",
+    error: false,
+    selectedUserId: "",
+    selectedProfile: null,
+    profileError: "",
+    equipmentOpen: false
   };
 
   function loadSave() {
@@ -177,6 +208,15 @@
       { label: "Alchemy", value: `Lv ${fmt(professionStats.alchemy?.level || 1)} / ${fmt(professionStats.alchemy?.xp || 0)} XP` },
       { label: "Enchanting", value: `Lv ${fmt(professionStats.enchanting?.level || 1)} / ${fmt(professionStats.enchanting?.xp || 0)} XP` }
     ];
+  }
+
+  function getPlayersPanelElements() {
+    return {
+      root: document.getElementById("playersViewRoot"),
+      status: document.getElementById("playersPanelStatus"),
+      list: document.getElementById("playersPanelList"),
+      profile: document.getElementById("playersPanelProfile")
+    };
   }
 
   function getSendableInventoryEntries() {
@@ -733,6 +773,226 @@
     loadPlayersDirectory();
   }
 
+  function renderPlayersPanel() {
+    const els = getPlayersPanelElements();
+    if (!els.root) return;
+
+    if (els.status) {
+      els.status.textContent = playersPanelState.status || "Browse all players in the game.";
+      els.status.style.color = playersPanelState.error ? "#ffd8de" : "#eef2ff";
+      els.status.style.borderColor = playersPanelState.error ? "rgba(179,72,92,.4)" : "rgba(255,255,255,.08)";
+      els.status.style.background = playersPanelState.error ? "rgba(78,22,34,.4)" : "rgba(255,255,255,.03)";
+    }
+
+    if (els.list) {
+      els.list.innerHTML = playersPanelState.players.length
+        ? playersPanelState.players.map((player) => {
+            const active = playersPanelState.selectedUserId === player.id;
+            return `
+              <div style="display:grid;grid-template-columns:auto minmax(0,1fr);gap:10px;align-items:center;padding:10px;border-radius:12px;border:1px solid ${active ? "rgba(199,155,68,.98)" : "rgba(255,255,255,.08)"};background:${active ? "linear-gradient(180deg, rgba(111,83,32,.58), rgba(48,34,18,.92))" : "rgba(255,255,255,.03)"};">
+                <button type="button" data-player-panel-avatar-id="${esc(player.id)}" style="width:56px;height:56px;border-radius:14px;border:1px solid rgba(166,124,64,.64);background:#0f1219;display:flex;align-items:center;justify-content:center;overflow:hidden;cursor:pointer;padding:0;">
+                  <img src="${esc(player.avatarUrl || "images/hero.png")}" alt="${esc(player.name || "Hero")}" style="width:100%;height:100%;object-fit:cover;">
+                </button>
+                <div style="min-width:0;display:grid;gap:4px;">
+                  <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+                    <span style="font-size:15px;font-weight:900;color:#f3ead6;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${esc(player.name || "Hero")}${player.isSelf ? " (You)" : ""}</span>
+                    <span style="padding:3px 8px;border-radius:999px;font-size:11px;font-weight:900;color:${player.isOnline ? "#e6ffef" : "#f3ead6"};background:${player.isOnline ? "rgba(25,107,61,.55)" : "rgba(255,255,255,.08)"};">${player.isOnline ? "Online" : "Offline"}</span>
+                  </div>
+                  <div style="font-size:12px;color:#d9ccb0;">Level ${fmt(player.heroLevel || 1)} - XP ${fmt(player.heroXP || 0)}</div>
+                  <div style="font-size:12px;color:#c6cbd8;">${esc(formatPresenceLabel(player))}</div>
+                </div>
+              </div>
+            `;
+          }).join("")
+        : `<div style="padding:14px;border-radius:12px;border:1px solid rgba(255,255,255,.08);background:rgba(255,255,255,.03);opacity:.82;">No players found yet.</div>`;
+    }
+
+    if (!els.profile) return;
+
+    if (!playersPanelState.selectedUserId) {
+      els.profile.innerHTML = `<div style="display:grid;place-items:center;min-height:300px;color:#d9ccb0;opacity:.86;">Click a player portrait to open the profile details here.</div>`;
+      return;
+    }
+
+    if (playersPanelState.profileLoading) {
+      els.profile.innerHTML = `<div style="display:grid;place-items:center;min-height:300px;color:#f3ead6;">Loading profile...</div>`;
+      return;
+    }
+
+    if (playersPanelState.profileError) {
+      els.profile.innerHTML = `<div style="display:grid;gap:10px;"><div style="padding:12px;border-radius:12px;border:1px solid rgba(179,72,92,.45);background:rgba(78,22,34,.4);color:#ffd8de;">${esc(playersPanelState.profileError)}</div></div>`;
+      return;
+    }
+
+    const profilePayload = playersPanelState.selectedProfile || {};
+    const profile = profilePayload.profile || {};
+    const overview = profilePayload.overview || {};
+    const equipment = profilePayload.equipment || {};
+    const summary = buildOverviewSummary(overview);
+    const currentPlayer = playersPanelState.players.find((player) => player.id === playersPanelState.selectedUserId) || null;
+
+    els.profile.innerHTML = `
+      <div style="display:grid;gap:14px;">
+        <div style="display:grid;grid-template-columns:auto minmax(0,1fr);gap:14px;align-items:start;">
+          <div style="display:grid;gap:10px;justify-items:center;">
+            <div style="width:112px;height:112px;border-radius:20px;border:1px solid rgba(166,124,64,.7);background:#0f1219;overflow:hidden;box-shadow:0 10px 24px rgba(0,0,0,.28);">
+              <img src="${esc(profile.avatarUrl || currentPlayer?.avatarUrl || "images/hero.png")}" alt="${esc(profile.name || currentPlayer?.name || "Hero")}" style="width:100%;height:100%;object-fit:cover;">
+            </div>
+            <button type="button" id="playersPanelEquipToggle" style="min-width:180px;height:40px;border-radius:12px;border:1px solid rgba(166,124,64,.86);background:linear-gradient(180deg,#6c4a24,#3b2814);color:#fff2d6;font-size:13px;font-weight:900;cursor:pointer;">${playersPanelState.equipmentOpen ? "Hide Equipment" : "View Equipment"}</button>
+          </div>
+          <div style="min-width:0;display:grid;gap:8px;">
+            <div style="font-size:24px;font-weight:900;color:#f3ead6;line-height:1.1;">${esc(profile.name || currentPlayer?.name || "Hero")}</div>
+            <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+              <span style="padding:4px 10px;border-radius:999px;font-size:11px;font-weight:900;color:${currentPlayer?.isOnline ? "#e6ffef" : "#f3ead6"};background:${currentPlayer?.isOnline ? "rgba(25,107,61,.55)" : "rgba(255,255,255,.08)"};">${currentPlayer?.isOnline ? "Online" : "Offline"}</span>
+              <span style="font-size:12px;color:#d9ccb0;">Last activity: ${esc(formatLastActivity(profile.lastSeenAt || currentPlayer?.lastSeenAt))}</span>
+            </div>
+            <div style="font-size:13px;color:#c6cbd8;">Last page: ${esc(window.DSAuth?.getPresencePageLabel?.(profile.lastSeenPage || currentPlayer?.lastSeenPage || "") || "In Game")}</div>
+            <div style="padding:12px;border-radius:12px;border:1px solid rgba(166,124,64,.32);background:rgba(0,0,0,.14);display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;">
+              ${summary.map((entry) => `
+                <div style="padding:10px;border-radius:12px;border:1px solid rgba(255,255,255,.06);background:rgba(255,255,255,.03);">
+                  <div style="font-size:11px;font-weight:800;letter-spacing:.3px;color:#cbb58b;opacity:.9;">${esc(entry.label)}</div>
+                  <div style="margin-top:4px;font-size:14px;font-weight:900;color:#f3ead6;line-height:1.35;">${esc(entry.value)}</div>
+                </div>
+              `).join("")}
+            </div>
+          </div>
+        </div>
+        ${playersPanelState.equipmentOpen ? `
+          <div style="display:grid;gap:10px;">
+            <div style="font-size:16px;font-weight:900;color:#f3ead6;">Equipped Gear</div>
+            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px;">
+              ${renderPlayerEquipmentGrid(equipment)}
+            </div>
+          </div>
+        ` : ""}
+      </div>
+    `;
+
+    document.getElementById("playersPanelEquipToggle")?.addEventListener("click", () => {
+      playersPanelState.equipmentOpen = !playersPanelState.equipmentOpen;
+      renderPlayersPanel();
+    });
+  }
+
+  async function loadPlayersPanel(force = false) {
+    if (playersPanelState.loading && !force) return;
+    playersPanelState.loading = true;
+    playersPanelState.status = "Loading players...";
+    playersPanelState.error = false;
+    renderPlayersPanel();
+
+    try {
+      await window.DSAuth?.ready;
+      const client = window.DSAuth?.getClient?.();
+      if (!client) throw new Error("Player service is unavailable.");
+
+      const [presence, publicStatsRes] = await Promise.all([
+        window.DSAuth?.fetchPresenceSnapshot?.(),
+        client.from("player_public_stats").select("user_id, hero_name, hero_level, hero_xp, combat_power, total_gold, dungeons_completed")
+      ]);
+
+      if (publicStatsRes?.error) throw publicStatsRes.error;
+
+      const publicRows = Array.isArray(publicStatsRes?.data) ? publicStatsRes.data : [];
+      const publicMap = new Map(publicRows.map((row) => [String(row.user_id || ""), row]));
+      const me = currentUserId();
+
+      playersPanelState.players = (Array.isArray(presence?.players) ? presence.players : [])
+        .map((player) => {
+          const stats = publicMap.get(String(player.id || "")) || {};
+          return {
+            ...player,
+            heroLevel: Math.max(1, num(stats.hero_level, 1)),
+            heroXP: Math.max(0, num(stats.hero_xp, 0)),
+            combatPower: Math.max(0, num(stats.combat_power, 0)),
+            totalGold: Math.max(0, num(stats.total_gold, 0)),
+            dungeonsCompleted: Math.max(0, num(stats.dungeons_completed, 0)),
+            isSelf: String(player.id || "") === me
+          };
+        })
+        .sort((a, b) => {
+          if (a.isOnline !== b.isOnline) return a.isOnline ? -1 : 1;
+          if (a.heroLevel !== b.heroLevel) return b.heroLevel - a.heroLevel;
+          const aSeen = a.lastSeenAt ? new Date(a.lastSeenAt).getTime() : 0;
+          const bSeen = b.lastSeenAt ? new Date(b.lastSeenAt).getTime() : 0;
+          return bSeen - aSeen || String(a.name || "").localeCompare(String(b.name || ""));
+        });
+
+      playersPanelState.status = `${playersPanelState.players.filter((player) => player.isOnline).length} online - ${playersPanelState.players.length} total players`;
+      playersPanelState.error = false;
+
+      const selectedStillExists = playersPanelState.players.some((player) => player.id === playersPanelState.selectedUserId);
+      if (!selectedStillExists) {
+        playersPanelState.selectedUserId = playersPanelState.players[0]?.id || "";
+        playersPanelState.selectedProfile = null;
+        playersPanelState.equipmentOpen = false;
+      }
+
+      renderPlayersPanel();
+      if (playersPanelState.selectedUserId) {
+        await openPlayersPanelProfile(playersPanelState.selectedUserId, { force });
+      }
+    } catch (error) {
+      playersPanelState.status = error?.message || "Failed to load players.";
+      playersPanelState.error = true;
+      renderPlayersPanel();
+    } finally {
+      playersPanelState.loading = false;
+      renderPlayersPanel();
+    }
+  }
+
+  async function openPlayersPanelProfile(userId, options = {}) {
+    const targetUserId = String(userId || "").trim();
+    if (!targetUserId) return;
+    const sameUser = playersPanelState.selectedUserId === targetUserId;
+    playersPanelState.selectedUserId = targetUserId;
+    playersPanelState.profileError = "";
+    if (!sameUser || options.force) {
+      playersPanelState.selectedProfile = null;
+      playersPanelState.equipmentOpen = false;
+    }
+    playersPanelState.profileLoading = true;
+    renderPlayersPanel();
+
+    try {
+      const result = await window.DSAuth?.invokePlayerProfile?.({ targetUserId });
+      if (playersPanelState.selectedUserId !== targetUserId) return;
+      playersPanelState.selectedProfile = result || null;
+      playersPanelState.profileError = "";
+    } catch (error) {
+      if (playersPanelState.selectedUserId !== targetUserId) return;
+      playersPanelState.selectedProfile = null;
+      playersPanelState.profileError = error?.message || "Failed to load player profile.";
+    } finally {
+      if (playersPanelState.selectedUserId === targetUserId) {
+        playersPanelState.profileLoading = false;
+        renderPlayersPanel();
+      }
+    }
+  }
+
+  function bindPlayersPanel() {
+    document.getElementById("playersBackHome")?.addEventListener("click", () => mountHome());
+    document.getElementById("playersRefreshBtn")?.addEventListener("click", () => loadPlayersPanel(true));
+    document.getElementById("playersPanelList")?.addEventListener("click", (e) => {
+      const avatarBtn = e.target.closest("[data-player-panel-avatar-id]");
+      if (!avatarBtn) return;
+      openPlayersPanelProfile(String(avatarBtn.dataset.playerPanelAvatarId || ""));
+    });
+  }
+
+  function mountPlayersView() {
+    const left = el("leftPanel");
+    if (!left) return false;
+    left.innerHTML = PLAYERS_VIEW_TEMPLATE;
+    document.title = "Darkstone Chronicles";
+    bindPlayersPanel();
+    renderPlayersPanel();
+    loadPlayersPanel(true);
+    return true;
+  }
+
   function navigateHomeTarget(href) {
     if (window.DSUI?.navigateWithinShell?.(href)) return;
     window.location.href = href;
@@ -768,7 +1028,7 @@
     const playersBtn = el("goPlayers", scope);
     if (playersBtn && playersBtn.dataset.dsHomeBound !== "1") {
       playersBtn.dataset.dsHomeBound = "1";
-      playersBtn.addEventListener("click", () => openPlayersModal());
+      playersBtn.addEventListener("click", () => mountPlayersView());
     }
   }
 
@@ -790,7 +1050,7 @@
   window.DSHome = {
     mount: mountHome,
     openSendItemModal,
-    openPlayersModal
+    openPlayersModal: mountPlayersView
   };
 
   window.addEventListener("DOMContentLoaded", () => {

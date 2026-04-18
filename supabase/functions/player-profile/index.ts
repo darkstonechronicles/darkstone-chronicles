@@ -122,14 +122,14 @@ Deno.serve(async (req) => {
 
   const supabaseUrl = Deno.env.get("SUPABASE_URL");
   const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+  const anonKey = Deno.env.get("SUPABASE_ANON_KEY");
   const authHeader = req.headers.get("Authorization") || "";
-  const token = authHeader.replace(/^Bearer\s+/i, "").trim();
 
-  if (!supabaseUrl || !serviceRoleKey) {
+  if (!supabaseUrl || !serviceRoleKey || !anonKey) {
     return json({ error: "Supabase environment is not configured." }, { status: 500 });
   }
 
-  if (!token) {
+  if (!authHeader.trim()) {
     return json({ error: "Missing bearer token." }, { status: 401 });
   }
 
@@ -137,10 +137,17 @@ Deno.serve(async (req) => {
     auth: { persistSession: false, autoRefreshToken: false },
   });
 
+  const userClient = createClient(supabaseUrl, anonKey, {
+    global: {
+      headers: { Authorization: authHeader },
+    },
+    auth: { persistSession: false, autoRefreshToken: false },
+  });
+
   const {
     data: { user },
     error: userError,
-  } = await admin.auth.getUser(token);
+  } = await userClient.auth.getUser();
 
   if (userError || !user) {
     return json({ error: "Invalid or expired session." }, { status: 401 });
