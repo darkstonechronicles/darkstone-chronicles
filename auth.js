@@ -7,6 +7,7 @@
   const ACTIVE_SESSION_PENDING_KEY = "ds:claim-active-session";
   const ACTIVE_SESSION_HANDOFF_GRACE_MS = 1500;
   const CLOUD_SAVE_DEBOUNCE_MS = 250;
+  const LOCAL_SAVE_SYNC_DELAY_MS = 120;
   const SUPABASE_SCRIPT_SRC = "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js";
   const PRESENCE_HEARTBEAT_MS = 45 * 1000;
   const PRESENCE_MIN_UPDATE_MS = 20 * 1000;
@@ -965,18 +966,7 @@
     originalSetItem(key, value);
     if (key === SAVE_KEY) {
       if (!state.cloud.suppressSync) markLocalSaveChanged();
-      if (state.user?.id && state.cloud.ready && !state.cloud.suppressSync) {
-        if (state.cloud.syncing) {
-          state.cloud.pendingSync = true;
-        } else {
-          syncCloudSaveNow().catch((error) => {
-            console.error("[auth] immediate cloud save sync failed", error);
-            scheduleCloudSaveSync();
-          });
-        }
-      } else {
-        scheduleCloudSaveSync();
-      }
+      scheduleCloudSaveSync(LOCAL_SAVE_SYNC_DELAY_MS);
     }
   };
 
