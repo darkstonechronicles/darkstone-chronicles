@@ -759,6 +759,52 @@
     return body;
   }
 
+  async function invokeSendItem(payload = {}) {
+    await ready;
+    if (!state.client || !state.user?.id) {
+      throw new Error("No active session.");
+    }
+
+    const activeOk = await validateActiveSession({ claimIfMissing: true });
+    if (!activeOk) {
+      throw new Error("Session replaced on another device.");
+    }
+
+    const recipientName = String(payload?.recipientName || "").trim();
+    const item = payload?.item && typeof payload.item === "object" ? payload.item : null;
+    const quantity = Math.max(1, Math.floor(Number(payload?.quantity) || 1));
+
+    if (!recipientName) throw new Error("Recipient nickname is required.");
+    if (!item) throw new Error("Choose an item to send.");
+
+    const { data, error } = await state.client.rpc("send_inventory_item", {
+      p_recipient_name: recipientName,
+      p_item: item,
+      p_quantity: quantity
+    });
+
+    if (error) throw new Error(error.message || "Item send failed.");
+    if (!data || data.ok !== true) {
+      throw new Error(String(data?.error || "Item send failed."));
+    }
+
+    const nextSave = data.senderSave && typeof data.senderSave === "object" ? data.senderSave : null;
+    const nextRevision = Math.max(1, Number(data.senderRevision || 0) || 1);
+    if (nextSave) {
+      writeLocalSave(nextSave, state.user.id);
+      state.cloud.revision = nextRevision;
+      state.cloud.userId = state.user.id;
+      state.cloud.ready = true;
+      markLocalSaveSynced();
+      window.dispatchEvent(new Event("ds:save"));
+      window.dispatchEvent(new CustomEvent("ds:cloud-save", {
+        detail: { status: "synced", revision: nextRevision, source: "send-item" }
+      }));
+    }
+
+    return data;
+  }
+
   const ready = (async () => {
     if (!isConfigured()) return false;
     if (!window.supabase?.createClient) {
@@ -956,6 +1002,7 @@
     signOut,
     syncCloudSaveNow,
     isAdmin,
-    invokeAdminGrant
+    invokeAdminGrant,
+    invokeSendItem
   };
 })();
