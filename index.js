@@ -1,4 +1,8 @@
 (() => {
+  function currentPage() {
+    return String(window.location.pathname || "").split("/").pop().toLowerCase() || "index.html";
+  }
+
   const HOME_TEMPLATE = `
     <div id="homeHub">
       <div class="hubNav">
@@ -103,6 +107,7 @@
   }
 
   function initExistingHome() {
+    if (currentPage() !== "index.html") return false;
     if (!el("homeHub")) return false;
     return mountHome();
   }

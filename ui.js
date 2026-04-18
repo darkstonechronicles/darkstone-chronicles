@@ -1527,6 +1527,8 @@
         width:100%;
         margin-left:0;
         pointer-events:auto;
+        position:relative;
+        z-index:200;
       }
       .dsHeaderControls{
         margin-left:auto;
@@ -1776,6 +1778,8 @@
         padding:10px 12px;box-sizing:border-box;
         pointer-events:auto;
         overflow:hidden;
+        position:relative;
+        z-index:200;
         box-shadow:
           0 0 0 1px rgba(34,24,12,.95),
           0 0 0 3px rgba(106,76,36,.72),
@@ -1795,6 +1799,8 @@
       .dsNav button{
         width:100%;
         padding:9px 10px;
+        position:relative;
+        z-index:201;
         border-radius:11px;
         border:1px solid rgba(126, 94, 50, .88);
         background:
@@ -4553,6 +4559,9 @@ function navigateWithFade(targetHref) {
   const currentPage = normalizePagePath(window.location.pathname || "index.html");
   if (!targetPage) return;
   if (targetPage === currentPage) return;
+
+  restoreLeftPanelNodes();
+  window.DS?.resume?.();
 
   if (navigateWithinShell(targetHref)) return;
 

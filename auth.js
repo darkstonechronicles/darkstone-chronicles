@@ -2,6 +2,7 @@
   const LOGIN_PAGE = "login.html";
   const SAVE_KEY = "darkstone_save_v1";
   const SAVE_OWNER_KEY = "darkstone_save_owner_v1";
+  const SAVE_META_KEY = "darkstone_save_meta_v1";
   const SUPABASE_SCRIPT_SRC = "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js";
   const PRESENCE_HEARTBEAT_MS = 45 * 1000;
   const PRESENCE_MIN_UPDATE_MS = 20 * 1000;
@@ -136,11 +137,46 @@
     }
   }
 
+  function readLocalSaveMeta() {
+    try {
+      const meta = JSON.parse(localStorage.getItem(SAVE_META_KEY) || "{}") || {};
+      return meta && typeof meta === "object" ? meta : {};
+    } catch {
+      return {};
+    }
+  }
+
+  function writeLocalSaveMeta(patch = {}) {
+    const current = readLocalSaveMeta();
+    const next = { ...current, ...(patch && typeof patch === "object" ? patch : {}) };
+    try {
+      localStorage.setItem(SAVE_META_KEY, JSON.stringify(next));
+    } catch {}
+    return next;
+  }
+
+  function markLocalSaveChanged() {
+    writeLocalSaveMeta({ lastLocalSaveAt: Date.now() });
+  }
+
+  function markLocalSaveSynced(at = Date.now()) {
+    writeLocalSaveMeta({ lastCloudSyncAt: at });
+  }
+
+  function hasUnsyncedLocalSave() {
+    const meta = readLocalSaveMeta();
+    const lastLocalSaveAt = Number(meta.lastLocalSaveAt || 0);
+    const lastCloudSyncAt = Number(meta.lastCloudSyncAt || 0);
+    return lastLocalSaveAt > 0 && lastLocalSaveAt > lastCloudSyncAt;
+  }
+
   function writeLocalSave(save, ownerId = "") {
     state.cloud.suppressSync = true;
     try {
       localStorage.setItem(SAVE_KEY, JSON.stringify(save && typeof save === "object" ? save : {}));
       if (ownerId) localStorage.setItem(SAVE_OWNER_KEY, ownerId);
+      const now = Date.now();
+      writeLocalSaveMeta({ lastLocalSaveAt: now, lastCloudSyncAt: now });
     } finally {
       state.cloud.suppressSync = false;
     }
@@ -237,6 +273,7 @@
 
       state.cloud.revision = nextRevision;
       localStorage.setItem(SAVE_OWNER_KEY, state.user.id);
+      markLocalSaveSynced();
       window.dispatchEvent(new CustomEvent("ds:cloud-save", {
         detail: { status: "synced", revision: nextRevision }
       }));
@@ -273,8 +310,22 @@
       const remoteHasSave = hasMeaningfulSave(remoteSave);
       const localHasSave = hasMeaningfulSave(localSave);
       const ownerMatches = !localOwnerId || localOwnerId === state.user.id;
+      const preferLocalSave = localHasSave && ownerMatches && hasUnsyncedLocalSave();
 
-      if (remoteHasSave) {
+      if (preferLocalSave) {
+        await upsertProfileAndStats(localSave);
+        const nextRevision = Math.max(1, Number(remote?.revision || 0) + 1);
+        const { error: saveError } = await state.client.from("player_saves").upsert({
+          user_id: state.user.id,
+          save_data: localSave,
+          revision: nextRevision,
+          last_synced_at: new Date().toISOString()
+        });
+        if (saveError) throw saveError;
+        state.cloud.revision = nextRevision;
+        localStorage.setItem(SAVE_OWNER_KEY, state.user.id);
+        markLocalSaveSynced();
+      } else if (remoteHasSave) {
         writeLocalSave(remoteSave, state.user.id);
         state.cloud.revision = Number(remote?.revision || 1) || 1;
       } else if (localHasSave && ownerMatches) {
@@ -288,6 +339,7 @@
         if (saveError) throw saveError;
         state.cloud.revision = 1;
         localStorage.setItem(SAVE_OWNER_KEY, state.user.id);
+        markLocalSaveSynced();
       } else {
         if (!ownerMatches) {
           writeLocalSave({}, state.user.id);
@@ -626,8 +678,21 @@
   const originalSetItem = localStorage.setItem.bind(localStorage);
   localStorage.setItem = (key, value) => {
     originalSetItem(key, value);
-    if (key === SAVE_KEY) scheduleCloudSaveSync();
+    if (key === SAVE_KEY) {
+      if (!state.cloud.suppressSync) markLocalSaveChanged();
+      scheduleCloudSaveSync();
+    }
   };
+
+  function flushCloudSaveSoon() {
+    if (!state.user?.id || !state.cloud.ready || !hasUnsyncedLocalSave()) return;
+    syncCloudSaveNow();
+  }
+
+  window.addEventListener("pagehide", flushCloudSaveSoon);
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState === "hidden") flushCloudSaveSoon();
+  });
 
   window.DSAuth = {
     config: CONFIG,
