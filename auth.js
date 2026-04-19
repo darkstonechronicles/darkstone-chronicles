@@ -276,6 +276,31 @@
     );
   }
 
+  function saveProgressScore(save) {
+    const next = save && typeof save === "object" ? save : {};
+    const statNames = [
+      "hero", "mining", "forge", "blacksmith", "woodcutting", "woodworking",
+      "carpentry", "hunting", "fishing", "cooking", "herbalism", "alchemy", "enchanting"
+    ];
+    let score = 0;
+    statNames.forEach((name, index) => {
+      const level = Math.max(0, Number(next[`${name}Level`] || 0) || 0);
+      const xp = Math.max(0, Number(next[`${name}XP`] || 0) || 0);
+      score += (level * 1000000 + xp) * (index + 1);
+    });
+    score += Math.max(0, Number(next.gold || 0) || 0);
+    if (Array.isArray(next.inventory)) {
+      score += next.inventory.reduce((sum, item) => sum + Math.max(1, Number(item?.quantity || 1) || 1), 0) * 10;
+    }
+    const totalStats = next.stats && typeof next.stats === "object" && next.stats.total && typeof next.stats.total === "object"
+      ? next.stats.total
+      : {};
+    Object.values(totalStats).forEach((value) => {
+      score += Math.max(0, Number(value || 0) || 0);
+    });
+    return score;
+  }
+
   function buildPublicStats(save, user) {
     const next = save && typeof save === "object" ? save : {};
     const userMeta = user?.user_metadata || {};
@@ -574,12 +599,15 @@
         !hasKnownLocalBaseRevision &&
         hasUnsyncedLocalSave() &&
         !state.sessionGuard.justClaimedActiveSession;
+      const sameSessionLocalProgressAhead =
+        !state.sessionGuard.justClaimedActiveSession &&
+        saveProgressScore(localSave) > saveProgressScore(remoteSave);
       const preferLocalSave =
         localHasSave &&
         ownerMatches &&
         !state.sessionGuard.justClaimedActiveSession &&
-        hasUnsyncedLocalSave() &&
-        (!remoteHasSave || localBaseRevision >= remoteRevision || sameClientUnsyncedLocalSave || hasLegacyUnsyncedLocalSave);
+        (hasUnsyncedLocalSave() || sameSessionLocalProgressAhead) &&
+        (!remoteHasSave || localBaseRevision >= remoteRevision || sameClientUnsyncedLocalSave || hasLegacyUnsyncedLocalSave || sameSessionLocalProgressAhead);
 
       if (preferLocalSave) {
         const saveResult = await writeRemoteSaveWithRevision(localSave, { allowRemoteOverride: true });

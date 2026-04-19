@@ -126,12 +126,13 @@ async function runScenario({
   remoteRevision,
   activeSessionId = "",
   lastLocalClientSessionId,
+  localMetaSynced = false,
   expectRemoteWins
 }) {
   const now = Date.now();
   const meta = {
     lastLocalSaveAt: now,
-    lastCloudSyncAt: now - 60_000
+    lastCloudSyncAt: localMetaSynced ? now : now - 60_000
   };
   if (localBaseRevision != null) meta.cloudRevision = localBaseRevision;
   if (lastLocalClientSessionId !== undefined) meta.lastLocalClientSessionId = lastLocalClientSessionId;
@@ -377,6 +378,30 @@ async function runAll() {
     remoteRevision: 6,
     activeSessionId: "client-session-1",
     lastLocalClientSessionId: "client-session-1",
+    expectRemoteWins: false
+  });
+
+  await runScenario({
+    name: "same mobile local progress ahead survives even when meta looks synced",
+    localSave: {
+      heroCreated: true,
+      heroName: "Mobile",
+      heroLevel: 15,
+      heroXP: 800,
+      gold: 3400
+    },
+    remoteSave: {
+      heroCreated: true,
+      heroName: "Mobile",
+      heroLevel: 14,
+      heroXP: 100,
+      gold: 3000
+    },
+    localBaseRevision: 6,
+    remoteRevision: 7,
+    activeSessionId: "client-session-1",
+    lastLocalClientSessionId: "client-session-1",
+    localMetaSynced: true,
     expectRemoteWins: false
   });
 

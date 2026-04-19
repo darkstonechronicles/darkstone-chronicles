@@ -213,6 +213,19 @@ async function main() {
     await page.send("Page.addScriptToEvaluateOnNewDocument", { source: preload });
     await page.send("Page.navigate", { url: `http://127.0.0.1:${PORT}/index.html` });
     await new Promise((resolve) => setTimeout(resolve, 4500));
+    await page.send("Runtime.evaluate", {
+      expression: `(() => {
+        const key = "darkstone_save_v1";
+        const save = JSON.parse(localStorage.getItem(key) || "{}");
+        save.heroLevel = 12;
+        save.heroXP = 99;
+        save.gold = 2600;
+        localStorage.setItem(key, JSON.stringify(save));
+        return true;
+      })()`,
+      returnByValue: true
+    });
+    await new Promise((resolve) => setTimeout(resolve, 250));
     await page.send("Page.reload", { ignoreCache: true });
     await new Promise((resolve) => setTimeout(resolve, 4500));
 
@@ -239,7 +252,7 @@ async function main() {
     });
 
     if (!summary.bootReady) throw new Error(`Game did not finish booting: ${JSON.stringify(summary)}`);
-    if (summary.heroLevel !== 11) throw new Error(`Expected same-PC local progression to survive reload. Got ${JSON.stringify(summary)}`);
+    if (summary.heroLevel !== 12) throw new Error(`Expected same-PC local progression to survive reload. Got ${JSON.stringify(summary)}`);
     if (summary.updates < 1) throw new Error(`Expected local progression to sync upward. Got ${JSON.stringify(summary)}`);
     if (errors.length) {
       throw new Error(`Browser reported ${errors.length} errors/warnings: ${JSON.stringify(errors.slice(0, 5))}`);
