@@ -874,7 +874,7 @@
       throw new Error(body?.error || body?.message || `Admin grant failed (${res.status})`);
     }
 
-    if (body?.save && typeof body.save === "object") {
+    if (body?.save && typeof body.save === "object" && String(body?.userId || "") === String(state.user.id || "")) {
       state.cloud.revision = Math.max(Number(state.cloud.revision || 0), Number(body.revision || 0) || 0);
       writeLocalSave(body.save, state.user.id, state.cloud.revision);
       window.dispatchEvent(new Event("ds:save"));

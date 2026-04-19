@@ -1031,6 +1031,21 @@
       }
     }
 
+    const hpMax = Math.max(1, num(s.heroHPMax, 100));
+    const hpNow = clamp(num(s.heroHP, 0), 0, hpMax);
+    if (hpNow / hpMax < 0.25) {
+      const slot = s.consumables?.quick_cooked_fish;
+      const qty = num(slot?.quantity ?? slot?.qty, 0);
+      const per = num(slot?.healHp, 0);
+      if (slot && qty > 0 && per > 0) {
+        const eatQty = Math.min(10, qty);
+        s.heroHP = clamp(hpNow + per * eatQty, 0, hpMax);
+        if (qty > eatQty) slot.quantity = qty - eatQty;
+        else s.consumables.quick_cooked_fish = null;
+        didWrite = true;
+      }
+    }
+
     if (didWrite) setSave(s);
   }
 
@@ -2841,7 +2856,7 @@
           ${[
             { key: "quick_potion1", label: "Potion 1", kind: "potion" },
             { key: "quick_potion2", label: "Potion 2", kind: "potion" },
-            { key: "quick_meat", label: "Meat", kind: "meat" },
+            { key: "quick_meat", label: "Cooked Meat", kind: "meat" },
             { key: "quick_cooked_fish", label: "Cooked Fish", kind: "cooked_fish" }
           ].map((slot) => {
             const it = save?.consumables?.[slot.key];
@@ -4053,6 +4068,30 @@ function renderAdminItemPicker(modal) {
   });
 }
 
+function getAdminPetSlotOptions() {
+  return [
+    { key: "combat", label: "Combat Pet" },
+    { key: "gathering", label: "Gathering Pet" },
+    { key: "artisan", label: "Artisan Pet" },
+    { key: "fortune", label: "Fortune Pet" }
+  ];
+}
+
+function setAdminPetLevel(slotKey, targetLevel) {
+  const s = ensureSave(loadSave());
+  const normalizedSlot = String(slotKey || "").trim().toLowerCase();
+  const currentPet = normalizePet(normalizedSlot, s?.pets?.[normalizedSlot]);
+  if (!currentPet) return { ok: false, msg: "No pet equipped in that slot." };
+  currentPet.level = Math.max(1, Math.floor(num(targetLevel, 1)));
+  currentPet.tier = Math.min(num(currentPet.tier, 1), getPetTierForLevel(currentPet.level));
+  currentPet.xp = 0;
+  currentPet.xpNext = petXpNextForLevel(currentPet.level);
+  s.pets[normalizedSlot] = normalizePet(normalizedSlot, currentPet);
+  setSave(s);
+  window.dispatchEvent(new Event("ds:save"));
+  return { ok: true, msg: `${currentPet.name || "Pet"} set to level ${currentPet.level}.` };
+}
+
 function ensureAdminToolsModal() {
   let modal = document.getElementById("dsAdminModal");
   if (modal) return modal;
@@ -4107,6 +4146,28 @@ function ensureAdminToolsModal() {
       <div style="margin-top:10px;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;">
         <button id="dsAdminApplyGold" type="button" class="townBtn" style="width:100%;">Apply Gold</button>
         <button id="dsAdminApplyLevel" type="button" class="townBtn" style="width:100%;">Apply Level</button>
+      </div>
+
+      <div style="margin-top:14px;display:grid;grid-template-columns:minmax(0,1fr) 120px 170px;gap:10px;align-items:end;">
+        <label style="display:flex;flex-direction:column;gap:6px;">
+          <span style="font-size:12px;font-weight:800;opacity:.88;">Pet Slot</span>
+          <select id="dsAdminPetSlot" style="height:38px;border-radius:10px;border:1px solid rgba(255,255,255,.12);background:#10131d;color:#eef2ff;padding:0 10px;">
+            ${getAdminPetSlotOptions().map((slot) => `<option value="${slot.key}">${slot.label}</option>`).join("")}
+          </select>
+        </label>
+        <label style="display:flex;flex-direction:column;gap:6px;">
+          <span style="font-size:12px;font-weight:800;opacity:.88;">Pet Level</span>
+          <input id="dsAdminPetLevelInput" type="number" min="1" step="1" placeholder="25" style="height:38px;border-radius:10px;border:1px solid rgba(255,255,255,.12);background:#10131d;color:#eef2ff;padding:0 10px;">
+        </label>
+        <button id="dsAdminApplyPetLevel" type="button" class="townBtn" style="width:100%;">Set Pet Level</button>
+      </div>
+
+      <div style="margin-top:14px;display:grid;grid-template-columns:minmax(0,1fr) 170px;gap:10px;align-items:end;">
+        <label style="display:flex;flex-direction:column;gap:6px;">
+          <span style="font-size:12px;font-weight:800;opacity:.88;">Target Hero Name</span>
+          <input id="dsAdminTargetHeroName" type="text" placeholder="kentros" style="height:38px;border-radius:10px;border:1px solid rgba(255,255,255,.12);background:#10131d;color:#eef2ff;padding:0 10px;">
+        </label>
+        <button id="dsAdminResetPetsLv1" type="button" class="townBtn" style="width:100%;">Reset Pets to Lv 1</button>
       </div>
 
       <div style="margin-top:16px;padding-top:14px;border-top:1px solid rgba(255,255,255,.08);">
@@ -4223,6 +4284,36 @@ function bindAdminToolsModal() {
       return;
     }
     runGrant({ set: { heroLevel: Math.trunc(level), heroXP: 0 } }, `Set hero level to ${Math.trunc(level)}.`);
+  });
+
+  modal.querySelector("#dsAdminApplyPetLevel")?.addEventListener("click", () => {
+    const slotInput = modal.querySelector("#dsAdminPetSlot");
+    const levelInput = modal.querySelector("#dsAdminPetLevelInput");
+    const slotKey = String(slotInput?.value || "").trim().toLowerCase();
+    const level = Number(levelInput?.value || 0);
+    if (!slotKey) {
+      setStatus("Choose a pet slot.", true);
+      return;
+    }
+    if (!Number.isFinite(level) || level < 1) {
+      setStatus("Enter a valid pet level.", true);
+      return;
+    }
+    const result = setAdminPetLevel(slotKey, Math.trunc(level));
+    setStatus(result.msg, !result.ok);
+  });
+
+  modal.querySelector("#dsAdminResetPetsLv1")?.addEventListener("click", () => {
+    const input = modal.querySelector("#dsAdminTargetHeroName");
+    const heroName = String(input?.value || "").trim();
+    if (!heroName) {
+      setStatus("Enter a hero name first.", true);
+      return;
+    }
+    runGrant({
+      targetHeroName: heroName,
+      pets: { resetToLevel: 1 }
+    }, `Reset pets to level 1 for ${heroName}.`);
   });
 
   const itemSearch = modal.querySelector("#dsAdminItemSearch");
@@ -5179,7 +5270,7 @@ function getQuickFoodTargetSlot(item){
 }
 
 function getQuickFoodSlotLabel(slotKey){
-  if (slotKey === "quick_meat") return "Meat";
+  if (slotKey === "quick_meat") return "Cooked Meat";
   if (slotKey === "quick_cooked_fish") return "Cooked Fish";
   return "Consumable";
 }
@@ -5666,8 +5757,6 @@ function openPetInspector(slotKey) {
     <div class="dsBtnRow">
       <button id="dsPetToggle">${isActive ? "Unequip" : "Equip"}</button>
       ${nextTier && awaitingEvolution ? `<button id="dsPetEvolve">Evolve (${new Intl.NumberFormat("el-GR").format(num(pet.nextUpgradeCost, 0))} Gold)</button>` : ``}
-      <button id="dsPetLevelDown">-1 Level</button>
-      <button id="dsPetLevelUp">+1 Level</button>
     </div>
     <div id="dsMsg" style="margin-top:10px;opacity:.9;text-align:center;"></div>
   `;
@@ -5699,32 +5788,6 @@ function openPetInspector(slotKey) {
     if (s.gold < cost) { msg("Not enough gold."); return; }
     s.gold -= cost;
     currentPet.tier = num(currentPet.tier, 1) + 1;
-    currentPet.xp = 0;
-    currentPet.xpNext = petXpNextForLevel(currentPet.level);
-    s.pets[slotKey] = normalizePet(slotKey, currentPet);
-    setSave(s);
-    window.dispatchEvent(new Event("ds:save"));
-    openPetInspector(slotKey);
-  });
-  document.getElementById("dsPetLevelUp")?.addEventListener("click", () => {
-    const s = ensureSave(loadSave());
-    const currentPet = normalizePet(slotKey, s?.pets?.[slotKey]);
-    if (!currentPet) { msg("Pet missing."); return; }
-    currentPet.level = Math.max(1, num(currentPet.level, 1)) + 1;
-    currentPet.tier = Math.min(num(currentPet.tier, 1), getPetTierForLevel(currentPet.level));
-    currentPet.xp = 0;
-    currentPet.xpNext = petXpNextForLevel(currentPet.level);
-    s.pets[slotKey] = normalizePet(slotKey, currentPet);
-    setSave(s);
-    window.dispatchEvent(new Event("ds:save"));
-    openPetInspector(slotKey);
-  });
-  document.getElementById("dsPetLevelDown")?.addEventListener("click", () => {
-    const s = ensureSave(loadSave());
-    const currentPet = normalizePet(slotKey, s?.pets?.[slotKey]);
-    if (!currentPet) { msg("Pet missing."); return; }
-    currentPet.level = Math.max(1, num(currentPet.level, 1) - 1);
-    currentPet.tier = Math.min(num(currentPet.tier, 1), getPetTierForLevel(currentPet.level));
     currentPet.xp = 0;
     currentPet.xpNext = petXpNextForLevel(currentPet.level);
     s.pets[slotKey] = normalizePet(slotKey, currentPet);

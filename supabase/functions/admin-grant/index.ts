@@ -16,6 +16,8 @@ type GrantItem = Record<string, unknown> & {
 };
 
 type GrantPayload = {
+  targetUserId?: string;
+  targetHeroName?: string;
   clearChat?: "global" | "market";
   set?: {
     gold?: number;
@@ -34,6 +36,10 @@ type GrantPayload = {
     gold?: number;
     heroXP?: number;
     heroStatPoints?: number;
+  };
+  pets?: {
+    resetToLevel?: number;
+    removeAll?: boolean;
   };
   items?: GrantItem[];
 };
@@ -103,6 +109,52 @@ function calcHpMax(level: number) {
 
 function calcStaminaMax(level: number) {
   return 100 + (Math.max(1, safeInt(level, 1)) - 1) * 5;
+}
+
+function petXpNextForLevel(level: number) {
+  return xpNextForLevel(level);
+}
+
+function getPetTierForLevel(level: number) {
+  const L = Math.max(1, Math.floor(num(level, 1)));
+  if (L >= 100) return 5;
+  if (L >= 75) return 4;
+  if (L >= 50) return 3;
+  if (L >= 25) return 2;
+  return 1;
+}
+
+function ensurePetsShape(save: Record<string, unknown>) {
+  const next = save.pets && typeof save.pets === "object" ? { ...(save.pets as Record<string, unknown>) } : {};
+  for (const key of ["combat", "gathering", "artisan", "fortune"]) {
+    if (!(key in next)) next[key] = null;
+  }
+  save.pets = next;
+  return next;
+}
+
+function resetPetsToLevel(save: Record<string, unknown>, targetLevel: number) {
+  const pets = ensurePetsShape(save);
+  const level = Math.max(1, safeInt(targetLevel, 1));
+  for (const key of ["combat", "gathering", "artisan", "fortune"]) {
+    const pet = pets[key];
+    if (!pet || typeof pet !== "object") continue;
+    const nextPet = { ...(pet as Record<string, unknown>) };
+    nextPet.level = level;
+    nextPet.tier = getPetTierForLevel(level);
+    nextPet.xp = 0;
+    nextPet.xpNext = petXpNextForLevel(level);
+    pets[key] = nextPet;
+  }
+}
+
+function removeAllPets(save: Record<string, unknown>) {
+  save.pets = {
+    combat: null,
+    gathering: null,
+    artisan: null,
+    fortune: null,
+  };
 }
 
 function getItemStackKey(item: Record<string, unknown>) {
@@ -273,10 +325,45 @@ Deno.serve(async (req) => {
     payload = {};
   }
 
+  const targetHeroName = String(payload.targetHeroName || "").trim();
+  let targetUserId = String(payload.targetUserId || "").trim();
+
+  if (!targetUserId && targetHeroName) {
+    const normalizedName = targetHeroName.trim().toLowerCase();
+    const { data: heroNameRow, error: heroNameError } = await admin
+      .from("hero_names")
+      .select("user_id")
+      .eq("normalized_name", normalizedName)
+      .maybeSingle();
+
+    if (heroNameError) {
+      return json({ error: heroNameError.message }, { status: 500 });
+    }
+    if (!heroNameRow?.user_id) {
+      return json({ error: `Hero '${targetHeroName}' not found.` }, { status: 404 });
+    }
+    targetUserId = String(heroNameRow.user_id);
+  }
+
+  if (!targetUserId) targetUserId = user.id;
+
+  const { data: targetProfileRow, error: targetProfileError } = await admin
+    .from("profiles")
+    .select("id, email")
+    .eq("id", targetUserId)
+    .maybeSingle();
+
+  if (targetProfileError) {
+    return json({ error: targetProfileError.message }, { status: 500 });
+  }
+  if (!targetProfileRow?.id) {
+    return json({ error: "Target player not found." }, { status: 404 });
+  }
+
   const { data: existingSaveRow, error: saveFetchError } = await admin
     .from("player_saves")
     .select("save_data, revision")
-    .eq("user_id", user.id)
+    .eq("user_id", targetUserId)
     .maybeSingle();
 
   if (saveFetchError) {
@@ -290,6 +377,7 @@ Deno.serve(async (req) => {
 
   const setOps = payload.set || {};
   const addOps = payload.add || {};
+  const petOps = payload.pets || {};
   const clearChat = payload.clearChat;
 
   if (clearChat === "global" || clearChat === "market") {
@@ -342,12 +430,18 @@ Deno.serve(async (req) => {
   if (setOps.heroStatPoints != null) save.heroStatPoints = Math.max(0, safeInt(setOps.heroStatPoints, 0));
   if (addOps.heroStatPoints != null) save.heroStatPoints = Math.max(0, safeInt(save.heroStatPoints, 0) + safeInt(addOps.heroStatPoints, 0));
 
+  if (petOps.removeAll) {
+    removeAllPets(save);
+  } else if (petOps.resetToLevel != null) {
+    resetPetsToLevel(save, petOps.resetToLevel);
+  }
+
   const items = Array.isArray(payload.items) ? payload.items : [];
   for (const item of items) addItemToInventory(save, item);
 
   const nextRevision = Math.max(1, safeInt(existingSaveRow?.revision, 0) + 1);
   const { error: saveError } = await admin.from("player_saves").upsert({
-    user_id: user.id,
+    user_id: targetUserId,
     save_data: save,
     revision: nextRevision,
     last_synced_at: new Date().toISOString(),
@@ -357,9 +451,9 @@ Deno.serve(async (req) => {
     return json({ error: saveError.message }, { status: 500 });
   }
 
-  const publicStats = buildPublicStats(save, user.email || "hero@darkstone.local");
+  const publicStats = buildPublicStats(save, String(targetProfileRow.email || user.email || "hero@darkstone.local"));
   const { error: statsError } = await admin.from("player_public_stats").upsert({
-    user_id: user.id,
+    user_id: targetUserId,
     ...publicStats,
   });
 
@@ -369,9 +463,10 @@ Deno.serve(async (req) => {
 
   return json({
     ok: true,
-    userId: user.id,
+    userId: targetUserId,
+    actorUserId: user.id,
     revision: nextRevision,
-    save,
+    save: targetUserId === user.id ? save : null,
     publicStats,
   });
 });
