@@ -125,6 +125,7 @@ async function runScenario({
   localBaseRevision,
   remoteRevision,
   activeSessionId = "",
+  lastLocalClientSessionId,
   expectRemoteWins
 }) {
   const now = Date.now();
@@ -133,6 +134,7 @@ async function runScenario({
     lastCloudSyncAt: now - 60_000
   };
   if (localBaseRevision != null) meta.cloudRevision = localBaseRevision;
+  if (lastLocalClientSessionId !== undefined) meta.lastLocalClientSessionId = lastLocalClientSessionId;
 
   const localStorage = createStorage({
     [SAVE_KEY]: JSON.stringify(localSave),
@@ -354,6 +356,27 @@ async function runAll() {
     localBaseRevision: null,
     remoteRevision: 4,
     activeSessionId: "client-session-1",
+    expectRemoteWins: false
+  });
+
+  await runScenario({
+    name: "same mobile known-revision unsynced save survives hard refresh",
+    localSave: {
+      heroCreated: true,
+      heroName: "Mobile",
+      heroLevel: 14,
+      gold: 3300
+    },
+    remoteSave: {
+      heroCreated: true,
+      heroName: "Mobile",
+      heroLevel: 12,
+      gold: 2500
+    },
+    localBaseRevision: 5,
+    remoteRevision: 6,
+    activeSessionId: "client-session-1",
+    lastLocalClientSessionId: "client-session-1",
     expectRemoteWins: false
   });
 

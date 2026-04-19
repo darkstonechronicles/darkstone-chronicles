@@ -212,7 +212,10 @@
   }
 
   function markLocalSaveChanged() {
-    writeLocalSaveMeta({ lastLocalSaveAt: Date.now() });
+    writeLocalSaveMeta({
+      lastLocalSaveAt: Date.now(),
+      lastLocalClientSessionId: ensureClientSessionId(false)
+    });
   }
 
   function markLocalSaveSynced(at = Date.now(), revision = state.cloud.revision) {
@@ -239,7 +242,8 @@
       writeLocalSaveMeta({
         lastLocalSaveAt: now,
         lastCloudSyncAt: now,
-        cloudRevision: Math.max(0, Number(revision || 0) || 0)
+        cloudRevision: Math.max(0, Number(revision || 0) || 0),
+        lastLocalClientSessionId: ensureClientSessionId(false)
       });
     } finally {
       state.cloud.suppressSync = false;
@@ -560,6 +564,12 @@
       const ownerMatches = !localOwnerId || localOwnerId === state.user.id;
       const localBaseRevision = Math.max(0, Number(localMeta.cloudRevision || 0) || 0);
       const hasKnownLocalBaseRevision = localMeta.cloudRevision != null && Number(localMeta.cloudRevision || 0) > 0;
+      const localClientSessionId = String(localMeta.lastLocalClientSessionId || "").trim();
+      const currentClientSessionId = ensureClientSessionId(false);
+      const sameClientUnsyncedLocalSave =
+        hasUnsyncedLocalSave() &&
+        !state.sessionGuard.justClaimedActiveSession &&
+        (!localClientSessionId || localClientSessionId === currentClientSessionId);
       const hasLegacyUnsyncedLocalSave =
         !hasKnownLocalBaseRevision &&
         hasUnsyncedLocalSave() &&
@@ -569,7 +579,7 @@
         ownerMatches &&
         !state.sessionGuard.justClaimedActiveSession &&
         hasUnsyncedLocalSave() &&
-        (!remoteHasSave || localBaseRevision >= remoteRevision || hasLegacyUnsyncedLocalSave);
+        (!remoteHasSave || localBaseRevision >= remoteRevision || sameClientUnsyncedLocalSave || hasLegacyUnsyncedLocalSave);
 
       if (preferLocalSave) {
         const saveResult = await writeRemoteSaveWithRevision(localSave, { allowRemoteOverride: true });
