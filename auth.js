@@ -215,8 +215,12 @@
     writeLocalSaveMeta({ lastLocalSaveAt: Date.now() });
   }
 
-  function markLocalSaveSynced(at = Date.now()) {
-    writeLocalSaveMeta({ lastCloudSyncAt: at });
+  function markLocalSaveSynced(at = Date.now(), revision = state.cloud.revision) {
+    const nextRevision = Math.max(0, Number(revision || 0) || 0);
+    writeLocalSaveMeta({
+      lastCloudSyncAt: at,
+      cloudRevision: nextRevision
+    });
   }
 
   function hasUnsyncedLocalSave() {
@@ -226,13 +230,17 @@
     return lastLocalSaveAt > 0 && lastLocalSaveAt > lastCloudSyncAt;
   }
 
-  function writeLocalSave(save, ownerId = "") {
+  function writeLocalSave(save, ownerId = "", revision = state.cloud.revision) {
     state.cloud.suppressSync = true;
     try {
       localStorage.setItem(SAVE_KEY, JSON.stringify(save && typeof save === "object" ? save : {}));
       if (ownerId) localStorage.setItem(SAVE_OWNER_KEY, ownerId);
       const now = Date.now();
-      writeLocalSaveMeta({ lastLocalSaveAt: now, lastCloudSyncAt: now });
+      writeLocalSaveMeta({
+        lastLocalSaveAt: now,
+        lastCloudSyncAt: now,
+        cloudRevision: Math.max(0, Number(revision || 0) || 0)
+      });
     } finally {
       state.cloud.suppressSync = false;
     }
@@ -248,8 +256,8 @@
 
   function applyRemoteSaveSnapshot(remote) {
     const remoteSave = normalizeRemoteSavePayload(remote);
-    writeLocalSave(remoteSave, state.user?.id || "");
     state.cloud.revision = Math.max(1, Number(remote?.revision || 1) || 1);
+    writeLocalSave(remoteSave, state.user?.id || "", state.cloud.revision);
     window.dispatchEvent(new Event("ds:save"));
     return remoteSave;
   }
@@ -546,17 +554,17 @@
       const localOwnerId = getLocalOwnerId();
       const remote = await fetchRemoteSave();
       const remoteSave = normalizeRemoteSavePayload(remote);
+      const remoteRevision = Math.max(0, Number(remote?.revision || 0) || 0);
       const remoteHasSave = hasMeaningfulSave(remoteSave);
       const localHasSave = hasMeaningfulSave(localSave);
       const ownerMatches = !localOwnerId || localOwnerId === state.user.id;
-      const localLastSaveAt = Math.max(0, Number(localMeta.lastLocalSaveAt || 0) || 0);
-      const recentLocalWindowMs = 10 * 60 * 1000;
-      const localSaveIsRecent = localLastSaveAt > 0 && (Date.now() - localLastSaveAt) <= recentLocalWindowMs;
+      const localBaseRevision = Math.max(0, Number(localMeta.cloudRevision || 0) || 0);
       const preferLocalSave =
         localHasSave &&
         ownerMatches &&
         !state.sessionGuard.justClaimedActiveSession &&
-        (hasUnsyncedLocalSave() || localSaveIsRecent);
+        hasUnsyncedLocalSave() &&
+        (!remoteHasSave || localBaseRevision >= remoteRevision);
 
       if (preferLocalSave) {
         const saveResult = await writeRemoteSaveWithRevision(localSave, { allowRemoteOverride: true });
@@ -776,8 +784,8 @@
     }
 
     if (body?.save && typeof body.save === "object") {
-      writeLocalSave(body.save, state.user.id);
       state.cloud.revision = Math.max(Number(state.cloud.revision || 0), Number(body.revision || 0) || 0);
+      writeLocalSave(body.save, state.user.id, state.cloud.revision);
       window.dispatchEvent(new Event("ds:save"));
       window.dispatchEvent(new CustomEvent("ds:cloud-save", {
         detail: { status: "synced", revision: state.cloud.revision }
@@ -819,11 +827,11 @@
     const nextSave = data.senderSave && typeof data.senderSave === "object" ? data.senderSave : null;
     const nextRevision = Math.max(1, Number(data.senderRevision || 0) || 1);
     if (nextSave) {
-      writeLocalSave(nextSave, state.user.id);
       state.cloud.revision = nextRevision;
+      writeLocalSave(nextSave, state.user.id, nextRevision);
       state.cloud.userId = state.user.id;
       state.cloud.ready = true;
-      markLocalSaveSynced();
+      markLocalSaveSynced(Date.now(), nextRevision);
       window.dispatchEvent(new Event("ds:save"));
       window.dispatchEvent(new CustomEvent("ds:cloud-save", {
         detail: { status: "synced", revision: nextRevision, source: "send-item" }
