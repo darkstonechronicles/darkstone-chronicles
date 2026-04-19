@@ -9,6 +9,8 @@
   const CLOUD_SAVE_DEBOUNCE_MS = 250;
   const LOCAL_SAVE_SYNC_DELAY_MS = 120;
   const SUPABASE_SCRIPT_SRC = "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js";
+  const APP_VERSION_URL = "version.json";
+  const APP_VERSION_RELOAD_PREFIX = "ds:app-version-reload:";
   const PRESENCE_HEARTBEAT_MS = 45 * 1000;
   const PRESENCE_MIN_UPDATE_MS = 20 * 1000;
   const ONLINE_WINDOW_MS = 2 * 60 * 1000;
@@ -53,6 +55,52 @@
   function isConfigured() {
     return /^https?:\/\//i.test(String(CONFIG.url || "").trim()) &&
       !String(CONFIG.anonKey || "").includes("PASTE_YOUR_SUPABASE_ANON_KEY_HERE");
+  }
+
+  function getCurrentAssetVersion() {
+    try {
+      const script = document.currentScript ||
+        Array.from(document.scripts).find((node) => String(node.src || "").includes("/auth.js"));
+      const src = String(script?.src || "");
+      if (!src) return "";
+      return String(new URL(src, window.location.href).searchParams.get("v") || "").trim();
+    } catch {
+      return "";
+    }
+  }
+
+  async function checkForAppUpdateOnBoot() {
+    const currentVersion = getCurrentAssetVersion();
+    if (!currentVersion || !/^https?:$/i.test(String(window.location.protocol || ""))) return false;
+
+    const controller = typeof AbortController !== "undefined" ? new AbortController() : null;
+    const timeout = window.setTimeout(() => controller?.abort(), 1500);
+    try {
+      const res = await fetch(`${APP_VERSION_URL}?t=${Date.now()}`, {
+        cache: "no-store",
+        signal: controller?.signal
+      });
+      if (!res.ok) return false;
+      const body = await res.json().catch(() => ({}));
+      const latestVersion = String(body?.version || "").trim();
+      if (!latestVersion || latestVersion === currentVersion) return false;
+
+      const reloadKey = `${APP_VERSION_RELOAD_PREFIX}${latestVersion}`;
+      if (sessionStorage.getItem(reloadKey) === "1") return false;
+      sessionStorage.setItem(reloadKey, "1");
+
+      const nextUrl = new URL(window.location.href);
+      nextUrl.searchParams.set("appVersion", latestVersion);
+      window.location.replace(nextUrl.toString());
+      return true;
+    } catch (error) {
+      if (error?.name !== "AbortError") {
+        console.warn("[auth] app version check failed", error);
+      }
+      return false;
+    } finally {
+      window.clearTimeout(timeout);
+    }
   }
 
   function loadScript(src) {
@@ -905,6 +953,7 @@
   }
 
   const ready = (async () => {
+    if (await checkForAppUpdateOnBoot()) return false;
     if (!isConfigured()) return false;
     if (!window.supabase?.createClient) {
       await loadScript(SUPABASE_SCRIPT_SRC);

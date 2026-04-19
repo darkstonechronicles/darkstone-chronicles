@@ -60,6 +60,12 @@ function main() {
     }
   }
 
+  fs.writeFileSync(
+    path.join(ROOT, "version.json"),
+    `${JSON.stringify({ version: VERSION, releasedAt: new Date().toISOString() }, null, 2)}\n`,
+    "utf8"
+  );
+
   console.log(`Asset version: ${VERSION}`);
   if (!changed.length) {
     console.log("No HTML files needed updating.");
