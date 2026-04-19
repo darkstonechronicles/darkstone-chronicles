@@ -400,13 +400,19 @@ function incStat(save, key, amount = 1){
 // ---- UI header render ----
 function renderFishingHeader(){
   const s = ensureFishing(loadSave());
-  document.getElementById("fishLevel").textContent = String(s.fishingLevel);
-  document.getElementById("fishXPCurrent").textContent = String(s.fishingXP);
-  document.getElementById("fishXPNext").textContent = String(s.fishingXPNext);
+  const levelEl = document.getElementById("fishLevel");
+  const xpCurrentEl = document.getElementById("fishXPCurrent");
+  const xpNextEl = document.getElementById("fishXPNext");
+  const xpBarEl = document.getElementById("fishXPBar");
+  if (!levelEl || !xpCurrentEl || !xpNextEl || !xpBarEl) return;
+
+  levelEl.textContent = String(s.fishingLevel);
+  xpCurrentEl.textContent = String(s.fishingXP);
+  xpNextEl.textContent = String(s.fishingXPNext);
 
   const pct = s.fishingXPNext > 0 ? clamp((s.fishingXP / s.fishingXPNext) * 100, 0, 100) : 0;
-  document.getElementById("fishXPBar").style.width = pct.toFixed(1) + "%";
-  document.getElementById("fishXPBar").style.background = xpBarGradient(pct);
+  xpBarEl.style.width = pct.toFixed(1) + "%";
+  xpBarEl.style.background = xpBarGradient(pct);
 }
 
 function formatPct(value, digits = 2){

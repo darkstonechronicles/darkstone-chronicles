@@ -559,12 +559,17 @@
       const localHasSave = hasMeaningfulSave(localSave);
       const ownerMatches = !localOwnerId || localOwnerId === state.user.id;
       const localBaseRevision = Math.max(0, Number(localMeta.cloudRevision || 0) || 0);
+      const hasKnownLocalBaseRevision = localMeta.cloudRevision != null && Number(localMeta.cloudRevision || 0) > 0;
+      const hasLegacyUnsyncedLocalSave =
+        !hasKnownLocalBaseRevision &&
+        hasUnsyncedLocalSave() &&
+        !state.sessionGuard.justClaimedActiveSession;
       const preferLocalSave =
         localHasSave &&
         ownerMatches &&
         !state.sessionGuard.justClaimedActiveSession &&
         hasUnsyncedLocalSave() &&
-        (!remoteHasSave || localBaseRevision >= remoteRevision);
+        (!remoteHasSave || localBaseRevision >= remoteRevision || hasLegacyUnsyncedLocalSave);
 
       if (preferLocalSave) {
         const saveResult = await writeRemoteSaveWithRevision(localSave, { allowRemoteOverride: true });

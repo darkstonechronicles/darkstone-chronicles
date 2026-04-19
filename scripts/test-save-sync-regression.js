@@ -128,14 +128,16 @@ async function runScenario({
   expectRemoteWins
 }) {
   const now = Date.now();
+  const meta = {
+    lastLocalSaveAt: now,
+    lastCloudSyncAt: now - 60_000
+  };
+  if (localBaseRevision != null) meta.cloudRevision = localBaseRevision;
+
   const localStorage = createStorage({
     [SAVE_KEY]: JSON.stringify(localSave),
     [SAVE_OWNER_KEY]: USER_ID,
-    [SAVE_META_KEY]: JSON.stringify({
-      lastLocalSaveAt: now,
-      lastCloudSyncAt: now - 60_000,
-      cloudRevision: localBaseRevision
-    })
+    [SAVE_META_KEY]: JSON.stringify(meta)
   });
 
   const sessionStorage = createStorage();
@@ -331,6 +333,26 @@ async function runAll() {
     },
     localBaseRevision: 2,
     remoteRevision: 2,
+    activeSessionId: "client-session-1",
+    expectRemoteWins: false
+  });
+
+  await runScenario({
+    name: "same pc legacy unsynced save survives hard refresh",
+    localSave: {
+      heroCreated: true,
+      heroName: "SamePC",
+      heroLevel: 11,
+      gold: 2200
+    },
+    remoteSave: {
+      heroCreated: true,
+      heroName: "SamePC",
+      heroLevel: 10,
+      gold: 1800
+    },
+    localBaseRevision: null,
+    remoteRevision: 4,
     activeSessionId: "client-session-1",
     expectRemoteWins: false
   });
