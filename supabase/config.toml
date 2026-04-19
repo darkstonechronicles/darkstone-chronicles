@@ -399,3 +399,9 @@ enabled = true
 verify_jwt = false
 import_map = "./functions/admin-grant/deno.json"
 entrypoint = "./functions/admin-grant/index.ts"
+
+[functions.party-action]
+enabled = true
+verify_jwt = false
+import_map = "./functions/party-action/deno.json"
+entrypoint = "./functions/party-action/index.ts"

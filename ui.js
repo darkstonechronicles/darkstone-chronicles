@@ -4117,7 +4117,7 @@ function ensureAdminToolsModal() {
     "display:none",
     "position:fixed",
     "inset:0",
-    "z-index:220",
+    "z-index:1000",
     "background:rgba(4,6,12,.72)",
     "backdrop-filter:blur(8px)",
     "padding:18px",
@@ -4126,7 +4126,7 @@ function ensureAdminToolsModal() {
   ].join(";");
 
   modal.innerHTML = `
-    <div id="dsAdminModalCard" style="width:min(760px, calc(100vw - 24px));max-height:min(84vh, 760px);overflow:auto;border-radius:16px;border:1px solid rgba(255,255,255,.12);background:linear-gradient(180deg, rgba(20,23,36,.98), rgba(12,14,24,.98));box-shadow:0 24px 60px rgba(0,0,0,.42);padding:16px 16px 14px;">
+    <div id="dsAdminModalCard" style="position:relative;z-index:1;width:min(760px, calc(100vw - 24px));max-height:min(84vh, 760px);overflow:auto;border-radius:16px;border:1px solid rgba(255,255,255,.12);background:linear-gradient(180deg, rgba(20,23,36,.98), rgba(12,14,24,.98));box-shadow:0 24px 60px rgba(0,0,0,.42);padding:16px 16px 14px;">
       <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:12px;">
         <div>
           <div style="font-size:11px;opacity:.68;font-weight:800;letter-spacing:.3px;">ADMIN ONLY</div>
