@@ -4077,6 +4077,21 @@ function getAdminPetSlotOptions() {
   ];
 }
 
+function getAdminProfessionOptions() {
+  return [
+    { key: "mining", label: "Mining" },
+    { key: "forge", label: "Forge" },
+    { key: "woodcutting", label: "Woodcutting" },
+    { key: "carpentry", label: "Carpentry" },
+    { key: "hunting", label: "Hunting" },
+    { key: "fishing", label: "Fishing" },
+    { key: "cooking", label: "Cooking" },
+    { key: "herbalism", label: "Herbalism" },
+    { key: "alchemy", label: "Alchemy" },
+    { key: "enchanting", label: "Enchanting" }
+  ];
+}
+
 function setAdminPetLevel(slotKey, targetLevel) {
   const s = ensureSave(loadSave());
   const normalizedSlot = String(slotKey || "").trim().toLowerCase();
@@ -4148,7 +4163,31 @@ function ensureAdminToolsModal() {
         <button id="dsAdminApplyLevel" type="button" class="townBtn" style="width:100%;">Apply Level</button>
       </div>
 
-      <div style="margin-top:14px;display:grid;grid-template-columns:minmax(0,1fr) 120px 170px;gap:10px;align-items:end;">
+      <div style="margin-top:14px;padding-top:14px;border-top:1px solid rgba(255,255,255,.08);display:grid;grid-template-columns:minmax(0,1fr) 170px;gap:10px;align-items:end;">
+        <label style="display:flex;flex-direction:column;gap:6px;">
+          <span style="font-size:12px;font-weight:800;opacity:.88;">Target Hero Name</span>
+          <input id="dsAdminTargetHeroName" type="text" placeholder="kentros" style="height:38px;border-radius:10px;border:1px solid rgba(255,255,255,.12);background:#10131d;color:#eef2ff;padding:0 10px;">
+        </label>
+        <button id="dsAdminResetPetsLv1" type="button" class="townBtn" style="width:100%;">Reset Pets to Lv 1</button>
+      </div>
+
+      <div style="margin-top:10px;display:grid;grid-template-columns:minmax(0,1fr) 170px;gap:10px;align-items:end;">
+        <label style="display:flex;flex-direction:column;gap:6px;">
+          <span style="font-size:12px;font-weight:800;opacity:.88;">Set Gold</span>
+          <input id="dsAdminTargetGoldInput" type="number" min="0" step="1" placeholder="5000000" style="height:38px;border-radius:10px;border:1px solid rgba(255,255,255,.12);background:#10131d;color:#eef2ff;padding:0 10px;">
+        </label>
+        <button id="dsAdminSetTargetGold" type="button" class="townBtn" style="width:100%;">Set Target Gold</button>
+      </div>
+
+      <div style="margin-top:10px;display:grid;grid-template-columns:minmax(0,1fr) 170px;gap:10px;align-items:end;">
+        <label style="display:flex;flex-direction:column;gap:6px;">
+          <span style="font-size:12px;font-weight:800;opacity:.88;">Hero Level</span>
+          <input id="dsAdminTargetHeroLevelInput" type="number" min="1" step="1" placeholder="50" style="height:38px;border-radius:10px;border:1px solid rgba(255,255,255,.12);background:#10131d;color:#eef2ff;padding:0 10px;">
+        </label>
+        <button id="dsAdminSetTargetHeroLevel" type="button" class="townBtn" style="width:100%;">Set Hero Level</button>
+      </div>
+
+      <div style="margin-top:10px;display:grid;grid-template-columns:minmax(0,1fr) 120px 170px;gap:10px;align-items:end;">
         <label style="display:flex;flex-direction:column;gap:6px;">
           <span style="font-size:12px;font-weight:800;opacity:.88;">Pet Slot</span>
           <select id="dsAdminPetSlot" style="height:38px;border-radius:10px;border:1px solid rgba(255,255,255,.12);background:#10131d;color:#eef2ff;padding:0 10px;">
@@ -4162,12 +4201,18 @@ function ensureAdminToolsModal() {
         <button id="dsAdminApplyPetLevel" type="button" class="townBtn" style="width:100%;">Set Pet Level</button>
       </div>
 
-      <div style="margin-top:14px;display:grid;grid-template-columns:minmax(0,1fr) 170px;gap:10px;align-items:end;">
+      <div style="margin-top:10px;display:grid;grid-template-columns:minmax(0,1fr) 120px 170px;gap:10px;align-items:end;">
         <label style="display:flex;flex-direction:column;gap:6px;">
-          <span style="font-size:12px;font-weight:800;opacity:.88;">Target Hero Name</span>
-          <input id="dsAdminTargetHeroName" type="text" placeholder="kentros" style="height:38px;border-radius:10px;border:1px solid rgba(255,255,255,.12);background:#10131d;color:#eef2ff;padding:0 10px;">
+          <span style="font-size:12px;font-weight:800;opacity:.88;">Profession</span>
+          <select id="dsAdminProfessionSelect" style="height:38px;border-radius:10px;border:1px solid rgba(255,255,255,.12);background:#10131d;color:#eef2ff;padding:0 10px;">
+            ${getAdminProfessionOptions().map((profession) => `<option value="${profession.key}">${profession.label}</option>`).join("")}
+          </select>
         </label>
-        <button id="dsAdminResetPetsLv1" type="button" class="townBtn" style="width:100%;">Reset Pets to Lv 1</button>
+        <label style="display:flex;flex-direction:column;gap:6px;">
+          <span style="font-size:12px;font-weight:800;opacity:.88;">Profession Level</span>
+          <input id="dsAdminProfessionLevelInput" type="number" min="1" step="1" placeholder="25" style="height:38px;border-radius:10px;border:1px solid rgba(255,255,255,.12);background:#10131d;color:#eef2ff;padding:0 10px;">
+        </label>
+        <button id="dsAdminSetProfessionLevel" type="button" class="townBtn" style="width:100%;">Set Profession Level</button>
       </div>
 
       <div style="margin-top:16px;padding-top:14px;border-top:1px solid rgba(255,255,255,.08);">
@@ -4301,6 +4346,70 @@ function bindAdminToolsModal() {
     }
     const result = setAdminPetLevel(slotKey, Math.trunc(level));
     setStatus(result.msg, !result.ok);
+  });
+
+  modal.querySelector("#dsAdminSetTargetGold")?.addEventListener("click", () => {
+    const heroInput = modal.querySelector("#dsAdminTargetHeroName");
+    const goldInput = modal.querySelector("#dsAdminTargetGoldInput");
+    const heroName = String(heroInput?.value || "").trim();
+    const amount = Number(goldInput?.value || 0);
+    if (!heroName) {
+      setStatus("Enter a hero name first.", true);
+      return;
+    }
+    if (!Number.isFinite(amount) || amount < 0) {
+      setStatus("Enter a valid gold amount.", true);
+      return;
+    }
+    runGrant({
+      targetHeroName: heroName,
+      set: { gold: Math.trunc(amount) }
+    }, `Set gold to ${new Intl.NumberFormat("el-GR").format(Math.trunc(amount))} for ${heroName}.`);
+  });
+
+  modal.querySelector("#dsAdminSetTargetHeroLevel")?.addEventListener("click", () => {
+    const heroInput = modal.querySelector("#dsAdminTargetHeroName");
+    const levelInput = modal.querySelector("#dsAdminTargetHeroLevelInput");
+    const heroName = String(heroInput?.value || "").trim();
+    const level = Number(levelInput?.value || 0);
+    if (!heroName) {
+      setStatus("Enter a hero name first.", true);
+      return;
+    }
+    if (!Number.isFinite(level) || level < 1) {
+      setStatus("Enter a valid hero level.", true);
+      return;
+    }
+    runGrant({
+      targetHeroName: heroName,
+      set: { heroLevel: Math.trunc(level), heroXP: 0 }
+    }, `Set hero level to ${Math.trunc(level)} for ${heroName}.`);
+  });
+
+  modal.querySelector("#dsAdminSetProfessionLevel")?.addEventListener("click", () => {
+    const heroInput = modal.querySelector("#dsAdminTargetHeroName");
+    const professionInput = modal.querySelector("#dsAdminProfessionSelect");
+    const levelInput = modal.querySelector("#dsAdminProfessionLevelInput");
+    const heroName = String(heroInput?.value || "").trim();
+    const profession = String(professionInput?.value || "").trim().toLowerCase();
+    const level = Number(levelInput?.value || 0);
+    if (!heroName) {
+      setStatus("Enter a hero name first.", true);
+      return;
+    }
+    if (!profession) {
+      setStatus("Choose a profession.", true);
+      return;
+    }
+    if (!Number.isFinite(level) || level < 1) {
+      setStatus("Enter a valid profession level.", true);
+      return;
+    }
+    const professionLabel = getAdminProfessionOptions().find((entry) => entry.key === profession)?.label || profession;
+    runGrant({
+      targetHeroName: heroName,
+      profession: { key: profession, level: Math.trunc(level), xp: 0 }
+    }, `Set ${professionLabel} to level ${Math.trunc(level)} for ${heroName}.`);
   });
 
   modal.querySelector("#dsAdminResetPetsLv1")?.addEventListener("click", () => {

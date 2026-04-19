@@ -32,6 +32,11 @@ type GrantPayload = {
     heroDefense?: number;
     heroStatPoints?: number;
   };
+  profession?: {
+    key?: string;
+    level?: number;
+    xp?: number;
+  };
   add?: {
     gold?: number;
     heroXP?: number;
@@ -155,6 +160,79 @@ function removeAllPets(save: Record<string, unknown>) {
     artisan: null,
     fortune: null,
   };
+}
+
+function normalizeProfessionKey(value: unknown) {
+  const key = String(value || "").trim().toLowerCase();
+  if (key === "blacksmith") return "forge";
+  if (key === "woodworking") return "woodcutting";
+  return key;
+}
+
+function applyProfessionLevel(save: Record<string, unknown>, rawKey: unknown, levelValue: unknown, xpValue: unknown) {
+  const key = normalizeProfessionKey(rawKey);
+  const level = Math.max(1, safeInt(levelValue, 1));
+  const xp = Math.max(0, safeInt(xpValue, 0));
+  switch (key) {
+    case "mining":
+      save.miningLevel = level;
+      save.miningXP = xp;
+      save.miningXPNext = xpNextForLevel(level);
+      return true;
+    case "forge":
+      save.blacksmithLevel = level;
+      save.blacksmithXP = xp;
+      save.blacksmithXPNext = xpNextForLevel(level);
+      save.forgeLevel = level;
+      save.forgeXP = xp;
+      save.forgeXPNext = xpNextForLevel(level);
+      return true;
+    case "woodcutting":
+      save.woodcuttingLevel = level;
+      save.woodcuttingXP = xp;
+      save.woodcuttingXPNext = xpNextForLevel(level);
+      save.woodworkingLevel = level;
+      save.woodworkingXP = xp;
+      save.woodworkingXPNext = xpNextForLevel(level);
+      return true;
+    case "carpentry":
+      save.carpentryLevel = level;
+      save.carpentryXP = xp;
+      save.carpentryXPNext = xpNextForLevel(level);
+      return true;
+    case "hunting":
+      save.huntingLevel = level;
+      save.huntingXP = xp;
+      save.huntingXPNext = xpNextForLevel(level);
+      return true;
+    case "fishing":
+      save.fishingLevel = level;
+      save.fishingXP = xp;
+      save.fishingXPNext = xpNextForLevel(level);
+      return true;
+    case "cooking":
+      save.cookingLevel = level;
+      save.cookingXP = xp;
+      save.cookingXPNext = xpNextForLevel(level);
+      return true;
+    case "herbalism":
+      save.herbalismLevel = level;
+      save.herbalismXP = xp;
+      save.herbalismXPNext = xpNextForLevel(level);
+      return true;
+    case "alchemy":
+      save.alchemyLevel = level;
+      save.alchemyXP = xp;
+      save.alchemyXPNext = xpNextForLevel(level);
+      return true;
+    case "enchanting":
+      save.enchantingLevel = level;
+      save.enchantingXP = xp;
+      save.enchantingXPNext = xpNextForLevel(level);
+      return true;
+    default:
+      return false;
+  }
 }
 
 function getItemStackKey(item: Record<string, unknown>) {
@@ -378,6 +456,7 @@ Deno.serve(async (req) => {
   const setOps = payload.set || {};
   const addOps = payload.add || {};
   const petOps = payload.pets || {};
+  const professionOps = payload.profession || {};
   const clearChat = payload.clearChat;
 
   if (clearChat === "global" || clearChat === "market") {
@@ -429,6 +508,13 @@ Deno.serve(async (req) => {
   }
   if (setOps.heroStatPoints != null) save.heroStatPoints = Math.max(0, safeInt(setOps.heroStatPoints, 0));
   if (addOps.heroStatPoints != null) save.heroStatPoints = Math.max(0, safeInt(save.heroStatPoints, 0) + safeInt(addOps.heroStatPoints, 0));
+
+  if (professionOps.key != null || professionOps.level != null || professionOps.xp != null) {
+    const applied = applyProfessionLevel(save, professionOps.key, professionOps.level, professionOps.xp);
+    if (!applied) {
+      return json({ error: "Invalid profession key." }, { status: 400 });
+    }
+  }
 
   if (petOps.removeAll) {
     removeAllPets(save);
