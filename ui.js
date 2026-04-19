@@ -6280,8 +6280,31 @@ function renderAll() {
     `;
   }
 
+  function currentAssetVersion() {
+    try {
+      const fromUrl = String(new URL(window.location.href).searchParams.get("appVersion") || "").trim();
+      if (fromUrl) return fromUrl;
+      const script = document.currentScript ||
+        Array.from(document.scripts).find((node) => String(node.src || "").includes("/ui.js") || String(node.src || "").endsWith("ui.js"));
+      return String(new URL(String(script?.src || ""), window.location.href).searchParams.get("v") || "").trim();
+    } catch {
+      return "";
+    }
+  }
+
   function ensureOptionalScript(src) {
     return new Promise((resolve, reject) => {
+      const version = currentAssetVersion();
+      const resolvedSrc = (() => {
+        try {
+          const url = new URL(src, window.location.href);
+          if (version && !url.searchParams.get("v")) url.searchParams.set("v", version);
+          return url.toString();
+        } catch {
+          return src;
+        }
+      })();
+
       const existing = Array.from(document.scripts).find((script) => {
         const currentSrc = String(script.getAttribute("src") || "").split("?")[0];
         return currentSrc === src;
@@ -6291,10 +6314,10 @@ function renderAll() {
         return;
       }
       const script = document.createElement("script");
-      script.src = src;
+      script.src = resolvedSrc;
       script.async = false;
       script.addEventListener("load", () => resolve(), { once: true });
-      script.addEventListener("error", () => reject(new Error(`Failed to load ${src}`)), { once: true });
+      script.addEventListener("error", () => reject(new Error(`Failed to load ${resolvedSrc}`)), { once: true });
       document.body.appendChild(script);
     });
   }
