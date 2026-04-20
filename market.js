@@ -1,6 +1,7 @@
 (() => {
   const SAVE_KEY = "darkstone_save_v1";
   const SALE_HISTORY_KEY = "darkstone_market_sale_history_v1";
+  const SALE_HISTORY_CLEARED_AT_KEY = "darkstone_market_sale_history_cleared_at_v1";
   const fmt = new Intl.NumberFormat("el-GR");
   const MARKET_PAGE_SIZE = 80;
   const LISTINGS_PER_PAGE = 7;
@@ -117,16 +118,32 @@
   function loadSaleHistory(){
     try {
       const rows = JSON.parse(localStorage.getItem(SALE_HISTORY_KEY) || "[]");
-      return Array.isArray(rows) ? rows.slice(0, 50) : [];
+      const clearedAt = getSaleHistoryClearedAt();
+      return Array.isArray(rows) ? rows.filter((row) => num(row?.at, 0) > clearedAt).slice(0, 50) : [];
     } catch {
       return [];
     }
   }
 
   function saveSaleHistory(rows){
-    const next = dedupeSaleHistory(Array.isArray(rows) ? rows : []).slice(0, 50);
+    const clearedAt = getSaleHistoryClearedAt();
+    const next = dedupeSaleHistory(Array.isArray(rows) ? rows : [])
+      .filter((row) => num(row?.at, 0) > clearedAt)
+      .slice(0, 50);
     localStorage.setItem(SALE_HISTORY_KEY, JSON.stringify(next));
     state.saleHistory = next;
+  }
+
+  function getSaleHistoryClearedAt(){
+    try { return Math.max(0, Number(localStorage.getItem(SALE_HISTORY_CLEARED_AT_KEY) || "0") || 0); }
+    catch { return 0; }
+  }
+
+  function clearSaleHistory(){
+    try {
+      localStorage.setItem(SALE_HISTORY_CLEARED_AT_KEY, String(Date.now()));
+    } catch {}
+    saveSaleHistory([]);
   }
 
   function saleHistoryFingerprint(row){
@@ -643,18 +660,21 @@
       }
       const salesResult = await client.rpc("get_my_market_sales", { p_limit: 30 });
       if (!salesResult.error && Array.isArray(salesResult.data)) {
-        mergeSaleHistory(salesResult.data.map((sale) => ({
-          key: `sale:${sale.id || sale.listing_id || ""}`,
-          listingId: sale.listing_id || "",
-          itemName: sale.item_name || sale.item?.name || "Item",
-          img: sale.item_img || sale.item?.img || "",
-          category: sale.category || "",
-          quantity: num(sale.quantity, 1),
-          priceEach: num(sale.price_each, 0),
-          gold: num(sale.total_gold, 0),
-          at: Date.parse(sale.sold_at || "") || Date.now(),
-          item: sale.item || {}
-        })));
+        const clearedAt = getSaleHistoryClearedAt();
+        mergeSaleHistory(salesResult.data
+          .map((sale) => ({
+            key: `sale:${sale.id || sale.listing_id || ""}`,
+            listingId: sale.listing_id || "",
+            itemName: sale.item_name || sale.item?.name || "Item",
+            img: sale.item_img || sale.item?.img || "",
+            category: sale.category || "",
+            quantity: num(sale.quantity, 1),
+            priceEach: num(sale.price_each, 0),
+            gold: num(sale.total_gold, 0),
+            at: Date.parse(sale.sold_at || "") || Date.now(),
+            item: sale.item || {}
+          }))
+          .filter((sale) => num(sale.at, 0) > clearedAt));
       }
       const merged = new Map();
       marketListings.forEach((listing) => merged.set(String(listing.id), listing));
@@ -1012,7 +1032,7 @@
     });
     document.getElementById("marketListBtn")?.addEventListener("click", listSelectedItem);
     document.querySelector("[data-clear-market-history]")?.addEventListener("click", () => {
-      saveSaleHistory([]);
+      clearSaleHistory();
       render();
     });
   }
