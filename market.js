@@ -301,12 +301,22 @@
     state.loading = true;
     render();
     try {
-      const { data, error } = await client
-        .from("market_listings")
-        .select("id,seller_user_id,seller_name,item,item_name,item_img,item_rarity,category,gear_slot,quantity,price_each,created_at")
-        .eq("status", "active")
-        .order("created_at", { ascending: false })
-        .limit(MARKET_PAGE_SIZE);
+      let { data, error } = await client.rpc("get_market_listings", {
+        p_limit: MARKET_PAGE_SIZE
+      });
+
+      if (error && /function .*get_market_listings/i.test(String(error.message || ""))) {
+        const fallback = await client
+          .from("market_listings")
+          .select("id,seller_user_id,seller_name,item,item_name,item_img,item_rarity,category,gear_slot,quantity,price_each,created_at")
+          .eq("status", "active")
+          .gt("quantity", 0)
+          .order("created_at", { ascending: false })
+          .limit(MARKET_PAGE_SIZE);
+        data = fallback.data;
+        error = fallback.error;
+      }
+
       if (error) throw error;
       state.listings = Array.isArray(data) ? data : [];
       state.status = "";
