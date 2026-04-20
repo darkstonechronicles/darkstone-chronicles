@@ -1,5 +1,6 @@
 (() => {
   const SAVE_KEY = "darkstone_save_v1";
+  const SALE_HISTORY_KEY = "darkstone_market_sale_history_v1";
   const fmt = new Intl.NumberFormat("el-GR");
   const MARKET_PAGE_SIZE = 80;
   const LISTINGS_PER_PAGE = 7;
@@ -27,6 +28,8 @@
     inspectListingId: "",
     listings: [],
     myListings: [],
+    saleHistory: loadSaleHistory(),
+    activeSaleNotice: null,
     selectedInvIndex: -1,
     loading: false,
     status: "",
@@ -47,6 +50,28 @@
   function loadSave(){
     try { return JSON.parse(localStorage.getItem(SAVE_KEY) || "{}") || {}; }
     catch { return {}; }
+  }
+
+  function loadSaleHistory(){
+    try {
+      const rows = JSON.parse(localStorage.getItem(SALE_HISTORY_KEY) || "[]");
+      return Array.isArray(rows) ? rows.slice(0, 50) : [];
+    } catch {
+      return [];
+    }
+  }
+
+  function saveSaleHistory(rows){
+    const next = Array.isArray(rows) ? rows.slice(0, 50) : [];
+    localStorage.setItem(SALE_HISTORY_KEY, JSON.stringify(next));
+    state.saleHistory = next;
+  }
+
+  function addSaleHistory(entry){
+    const next = [entry, ...loadSaleHistory()]
+      .filter((row, idx, arr) => row?.key && arr.findIndex((x) => x?.key === row.key) === idx)
+      .slice(0, 50);
+    saveSaleHistory(next);
   }
 
   function setSave(next){
@@ -107,6 +132,10 @@
       .find((el) => String(el.dataset.buyQty || "") === String(id)) || null;
   }
 
+  function isMarketPage(){
+    return /(^|\/)market\.html$/i.test(String(window.location.pathname || ""));
+  }
+
   function template(){
     return `
       <style>
@@ -153,6 +182,13 @@
         .marketModalActions{display:flex;align-items:center;justify-content:center;gap:8px;flex-wrap:wrap;margin-top:16px;}
         .marketModalQty{width:84px;padding:9px 10px;border-radius:8px;border:1px solid rgba(126,94,50,.86);background:#090a0e;color:#fff;text-align:center;}
         .marketModalInfo{padding:9px 12px;border-radius:8px;border:1px solid #333;background:#15151e;color:#f0d326;font-weight:900;}
+        .marketHistoryHeader{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:16px;}
+        .marketHistoryClear{width:auto!important;min-height:32px!important;padding:6px 10px!important;border-radius:6px!important;font-size:12px!important;}
+        .marketHistoryList{display:grid;gap:6px;margin-top:8px;}
+        .marketHistoryRow{display:grid;grid-template-columns:44px minmax(0,1fr) auto;gap:9px;align-items:center;border:1px solid rgba(83,83,90,.58);background:rgba(0,0,0,.14);padding:7px;border-radius:6px;text-align:left;}
+        .marketHistoryRow img{width:40px;height:40px;border-radius:6px;border:1px solid rgba(92,92,102,.8);object-fit:cover;background:#101219;}
+        .marketHistoryName{font-weight:900;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+        .marketHistoryMeta{font-size:12px;color:#aeb0b8;margin-top:2px;}
         @media(max-width:760px){
           .marketTop{grid-template-columns:1fr;}
           .marketSlotBar{grid-template-columns:repeat(3,minmax(0,1fr));}
@@ -190,6 +226,7 @@
           ${state.view === "gear" ? renderGearSlots() : ""}
           <div id="marketListings">${renderListings()}</div>
           ${renderSellBox()}
+          ${renderMarketHistory()}
           <div id="shopMsg" class="marketStatus">${esc(state.status)}</div>
         </div>
         ${renderInspectorModal()}
@@ -393,6 +430,38 @@
     `;
   }
 
+  function renderMarketHistory(){
+    const rows = state.saleHistory || [];
+    return `
+      <div class="marketHistoryHeader">
+        <div class="marketSearchTitle" style="margin:0;flex:1;">Market History</div>
+        <button type="button" class="marketHistoryClear" data-clear-market-history="1" ${rows.length ? "" : "disabled"}>Clear</button>
+      </div>
+      <div class="marketHistoryList">
+        ${rows.length ? rows.slice(0, 10).map((row) => `
+          <div class="marketHistoryRow">
+            <img src="${esc(row.img || marketIcon(row.category || "latest"))}" alt="">
+            <div style="min-width:0;">
+              <div class="marketHistoryName">${esc(row.itemName || "Item")}</div>
+              <div class="marketHistoryMeta">Sold x${fmt.format(num(row.quantity, 1))} • ${esc(formatHistoryTime(row.at))}</div>
+            </div>
+            <div class="marketGold">+${fmt.format(num(row.gold, 0))}</div>
+          </div>
+        `).join("") : `<div class="marketEmpty">No sales in this browser yet.</div>`}
+      </div>
+    `;
+  }
+
+  function formatHistoryTime(at){
+    const ms = Number(at || 0);
+    if (!Number.isFinite(ms) || ms <= 0) return "recently";
+    try {
+      return new Intl.DateTimeFormat("el-GR", { dateStyle: "short", timeStyle: "short" }).format(ms);
+    } catch {
+      return "recently";
+    }
+  }
+
   async function loadListings(){
     const client = window.DSAuth?.getClient?.();
     if (!client) {
@@ -478,11 +547,27 @@
     const save = loadSave();
     save.gold = Math.max(0, num(save.gold, 0)) + earnedGold;
     setSave(save);
-    setStatus(`Sold ${next.item_name || "item"} x${soldQty}. +${fmt.format(earnedGold)} gold.`);
+    const sale = {
+      key: eventKey,
+      listingId: next.id || prev.id || "",
+      itemName: next.item_name || prev.item_name || "Item",
+      img: next.item_img || prev.item_img || next.item?.img || prev.item?.img || "",
+      category: next.category || prev.category || "",
+      quantity: soldQty,
+      priceEach,
+      gold: earnedGold,
+      sellerName: next.seller_name || prev.seller_name || "Hero",
+      at: Date.now(),
+      item: next.item || prev.item || {}
+    };
+    addSaleHistory(sale);
+    showSaleNotice(sale);
+    if (isMarketPage()) setStatus(`Sold ${sale.itemName} x${soldQty}. +${fmt.format(earnedGold)} gold.`);
   }
 
   function scheduleRealtimeRefresh(payload){
     applySellerGoldFromRealtime(payload);
+    if (!isMarketPage()) return;
     if (state.realtimeTimer) window.clearTimeout(state.realtimeTimer);
     state.realtimeTimer = window.setTimeout(() => {
       state.realtimeTimer = 0;
@@ -506,6 +591,70 @@
       console.warn("[market] realtime subscription failed", error);
       state.realtimeChannel = null;
     }
+  }
+
+  function ensureNoticeStyles(){
+    if (document.getElementById("marketNoticeStyles")) return;
+    const style = document.createElement("style");
+    style.id = "marketNoticeStyles";
+    style.textContent = `
+      .marketSaleNotice{position:fixed;right:18px;top:96px;z-index:120;min-width:220px;max-width:min(340px,calc(100vw - 24px));border:1px solid rgba(55,190,104,.9);border-radius:8px;background:linear-gradient(180deg,rgba(15,46,30,.98),rgba(7,20,13,.98));box-shadow:0 16px 46px rgba(0,0,0,.42),inset 0 1px 0 rgba(204,255,220,.12);color:#9dffb4;padding:11px 13px;font-weight:900;text-align:left;cursor:pointer;}
+      .marketSaleNotice small{display:block;margin-top:3px;color:#d7ffe0;font-weight:700;opacity:.88;}
+      .marketSalePopupBackdrop{position:fixed;inset:0;z-index:121;display:flex;align-items:center;justify-content:center;padding:18px;background:rgba(0,0,0,.72);}
+      .marketSalePopup{width:min(560px,96vw);border:1px solid rgba(55,190,104,.86);border-radius:10px;background:linear-gradient(180deg,rgba(22,23,31,.98),rgba(9,10,14,.98));box-shadow:0 24px 80px rgba(0,0,0,.62),inset 0 1px 0 rgba(204,255,220,.08);padding:16px;color:#f3ead6;}
+      .marketSalePopupTop{display:flex;gap:13px;align-items:center;}
+      .marketSalePopupTop img{width:72px;height:72px;border-radius:8px;border:2px solid #333;background:#101219;object-fit:cover;}
+      .marketSalePopupTitle{font-size:22px;font-weight:900;color:#9dffb4;}
+      .marketSalePopupMeta{margin-top:6px;color:#d9ccb0;line-height:1.4;}
+      .marketSalePopupActions{display:flex;justify-content:center;margin-top:14px;}
+      .marketGold{color:#f0d326;font-weight:900;}
+      @media(max-width:760px){.marketSaleNotice{top:82px;right:12px;left:12px;max-width:none;}}
+    `;
+    document.head.appendChild(style);
+  }
+
+  function showSaleNotice(sale){
+    ensureNoticeStyles();
+    state.activeSaleNotice = sale;
+    document.querySelector(".marketSaleNotice")?.remove();
+    const notice = document.createElement("button");
+    notice.type = "button";
+    notice.className = "marketSaleNotice";
+    notice.innerHTML = `You sold an item<small>${esc(sale.itemName)} x${fmt.format(num(sale.quantity, 1))} • +${fmt.format(num(sale.gold, 0))} gold</small>`;
+    notice.addEventListener("click", () => showSalePopup(sale));
+    document.body.appendChild(notice);
+    window.setTimeout(() => {
+      if (notice.isConnected) notice.remove();
+    }, 12000);
+  }
+
+  function showSalePopup(sale){
+    ensureNoticeStyles();
+    document.querySelector(".marketSalePopupBackdrop")?.remove();
+    const popup = document.createElement("div");
+    popup.className = "marketSalePopupBackdrop";
+    popup.innerHTML = `
+      <div class="marketSalePopup" role="dialog" aria-modal="true">
+        <div class="marketSalePopupTop">
+          <img src="${esc(sale.img || marketIcon(sale.category || "latest"))}" alt="">
+          <div style="min-width:0;flex:1;">
+            <div class="marketSalePopupTitle">You sold ${esc(sale.itemName || "an item")}</div>
+            <div class="marketSalePopupMeta">
+              Quantity: <b>${fmt.format(num(sale.quantity, 1))}</b><br>
+              Price EA: <b>${fmt.format(num(sale.priceEach, 0))} gold</b><br>
+              Total: <span class="marketGold">+${fmt.format(num(sale.gold, 0))} gold</span>
+            </div>
+          </div>
+        </div>
+        <div class="marketSalePopupActions">
+          <button type="button" data-close-sale-popup="1">Close</button>
+        </div>
+      </div>
+    `;
+    popup.addEventListener("click", (event) => {
+      if (event.target === popup || event.target?.dataset?.closeSalePopup) popup.remove();
+    });
+    document.body.appendChild(popup);
   }
 
   function selectedListing(id){
@@ -589,6 +738,7 @@
       btn.addEventListener("click", () => {
         state.view = String(btn.dataset.marketView || "latest");
         state.page = 1;
+        state.inspectListingId = "";
         render();
       });
     });
@@ -636,6 +786,10 @@
       render();
     });
     document.getElementById("marketListBtn")?.addEventListener("click", listSelectedItem);
+    document.querySelector("[data-clear-market-history]")?.addEventListener("click", () => {
+      saveSaleHistory([]);
+      render();
+    });
   }
 
   function render(){
@@ -648,6 +802,10 @@
   }
 
   function mountMarket(root = null) {
+    if (!isMarketPage()) {
+      bindRealtime();
+      return false;
+    }
     const left = root || document.getElementById("leftPanel");
     if (!left) return false;
     render();
@@ -662,10 +820,11 @@
   };
 
   window.addEventListener("ds:save", () => {
-    if (document.getElementById("marketSellItem")) render();
+    if (isMarketPage() && document.getElementById("marketSellItem")) render();
   });
 
   window.addEventListener("DOMContentLoaded", () => {
-    if (document.getElementById("leftPanel")) mountMarket();
+    bindRealtime();
+    if (isMarketPage() && document.getElementById("leftPanel")) mountMarket();
   });
 })();
