@@ -27,7 +27,8 @@
     loading: false,
     status: "",
     realtimeChannel: null,
-    realtimeTimer: 0
+    realtimeTimer: 0,
+    appliedSaleEvents: new Set()
   };
 
   const num = (v, f = 0) => (Number.isFinite(Number(v)) ? Number(v) : f);
@@ -42,6 +43,11 @@
   function loadSave(){
     try { return JSON.parse(localStorage.getItem(SAVE_KEY) || "{}") || {}; }
     catch { return {}; }
+  }
+
+  function setSave(next){
+    localStorage.setItem(SAVE_KEY, JSON.stringify(next && typeof next === "object" ? next : {}));
+    window.dispatchEvent(new Event("ds:save"));
   }
 
   function getUserId(){
@@ -312,7 +318,43 @@
     }
   }
 
-  function scheduleRealtimeRefresh(){
+  function applySellerGoldFromRealtime(payload){
+    if (!payload || payload.eventType !== "UPDATE") return;
+    const userId = getUserId();
+    const prev = payload.old || {};
+    const next = payload.new || {};
+    if (!userId || String(next.seller_user_id || "") !== String(userId)) return;
+    if (String(next.buyer_user_id || "") === String(userId)) return;
+
+    const oldQty = Math.max(0, Math.floor(num(prev.quantity, next.quantity)));
+    const newQty = Math.max(0, Math.floor(num(next.quantity, oldQty)));
+    const soldQty = Math.max(0, oldQty - newQty);
+    const priceEach = Math.max(0, Math.floor(num(next.price_each, prev.price_each)));
+    const earnedGold = soldQty * priceEach;
+    if (earnedGold <= 0) return;
+
+    const eventKey = [
+      next.id || prev.id || "",
+      oldQty,
+      newQty,
+      next.status || "",
+      next.buyer_user_id || "",
+      priceEach
+    ].join("::");
+    if (state.appliedSaleEvents.has(eventKey)) return;
+    state.appliedSaleEvents.add(eventKey);
+    if (state.appliedSaleEvents.size > 80) {
+      state.appliedSaleEvents = new Set(Array.from(state.appliedSaleEvents).slice(-40));
+    }
+
+    const save = loadSave();
+    save.gold = Math.max(0, num(save.gold, 0)) + earnedGold;
+    setSave(save);
+    setStatus(`Sold ${next.item_name || "item"} x${soldQty}. +${fmt.format(earnedGold)} gold.`);
+  }
+
+  function scheduleRealtimeRefresh(payload){
+    applySellerGoldFromRealtime(payload);
     if (state.realtimeTimer) window.clearTimeout(state.realtimeTimer);
     state.realtimeTimer = window.setTimeout(() => {
       state.realtimeTimer = 0;
