@@ -66,6 +66,7 @@
     initialized: false,
     pollTimer: 0,
     uiTimer: 0,
+    uiRaf: 0,
     boundaryFetchAt: 0,
     boundaryResolvedCount: -1,
     lastMessage: "",
@@ -229,9 +230,9 @@
     const encounterMs = Math.max(1000, num(payload.encounterMs, 6000));
     const startedAt = Date.parse(String(session?.startedAt || ""));
     if (!Number.isFinite(startedAt)) return "6.0s";
-    const resolvedCount = Math.max(0, num(payload.resolvedCount, 0));
-    const nextAt = startedAt + ((resolvedCount + 1) * encounterMs);
-    const remain = Math.max(0, (nextAt - Date.now()) / 1000);
+    const elapsed = Math.max(0, Date.now() - startedAt);
+    const cycleElapsed = elapsed % encounterMs;
+    const remain = Math.max(0, (encounterMs - cycleElapsed) / 1000);
     return `${remain.toFixed(1)}s`;
   }
 
@@ -241,9 +242,9 @@
     const encounterMs = Math.max(1000, num(payload.encounterMs, 6000));
     const startedAt = Date.parse(String(session?.startedAt || ""));
     if (!Number.isFinite(startedAt)) return encounterMs;
-    const resolvedCount = Math.max(0, num(payload.resolvedCount, 0));
-    const nextAt = startedAt + ((resolvedCount + 1) * encounterMs);
-    return Math.max(0, nextAt - Date.now());
+    const elapsed = Math.max(0, Date.now() - startedAt);
+    const cycleElapsed = elapsed % encounterMs;
+    return Math.max(0, encounterMs - cycleElapsed);
   }
 
   function encounterProgressPct(party) {
@@ -252,10 +253,9 @@
     const encounterMs = Math.max(1000, num(payload.encounterMs, 6000));
     const startedAt = Date.parse(String(session?.startedAt || ""));
     if (!Number.isFinite(startedAt)) return 0;
-    const resolvedCount = Math.max(0, num(payload.resolvedCount, 0));
-    const currentCycleStart = startedAt + (resolvedCount * encounterMs);
-    const elapsed = Math.max(0, Date.now() - currentCycleStart);
-    return Math.max(0, Math.min(100, (elapsed / encounterMs) * 100));
+    const elapsed = Math.max(0, Date.now() - startedAt);
+    const cycleElapsed = elapsed % encounterMs;
+    return Math.max(0, Math.min(100, (cycleElapsed / encounterMs) * 100));
   }
 
   function partyFightPlayerGroups(members) {
@@ -284,12 +284,17 @@
 
     const payload = activeSessionPayload(party);
     const resolvedCount = Math.max(0, num(payload.resolvedCount, 0));
+    const encounterMs = Math.max(1000, num(payload.encounterMs, 6000));
+    const startedAt = Date.parse(String(party?.activeSession?.startedAt || ""));
+    const visualResolvedCount = Number.isFinite(startedAt)
+      ? Math.max(0, Math.floor((Date.now() - startedAt) / encounterMs))
+      : resolvedCount;
     const remainMs = encounterCountdownMs(party);
     if (remainMs <= 150 && !state.loading && !state.actionBusy) {
       const now = Date.now();
-      const sameRound = state.boundaryResolvedCount === resolvedCount;
+      const sameRound = state.boundaryResolvedCount === visualResolvedCount;
       if (!sameRound || (now - state.boundaryFetchAt) >= 350) {
-        state.boundaryResolvedCount = resolvedCount;
+        state.boundaryResolvedCount = visualResolvedCount;
         state.boundaryFetchAt = now;
         Promise.resolve(loadPartyState({ silent: true })).catch(() => {});
       }
@@ -303,9 +308,12 @@
     try {
       const previousParty = state.data?.myParty || null;
       const previousResolvedCount = num(activeSessionPayload(previousParty).resolvedCount, -1);
+      const previousActive = previousParty && previousParty.state === "active" && String(previousParty.activity || "").toLowerCase().includes("party fight");
       const data = await window.DSAuth.invokePartyAction({ action: "bootstrap" });
       state.data = data || null;
       const nextResolvedCount = num(activeSessionPayload(state.data?.myParty || null).resolvedCount, -1);
+      const nextParty = state.data?.myParty || null;
+      const nextActive = nextParty && nextParty.state === "active" && String(nextParty.activity || "").toLowerCase().includes("party fight");
       if (nextResolvedCount > previousResolvedCount) {
         state.boundaryResolvedCount = nextResolvedCount;
         window.DSAuth?.syncCloudSaveNow?.();
@@ -317,7 +325,13 @@
         setNotice(state.lastMessage || "");
       }
       renderInvitePopups();
-      if (hasPartyPage() && !(silent && shouldSkipSilentRender())) renderPartyHall();
+      const sameActivePartyFrame = silent
+        && previousActive
+        && nextActive
+        && previousResolvedCount === nextResolvedCount
+        && String(previousParty?.id || "") === String(nextParty?.id || "")
+        && String(previousParty?.noticeMessage || "") === String(nextParty?.noticeMessage || "");
+      if (hasPartyPage() && !(silent && (shouldSkipSilentRender() || sameActivePartyFrame))) renderPartyHall();
       return data;
     } catch (error) {
       if (!silent) {
@@ -1146,7 +1160,19 @@
   }
 
   function startUiTimer() {
-    if (state.uiTimer) return;
+    if (!("requestAnimationFrame" in window)) return;
+    if (state.uiRaf) return;
+    const tick = () => {
+      if (!document.hidden) {
+        updatePartyFightTimerUI();
+      }
+      state.uiRaf = window.requestAnimationFrame(tick);
+    };
+    state.uiRaf = window.requestAnimationFrame(tick);
+  }
+
+  function startFallbackUiTimer() {
+    if (state.uiTimer || "requestAnimationFrame" in window) return;
     state.uiTimer = window.setInterval(() => {
       if (document.hidden) return;
       updatePartyFightTimerUI();
@@ -1158,12 +1184,14 @@
     if (state.initialized) {
       startPolling();
       startUiTimer();
+      startFallbackUiTimer();
       await loadPartyState({ silent: true });
       return;
     }
     state.initialized = true;
     startPolling();
     startUiTimer();
+    startFallbackUiTimer();
     await loadPartyState({ silent: true });
   }
 
