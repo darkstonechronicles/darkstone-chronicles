@@ -26,6 +26,7 @@
     page: 1,
     inspectListingId: "",
     listings: [],
+    myListings: [],
     selectedInvIndex: -1,
     loading: false,
     status: "",
@@ -215,9 +216,9 @@
 
   function filteredListings(){
     const userId = getUserId();
+    if (state.view === "myListings") return state.myListings;
     return state.listings.filter((listing) => {
       if (state.view === "latest") return true;
-      if (state.view === "myListings") return userId && listing.seller_user_id === userId;
       if (state.view === "materials") return listing.category === "materials";
       if (state.view === "gear") {
         if (listing.category !== "gear") return false;
@@ -348,6 +349,8 @@
   function renderSellBox(){
     const save = loadSave();
     const inventory = Array.isArray(save.inventory) ? save.inventory : [];
+    const myListingCount = state.myListings.length;
+    const listingLimitReached = myListingCount >= 10;
     const sellable = inventory
       .map((it, idx) => ({ it, idx }))
       .filter(({ it }) => isSellableItem(it));
@@ -361,7 +364,7 @@
       <div class="marketSellGrid">
         <label class="marketField">
           Item
-          <select id="marketSellItem" ${sellable.length ? "" : "disabled"}>
+          <select id="marketSellItem" ${sellable.length && !listingLimitReached ? "" : "disabled"}>
             ${sellable.length ? sellable.map(({ it, idx }) => `
               <option value="${idx}" ${idx === state.selectedInvIndex ? "selected" : ""}>
                 ${esc(it.name || "Item")} x${getQty(it)}${isGearItem(it) ? ` • ${slotLabel(it.slot)}` : ""}
@@ -371,13 +374,16 @@
         </label>
         <label class="marketField">
           Qty
-          <input id="marketSellQty" type="number" min="1" max="${q}" value="1" ${selected ? "" : "disabled"}>
+          <input id="marketSellQty" type="number" min="1" max="${q}" value="1" ${selected && !listingLimitReached ? "" : "disabled"}>
         </label>
         <label class="marketField">
           Price EA
-          <input id="marketSellPrice" type="number" min="1" value="${price}" ${selected ? "" : "disabled"}>
+          <input id="marketSellPrice" type="number" min="1" value="${price}" ${selected && !listingLimitReached ? "" : "disabled"}>
         </label>
-        <button id="marketListBtn" type="button" ${selected ? "" : "disabled"}>List</button>
+        <button id="marketListBtn" type="button" ${selected && !listingLimitReached ? "" : "disabled"}>List</button>
+      </div>
+      <div class="marketItemMeta" style="margin-top:8px;text-align:center;">
+        My Listings: ${myListingCount}/10${listingLimitReached ? " - cancel one listing before adding another." : ""}
       </div>
       ${selected ? `
         <div class="marketItemMeta" style="margin-top:8px;text-align:center;">
@@ -415,7 +421,20 @@
       }
 
       if (error) throw error;
-      state.listings = Array.isArray(data) ? data : [];
+      const marketListings = Array.isArray(data) ? data : [];
+      let myListings = [];
+      const myResult = await client.rpc("get_my_market_listings");
+      if (!myResult.error && Array.isArray(myResult.data)) {
+        myListings = myResult.data;
+      } else {
+        const userId = getUserId();
+        myListings = marketListings.filter((listing) => userId && listing.seller_user_id === userId);
+      }
+      const merged = new Map();
+      marketListings.forEach((listing) => merged.set(String(listing.id), listing));
+      myListings.forEach((listing) => merged.set(String(listing.id), listing));
+      state.listings = Array.from(merged.values()).sort((a, b) => String(b.created_at || "").localeCompare(String(a.created_at || "")));
+      state.myListings = myListings;
       const totalPages = Math.max(1, Math.ceil(filteredListings().length / LISTINGS_PER_PAGE));
       state.page = Math.max(1, Math.min(Math.floor(num(state.page, 1)), totalPages));
       state.status = "";
@@ -494,6 +513,10 @@
   }
 
   async function listSelectedItem(){
+    if (state.myListings.length >= 10) {
+      setStatus("You can only have 10 active market listings. Cancel one first.");
+      return;
+    }
     const save = loadSave();
     const inv = Array.isArray(save.inventory) ? save.inventory : [];
     const item = inv[state.selectedInvIndex];
