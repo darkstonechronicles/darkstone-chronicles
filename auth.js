@@ -11,6 +11,7 @@
   const SUPABASE_SCRIPT_SRC = "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js";
   const APP_VERSION_URL = "version.json";
   const APP_VERSION_RELOAD_PREFIX = "ds:app-version-reload:";
+  const APP_VERSION_POLL_MS = 30 * 1000;
   const PRESENCE_HEARTBEAT_MS = 45 * 1000;
   const PRESENCE_MIN_UPDATE_MS = 20 * 1000;
   const ONLINE_WINDOW_MS = 2 * 60 * 1000;
@@ -49,7 +50,8 @@
       invalidated: false,
       checking: null,
       justClaimedActiveSession: false
-    }
+    },
+    appVersionPollTimer: 0
   };
 
   function isConfigured() {
@@ -101,6 +103,14 @@
     } finally {
       window.clearTimeout(timeout);
     }
+  }
+
+  function startAppVersionPolling() {
+    if (state.appVersionPollTimer || !getCurrentAssetVersion()) return;
+    state.appVersionPollTimer = window.setInterval(() => {
+      if (document.visibilityState === "hidden") return;
+      checkForAppUpdateOnBoot();
+    }, APP_VERSION_POLL_MS);
   }
 
   function loadScript(src) {
@@ -1145,6 +1155,7 @@
       }
     }
     if (state.user?.id) startPresenceHeartbeat();
+    startAppVersionPolling();
 
     state.client.auth.onAuthStateChange((event, session) => {
       state.session = session || null;
@@ -1164,6 +1175,7 @@
       } else {
         startPresenceHeartbeat();
       }
+      startAppVersionPolling();
       window.dispatchEvent(new CustomEvent("ds:auth", {
         detail: {
           event,
