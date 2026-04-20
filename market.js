@@ -850,8 +850,12 @@
     try {
       await window.DSAuth.invokeCreateMarketListing({ item, quantity: qty, priceEach });
       state.selectedInvIndex = -1;
+      state.view = "myListings";
+      state.page = 1;
+      state.inspectListingId = "";
       await loadListings();
       setStatus(`Listed ${item.name || "Item"} x${qty} for ${fmt.format(priceEach)} gold EA.`);
+      document.querySelector(".marketShell")?.scrollIntoView({ block: "start", behavior: "smooth" });
     } catch (error) {
       setStatus(error?.message || "Could not list item.");
     }
