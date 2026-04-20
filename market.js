@@ -2,6 +2,7 @@
   const SAVE_KEY = "darkstone_save_v1";
   const fmt = new Intl.NumberFormat("el-GR");
   const MARKET_PAGE_SIZE = 80;
+  const LISTINGS_PER_PAGE = 7;
   const GEAR_SLOTS = [
     ["all", "All Gear"],
     ["mainHand", "Main Hand"],
@@ -22,6 +23,7 @@
   const state = {
     view: "latest",
     gearSlot: "all",
+    page: 1,
     listings: [],
     selectedInvIndex: -1,
     loading: false,
@@ -107,6 +109,10 @@
     return `
       <style>
         .marketShell{max-width:980px;margin:0 auto;color:#f3ead6;}
+        .marketHeader{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:12px;}
+        .marketHeader h1{margin:0!important;}
+        .marketMyBtn{width:auto!important;min-height:34px!important;padding:7px 12px!important;border-radius:6px!important;font-size:12px!important;white-space:nowrap;}
+        .marketMyBtn.is-active{border-color:#d0a14f!important;color:#fff1cf!important;background:linear-gradient(180deg,rgba(82,58,28,.96),rgba(35,24,14,.98))!important;}
         .marketTop{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;margin:6px 0 14px;}
         .marketHeroBtn{min-height:86px;display:grid;grid-template-rows:44px auto;justify-items:center;align-items:center;gap:6px;padding:10px;border-radius:8px;border:1px solid rgba(126,94,50,.86);background:linear-gradient(180deg,rgba(26,28,34,.96),rgba(10,11,15,.96));box-shadow:inset 0 1px 0 rgba(255,232,184,.08),0 12px 24px rgba(0,0,0,.2);color:#f3ead6;cursor:pointer;}
         .marketHeroBtn.is-active{border-color:#d0a14f;background:linear-gradient(180deg,rgba(82,58,28,.96),rgba(35,24,14,.98));}
@@ -130,6 +136,9 @@
         .marketField select,.marketField input{min-height:38px;border-radius:6px;border:1px solid rgba(126,94,50,.86);background:#090a0e;color:#fff;padding:8px;}
         .marketStatus{margin-top:10px;min-height:20px;color:#d9ccb0;text-align:center;}
         .marketEmpty{padding:22px;text-align:center;color:#aeb0b8;border:1px solid rgba(83,83,90,.5);background:rgba(0,0,0,.12);}
+        .marketPager{display:flex;align-items:center;justify-content:center;gap:6px;flex-wrap:wrap;margin-top:10px;}
+        .marketPagerBtn{width:auto!important;min-width:38px!important;min-height:34px!important;padding:6px 10px!important;border-radius:6px!important;}
+        .marketPagerBtn.is-active{border-color:#d0a14f!important;color:#fff1cf!important;background:linear-gradient(180deg,rgba(82,58,28,.96),rgba(35,24,14,.98))!important;}
         @media(max-width:760px){
           .marketTop{grid-template-columns:1fr;}
           .marketSlotBar{grid-template-columns:repeat(3,minmax(0,1fr));}
@@ -139,7 +148,10 @@
         }
       </style>
       <div class="marketShell">
-        <h1>Market</h1>
+        <div class="marketHeader">
+          <h1>Market</h1>
+          <button type="button" class="marketMyBtn ${state.view === "myListings" ? "is-active" : ""}" data-market-view="myListings">My Listings</button>
+        </div>
         <div class="marketTop">
           <button type="button" class="marketHeroBtn ${state.view === "latest" ? "is-active" : ""}" data-market-view="latest">
             <img src="${marketIcon("latest")}" alt="">
@@ -169,6 +181,7 @@
   function viewTitle(){
     if (state.view === "gear") return state.gearSlot === "all" ? "Combat Items" : `Combat Items • ${slotLabel(state.gearSlot)}`;
     if (state.view === "materials") return "Materials";
+    if (state.view === "myListings") return "My Active Listings";
     return "Items Recently Added To The Market";
   }
 
@@ -183,8 +196,10 @@
   }
 
   function filteredListings(){
+    const userId = getUserId();
     return state.listings.filter((listing) => {
       if (state.view === "latest") return true;
+      if (state.view === "myListings") return userId && listing.seller_user_id === userId;
       if (state.view === "materials") return listing.category === "materials";
       if (state.view === "gear") {
         if (listing.category !== "gear") return false;
@@ -199,6 +214,10 @@
     const rows = filteredListings();
     if (!rows.length) return `<div class="marketEmpty">No active listings here yet.</div>`;
     const userId = getUserId();
+    const totalPages = Math.max(1, Math.ceil(rows.length / LISTINGS_PER_PAGE));
+    state.page = Math.max(1, Math.min(Math.floor(num(state.page, 1)), totalPages));
+    const start = (state.page - 1) * LISTINGS_PER_PAGE;
+    const visibleRows = rows.slice(start, start + LISTINGS_PER_PAGE);
     return `
       <table class="marketTable">
         <thead>
@@ -211,9 +230,21 @@
           </tr>
         </thead>
         <tbody>
-          ${rows.map((listing) => renderListingRow(listing, userId)).join("")}
+          ${visibleRows.map((listing) => renderListingRow(listing, userId)).join("")}
         </tbody>
       </table>
+      ${renderPagination(totalPages)}
+    `;
+  }
+
+  function renderPagination(totalPages){
+    if (totalPages <= 1) return "";
+    return `
+      <div class="marketPager">
+        ${Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => `
+          <button type="button" class="marketPagerBtn ${state.page === page ? "is-active" : ""}" data-market-page="${page}">${page}</button>
+        `).join("")}
+      </div>
     `;
   }
 
@@ -319,6 +350,8 @@
 
       if (error) throw error;
       state.listings = Array.isArray(data) ? data : [];
+      const totalPages = Math.max(1, Math.ceil(filteredListings().length / LISTINGS_PER_PAGE));
+      state.page = Math.max(1, Math.min(Math.floor(num(state.page, 1)), totalPages));
       state.status = "";
     } catch (error) {
       state.status = error?.message || "Could not load market.";
@@ -458,12 +491,20 @@
     document.querySelectorAll("[data-market-view]").forEach((btn) => {
       btn.addEventListener("click", () => {
         state.view = String(btn.dataset.marketView || "latest");
+        state.page = 1;
         render();
       });
     });
     document.querySelectorAll("[data-market-slot]").forEach((btn) => {
       btn.addEventListener("click", () => {
         state.gearSlot = String(btn.dataset.marketSlot || "all");
+        state.page = 1;
+        render();
+      });
+    });
+    document.querySelectorAll("[data-market-page]").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        state.page = Math.max(1, Math.floor(num(btn.dataset.marketPage, 1)));
         render();
       });
     });
