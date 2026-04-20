@@ -124,23 +124,51 @@
   }
 
   function saveSaleHistory(rows){
-    const next = Array.isArray(rows) ? rows.slice(0, 50) : [];
+    const next = dedupeSaleHistory(Array.isArray(rows) ? rows : []).slice(0, 50);
     localStorage.setItem(SALE_HISTORY_KEY, JSON.stringify(next));
     state.saleHistory = next;
   }
 
+  function saleHistoryFingerprint(row){
+    const bucket = Math.floor(num(row?.at, 0) / 120000);
+    return [
+      String(row?.listingId || ""),
+      String(row?.itemName || "").toLowerCase(),
+      num(row?.quantity, 1),
+      num(row?.priceEach, 0),
+      num(row?.gold, 0),
+      bucket
+    ].join("::");
+  }
+
+  function dedupeSaleHistory(rows){
+    const byKey = new Set();
+    const byFingerprint = new Set();
+    return (Array.isArray(rows) ? rows : [])
+      .filter((row) => row && typeof row === "object")
+      .sort((a, b) => {
+        const serverA = String(a.key || "").startsWith("sale:") ? 1 : 0;
+        const serverB = String(b.key || "").startsWith("sale:") ? 1 : 0;
+        return serverB - serverA || num(b.at, 0) - num(a.at, 0);
+      })
+      .filter((row) => {
+        const key = String(row.key || "");
+        const fingerprint = saleHistoryFingerprint(row);
+        if ((key && byKey.has(key)) || byFingerprint.has(fingerprint)) return false;
+        if (key) byKey.add(key);
+        byFingerprint.add(fingerprint);
+        return true;
+      })
+      .sort((a, b) => num(b.at, 0) - num(a.at, 0));
+  }
+
   function addSaleHistory(entry){
-    const next = [entry, ...loadSaleHistory()]
-      .filter((row, idx, arr) => row?.key && arr.findIndex((x) => x?.key === row.key) === idx)
-      .slice(0, 50);
+    const next = dedupeSaleHistory([entry, ...loadSaleHistory()]).slice(0, 50);
     saveSaleHistory(next);
   }
 
   function mergeSaleHistory(entries){
-    const next = [...(Array.isArray(entries) ? entries : []), ...loadSaleHistory()]
-      .filter((row, idx, arr) => row?.key && arr.findIndex((x) => x?.key === row.key) === idx)
-      .sort((a, b) => num(b.at, 0) - num(a.at, 0))
-      .slice(0, 50);
+    const next = dedupeSaleHistory([...(Array.isArray(entries) ? entries : []), ...loadSaleHistory()]).slice(0, 50);
     saveSaleHistory(next);
   }
 
