@@ -1000,7 +1000,7 @@ async function advancePartyFightSession(
       touchedUsers.set(member.user_id, saveRow);
     }
     const currentStamina = getCurrentStamina(saveRow.save);
-    if (currentStamina <= PARTY_FIGHT_STAMINA_COST) {
+    if (currentStamina < PARTY_FIGHT_STAMINA_COST) {
       await persistTouchedUserSaves(admin, touchedUsers);
       const summary = summaries.get(member.user_id) || {};
       const exhaustedHeroName = str(summary.heroName, "Hero");
@@ -1177,90 +1177,9 @@ async function advancePartyFightSession(
       monsterHp: Math.max(1, int(monster.hp, 1)),
     };
 
-    const exhaustedDuringLoop = Array.from(touchedUsers.entries()).find(([, entry]) => getCurrentStamina(entry.save) <= PARTY_FIGHT_STAMINA_COST);
-    if (exhaustedDuringLoop) {
-      const exhaustedSummary = summaries.get(exhaustedDuringLoop[0]) || {};
-      const exhaustedHeroName = str(exhaustedSummary.heroName, "Hero");
-      const message = `${exhaustedHeroName} run out of stamina.`;
-      const now = formatIsoNow();
-      const [sessionUpdate, partyUpdate, readyReset] = await Promise.all([
-        admin
-          .from("party_activity_sessions")
-          .update({
-            status: "completed",
-            ended_at: now,
-            result_payload: {
-              ...nextPayload,
-              stopReason: "stamina",
-              stopMessage: message,
-            },
-          })
-          .eq("id", activeSession.id),
-        admin
-          .from("parties")
-          .update({
-            state: "forming",
-            locked: false,
-            activity: "Party Fight",
-            selected_monster_id: "",
-          })
-          .eq("id", party.id),
-        admin.from("party_members").update({ ready: false }).eq("party_id", party.id),
-      ]);
-      if (sessionUpdate.error) throw sessionUpdate.error;
-      if (partyUpdate.error) throw partyUpdate.error;
-      if (readyReset.error) throw readyReset.error;
-      await logPartyEvent(admin, party.id, exhaustedDuringLoop[0], "party_activity_stopped_stamina", {
-        userId: exhaustedDuringLoop[0],
-        heroName: exhaustedHeroName,
-        message,
-      });
-      return null;
-    }
   }
 
   await persistTouchedUserSaves(admin, touchedUsers);
-
-  const exhaustedEntry = Array.from(touchedUsers.entries()).find(([, entry]) => getCurrentStamina(entry.save) <= PARTY_FIGHT_STAMINA_COST);
-  if (exhaustedEntry) {
-    const exhaustedSummary = summaries.get(exhaustedEntry[0]) || {};
-    const exhaustedHeroName = str(exhaustedSummary.heroName, "Hero");
-    const message = `${exhaustedHeroName} run out of stamina.`;
-    const now = formatIsoNow();
-    const [sessionUpdate, partyUpdate, readyReset] = await Promise.all([
-      admin
-        .from("party_activity_sessions")
-        .update({
-          status: "completed",
-          ended_at: now,
-          result_payload: {
-            ...nextPayload,
-            stopReason: "stamina",
-            stopMessage: message,
-          },
-        })
-        .eq("id", activeSession.id),
-      admin
-        .from("parties")
-        .update({
-          state: "forming",
-          locked: false,
-          activity: "Party Fight",
-          selected_monster_id: "",
-        })
-        .eq("id", party.id),
-      admin.from("party_members").update({ ready: false }).eq("party_id", party.id),
-    ]);
-    if (sessionUpdate.error) throw sessionUpdate.error;
-    if (partyUpdate.error) throw partyUpdate.error;
-    if (readyReset.error) throw readyReset.error;
-    await logPartyEvent(admin, party.id, exhaustedEntry[0], "party_activity_stopped_stamina", {
-      userId: exhaustedEntry[0],
-      heroName: exhaustedHeroName,
-      message,
-    });
-    return null;
-  }
 
   const sessionUpdate = await admin
     .from("party_activity_sessions")
