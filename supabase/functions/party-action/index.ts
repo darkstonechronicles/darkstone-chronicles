@@ -23,6 +23,7 @@ const PARTY_FIGHT_STAMINA_COST = 5;
 const PARTY_FIGHT_AUTO_HP_THRESHOLD = 0.25;
 const PARTY_FIGHT_AUTO_HP_TARGET = 0.50;
 const PARTY_FIGHT_AUTO_STAMINA_THRESHOLD = 0.30;
+const PARTY_FIGHT_AUTO_STAMINA_TARGET = 0.50;
 const POTION_ACTIONS = 100;
 const PARTY_FIGHT_MONSTERS: Record<string, JsonRecord> = {
   "gravefang-hydra": {
@@ -465,8 +466,9 @@ function autoUseQuickStaminaFood(saveData: unknown, options: { force?: boolean }
   const restoreStamina = getCookedMeatStamina(slot);
   if (qty <= 0 || restoreStamina <= 0) return { used: 0, restored: 0, stamina };
 
-  const missingStamina = Math.max(0, staminaMax - stamina);
-  const needed = Math.max(1, Math.ceil(missingStamina / restoreStamina));
+  const targetStamina = Math.min(staminaMax, Math.ceil(staminaMax * PARTY_FIGHT_AUTO_STAMINA_TARGET));
+  if (stamina >= targetStamina) return { used: 0, restored: 0, stamina };
+  const needed = Math.max(1, Math.ceil((targetStamina - stamina) / restoreStamina));
   const used = consumeQuickSlotItem(save, "quick_meat", Math.min(qty, needed));
   const restored = used * restoreStamina;
   save.staminaMax = staminaMax;
@@ -927,15 +929,16 @@ async function getActiveSessionForParty(admin: ReturnType<typeof createClient>, 
   return (data as ActivitySessionRow | null) || null;
 }
 
-async function getLatestPartyNotice(admin: ReturnType<typeof createClient>, partyId: string) {
-  const { data, error } = await admin
+async function getLatestPartyNotice(admin: ReturnType<typeof createClient>, partyId: string, sinceIso = "") {
+  let query = admin
     .from("party_events")
     .select("event_kind, payload, created_at")
     .eq("party_id", partyId)
     .in("event_kind", ["party_activity_stopped_stamina", "party_activity_stopped_death"])
     .order("created_at", { ascending: false })
-    .limit(1)
-    .maybeSingle();
+    .limit(1);
+  if (sinceIso) query = query.gt("created_at", sinceIso);
+  const { data, error } = await query.maybeSingle();
   if (error) throw error;
   if (!data) return "";
   const payload = asRecord((data as JsonRecord).payload);
@@ -1320,7 +1323,7 @@ async function buildPartySnapshot(admin: ReturnType<typeof createClient>, partyI
     });
   }
 
-  snapshot.noticeMessage = await getLatestPartyNotice(admin, party.id);
+  snapshot.noticeMessage = party.state === "active" ? "" : await getLatestPartyNotice(admin, party.id, party.updated_at);
 
   return snapshot;
 }

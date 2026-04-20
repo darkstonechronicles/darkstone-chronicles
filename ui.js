@@ -1177,7 +1177,8 @@
       const qty = num(slot?.quantity ?? slot?.qty, 0);
       const per = getCookedMeatStamina(slot);
       if (slot && qty > 0 && per > 0) {
-        const eatQty = Math.min(10, qty);
+        const targetStamina = Math.min(stMax, Math.ceil(stMax * 0.50));
+        const eatQty = Math.min(qty, Math.max(1, Math.ceil((targetStamina - stNow) / per)));
         s.stamina = clamp(stNow + per * eatQty, 0, stMax);
         if (qty > eatQty) slot.quantity = qty - eatQty;
         else s.consumables.quick_meat = null;

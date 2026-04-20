@@ -289,11 +289,10 @@
     const visualResolvedCount = Number.isFinite(startedAt)
       ? Math.max(0, Math.floor((Date.now() - startedAt) / encounterMs))
       : resolvedCount;
-    const remainMs = encounterCountdownMs(party);
-    if (remainMs <= 150 && !state.loading && !state.actionBusy) {
+    if (visualResolvedCount > resolvedCount && !state.loading && !state.actionBusy) {
       const now = Date.now();
       const sameRound = state.boundaryResolvedCount === visualResolvedCount;
-      if (!sameRound || (now - state.boundaryFetchAt) >= 350) {
+      if (!sameRound || (now - state.boundaryFetchAt) >= 250) {
         state.boundaryResolvedCount = visualResolvedCount;
         state.boundaryFetchAt = now;
         Promise.resolve(loadPartyState({ silent: true })).catch(() => {});
@@ -318,7 +317,9 @@
         state.boundaryResolvedCount = nextResolvedCount;
         window.DSAuth?.syncCloudSaveNow?.();
       }
-      const noticeMessage = String(state.data?.myParty?.noticeMessage || "").trim();
+      const activeParty = state.data?.myParty || null;
+      const isActivePartyFight = activeParty && activeParty.state === "active" && String(activeParty.activity || "").toLowerCase().includes("party fight");
+      const noticeMessage = isActivePartyFight ? "" : String(activeParty?.noticeMessage || "").trim();
       if (noticeMessage) {
         setNotice(noticeMessage);
       } else if (!silent && !state.lastError) {
@@ -755,14 +756,9 @@
     const partyDealt = Array.isArray(encounter?.players)
       ? encounter.players.reduce((sum, player) => sum + num(player?.damageDealt, 0), 0)
       : 0;
-    const stopMessage = String(activeSessionPayload(party).stopMessage || party.noticeMessage || "").trim();
+    const stopMessage = String(activeSessionPayload(party).stopMessage || "").trim();
     return `
       <section style="display:grid;gap:14px;">
-        ${stopMessage ? `
-          <div style="padding:12px 14px;border:1px solid rgba(210,80,80,.35);border-radius:12px;background:rgba(70,20,26,.50);color:#ffe1e1;font-weight:900;text-align:center;">
-            ${esc(stopMessage.startsWith("Party stopped") ? stopMessage : `Party stopped because ${stopMessage}`)}
-          </div>
-        ` : ``}
         <div style="padding:16px;border:1px solid rgba(255,255,255,.10);border-radius:16px;background:rgba(255,255,255,.02);display:grid;gap:16px;">
           <div id="partyFightCooldownWrap" style="display:block;">
             <div style="display:flex;justify-content:space-between;font-size:12px;opacity:.9;">
@@ -830,7 +826,11 @@
 
           <div style="display:grid;gap:10px;">
             <div style="padding:12px 14px;border:1px solid rgba(255,255,255,.10);border-radius:12px;background:rgba(255,255,255,.03);display:grid;gap:8px;text-align:left;font-weight:800;">
-              ${latestRound ? (() => {
+              ${stopMessage ? `
+                <div style="font-size:13px;text-align:center;color:#ffe1e1;">
+                  ${esc(stopMessage.startsWith("Party stopped") ? stopMessage : `Party stopped because ${stopMessage}`)}
+                </div>
+              ` : latestRound ? (() => {
                 const entryPlayers = Array.isArray(latestRound?.players) ? latestRound.players : [];
                 const entryXp = entryPlayers.length ? num(entryPlayers[0]?.xp, 0) : 0;
                 const entryGold = entryPlayers.length ? num(entryPlayers[0]?.gold, 0) : 0;
