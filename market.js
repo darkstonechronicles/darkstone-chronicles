@@ -20,6 +20,68 @@
     ["amulet", "Amulet"],
     ["shield", "Shield"]
   ];
+  const GENERAL_SHOP_ITEMS = [
+    {
+      id: "arrows_100",
+      kind: "item",
+      name: "Arrows x100",
+      img: "images/items/arrows.png",
+      price: 10,
+      quantity: 100,
+      item: { type: "consumable", id: "arrows", name: "Arrows", img: "images/items/arrows.png" },
+      meta: "Used for hunting."
+    },
+    {
+      id: "empty_vial",
+      kind: "item",
+      name: "Empty Vial",
+      img: "images/alchemy/items/empty_vial.png",
+      price: 10,
+      quantity: 1,
+      item: { type: "material", id: "empty_vial", name: "Empty Vial", img: "images/alchemy/items/empty_vial.png" },
+      meta: "Used for alchemy potions."
+    },
+    {
+      id: "pet_combat",
+      kind: "pet",
+      slot: "combat",
+      name: "Wolf Cub",
+      img: "images/pets/combat_wolf_cub.png",
+      price: 100000,
+      meta: "Combat Pet Tier 1",
+      pet: { slot: "combat", family: "wolf", tier: 1, name: "Wolf Cub", atkPerLevel: 0.20, defPerLevel: 0.20, img: "images/pets/combat_wolf_cub.png", iconText: "WC" }
+    },
+    {
+      id: "pet_gathering",
+      kind: "pet",
+      slot: "gathering",
+      name: "Burrower Pup",
+      img: "images/pets/gathering_burrower_pup.png",
+      price: 100000,
+      meta: "Gathering Pet Tier 1",
+      pet: { slot: "gathering", family: "burrower", tier: 1, name: "Burrower Pup", professionXpPctPerLevel: 0.0010, img: "images/pets/gathering_burrower_pup.png", iconText: "BP" }
+    },
+    {
+      id: "pet_artisan",
+      kind: "pet",
+      slot: "artisan",
+      name: "Workshop Mouse",
+      img: "images/pets/artisan_workshop_mouse.png",
+      price: 100000,
+      meta: "Artisan Pet Tier 1",
+      pet: { slot: "artisan", family: "workshop", tier: 1, name: "Workshop Mouse", professionXpPctPerLevel: 0.0010, img: "images/pets/artisan_workshop_mouse.png", iconText: "WM" }
+    },
+    {
+      id: "pet_fortune",
+      kind: "pet",
+      slot: "fortune",
+      name: "Coin Ferret",
+      img: "images/pets/fortune_coin_ferret.png",
+      price: 100000,
+      meta: "Fortune Pet Tier 1",
+      pet: { slot: "fortune", family: "fortune", tier: 1, name: "Coin Ferret", goldPctPerLevel: 0.0010, img: "images/pets/fortune_coin_ferret.png", iconText: "CF" }
+    }
+  ];
 
   const state = {
     view: "latest",
@@ -142,6 +204,7 @@
         .marketShell{max-width:980px;margin:0 auto;color:#f3ead6;}
         .marketHeader{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:12px;}
         .marketHeader h1{margin:0!important;}
+        .marketHeaderActions{display:flex;align-items:center;justify-content:flex-end;gap:8px;flex-wrap:wrap;}
         .marketMyBtn{width:auto!important;min-height:34px!important;padding:7px 12px!important;border-radius:6px!important;font-size:12px!important;white-space:nowrap;}
         .marketMyBtn.is-active{border-color:#d0a14f!important;color:#fff1cf!important;background:linear-gradient(180deg,rgba(82,58,28,.96),rgba(35,24,14,.98))!important;}
         .marketTop{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;margin:6px 0 14px;}
@@ -189,8 +252,19 @@
         .marketHistoryRow img{width:40px;height:40px;border-radius:6px;border:1px solid rgba(92,92,102,.8);object-fit:cover;background:#101219;}
         .marketHistoryName{font-weight:900;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
         .marketHistoryMeta{font-size:12px;color:#aeb0b8;margin-top:2px;}
+        .marketShopGrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;}
+        .marketShopCard{display:grid;grid-template-columns:64px minmax(0,1fr) auto;gap:12px;align-items:center;border:1px solid rgba(83,83,90,.72);border-radius:8px;background:rgba(0,0,0,.16);padding:10px;text-align:left;}
+        .marketShopCard img{width:64px;height:64px;border-radius:8px;border:1px solid rgba(92,92,102,.8);object-fit:cover;background:#101219;}
+        .marketShopName{font-size:17px;font-weight:900;color:#f3ead6;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+        .marketShopMeta{margin-top:4px;font-size:12px;color:#aeb0b8;line-height:1.35;}
         @media(max-width:760px){
+          .marketHeader{align-items:flex-start;}
+          .marketHeaderActions{justify-content:flex-end;}
           .marketTop{grid-template-columns:1fr;}
+          .marketShopGrid{grid-template-columns:1fr;}
+          .marketShopCard{grid-template-columns:54px minmax(0,1fr);}
+          .marketShopCard img{width:54px;height:54px;}
+          .marketShopCard button{grid-column:1 / -1;}
           .marketSlotBar{grid-template-columns:repeat(3,minmax(0,1fr));}
           .marketSellGrid{grid-template-columns:1fr 1fr;}
           .marketTable{font-size:13px;}
@@ -204,7 +278,10 @@
       <div class="marketShell">
         <div class="marketHeader">
           <h1>Market</h1>
-          <button type="button" class="marketMyBtn ${state.view === "myListings" ? "is-active" : ""}" data-market-view="myListings">My Listings</button>
+          <div class="marketHeaderActions">
+            <button type="button" class="marketMyBtn ${state.view === "generalShop" ? "is-active" : ""}" data-market-view="generalShop">General Shop</button>
+            <button type="button" class="marketMyBtn ${state.view === "myListings" ? "is-active" : ""}" data-market-view="myListings">My Listings</button>
+          </div>
         </div>
         <div class="marketTop">
           <button type="button" class="marketHeroBtn ${state.view === "latest" ? "is-active" : ""}" data-market-view="latest">
@@ -224,9 +301,11 @@
         <div class="marketPanel">
           <div class="marketSearchTitle">${viewTitle()}</div>
           ${state.view === "gear" ? renderGearSlots() : ""}
-          <div id="marketListings">${renderListings()}</div>
-          ${renderSellBox()}
-          ${renderMarketHistory()}
+          ${state.view === "generalShop" ? renderGeneralShop() : `
+            <div id="marketListings">${renderListings()}</div>
+            ${renderSellBox()}
+            ${renderMarketHistory()}
+          `}
           <div id="shopMsg" class="marketStatus">${esc(state.status)}</div>
         </div>
         ${renderInspectorModal()}
@@ -237,8 +316,29 @@
   function viewTitle(){
     if (state.view === "gear") return state.gearSlot === "all" ? "Combat Items" : `Combat Items • ${slotLabel(state.gearSlot)}`;
     if (state.view === "materials") return "Materials";
+    if (state.view === "generalShop") return "General Shop";
     if (state.view === "myListings") return `My Active Listings ${state.myListings.length}/10`;
     return "Items Recently Added To The Market";
+  }
+
+  function renderGeneralShop(){
+    return `
+      <div class="marketShopGrid">
+        ${GENERAL_SHOP_ITEMS.map((item) => `
+          <div class="marketShopCard">
+            <img src="${esc(item.img)}" alt="">
+            <div style="min-width:0;">
+              <div class="marketShopName">${esc(item.name)}</div>
+              <div class="marketShopMeta">
+                ${esc(item.meta || "")}<br>
+                Price: <span class="marketGold">${fmt.format(num(item.price, 0))} gold</span>
+              </div>
+            </div>
+            <button type="button" data-buy-shop-item="${esc(item.id)}">Buy</button>
+          </div>
+        `).join("")}
+      </div>
+    `;
   }
 
   function renderGearSlots(){
@@ -660,6 +760,68 @@
     return state.listings.find((listing) => String(listing.id) === String(id)) || null;
   }
 
+  function addShopItemToInventory(save, item, quantity){
+    if (window.DSInventory?.addItem) {
+      return window.DSInventory.addItem(save, item, quantity, { stack: true });
+    }
+    if (!Array.isArray(save.inventory)) save.inventory = [];
+    const key = `${item.type || ""}::${item.id || item.name || ""}`;
+    const existing = save.inventory.find((it) => it && `${it.type || ""}::${it.id || it.name || ""}` === key);
+    if (existing) existing.quantity = num(existing.quantity, 1) + quantity;
+    else save.inventory.push({ ...item, quantity });
+    return { ok: true };
+  }
+
+  function buyGeneralShopItem(id){
+    const shopItem = GENERAL_SHOP_ITEMS.find((item) => item.id === id);
+    if (!shopItem) {
+      setStatus("Shop item is no longer available.");
+      return;
+    }
+
+    const save = loadSave();
+    save.gold = Math.max(0, Math.floor(num(save.gold, 0)));
+    if (save.gold < shopItem.price) {
+      setStatus(`Not enough gold. Need ${fmt.format(shopItem.price)} gold.`);
+      return;
+    }
+
+    if (shopItem.kind === "pet") {
+      if (!save.pets || typeof save.pets !== "object") save.pets = {};
+      if (save.pets[shopItem.slot]) {
+        setStatus(`You already have a ${shopItem.meta}.`);
+        return;
+      }
+      const xpNext = window.DS?.pets?.petXpNextForLevel ? window.DS.pets.petXpNextForLevel(1) : 100;
+      const pet = {
+        ...shopItem.pet,
+        active: true,
+        level: 1,
+        xp: 0,
+        xpNext,
+        nextUpgradeCost: 1000000
+      };
+      save.gold -= shopItem.price;
+      save.pets[shopItem.slot] = window.DS?.pets?.normalizePet ? window.DS.pets.normalizePet(shopItem.slot, pet) : pet;
+      setSave(save);
+      window.DSAuth?.syncCloudSaveNow?.();
+      setStatus(`Bought ${shopItem.name}.`);
+      render();
+      return;
+    }
+
+    const added = addShopItemToInventory(save, shopItem.item, shopItem.quantity);
+    if (!added?.ok) {
+      setStatus("Not enough inventory space.");
+      return;
+    }
+    save.gold -= shopItem.price;
+    setSave(save);
+    window.DSAuth?.syncCloudSaveNow?.();
+    setStatus(`Bought ${shopItem.name}.`);
+    render();
+  }
+
   async function listSelectedItem(){
     if (state.myListings.length >= 10) {
       setStatus("You can only have 10 active market listings. Cancel one first.");
@@ -780,6 +942,9 @@
     document.querySelectorAll("[data-cancel-listing]").forEach((btn) => {
       btn.addEventListener("click", () => cancelListing(btn.dataset.cancelListing));
     });
+    document.querySelectorAll("[data-buy-shop-item]").forEach((btn) => {
+      btn.addEventListener("click", () => buyGeneralShopItem(String(btn.dataset.buyShopItem || "")));
+    });
     document.getElementById("marketSellItem")?.addEventListener("change", (event) => {
       state.selectedInvIndex = Math.floor(num(event.target.value, -1));
       render();
@@ -807,6 +972,9 @@
     }
     const left = root || document.getElementById("leftPanel");
     if (!left) return false;
+    if (String(window.location.hash || "").toLowerCase() === "#pets") {
+      state.view = "generalShop";
+    }
     render();
     bindRealtime();
     loadListings();
