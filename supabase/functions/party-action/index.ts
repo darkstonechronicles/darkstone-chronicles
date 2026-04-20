@@ -936,7 +936,10 @@ async function getLatestPartyNotice(admin: ReturnType<typeof createClient>, part
     .maybeSingle();
   if (error) throw error;
   if (!data) return "";
-  return str((data as JsonRecord).payload && asRecord((data as JsonRecord).payload).message);
+  const payload = asRecord((data as JsonRecord).payload);
+  const message = str(payload.message);
+  if (message) return `Party stopped because ${message}`;
+  return "";
 }
 
 async function advancePartyFightSession(
@@ -1154,6 +1157,12 @@ async function advancePartyFightSession(
               restored: autoStamina.restored,
             };
           }
+        }
+        const playerResult = encounter.players.find((entry) => entry.userId === player.userId);
+        if (playerResult) {
+          const staminaMax = Math.max(1, int(row.save.staminaMax, calcStaminaMax(row.save.heroLevel)));
+          (playerResult as JsonRecord).staminaMax = staminaMax;
+          (playerResult as JsonRecord).staminaRemaining = getCurrentStamina(row.save);
         }
         row.revision += 1;
         touchedUsers.set(player.userId, row);

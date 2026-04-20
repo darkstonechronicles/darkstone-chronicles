@@ -741,8 +741,14 @@
     const partyDealt = Array.isArray(encounter?.players)
       ? encounter.players.reduce((sum, player) => sum + num(player?.damageDealt, 0), 0)
       : 0;
+    const stopMessage = String(activeSessionPayload(party).stopMessage || party.noticeMessage || "").trim();
     return `
       <section style="display:grid;gap:14px;">
+        ${stopMessage ? `
+          <div style="padding:12px 14px;border:1px solid rgba(210,80,80,.35);border-radius:12px;background:rgba(70,20,26,.50);color:#ffe1e1;font-weight:900;text-align:center;">
+            ${esc(stopMessage.startsWith("Party stopped") ? stopMessage : `Party stopped because ${stopMessage}`)}
+          </div>
+        ` : ``}
         <div style="padding:16px;border:1px solid rgba(255,255,255,.10);border-radius:16px;background:rgba(255,255,255,.02);display:grid;gap:16px;">
           <div id="partyFightCooldownWrap" style="display:block;">
             <div style="display:flex;justify-content:space-between;font-size:12px;opacity:.9;">
@@ -765,6 +771,11 @@
                     const hpMax = Math.max(1, num(latest?.hpMax, memberHpMax));
                     const hpRemaining = Math.max(0, num(latest?.hpRemaining, memberHp));
                     const hpPct = Math.max(0, Math.min(100, (hpRemaining / hpMax) * 100));
+                    const memberStaminaMax = Math.max(1, num(member?.staminaMax, 100));
+                    const memberStamina = Math.max(0, num(member?.stamina, memberStaminaMax));
+                    const staminaMax = Math.max(1, num(latest?.staminaMax, memberStaminaMax));
+                    const staminaRemaining = Math.max(0, num(latest?.staminaRemaining, memberStamina));
+                    const staminaPct = Math.max(0, Math.min(100, (staminaRemaining / staminaMax) * 100));
                     return `
                       <div style="display:grid;justify-items:center;gap:8px;text-align:center;">
                         <img src="${esc(member.avatarUrl)}" alt="${esc(member.heroName)}" style="width:96px;height:96px;border-radius:18px;border:3px solid ${member.isLeader ? "#43c26b" : "rgba(255,255,255,.22)"};object-fit:cover;box-shadow:0 0 0 1px rgba(0,0,0,.32);">
@@ -772,6 +783,10 @@
                           <div style="height:100%;width:${hpPct.toFixed(1)}%;border-radius:999px;background:linear-gradient(90deg,#00ff88,#00bb55);"></div>
                         </div>
                         <div style="font-size:10px;opacity:.85;line-height:1;">${hpRemaining} / ${hpMax} HP</div>
+                        <div style="width:82px;height:4px;background:#222;border:1px solid #333;border-radius:999px;overflow:hidden;">
+                          <div style="height:100%;width:${staminaPct.toFixed(1)}%;border-radius:999px;background:linear-gradient(90deg,#4aa3ff,#7fd4ff);"></div>
+                        </div>
+                        <div style="font-size:10px;opacity:.85;line-height:1;">${staminaRemaining} / ${staminaMax} ST</div>
                         <div style="font-weight:900;font-size:17px;line-height:1.1;">${esc(member.heroName)}</div>
                         ${latest ? `<div style="min-height:18px;margin-top:2px;padding:4px 8px;border-radius:999px;border:1px solid rgba(210, 80, 80, .35);background:rgba(60, 18, 18, .82);box-shadow:0 0 10px rgba(150, 30, 30, .16);font-size:10px;font-weight:700;line-height:1;text-align:center;color:#ffe1e1;">Damage Taken : ${num(latest.damageTaken, 0)}</div>` : ``}
                       </div>
