@@ -4720,6 +4720,13 @@ function mountShellView(targetPage, targetHref = targetPage) {
   return false;
 }
 
+function ensureShellRouteScript(targetPage) {
+  if (targetPage === "market.html" && !window.DSMarket) {
+    return ensureOptionalScript("market.js");
+  }
+  return Promise.resolve();
+}
+
 function navigateWithinShell(targetHref, options = {}) {
   const targetPage = normalizePagePath(targetHref);
   const currentPage = normalizePagePath(window.location.pathname || "index.html");
@@ -4747,21 +4754,27 @@ function navigateWithinShell(targetHref, options = {}) {
 
   document.body.classList.add("ds-page-transitioning");
   window.setTimeout(() => {
-    const didMount = mountShellView(targetPage, targetHref);
-    if (!didMount) {
+    ensureShellRouteScript(targetPage).then(() => {
+      const didMount = mountShellView(targetPage, targetHref);
+      if (!didMount) {
+        document.body.classList.remove("ds-page-transitioning");
+        window.location.href = targetHref;
+        return;
+      }
+
+      if (!options.skipHistory) {
+        window.history.pushState({ dsShellRoute: targetPage }, "", targetHref);
+      }
+      window.DSAuth?.markPresenceNow?.(true).catch((error) => {
+        console.error("[UI] immediate presence update failed", error);
+      });
+      requestAnimationFrame(() => {
+        document.body.classList.remove("ds-page-transitioning");
+      });
+    }).catch((error) => {
+      console.error("[UI] route script load failed", error);
       document.body.classList.remove("ds-page-transitioning");
       window.location.href = targetHref;
-      return;
-    }
-
-    if (!options.skipHistory) {
-      window.history.pushState({ dsShellRoute: targetPage }, "", targetHref);
-    }
-    window.DSAuth?.markPresenceNow?.(true).catch((error) => {
-      console.error("[UI] immediate presence update failed", error);
-    });
-    requestAnimationFrame(() => {
-      document.body.classList.remove("ds-page-transitioning");
     });
   }, 140);
 

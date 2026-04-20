@@ -802,7 +802,7 @@
   }
 
   function mountMarket(root = null) {
-    if (!isMarketPage()) {
+    if (!root && !isMarketPage()) {
       bindRealtime();
       return false;
     }
