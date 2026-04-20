@@ -566,7 +566,6 @@
   }
 
   function scheduleRealtimeRefresh(payload){
-    applySellerGoldFromRealtime(payload);
     if (!isMarketPage()) return;
     if (state.realtimeTimer) window.clearTimeout(state.realtimeTimer);
     state.realtimeTimer = window.setTimeout(() => {

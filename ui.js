@@ -494,6 +494,12 @@
     market: createLiveChatChannelState()
   };
   const __chatDrafts = Object.fromEntries(CHAT_CHANNELS.map((channel) => [channel, ""]));
+  const MARKET_SALE_HISTORY_KEY = "darkstone_market_sale_history_v1";
+  const __marketSaleState = {
+    channel: null,
+    appliedEvents: new Set(),
+    activeSale: null
+  };
 
   function escapeHtml(value) {
     return String(value ?? "")
@@ -504,8 +510,156 @@
       .replace(/'/g, "&#39;");
   }
 
+  function fmt(value) {
+    return new Intl.NumberFormat("el-GR").format(num(value, 0));
+  }
+
   function getSupabaseClient() {
     return window.DSAuth?.getClient?.() || null;
+  }
+
+  function addMarketSaleHistory(sale) {
+    try {
+      const rows = JSON.parse(localStorage.getItem(MARKET_SALE_HISTORY_KEY) || "[]");
+      const list = Array.isArray(rows) ? rows : [];
+      if (!list.some((row) => String(row?.key || "") === String(sale.key || ""))) {
+        list.unshift(sale);
+      }
+      localStorage.setItem(MARKET_SALE_HISTORY_KEY, JSON.stringify(list.slice(0, 50)));
+    } catch {}
+  }
+
+  function ensureMarketSaleNoticeStyles() {
+    if (document.getElementById("dsMarketSaleNoticeStyles")) return;
+    const style = document.createElement("style");
+    style.id = "dsMarketSaleNoticeStyles";
+    style.textContent = `
+      .dsMarketSaleNotice{position:fixed;right:18px;top:96px;z-index:520;min-width:230px;max-width:min(360px,calc(100vw - 24px));border:1px solid rgba(55,190,104,.9);border-radius:8px;background:linear-gradient(180deg,rgba(15,46,30,.98),rgba(7,20,13,.98));box-shadow:0 16px 46px rgba(0,0,0,.42),inset 0 1px 0 rgba(204,255,220,.12);color:#9dffb4;padding:11px 13px;font-weight:900;text-align:left;cursor:pointer;}
+      .dsMarketSaleNotice small{display:block;margin-top:3px;color:#d7ffe0;font-weight:700;opacity:.9;}
+      .dsMarketSalePopupBackdrop{position:fixed;inset:0;z-index:521;display:flex;align-items:center;justify-content:center;padding:18px;background:rgba(0,0,0,.72);}
+      .dsMarketSalePopup{width:min(560px,96vw);border:1px solid rgba(55,190,104,.86);border-radius:10px;background:linear-gradient(180deg,rgba(22,23,31,.98),rgba(9,10,14,.98));box-shadow:0 24px 80px rgba(0,0,0,.62),inset 0 1px 0 rgba(204,255,220,.08);padding:16px;color:#f3ead6;}
+      .dsMarketSalePopupTop{display:flex;gap:13px;align-items:center;}
+      .dsMarketSalePopupTop img{width:72px;height:72px;border-radius:8px;border:2px solid #333;background:#101219;object-fit:cover;}
+      .dsMarketSalePopupTitle{font-size:22px;font-weight:900;color:#9dffb4;}
+      .dsMarketSalePopupMeta{margin-top:6px;color:#d9ccb0;line-height:1.4;}
+      .dsMarketSalePopupActions{display:flex;justify-content:center;margin-top:14px;}
+      .dsMarketGold{color:#f0d326;font-weight:900;}
+      @media(max-width:760px){.dsMarketSaleNotice{top:82px;right:12px;left:12px;max-width:none;}}
+    `;
+    document.head.appendChild(style);
+  }
+
+  function showMarketSalePopup(sale) {
+    ensureMarketSaleNoticeStyles();
+    document.querySelector(".dsMarketSalePopupBackdrop")?.remove();
+    const popup = document.createElement("div");
+    popup.className = "dsMarketSalePopupBackdrop";
+    popup.innerHTML = `
+      <div class="dsMarketSalePopup" role="dialog" aria-modal="true">
+        <div class="dsMarketSalePopupTop">
+          <img src="${escapeHtml(sale.img || "images/ui/market.png")}" alt="">
+          <div style="min-width:0;flex:1;">
+            <div class="dsMarketSalePopupTitle">You sold ${escapeHtml(sale.itemName || "an item")}</div>
+            <div class="dsMarketSalePopupMeta">
+              Quantity: <b>${fmt(sale.quantity)}</b><br>
+              Price EA: <b>${fmt(sale.priceEach)} gold</b><br>
+              Total: <span class="dsMarketGold">+${fmt(sale.gold)} gold</span>
+            </div>
+          </div>
+        </div>
+        <div class="dsMarketSalePopupActions">
+          <button type="button" data-close-market-sale-popup="1">Close</button>
+        </div>
+      </div>
+    `;
+    popup.addEventListener("click", (event) => {
+      if (event.target === popup || event.target?.dataset?.closeMarketSalePopup) popup.remove();
+    });
+    document.body.appendChild(popup);
+  }
+
+  function showMarketSaleNotice(sale) {
+    ensureMarketSaleNoticeStyles();
+    __marketSaleState.activeSale = sale;
+    document.querySelector(".dsMarketSaleNotice")?.remove();
+    const notice = document.createElement("button");
+    notice.type = "button";
+    notice.className = "dsMarketSaleNotice";
+    notice.innerHTML = `You sold an item<small>${escapeHtml(sale.itemName)} x${fmt(sale.quantity)} - +${fmt(sale.gold)} gold</small>`;
+    notice.addEventListener("click", () => showMarketSalePopup(sale));
+    document.body.appendChild(notice);
+    window.setTimeout(() => {
+      if (notice.isConnected) notice.remove();
+    }, 12000);
+  }
+
+  function applyMarketSellerSale(payload) {
+    const userId = window.DSAuth?.getUser?.()?.id || "";
+    const prev = payload?.old || {};
+    const next = payload?.new || {};
+    if (!userId || String(next.seller_user_id || "") !== String(userId)) return;
+    if (String(next.buyer_user_id || "") === String(userId)) return;
+
+    const oldQty = Math.max(0, Math.floor(num(prev.quantity, next.quantity)));
+    const newQty = Math.max(0, Math.floor(num(next.quantity, oldQty)));
+    const soldQty = Math.max(0, oldQty - newQty);
+    const priceEach = Math.max(0, Math.floor(num(next.price_each, prev.price_each)));
+    const earnedGold = soldQty * priceEach;
+    if (earnedGold <= 0) return;
+
+    const eventKey = [
+      next.id || prev.id || "",
+      oldQty,
+      newQty,
+      next.status || "",
+      next.buyer_user_id || "",
+      priceEach
+    ].join("::");
+    if (__marketSaleState.appliedEvents.has(eventKey)) return;
+    __marketSaleState.appliedEvents.add(eventKey);
+    if (__marketSaleState.appliedEvents.size > 80) {
+      __marketSaleState.appliedEvents = new Set(Array.from(__marketSaleState.appliedEvents).slice(-40));
+    }
+
+    const save = loadSave();
+    save.gold = Math.max(0, num(save.gold, 0)) + earnedGold;
+    setSave(save);
+    window.DSAuth?.syncCloudSaveNow?.();
+    forceRerenderNow();
+
+    const sale = {
+      key: eventKey,
+      listingId: next.id || prev.id || "",
+      itemName: next.item_name || prev.item_name || "Item",
+      img: next.item_img || prev.item_img || next.item?.img || prev.item?.img || "",
+      category: next.category || prev.category || "",
+      quantity: soldQty,
+      priceEach,
+      gold: earnedGold,
+      sellerName: next.seller_name || prev.seller_name || "Hero",
+      at: Date.now(),
+      item: next.item || prev.item || {}
+    };
+    addMarketSaleHistory(sale);
+    showMarketSaleNotice(sale);
+  }
+
+  function bindGlobalMarketSaleRealtime() {
+    const client = getSupabaseClient();
+    if (!client || __marketSaleState.channel) return;
+    try {
+      __marketSaleState.channel = client
+        .channel("market-sales-global-live")
+        .on("postgres_changes", {
+          event: "UPDATE",
+          schema: "public",
+          table: "market_listings"
+        }, applyMarketSellerSale)
+        .subscribe();
+    } catch (error) {
+      console.warn("[UI] market sale realtime failed", error);
+      __marketSaleState.channel = null;
+    }
   }
 
   function isLiveChatTab(tab) {
@@ -6434,6 +6588,7 @@ function renderAll() {
         await window.DSAuth.preparePlayerState?.();
         await window.DSAuth.refreshAdminStatus?.();
         await window.DSAuth.markPresenceNow?.(true);
+        bindGlobalMarketSaleRealtime();
       }
 
       if (!window.DSPartyHall) {
