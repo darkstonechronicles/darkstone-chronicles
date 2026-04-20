@@ -70,6 +70,8 @@
     boundaryResolvedCount: -1,
     lastMessage: "",
     lastError: "",
+    createDraft: null,
+    inviteDraft: "",
   };
 
   const esc = (v) => String(v ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
@@ -114,6 +116,61 @@
 
   function isLeader() {
     return myRole() === "leader";
+  }
+
+  function defaultCreateDraft() {
+    const me = profile();
+    return {
+      name: `${me.heroName}'s Party`,
+      visibility: "private",
+      minLevel: String(num(me.heroLevel, 1)),
+    };
+  }
+
+  function getCreateDraft() {
+    if (!state.createDraft) state.createDraft = defaultCreateDraft();
+    return state.createDraft;
+  }
+
+  function syncCreateDraftFromDom() {
+    const nameInput = document.getElementById("partyCreateName");
+    const visibilityInput = document.getElementById("partyCreateVisibility");
+    const minLevelInput = document.getElementById("partyCreateMinLevel");
+    if (!nameInput && !visibilityInput && !minLevelInput) return;
+    const draft = getCreateDraft();
+    if (nameInput) draft.name = nameInput.value;
+    if (visibilityInput) draft.visibility = visibilityInput.value || "private";
+    if (minLevelInput) draft.minLevel = minLevelInput.value;
+  }
+
+  function isCreatePartyFormActive() {
+    const form = document.getElementById("partyCreateForm");
+    return !!form && !!document.activeElement && form.contains(document.activeElement);
+  }
+
+  function syncInviteDraftFromDom() {
+    const input = document.getElementById("partyInviteName");
+    if (input) state.inviteDraft = input.value;
+  }
+
+  function isInviteFormActive() {
+    const modal = document.getElementById("partyInviteModalBackdrop");
+    return !!modal && !!document.activeElement && modal.contains(document.activeElement);
+  }
+
+  function isPartyInputActive() {
+    return isCreatePartyFormActive() || isInviteFormActive();
+  }
+
+  function preservePartyInputsFromDom() {
+    syncCreateDraftFromDom();
+    syncInviteDraftFromDom();
+  }
+
+  function shouldSkipSilentRender() {
+    return !!document.getElementById("partyCreateForm")
+      || !!document.getElementById("partyInviteModalBackdrop")
+      || isPartyInputActive();
   }
 
   function openParties() {
@@ -260,13 +317,13 @@
         setNotice(state.lastMessage || "");
       }
       renderInvitePopups();
-      if (hasPartyPage()) renderPartyHall();
+      if (hasPartyPage() && !(silent && shouldSkipSilentRender())) renderPartyHall();
       return data;
     } catch (error) {
       if (!silent) {
         state.lastError = error?.message || "Failed to load Party Hall.";
       }
-      if (hasPartyPage()) renderPartyHall();
+      if (hasPartyPage() && !silent) renderPartyHall();
       renderInvitePopups();
       return null;
     } finally {
@@ -296,25 +353,25 @@
   }
 
   function createPartyMarkup() {
-    const me = profile();
+    const draft = getCreateDraft();
     return `
       <section style="display:grid;gap:14px;">
-        <div style="padding:14px;border:1px solid rgba(255,255,255,.10);border-radius:12px;background:rgba(255,255,255,.02);">
+        <div id="partyCreateForm" style="padding:14px;border:1px solid rgba(255,255,255,.10);border-radius:12px;background:rgba(255,255,255,.02);">
           <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px;">
             <label style="display:grid;gap:6px;">
               <span style="font-weight:800;">Party Name</span>
-              <input id="partyCreateName" type="text" value="${esc(`${me.heroName}'s Party`)}" style="width:100%;padding:10px 12px;border-radius:10px;border:2px solid #333;background:#101019;color:#fff;">
+              <input id="partyCreateName" type="text" value="${esc(draft.name)}" style="width:100%;padding:10px 12px;border-radius:10px;border:2px solid #333;background:#101019;color:#fff;">
             </label>
             <label style="display:grid;gap:6px;">
               <span style="font-weight:800;">Party Type</span>
               <select id="partyCreateVisibility" style="width:100%;padding:10px 12px;border-radius:10px;border:2px solid #333;background:#101019;color:#fff;">
-                <option value="private">Private</option>
-                <option value="open">Open</option>
+                <option value="private" ${draft.visibility === "private" ? "selected" : ""}>Private</option>
+                <option value="open" ${draft.visibility === "open" ? "selected" : ""}>Open</option>
               </select>
             </label>
             <label style="display:grid;gap:6px;">
               <span style="font-weight:800;">Minimum Level</span>
-              <input id="partyCreateMinLevel" type="number" min="1" value="${num(me.heroLevel, 1)}" style="width:100%;padding:10px 12px;border-radius:10px;border:2px solid #333;background:#101019;color:#fff;">
+              <input id="partyCreateMinLevel" type="number" min="1" value="${esc(draft.minLevel)}" style="width:100%;padding:10px 12px;border-radius:10px;border:2px solid #333;background:#101019;color:#fff;">
             </label>
           </div>
           <div style="margin-top:14px;display:flex;gap:10px;flex-wrap:wrap;">
@@ -389,7 +446,7 @@
           <div style="opacity:.78;margin-bottom:14px;">Write the game name of the player you want to invite to your private party.</div>
           <label style="display:grid;gap:6px;">
             <span style="font-weight:800;">Game Name</span>
-            <input id="partyInviteName" type="text" placeholder="Hero Name" style="width:100%;padding:10px 12px;border-radius:10px;border:2px solid #333;background:#101019;color:#fff;">
+            <input id="partyInviteName" type="text" value="${esc(state.inviteDraft)}" placeholder="Hero Name" style="width:100%;padding:10px 12px;border-radius:10px;border:2px solid #333;background:#101019;color:#fff;">
           </label>
           <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:16px;">
             <button id="partySendInviteBtn" type="button">Send Invite</button>
@@ -814,6 +871,11 @@
   }
 
   function bindActions() {
+    document.getElementById("partyCreateName")?.addEventListener("input", syncCreateDraftFromDom);
+    document.getElementById("partyCreateVisibility")?.addEventListener("change", syncCreateDraftFromDom);
+    document.getElementById("partyCreateMinLevel")?.addEventListener("input", syncCreateDraftFromDom);
+    document.getElementById("partyInviteName")?.addEventListener("input", syncInviteDraftFromDom);
+
     document.querySelectorAll("[data-party-tab]").forEach((btn) => btn.addEventListener("click", () => {
       state.tab = btn.dataset.partyTab || "my_party";
       state.selectedPartyId = null;
@@ -823,10 +885,12 @@
     }));
 
     document.getElementById("partyCreateBtn")?.addEventListener("click", async () => {
-      const name = document.getElementById("partyCreateName")?.value || "";
-      const visibility = document.getElementById("partyCreateVisibility")?.value || "private";
+      syncCreateDraftFromDom();
+      const draft = getCreateDraft();
+      const name = draft.name || "";
+      const visibility = draft.visibility || "private";
       const maxMembers = 4;
-      const minLevel = Number(document.getElementById("partyCreateMinLevel")?.value || 1);
+      const minLevel = Number(draft.minLevel || 1);
       const activity = "Party Fight";
       const autoAcceptRequests = String(visibility).toLowerCase() === "open";
       await runAction({
@@ -874,12 +938,14 @@
     });
 
     document.getElementById("partyCloseInviteModalBtn")?.addEventListener("click", () => {
+      syncInviteDraftFromDom();
       state.inviteModalOpen = false;
       renderPartyHall();
     });
 
     document.getElementById("partyInviteModalBackdrop")?.addEventListener("click", (event) => {
       if (event.target?.id !== "partyInviteModalBackdrop") return;
+      syncInviteDraftFromDom();
       state.inviteModalOpen = false;
       renderPartyHall();
     });
@@ -887,6 +953,7 @@
     document.getElementById("partySendInviteBtn")?.addEventListener("click", async () => {
       const party = myParty();
       if (!party) return;
+      syncInviteDraftFromDom();
       const targetHeroName = String(document.getElementById("partyInviteName")?.value || "").trim();
       if (!targetHeroName) {
         setNotice("Write a hero name first.", true);
@@ -898,6 +965,7 @@
         targetHeroName
       }, "Invite sent.");
       state.inviteModalOpen = false;
+      state.inviteDraft = "";
       const input = document.getElementById("partyInviteName");
       if (input) input.value = "";
     });
@@ -1020,6 +1088,7 @@
   function renderPartyHall() {
     const shell = document.getElementById("partyHallCard");
     if (!shell) return;
+    preservePartyInputsFromDom();
     shell.innerHTML = `
       ${tabsMarkup()}
       ${bodyMarkup()}
