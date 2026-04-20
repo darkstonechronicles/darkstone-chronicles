@@ -1192,7 +1192,8 @@
       const qty = num(slot?.quantity ?? slot?.qty, 0);
       const per = num(slot?.healHp, 0);
       if (slot && qty > 0 && per > 0) {
-        const eatQty = Math.min(10, qty);
+        const targetHp = Math.min(hpMax, Math.ceil(hpMax * 0.50));
+        const eatQty = Math.min(qty, Math.max(1, Math.ceil((targetHp - hpNow) / per)));
         s.heroHP = clamp(hpNow + per * eatQty, 0, hpMax);
         if (qty > eatQty) slot.quantity = qty - eatQty;
         else s.consumables.quick_cooked_fish = null;

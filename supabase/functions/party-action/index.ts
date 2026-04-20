@@ -20,7 +20,8 @@ const PARTY_FIGHT_ENCOUNTER_MS = 6000;
 const PARTY_FIGHT_MAX_ROUNDS = 15;
 const PARTY_FIGHT_STAT_POINTS_PER_LEVEL = 5;
 const PARTY_FIGHT_STAMINA_COST = 5;
-const PARTY_FIGHT_AUTO_HP_THRESHOLD = 0.40;
+const PARTY_FIGHT_AUTO_HP_THRESHOLD = 0.25;
+const PARTY_FIGHT_AUTO_HP_TARGET = 0.50;
 const PARTY_FIGHT_AUTO_STAMINA_THRESHOLD = 0.30;
 const POTION_ACTIONS = 100;
 const PARTY_FIGHT_MONSTERS: Record<string, JsonRecord> = {
@@ -441,8 +442,9 @@ function autoUseQuickHpFood(saveData: unknown) {
   const healHp = Math.max(0, int(slot.healHp, 0));
   if (qty <= 0 || healHp <= 0) return { used: 0, healed: 0, hp: hpState.hp };
 
-  const missingHp = Math.max(0, hpState.hpMax - hpState.hp);
-  const needed = Math.max(1, Math.ceil(missingHp / healHp));
+  const targetHp = Math.min(hpState.hpMax, Math.ceil(hpState.hpMax * PARTY_FIGHT_AUTO_HP_TARGET));
+  if (hpState.hp >= targetHp) return { used: 0, healed: 0, hp: hpState.hp };
+  const needed = Math.max(1, Math.ceil((targetHp - hpState.hp) / healHp));
   const used = consumeQuickSlotItem(save, "quick_cooked_fish", Math.min(qty, needed));
   const healed = used * healHp;
   save.heroHPMax = hpState.hpMax;

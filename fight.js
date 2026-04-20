@@ -37,6 +37,8 @@ function getCurrentSave(){ return loadSave(); }
 const num = (v, f=0) => (Number.isFinite(Number(v)) ? Number(v) : f);
 const clamp = (v,a,b) => Math.max(a, Math.min(b, v));
 const POTION_ACTIONS = 100;
+const AUTO_FISH_HP_THRESHOLD = 0.25;
+const AUTO_FISH_HP_TARGET = 0.50;
 function roundLevelXP(v){
   v = Math.max(1, Math.round(Number(v) || 1));
   if (v >= 10000000) return Math.ceil(v / 50000) * 50000;
@@ -146,6 +148,36 @@ function tickPotionActions(save, actions = 1){
     }
   });
   return changed;
+}
+function autoUseQuickCookedFish(hero){
+  if (!hero) return { used: 0, healed: 0 };
+  const hpMax = Math.max(1, num(hero.hpMax, 100));
+  const hpNow = clamp(num(hero.hp, hpMax), 0, hpMax);
+  if (hpNow >= hpMax) return { used: 0, healed: 0 };
+  if (hpNow > 0 && hpNow / hpMax > AUTO_FISH_HP_THRESHOLD) return { used: 0, healed: 0 };
+
+  const s = loadSave();
+  if (!s.consumables || typeof s.consumables !== "object") s.consumables = {};
+  const slot = s.consumables.quick_cooked_fish;
+  const qty = num(slot?.quantity ?? slot?.qty, 0);
+  const healHp = num(slot?.healHp, 0);
+  if (!slot || qty <= 0 || healHp <= 0) return { used: 0, healed: 0 };
+
+  const targetHp = Math.min(hpMax, Math.ceil(hpMax * AUTO_FISH_HP_TARGET));
+  if (hpNow >= targetHp) return { used: 0, healed: 0 };
+  const used = Math.min(qty, Math.max(1, Math.ceil((targetHp - hpNow) / healHp)));
+  const healed = used * healHp;
+  hero.hp = clamp(hpNow + healed, 0, hpMax);
+
+  if (qty > used) slot.quantity = qty - used;
+  else s.consumables.quick_cooked_fish = null;
+
+  savePatch({
+    consumables: s.consumables,
+    heroHP: hero.hp,
+    heroHPMax: hpMax
+  });
+  return { used, healed };
 }
 function fightXPForMobLevel(level){
   const mobLevel = clamp(num(level, 1), 1, 99);
@@ -2781,13 +2813,19 @@ function runEncounter(){
   hero.hp = Math.max(0, hero.hp);
   currentMob.hp = Math.max(0, currentMob.hp);
 
+    const autoFish = autoUseQuickCookedFish(hero);
+    if (autoFish.used > 0) {
+      pushBattleLog(`Ate ${autoFish.used} cooked fish (+${autoFish.healed} HP).`);
+    }
+
     setHeroHPToSave(hero.hp, hero.hpMax);
 
     setHpBars(hero);
     refreshHeroInfo(hero);
     setEncounterDamage(totalHeroDamageTaken, totalDamageDealt);
-    if (tickPotionActions(potionSave, 1)) {
-      savePatch({ consumables: potionSave.consumables });
+    const potionTickSave = loadSave();
+    if (tickPotionActions(potionTickSave, 1)) {
+      savePatch({ consumables: potionTickSave.consumables });
     }
 
     if(hero.hp <= 0){
