@@ -24,6 +24,7 @@
     view: "latest",
     gearSlot: "all",
     page: 1,
+    inspectListingId: "",
     listings: [],
     selectedInvIndex: -1,
     loading: false,
@@ -127,6 +128,8 @@
         .marketTable th{font-weight:900;color:#d9d9df;background:rgba(0,0,0,.28);}
         .marketItemCell{display:flex;align-items:center;gap:10px;text-align:left;min-width:0;}
         .marketItemIcon{width:48px;height:48px;flex:0 0 48px;border:1px solid rgba(92,92,102,.8);border-radius:6px;background:#101219;object-fit:cover;}
+        .marketItemIconBtn{width:48px;height:48px;flex:0 0 48px;padding:0!important;min-height:0!important;border:0!important;background:transparent!important;box-shadow:none!important;cursor:pointer;}
+        .marketItemIconBtn:hover{transform:none!important;filter:brightness(1.16);}
         .marketItemName{font-weight:900;color:#f3ead6;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
         .marketItemMeta{font-size:12px;color:#aeb0b8;margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
         .marketGold{color:#f0d326;font-weight:900;}
@@ -139,12 +142,26 @@
         .marketPager{display:flex;align-items:center;justify-content:center;gap:6px;flex-wrap:wrap;margin-top:10px;}
         .marketPagerBtn{width:auto!important;min-width:38px!important;min-height:34px!important;padding:6px 10px!important;border-radius:6px!important;}
         .marketPagerBtn.is-active{border-color:#d0a14f!important;color:#fff1cf!important;background:linear-gradient(180deg,rgba(82,58,28,.96),rgba(35,24,14,.98))!important;}
+        .marketModalBackdrop{position:fixed;inset:0;z-index:80;display:flex;align-items:center;justify-content:center;padding:18px;background:rgba(0,0,0,.72);}
+        .marketModal{width:min(720px,96vw);border:1px solid rgba(126,94,50,.95);border-radius:10px;background:linear-gradient(180deg,rgba(22,23,31,.98),rgba(9,10,14,.98));box-shadow:0 24px 80px rgba(0,0,0,.62),inset 0 1px 0 rgba(255,232,184,.08);padding:16px;color:#f3ead6;}
+        .marketModalTop{display:flex;align-items:flex-start;gap:14px;}
+        .marketModalIcon{width:84px;height:84px;border-radius:8px;border:2px solid #333;background:#0f0f16;object-fit:cover;flex:0 0 auto;}
+        .marketModalName{font-size:24px;font-weight:900;line-height:1.1;}
+        .marketModalMeta{margin-top:7px;color:#cfc6b5;line-height:1.35;}
+        .marketModalClose{width:auto!important;min-height:34px!important;padding:7px 11px!important;margin-left:auto;}
+        .marketModalActions{display:flex;align-items:center;justify-content:center;gap:8px;flex-wrap:wrap;margin-top:16px;}
+        .marketModalQty{width:84px;padding:9px 10px;border-radius:8px;border:1px solid rgba(126,94,50,.86);background:#090a0e;color:#fff;text-align:center;}
+        .marketModalInfo{padding:9px 12px;border-radius:8px;border:1px solid #333;background:#15151e;color:#f0d326;font-weight:900;}
         @media(max-width:760px){
           .marketTop{grid-template-columns:1fr;}
           .marketSlotBar{grid-template-columns:repeat(3,minmax(0,1fr));}
           .marketSellGrid{grid-template-columns:1fr 1fr;}
           .marketTable{font-size:13px;}
           .marketItemIcon{width:40px;height:40px;flex-basis:40px;}
+          .marketItemIconBtn{width:40px;height:40px;flex-basis:40px;}
+          .marketModalTop{align-items:center;}
+          .marketModalIcon{width:70px;height:70px;}
+          .marketModalName{font-size:20px;}
         }
       </style>
       <div class="marketShell">
@@ -174,6 +191,7 @@
           ${renderSellBox()}
           <div id="shopMsg" class="marketStatus">${esc(state.status)}</div>
         </div>
+        ${renderInspectorModal()}
       </div>
     `;
   }
@@ -257,7 +275,9 @@
       <tr>
         <td>
           <div class="marketItemCell">
-            <img class="marketItemIcon" src="${esc(listing.item_img || item.img || marketIcon(listing.category))}" alt="">
+            <button type="button" class="marketItemIconBtn" data-inspect-listing="${esc(listing.id)}" aria-label="Inspect ${esc(listing.item_name || item.name || "Item")}">
+              <img class="marketItemIcon" src="${esc(listing.item_img || item.img || marketIcon(listing.category))}" alt="">
+            </button>
             <div style="min-width:0;">
               <div class="marketItemName">${esc(listing.item_name || item.name || "Item")}</div>
               <div class="marketItemMeta">${esc(itemMeta(item) || `Seller: ${listing.seller_name || "Hero"}`)}</div>
@@ -276,6 +296,52 @@
           `}
         </td>
       </tr>
+    `;
+  }
+
+  function renderInspectorModal(){
+    const listing = selectedListing(state.inspectListingId);
+    if (!listing) return "";
+    const userId = getUserId();
+    const item = listing.item || {};
+    const qty = Math.max(1, Math.floor(num(listing.quantity, 1)));
+    const priceEach = Math.max(1, Math.floor(num(listing.price_each, 1)));
+    const mine = userId && listing.seller_user_id === userId;
+    const details = itemMeta(item);
+    const statParts = [];
+    if (item?.slot) statParts.push(`Slot: ${slotLabel(item.slot)}`);
+    if (item?.rarity) statParts.push(`Rarity: ${item.rarity}`);
+    if (num(item?.reqLevel, 0)) statParts.push(`Required Level: ${num(item.reqLevel, 1)}`);
+    if (num(item?.atk, 0)) statParts.push(`Attack +${num(item.atk, 0)}`);
+    if (num(item?.def, 0)) statParts.push(`Defense +${num(item.def, 0)}`);
+    return `
+      <div class="marketModalBackdrop" data-close-market-inspector="1">
+        <div class="marketModal" role="dialog" aria-modal="true" aria-label="${esc(listing.item_name || item.name || "Market Item")}" data-market-modal="1">
+          <div class="marketModalTop">
+            <img class="marketModalIcon" src="${esc(listing.item_img || item.img || marketIcon(listing.category))}" alt="">
+            <div style="min-width:0;flex:1;">
+              <div class="marketModalName">${esc(listing.item_name || item.name || "Item")}</div>
+              <div class="marketModalMeta">
+                Seller: <b>${esc(listing.seller_name || "Hero")}</b><br>
+                Quantity: <b>${fmt.format(qty)}</b><br>
+                Price EA: <span class="marketGold">${fmt.format(priceEach)} gold</span>
+                ${details ? `<br>${esc(details)}` : ""}
+                ${statParts.length ? `<br>${esc(statParts.join(" - "))}` : ""}
+              </div>
+            </div>
+            <button type="button" class="marketModalClose" data-close-market-inspector="1">Close</button>
+          </div>
+          <div class="marketModalActions">
+            ${mine ? `
+              <button type="button" data-cancel-listing="${esc(listing.id)}">Cancel Listing</button>
+            ` : `
+              <input class="marketModalQty" type="number" min="1" max="${qty}" value="1" data-inspector-buy-qty="${esc(listing.id)}">
+              <button type="button" data-inspector-buy-listing="${esc(listing.id)}">Buy</button>
+              <div class="marketModalInfo">Max: ${fmt.format(qty)}</div>
+            `}
+          </div>
+        </div>
+      </div>
     `;
   }
 
@@ -452,17 +518,24 @@
     }
   }
 
-  async function buyListing(id){
+  function findInspectorBuyQtyInput(id){
+    return Array.from(document.querySelectorAll("[data-inspector-buy-qty]"))
+      .find((el) => String(el.dataset.inspectorBuyQty || "") === String(id)) || null;
+  }
+
+  async function buyListing(id, explicitQty = null){
     const listing = selectedListing(id);
     if (!listing) {
       setStatus("Listing is no longer visible.");
       return;
     }
     const qtyEl = findBuyQtyInput(id);
-    const qty = Math.max(1, Math.min(num(listing.quantity, 1), Math.floor(num(qtyEl?.value, 1))));
+    const wantedQty = explicitQty == null ? qtyEl?.value : explicitQty;
+    const qty = Math.max(1, Math.min(num(listing.quantity, 1), Math.floor(num(wantedQty, 1))));
     setStatus("Buying item...");
     try {
       await window.DSAuth.invokeBuyMarketListing({ listingId: id, quantity: qty });
+      state.inspectListingId = "";
       await loadListings();
       setStatus(`Bought ${listing.item_name || "Item"} x${qty}.`);
     } catch (error) {
@@ -474,6 +547,7 @@
     setStatus("Cancelling listing...");
     try {
       await window.DSAuth.invokeCancelMarketListing({ listingId: id });
+      state.inspectListingId = "";
       await loadListings();
       setStatus("Listing cancelled and returned to your inventory.");
     } catch (error) {
@@ -508,8 +582,28 @@
         render();
       });
     });
+    document.querySelectorAll("[data-inspect-listing]").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        state.inspectListingId = String(btn.dataset.inspectListing || "");
+        render();
+      });
+    });
+    document.querySelectorAll("[data-close-market-inspector]").forEach((btn) => {
+      btn.addEventListener("click", (event) => {
+        if (btn.classList.contains("marketModalBackdrop") && event.target !== btn) return;
+        state.inspectListingId = "";
+        render();
+      });
+    });
     document.querySelectorAll("[data-buy-listing]").forEach((btn) => {
       btn.addEventListener("click", () => buyListing(btn.dataset.buyListing));
+    });
+    document.querySelectorAll("[data-inspector-buy-listing]").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const id = btn.dataset.inspectorBuyListing;
+        const qtyEl = findInspectorBuyQtyInput(id);
+        buyListing(id, qtyEl?.value);
+      });
     });
     document.querySelectorAll("[data-cancel-listing]").forEach((btn) => {
       btn.addEventListener("click", () => cancelListing(btn.dataset.cancelListing));
