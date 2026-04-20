@@ -15,6 +15,7 @@ type PartyRow = {
   visibility: string;
   state: string;
   activity: string;
+  selected_monster_id: string;
   min_level: number;
   max_members: number;
   auto_accept_requests: boolean;
@@ -94,6 +95,21 @@ function int(value: unknown, fallback = 0) {
   return Math.trunc(num(value, fallback));
 }
 
+function bigintLike(value: unknown, fallback = 0) {
+  if (typeof value === "number" && Number.isFinite(value)) return Math.max(0, Math.trunc(value));
+  const next = Number(value);
+  return Number.isFinite(next) ? Math.max(0, Math.trunc(next)) : fallback;
+}
+
+function readCombatStat(saveData: unknown, keys: string[]) {
+  const save = saveData && typeof saveData === "object" ? saveData as Record<string, unknown> : {};
+  for (const key of keys) {
+    if (!(key in save)) continue;
+    return bigintLike(save[key], 0);
+  }
+  return 0;
+}
+
 function normalizeVisibility(value: unknown) {
   return str(value, "private").toLowerCase() === "open" ? "open" : "private";
 }
@@ -101,6 +117,10 @@ function normalizeVisibility(value: unknown) {
 function normalizeActivity(value: unknown) {
   const next = str(value, "Idle");
   return next.slice(0, 60) || "Idle";
+}
+
+function normalizeMonsterId(value: unknown) {
+  return str(value).toLowerCase().replace(/[^a-z0-9-]/g, "").slice(0, 80);
 }
 
 function normalizePartyName(value: unknown, fallback: string) {
@@ -153,7 +173,7 @@ async function getCurrentPartyId(admin: ReturnType<typeof createClient>, userId:
 async function getPartyRow(admin: ReturnType<typeof createClient>, partyId: string) {
   const { data, error } = await admin
     .from("parties")
-    .select("id, leader_user_id, name, visibility, state, activity, min_level, max_members, auto_accept_requests, locked, created_at, updated_at, disbanded_at")
+    .select("id, leader_user_id, name, visibility, state, activity, selected_monster_id, min_level, max_members, auto_accept_requests, locked, created_at, updated_at, disbanded_at")
     .eq("id", partyId)
     .maybeSingle();
   if (error) throw error;
@@ -174,7 +194,7 @@ async function getUserSummaries(admin: ReturnType<typeof createClient>, userIds:
   const ids = Array.from(new Set(userIds.filter(Boolean)));
   if (!ids.length) return new Map<string, JsonRecord>();
 
-  const [profilesRes, statsRes] = await Promise.all([
+  const [profilesRes, statsRes, savesRes] = await Promise.all([
     admin
       .from("profiles")
       .select("id, display_name, avatar_url, last_seen_at, last_seen_page")
@@ -183,25 +203,39 @@ async function getUserSummaries(admin: ReturnType<typeof createClient>, userIds:
       .from("player_public_stats")
       .select("user_id, hero_name, hero_level")
       .in("user_id", ids),
+    admin
+      .from("player_saves")
+      .select("user_id, save_data")
+      .in("user_id", ids),
   ]);
 
   if (profilesRes.error) throw profilesRes.error;
   if (statsRes.error) throw statsRes.error;
+  if (savesRes.error) throw savesRes.error;
 
   const statsMap = new Map<string, JsonRecord>();
   for (const row of (statsRes.data || []) as JsonRecord[]) {
     statsMap.set(str(row.user_id), row);
   }
 
+  const savesMap = new Map<string, JsonRecord>();
+  for (const row of (savesRes.data || []) as JsonRecord[]) {
+    savesMap.set(str(row.user_id), row);
+  }
+
   const summaryMap = new Map<string, JsonRecord>();
   for (const row of (profilesRes.data || []) as JsonRecord[]) {
     const userId = str(row.id);
     const stats = statsMap.get(userId) || {};
+    const save = savesMap.get(userId) || {};
+    const saveData = save.save_data;
     summaryMap.set(userId, {
       id: userId,
       heroName: str((stats as JsonRecord).hero_name || row.display_name, "Hero"),
       heroLevel: Math.max(1, int((stats as JsonRecord).hero_level, 1)),
       avatarUrl: str(row.avatar_url, "images/hero.png") || "images/hero.png",
+      heroAttack: readCombatStat(saveData, ["attackTotal", "heroAtk", "heroAttack"]),
+      heroDefense: readCombatStat(saveData, ["defenseTotal", "heroDef", "heroDefense"]),
       lastSeenAt: row.last_seen_at || null,
       lastSeenPage: str(row.last_seen_page),
     });
@@ -214,6 +248,8 @@ async function getUserSummaries(admin: ReturnType<typeof createClient>, userIds:
         heroName: "Hero",
         heroLevel: 1,
         avatarUrl: "images/hero.png",
+        heroAttack: 0,
+        heroDefense: 0,
         lastSeenAt: null,
         lastSeenPage: "",
       });
@@ -277,6 +313,8 @@ async function buildPartySnapshot(admin: ReturnType<typeof createClient>, partyI
       heroName: str(summary.heroName, "Hero"),
       heroLevel: Math.max(1, int(summary.heroLevel, 1)),
       avatarUrl: str(summary.avatarUrl, "images/hero.png"),
+      heroAttack: Math.max(0, int(summary.heroAttack, 0)),
+      heroDefense: Math.max(0, int(summary.heroDefense, 0)),
       role: entry.role === "leader" ? "leader" : "member",
       ready: !!entry.ready,
       joinedAt: entry.joined_at,
@@ -286,7 +324,8 @@ async function buildPartySnapshot(admin: ReturnType<typeof createClient>, partyI
   });
   const memberCount = memberList.length;
   const role = memberList.find((entry) => entry.userId === viewerUserId)?.role || "none";
-  const canStartActivity = party.state === "forming" && memberCount >= 2 && memberCount <= party.max_members && memberList.every((entry) => entry.ready);
+  const nonLeaderMembers = memberList.filter((entry) => !entry.isLeader);
+  const canStartActivity = party.state === "forming" && memberCount >= 2 && memberCount <= party.max_members && nonLeaderMembers.every((entry) => entry.ready);
 
   const snapshot: JsonRecord = {
     id: party.id,
@@ -294,6 +333,7 @@ async function buildPartySnapshot(admin: ReturnType<typeof createClient>, partyI
     visibility: party.visibility,
     state: party.state,
     activity: party.activity,
+    selectedMonsterId: str(party.selected_monster_id),
     minLevel: party.min_level,
     maxMembers: party.max_members,
     autoAcceptRequests: !!party.auto_accept_requests,
@@ -311,16 +351,29 @@ async function buildPartySnapshot(admin: ReturnType<typeof createClient>, partyI
     activeSession: null,
   };
 
+  const activeSession = await getActiveSessionForParty(admin, party.id);
+  if (activeSession) {
+    const relatedSummaries = await getUserSummaries(admin, [activeSession.started_by_user_id]);
+    const startedBy = relatedSummaries.get(activeSession.started_by_user_id) || {};
+    snapshot.activeSession = {
+      id: activeSession.id,
+      activity: activeSession.activity,
+      status: activeSession.status,
+      startedByUserId: activeSession.started_by_user_id,
+      startedByHeroName: str(startedBy.heroName, "Hero"),
+      startedAt: activeSession.started_at,
+      endedAt: activeSession.ended_at,
+    };
+  }
+
   if (role === "leader") {
-    const [pendingInvites, pendingJoinRequests, activeSession] = await Promise.all([
+    const [pendingInvites, pendingJoinRequests] = await Promise.all([
       getPendingInvitesForParty(admin, party.id),
       getPendingJoinRequestsForParty(admin, party.id),
-      getActiveSessionForParty(admin, party.id),
     ]);
     const relatedSummaries = await getUserSummaries(admin, [
       ...pendingInvites.map((entry) => entry.to_user_id),
       ...pendingJoinRequests.map((entry) => entry.user_id),
-      ...(activeSession ? [activeSession.started_by_user_id] : []),
     ]);
     snapshot.pendingInvites = pendingInvites.map((entry) => {
       const summary = relatedSummaries.get(entry.to_user_id) || {};
@@ -347,18 +400,6 @@ async function buildPartySnapshot(admin: ReturnType<typeof createClient>, partyI
         message: str(entry.message),
       };
     });
-    if (activeSession) {
-      const startedBy = relatedSummaries.get(activeSession.started_by_user_id) || {};
-      snapshot.activeSession = {
-        id: activeSession.id,
-        activity: activeSession.activity,
-        status: activeSession.status,
-        startedByUserId: activeSession.started_by_user_id,
-        startedByHeroName: str(startedBy.heroName, "Hero"),
-        startedAt: activeSession.started_at,
-        endedAt: activeSession.ended_at,
-      };
-    }
   }
 
   return snapshot;
@@ -398,7 +439,7 @@ async function getBootstrapState(admin: ReturnType<typeof createClient>, userId:
       .order("created_at", { ascending: false }),
     admin
       .from("parties")
-      .select("id, leader_user_id, name, visibility, state, activity, min_level, max_members, auto_accept_requests, locked, created_at, updated_at, disbanded_at")
+      .select("id, leader_user_id, name, visibility, state, activity, selected_monster_id, min_level, max_members, auto_accept_requests, locked, created_at, updated_at, disbanded_at")
       .eq("visibility", "open")
       .eq("state", "forming")
       .is("disbanded_at", null)
@@ -512,6 +553,8 @@ async function getBootstrapState(admin: ReturnType<typeof createClient>, userId:
             heroName: str(summary.heroName, "Hero"),
             heroLevel: Math.max(1, int(summary.heroLevel, 1)),
             avatarUrl: str(summary.avatarUrl, "images/hero.png"),
+            heroAttack: Math.max(0, int(summary.heroAttack, 0)),
+            heroDefense: Math.max(0, int(summary.heroDefense, 0)),
             role: member.role === "leader" ? "leader" : "member",
             ready: !!member.ready,
           };
@@ -574,11 +617,12 @@ async function createParty(admin: ReturnType<typeof createClient>, userId: strin
     .from("parties")
     .insert({
       leader_user_id: userId,
-      name,
-      visibility,
-      state: "forming",
-      activity,
-      min_level: minLevel,
+        name,
+        visibility,
+        state: "forming",
+        activity,
+        selected_monster_id: "",
+        min_level: minLevel,
       max_members: maxMembers,
       auto_accept_requests: autoAcceptRequests,
       locked: false,
@@ -622,6 +666,7 @@ async function updateParty(admin: ReturnType<typeof createClient>, userId: strin
     name: payload.name != null ? normalizePartyName(payload.name, party.name) : party.name,
     visibility: payload.visibility != null ? normalizeVisibility(payload.visibility) : party.visibility,
     activity: payload.activity != null ? normalizeActivity(payload.activity) : party.activity,
+    selected_monster_id: payload.selectedMonsterId != null ? normalizeMonsterId(payload.selectedMonsterId) : party.selected_monster_id,
     min_level: payload.minLevel != null ? Math.max(1, int(payload.minLevel, party.min_level)) : party.min_level,
     max_members: nextMaxMembers,
     auto_accept_requests: payload.autoAcceptRequests != null ? payload.autoAcceptRequests === true : party.auto_accept_requests,
@@ -636,6 +681,7 @@ async function updateParty(admin: ReturnType<typeof createClient>, userId: strin
   await logPartyEvent(admin, partyId, userId, "party_updated", {
     visibility: nextValues.visibility,
     activity: nextValues.activity,
+    selectedMonsterId: nextValues.selected_monster_id,
     minLevel: nextValues.min_level,
     maxMembers: nextValues.max_members,
     autoAcceptRequests: nextValues.auto_accept_requests,
@@ -679,6 +725,26 @@ async function invitePlayer(admin: ReturnType<typeof createClient>, userId: stri
   await logPartyEvent(admin, partyId, userId, "party_invited_player", {
     targetUserId: target.userId,
     targetHeroName: target.heroName,
+  });
+}
+
+async function chooseMonster(admin: ReturnType<typeof createClient>, userId: string, payload: JsonRecord) {
+  const partyId = str(payload.partyId) || await getCurrentPartyId(admin, userId);
+  if (!partyId) throw new Error("Party not found.");
+  const party = await getPartyRow(admin, partyId);
+  if (!party || party.disbanded_at) throw new Error("Party not found.");
+  if (party.leader_user_id !== userId) throw new Error("Leader access required.");
+  if (party.state !== "forming" || party.locked) throw new Error("Monster selection is locked right now.");
+
+  const selectedMonsterId = normalizeMonsterId(payload.selectedMonsterId);
+  const { error } = await admin
+    .from("parties")
+    .update({ selected_monster_id: selectedMonsterId })
+    .eq("id", partyId);
+  if (error) throw error;
+
+  await logPartyEvent(admin, partyId, userId, "party_monster_selected", {
+    selectedMonsterId,
   });
 }
 
@@ -986,7 +1052,9 @@ async function startActivity(admin: ReturnType<typeof createClient>, userId: str
   const members = await getPartyMembers(admin, partyId);
   if (members.length < 2) throw new Error("A party needs at least 2 players to start.");
   if (members.length > party.max_members) throw new Error("Party has too many members.");
-  if (!members.every((entry) => entry.ready)) throw new Error("All party members must be ready first.");
+  if (!members.filter((entry) => entry.role !== "leader").every((entry) => entry.ready)) {
+    throw new Error("All non-leader party members must be ready first.");
+  }
 
   const summaries = await getUserSummaries(admin, members.map((entry) => entry.user_id));
   const memberSnapshot = members.map((entry) => {
@@ -1001,6 +1069,9 @@ async function startActivity(admin: ReturnType<typeof createClient>, userId: str
     };
   });
   const activity = normalizeActivity(payload.activity || party.activity);
+  if (activity.toLowerCase().includes("party fight") && !str(party.selected_monster_id)) {
+    throw new Error("Choose a monster before starting Party Fight.");
+  }
 
   const [sessionInsert, partyUpdate] = await Promise.all([
     admin.from("party_activity_sessions").insert({
@@ -1117,6 +1188,10 @@ Deno.serve(async (req) => {
     if (action === "invite_player") {
       await invitePlayer(admin, user.id, payload);
       return json({ ...(await getBootstrapState(admin, user.id)), message: "Invite sent." });
+    }
+    if (action === "choose_monster") {
+      await chooseMonster(admin, user.id, payload);
+      return json({ ...(await getBootstrapState(admin, user.id)), message: "Monster selected." });
     }
     if (action === "respond_invite") {
       await respondInvite(admin, user.id, payload);

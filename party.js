@@ -5,6 +5,8 @@
       id: "gravefang-hydra",
       name: "Gravefang Hydra",
       img: "images/mobs/fighting/zone10/void_devourer.png",
+      attack: 58,
+      defense: 46,
       role: "Multi-Target Bruiser",
       levelText: "Recommended Party Lv 18+",
       description: "A many-headed void beast that rewards coordinated focus fire and punishes weak target priority."
@@ -13,6 +15,8 @@
       id: "embermaw-colossus",
       name: "Embermaw Colossus",
       img: "images/mobs/fighting/zone9/inferno_titan.png",
+      attack: 64,
+      defense: 60,
       role: "Frontline Tank",
       levelText: "Recommended Party Lv 22+",
       description: "A molten giant with crushing melee phases and dangerous burst windows."
@@ -21,6 +25,8 @@
       id: "thornveil-broodmother",
       name: "Thornveil Broodmother",
       img: "images/mobs/fighting/zone7/heart_of_the_thicket.png",
+      attack: 49,
+      defense: 38,
       role: "Summoner",
       levelText: "Recommended Party Lv 16+",
       description: "A corrupted forest matriarch that overwhelms slow parties with constant reinforcements."
@@ -29,6 +35,8 @@
       id: "stormglass-seraph",
       name: "Stormglass Seraph",
       img: "images/mobs/fighting/zone8/ancient_storm_avatar.png",
+      attack: 61,
+      defense: 41,
       role: "Ranged Caster",
       levelText: "Recommended Party Lv 20+",
       description: "An aerial caster that chains pressure across the whole party with storm magic."
@@ -37,6 +45,8 @@
       id: "cryptwarden-revenant",
       name: "Cryptwarden Revenant",
       img: "images/mobs/fighting/zone2/lord_of_the_broken_keep.png",
+      attack: 44,
+      defense: 52,
       role: "Control Boss",
       levelText: "Recommended Party Lv 14+",
       description: "An armored undead commander built around control effects and punishing mispositioning."
@@ -47,6 +57,8 @@
     tab: "my_party",
     selectedPartyId: null,
     selectedPartyFightMonsterId: null,
+    inviteModalOpen: false,
+    monsterModalOpen: false,
     data: null,
     loading: false,
     actionBusy: false,
@@ -116,6 +128,10 @@
     return PARTY_FIGHT_MONSTERS.find((entry) => entry.id === state.selectedPartyFightMonsterId) || null;
   }
 
+  function selectedPartyMonsterFromParty(party) {
+    return PARTY_FIGHT_MONSTERS.find((entry) => entry.id === String(party?.selectedMonsterId || "").trim()) || null;
+  }
+
   async function loadPartyState({ silent = false } = {}) {
     if (!window.DSAuth?.invokePartyAction) return null;
     if (state.loading && silent) return state.data;
@@ -164,55 +180,33 @@
     const me = profile();
     return `
       <section style="display:grid;gap:14px;">
-        <div style="padding:14px;border:1px solid rgba(255,255,255,.10);border-radius:12px;background:rgba(255,255,255,.02);text-align:center;">
-          <div style="font-size:18px;font-weight:800;margin-bottom:8px;">No Active Party</div>
-          <div style="opacity:.82;">Create a party, invite allies, and prepare a 2-4 player run.</div>
-        </div>
         <div style="padding:14px;border:1px solid rgba(255,255,255,.10);border-radius:12px;background:rgba(255,255,255,.02);">
-          <div style="font-size:16px;font-weight:800;margin-bottom:12px;">Create Party</div>
           <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px;">
             <label style="display:grid;gap:6px;">
               <span style="font-weight:800;">Party Name</span>
               <input id="partyCreateName" type="text" value="${esc(`${me.heroName}'s Party`)}" style="width:100%;padding:10px 12px;border-radius:10px;border:2px solid #333;background:#101019;color:#fff;">
             </label>
             <label style="display:grid;gap:6px;">
-              <span style="font-weight:800;">Visibility</span>
+              <span style="font-weight:800;">Party Type</span>
               <select id="partyCreateVisibility" style="width:100%;padding:10px 12px;border-radius:10px;border:2px solid #333;background:#101019;color:#fff;">
                 <option value="private">Private</option>
                 <option value="open">Open</option>
               </select>
             </label>
             <label style="display:grid;gap:6px;">
-              <span style="font-weight:800;">Party Size</span>
-              <select id="partyCreateMaxMembers" style="width:100%;padding:10px 12px;border-radius:10px;border:2px solid #333;background:#101019;color:#fff;">
-                <option value="2">2 Players</option>
-                <option value="3">3 Players</option>
-                <option value="4" selected>4 Players</option>
-              </select>
-            </label>
-            <label style="display:grid;gap:6px;">
               <span style="font-weight:800;">Minimum Level</span>
               <input id="partyCreateMinLevel" type="number" min="1" value="${num(me.heroLevel, 1)}" style="width:100%;padding:10px 12px;border-radius:10px;border:2px solid #333;background:#101019;color:#fff;">
-            </label>
-            <label style="display:grid;gap:6px;">
-              <span style="font-weight:800;">Activity</span>
-              <input id="partyCreateActivity" type="text" value="Dungeon Run" style="width:100%;padding:10px 12px;border-radius:10px;border:2px solid #333;background:#101019;color:#fff;">
-            </label>
-            <label style="display:flex;align-items:center;gap:8px;padding-top:28px;">
-              <input id="partyCreateAutoAccept" type="checkbox">
-              <span>Auto-accept open join requests</span>
             </label>
           </div>
           <div style="margin-top:14px;display:flex;gap:10px;flex-wrap:wrap;">
             <button id="partyCreateBtn" type="button">Create Party</button>
-            <button type="button" data-party-tab="find_party">Browse Open Parties</button>
           </div>
         </div>
         <div style="padding:14px;border:1px solid rgba(255,255,255,.10);border-radius:12px;background:rgba(255,255,255,.02);display:grid;gap:4px;opacity:.9;">
-          <div>- Party size is always 2 to 4 players.</div>
-          <div>- A single player cannot start a party activity alone.</div>
-          <div>- Open parties can receive join requests from the Party Hall.</div>
-          <div>- Private parties rely on direct invites.</div>
+          <div>- Private means only invited players can join.</div>
+          <div>- Open means players can find your party and send a join request.</div>
+          <div>- Every party has 4 slots: 1 leader and 3 member slots.</div>
+          <div>- More settings can be changed after the party is created.</div>
         </div>
       </section>
     `;
@@ -267,95 +261,149 @@
     `).join("");
   }
 
+  function inviteModalMarkup() {
+    if (!state.inviteModalOpen) return "";
+    return `
+      <div id="partyInviteModalBackdrop" style="position:fixed;inset:0;z-index:980;background:rgba(0,0,0,.58);display:flex;align-items:center;justify-content:center;padding:18px;">
+        <div style="width:min(460px, 100%);padding:18px;border-radius:16px;border:1px solid rgba(255,255,255,.12);background:linear-gradient(180deg, rgba(24,27,40,.98), rgba(14,16,27,.98));box-shadow:0 24px 60px rgba(0,0,0,.42);">
+          <div style="font-size:20px;font-weight:900;margin-bottom:8px;">Invite Player</div>
+          <div style="opacity:.78;margin-bottom:14px;">Write the game name of the player you want to invite to your private party.</div>
+          <label style="display:grid;gap:6px;">
+            <span style="font-weight:800;">Game Name</span>
+            <input id="partyInviteName" type="text" placeholder="Hero Name" style="width:100%;padding:10px 12px;border-radius:10px;border:2px solid #333;background:#101019;color:#fff;">
+          </label>
+          <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:16px;">
+            <button id="partySendInviteBtn" type="button">Send Invite</button>
+            <button id="partyCloseInviteModalBtn" type="button">Cancel</button>
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
+  function chooseMonsterModalMarkup() {
+    if (!state.monsterModalOpen) return "";
+    return `
+      <div id="partyMonsterModalBackdrop" style="position:fixed;inset:0;z-index:980;background:rgba(0,0,0,.58);display:flex;align-items:center;justify-content:center;padding:18px;">
+        <div style="width:min(940px, 100%);padding:18px;border-radius:16px;border:1px solid rgba(255,255,255,.12);background:linear-gradient(180deg, rgba(24,27,40,.98), rgba(14,16,27,.98));box-shadow:0 24px 60px rgba(0,0,0,.42);">
+          <div style="font-size:20px;font-weight:900;margin-bottom:12px;">Choose Monster</div>
+          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;">
+            ${PARTY_FIGHT_MONSTERS.map((monster) => `
+              <button
+                type="button"
+                data-party-choose-monster="${esc(monster.id)}"
+                style="text-align:left;padding:0;border:1px solid rgba(255,255,255,.10);border-radius:14px;background:rgba(255,255,255,.03);overflow:hidden;cursor:pointer;"
+              >
+                <img src="${esc(monster.img)}" alt="${esc(monster.name)}" style="display:block;width:100%;aspect-ratio:1 / 1;object-fit:cover;background:#0f121a;">
+                <div style="padding:12px;">
+                  <div style="font-size:15px;font-weight:900;color:#f3ead6;">${esc(monster.name)}</div>
+                  <div style="opacity:.78;font-size:12px;margin-top:4px;">${esc(monster.role)}</div>
+                </div>
+              </button>
+            `).join("")}
+          </div>
+          <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:16px;">
+            <button id="partyCloseMonsterModalBtn" type="button">Cancel</button>
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
+  function partySlotCardMarkup(member, label) {
+    const frameColor = member.isLeader || member.ready ? "#43c26b" : "#c45151";
+    return `
+      <div style="display:grid;justify-items:center;align-content:start;gap:10px;text-align:center;">
+        <div style="padding:4px 10px;border-radius:999px;background:rgba(231,192,110,.14);border:1px solid rgba(231,192,110,.18);color:#f0d38d;font-weight:800;font-size:12px;">${esc(label)}</div>
+        <img src="${esc(member.avatarUrl)}" alt="${esc(member.heroName)}" style="width:110px;height:110px;border-radius:18px;border:3px solid ${frameColor};object-fit:cover;box-shadow:0 0 0 1px rgba(0,0,0,.28);">
+        <div style="font-weight:900;font-size:18px;line-height:1.1;">${esc(member.heroName)}</div>
+        <div style="font-size:12px;opacity:.82;letter-spacing:.02em;">ATT ${num(member.heroAttack, 0)}  DEF ${num(member.heroDefense, 0)}</div>
+      </div>
+    `;
+  }
+
+  function partyEmptySlotMarkup(party) {
+    const isPrivate = String(party.visibility || "").toLowerCase() === "private";
+    return `
+      <div style="display:grid;justify-items:center;align-content:start;gap:10px;text-align:center;">
+        <div style="padding:4px 10px;border-radius:999px;background:transparent;border:1px solid transparent;color:transparent;font-weight:800;font-size:12px;">Empty</div>
+        <div style="width:110px;height:110px;border-radius:18px;border:2px dashed rgba(255,255,255,.18);display:flex;align-items:center;justify-content:center;font-size:34px;opacity:.55;">+</div>
+        ${isPrivate ? `<button type="button" data-party-open-invite-modal="1">Invite</button>` : `<div style="height:36px;"></div>`}
+      </div>
+    `;
+  }
+
+  function partySlotsMarkup(party) {
+    const members = Array.isArray(party.members) ? party.members : [];
+    const totalAttack = members.reduce((sum, member) => sum + num(member?.heroAttack, 0), 0);
+    const totalDefense = members.reduce((sum, member) => sum + num(member?.heroDefense, 0), 0);
+    const selectedMonster = selectedPartyMonsterFromParty(party);
+    const slots = [];
+    for (let index = 0; index < 4; index += 1) {
+      const member = members[index] || null;
+      if (member) {
+        slots.push(partySlotCardMarkup(member, member.isLeader ? "Leader" : (member.ready ? "Ready" : "Not Ready")));
+      } else {
+        slots.push(partyEmptySlotMarkup(party));
+      }
+    }
+    return `
+      <section style="padding:14px;border:1px solid rgba(255,255,255,.10);border-radius:16px;background:rgba(255,255,255,.02);">
+        <div style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:18px;align-items:start;">
+          ${slots.join("")}
+        </div>
+        <div style="margin-top:18px;display:grid;justify-items:center;gap:10px;text-align:center;">
+          ${selectedMonster
+            ? `
+              <div style="display:grid;grid-template-columns:110px auto;gap:16px;align-items:center;">
+                <img src="${esc(selectedMonster.img)}" alt="${esc(selectedMonster.name)}" style="width:110px;height:110px;border-radius:18px;border:3px solid #c79b44;object-fit:cover;box-shadow:0 0 0 1px rgba(0,0,0,.28);">
+                <div style="display:grid;gap:10px;justify-items:start;text-align:left;">
+                  <div style="display:flex;align-items:center;gap:8px;">
+                    <span style="display:inline-flex;align-items:center;justify-content:center;min-width:42px;height:26px;padding:0 8px;border-radius:999px;background:rgba(179,72,92,.16);border:1px solid rgba(179,72,92,.24);color:#ffb7c1;font-size:11px;font-weight:900;">ATK</span>
+                    <span style="font-weight:800;">${num(selectedMonster.attack, 0)}</span>
+                  </div>
+                  <div style="display:flex;align-items:center;gap:8px;">
+                    <span style="display:inline-flex;align-items:center;justify-content:center;min-width:42px;height:26px;padding:0 8px;border-radius:999px;background:rgba(79,121,194,.16);border:1px solid rgba(79,121,194,.24);color:#c3d8ff;font-size:11px;font-weight:900;">DEF</span>
+                    <span style="font-weight:800;">${num(selectedMonster.defense, 0)}</span>
+                  </div>
+                </div>
+              </div>
+            `
+            : `<div style="width:110px;height:110px;border-radius:18px;border:2px dashed rgba(255,255,255,.18);display:flex;align-items:center;justify-content:center;font-size:18px;opacity:.55;">Monster</div>`}
+          <div style="font-weight:900;font-size:18px;line-height:1.1;">${esc(selectedMonster?.name || "No Monster Selected")}</div>
+          ${isLeader() ? `<button id="partyChooseMonsterBtn" type="button">Choose Monster</button>` : ``}
+        </div>
+        <div style="margin-top:14px;padding:10px 14px;border:1px solid rgba(255,255,255,.10);border-radius:12px;background:rgba(255,255,255,.03);text-align:center;font-weight:800;">
+          Total Attack : ${num(totalAttack, 0)} , Total Defense : ${num(totalDefense, 0)}
+        </div>
+        ${chooseMonsterModalMarkup()}
+      </section>
+    `;
+  }
+
   function leaderPartyMarkup(party) {
     const canStart = !!party.canStartActivity;
     const active = party.state === "active";
+    const isPrivate = String(party.visibility || "").toLowerCase() === "private";
+    const hasSelectedMonster = !!String(party.selectedMonsterId || "").trim();
     return `
       <div style="display:grid;gap:14px;">
-        <section style="padding:14px;border:1px solid rgba(255,255,255,.10);border-radius:12px;background:rgba(255,255,255,.02);display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:8px 16px;">
-          <div><strong>Party Name:</strong> ${esc(party.name)}</div>
-          <div><strong>Leader:</strong> You</div>
-          <div><strong>Members:</strong> ${num(party.memberCount, 0)} / ${num(party.maxMembers, 4)}</div>
-          <div><strong>Visibility:</strong> ${esc(party.visibility)}</div>
-          <div><strong>State:</strong> ${esc(party.state)}</div>
-          <div><strong>Activity:</strong> ${esc(party.activity)}</div>
-          <div><strong>Min Level:</strong> ${num(party.minLevel, 1)}+</div>
-          <div><strong>Auto Accept:</strong> ${party.autoAcceptRequests ? "On" : "Off"}</div>
-        </section>
+        ${partySlotsMarkup(party)}
 
-        <section style="padding:14px;border:1px solid rgba(255,255,255,.10);border-radius:12px;background:rgba(255,255,255,.02);">
-          <div style="font-size:15px;font-weight:800;margin-bottom:10px;">Members</div>
-          <div style="display:grid;gap:10px;">${memberRowsMarkup(party, true)}</div>
-        </section>
+        <div style="display:flex;gap:12px;flex-wrap:wrap;justify-content:flex-start;">
+          <button id="partyStartActivityBtn" type="button" ${!canStart || active || !hasSelectedMonster ? "disabled" : ""}>Start Party Fight</button>
+          <button id="partyDisbandBtn" type="button">Disband Party</button>
+          <button id="partyLeaveBtn" type="button">Leave Party</button>
+        </div>
 
-        <section style="padding:14px;border:1px solid rgba(255,255,255,.10);border-radius:12px;background:rgba(255,255,255,.02);">
-          <div style="font-size:15px;font-weight:800;margin-bottom:10px;">Party Controls</div>
-          <div style="display:flex;gap:10px;flex-wrap:wrap;">
-            <button id="partyStartActivityBtn" type="button" ${!canStart || active ? "disabled" : ""}>Start Activity</button>
-            <button id="partyEndActivityBtn" type="button" ${!active ? "disabled" : ""}>End Activity</button>
-            <button id="partyDisbandBtn" type="button">Disband Party</button>
-            <button id="partyLeaveBtn" type="button">Leave Party</button>
-          </div>
-          <div style="margin-top:8px;opacity:.74;font-size:12px;">You need 2-${num(party.maxMembers, 4)} ready players before the party can start.</div>
-        </section>
-
-        <section style="padding:14px;border:1px solid rgba(255,255,255,.10);border-radius:12px;background:rgba(255,255,255,.02);">
-          <div style="font-size:15px;font-weight:800;margin-bottom:10px;">Invite Player</div>
-          <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;">
-            <input id="partyInviteName" type="text" placeholder="Hero Name" style="width:260px;max-width:100%;padding:10px 12px;border-radius:10px;border:2px solid #333;background:#101019;color:#fff;">
-            <button id="partySendInviteBtn" type="button">Send Invite</button>
-          </div>
-        </section>
-
-        <section style="padding:14px;border:1px solid rgba(255,255,255,.10);border-radius:12px;background:rgba(255,255,255,.02);">
-          <div style="font-size:15px;font-weight:800;margin-bottom:10px;">Pending Invites</div>
-          <div style="display:grid;gap:10px;">${pendingInvitesMarkup(party)}</div>
-        </section>
-
-        <section style="padding:14px;border:1px solid rgba(255,255,255,.10);border-radius:12px;background:rgba(255,255,255,.02);">
-          <div style="font-size:15px;font-weight:800;margin-bottom:10px;">Join Requests</div>
-          <div style="display:grid;gap:10px;">${pendingJoinRequestsMarkup(party)}</div>
-        </section>
-
-        <section style="padding:14px;border:1px solid rgba(255,255,255,.10);border-radius:12px;background:rgba(255,255,255,.02);">
-          <div style="font-size:15px;font-weight:800;margin-bottom:10px;">Party Settings</div>
-          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px;">
-            <label style="display:grid;gap:6px;">
-              <span style="font-weight:800;">Party Name</span>
-              <input id="partyNameInput" type="text" value="${esc(party.name)}" style="width:100%;padding:10px 12px;border-radius:10px;border:2px solid #333;background:#101019;color:#fff;">
-            </label>
-            <label style="display:grid;gap:6px;">
-              <span style="font-weight:800;">Visibility</span>
-              <select id="partyVisibilityInput" style="width:100%;padding:10px 12px;border-radius:10px;border:2px solid #333;background:#101019;color:#fff;">
-                <option value="private" ${party.visibility === "private" ? "selected" : ""}>Private</option>
-                <option value="open" ${party.visibility === "open" ? "selected" : ""}>Open</option>
-              </select>
-            </label>
-            <label style="display:grid;gap:6px;">
-              <span style="font-weight:800;">Party Size</span>
-              <select id="partyMaxMembersInput" style="width:100%;padding:10px 12px;border-radius:10px;border:2px solid #333;background:#101019;color:#fff;">
-                <option value="2" ${num(party.maxMembers, 4) === 2 ? "selected" : ""}>2 Players</option>
-                <option value="3" ${num(party.maxMembers, 4) === 3 ? "selected" : ""}>3 Players</option>
-                <option value="4" ${num(party.maxMembers, 4) === 4 ? "selected" : ""}>4 Players</option>
-              </select>
-            </label>
-            <label style="display:grid;gap:6px;">
-              <span style="font-weight:800;">Minimum Level</span>
-              <input id="partyMinLevelInput" type="number" min="1" value="${num(party.minLevel, 1)}" style="width:100%;padding:10px 12px;border-radius:10px;border:2px solid #333;background:#101019;color:#fff;">
-            </label>
-            <label style="display:grid;gap:6px;">
-              <span style="font-weight:800;">Activity</span>
-              <input id="partyActivityInput" type="text" value="${esc(party.activity)}" style="width:100%;padding:10px 12px;border-radius:10px;border:2px solid #333;background:#101019;color:#fff;">
-            </label>
-            <label style="display:flex;align-items:center;gap:8px;padding-top:28px;">
-              <input id="partyAutoAcceptInput" type="checkbox" ${party.autoAcceptRequests ? "checked" : ""}>
-              <span>Auto-accept requests</span>
-            </label>
-          </div>
-          <div style="margin-top:14px;">
-            <button id="partySaveSettingsBtn" type="button">Save Settings</button>
-          </div>
-        </section>
+        ${isPrivate ? `` : `
+          <section style="padding:14px;border:1px solid rgba(255,255,255,.10);border-radius:12px;background:rgba(255,255,255,.02);">
+            <div style="font-size:15px;font-weight:800;margin-bottom:10px;">Open Party Status</div>
+            <div style="opacity:.8;margin-bottom:10px;">Players can find your party from the Find Party tab and join this lobby.</div>
+            <div style="display:grid;gap:10px;">${pendingJoinRequestsMarkup(party)}</div>
+          </section>
+        `}
+        ${inviteModalMarkup()}
       </div>
     `;
   }
@@ -364,28 +412,11 @@
     const me = (party.members || []).find((entry) => entry.isSelf);
     return `
       <div style="display:grid;gap:14px;">
-        <section style="padding:14px;border:1px solid rgba(255,255,255,.10);border-radius:12px;background:rgba(255,255,255,.02);display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:8px 16px;">
-          <div><strong>Party Name:</strong> ${esc(party.name)}</div>
-          <div><strong>Leader:</strong> ${esc(party.leaderName)}</div>
-          <div><strong>Members:</strong> ${num(party.memberCount, 0)} / ${num(party.maxMembers, 4)}</div>
-          <div><strong>Visibility:</strong> ${esc(party.visibility)}</div>
-          <div><strong>State:</strong> ${esc(party.state)}</div>
-          <div><strong>Activity:</strong> ${esc(party.activity)}</div>
-        </section>
-
-        <section style="padding:14px;border:1px solid rgba(255,255,255,.10);border-radius:12px;background:rgba(255,255,255,.02);">
-          <div style="font-size:15px;font-weight:800;margin-bottom:10px;">Members</div>
-          <div style="display:grid;gap:10px;">${memberRowsMarkup(party, false)}</div>
-        </section>
-
-        <section style="padding:14px;border:1px solid rgba(255,255,255,.10);border-radius:12px;background:rgba(255,255,255,.02);">
-          <div style="font-size:15px;font-weight:800;margin-bottom:10px;">Actions</div>
-          <div style="display:flex;gap:10px;flex-wrap:wrap;">
-            <button id="partyReadyBtn" type="button" ${party.state !== "forming" ? "disabled" : ""}>${me?.ready ? "Set Not Ready" : "Set Ready"}</button>
-            <button id="partyLeaveBtn" type="button" ${party.state === "active" ? "disabled" : ""}>Leave Party</button>
-          </div>
-          <div style="margin-top:8px;opacity:.74;font-size:12px;">A party activity can only start when at least 2 players are ready.</div>
-        </section>
+        ${partySlotsMarkup(party)}
+        <div style="display:flex;gap:12px;flex-wrap:wrap;justify-content:flex-start;">
+          <button id="partyReadyBtn" type="button" ${party.state !== "forming" ? "disabled" : ""}>${me?.ready ? "Not Ready" : "Ready"}</button>
+          <button id="partyLeaveBtn" type="button" ${party.state === "active" ? "disabled" : ""}>Leave Party</button>
+        </div>
       </div>
     `;
   }
@@ -540,7 +571,7 @@
               </div>
               <div style="opacity:.74;font-size:12px;">
                 ${minReady
-                  ? "Only the leader can start the fight, and all current party members must be ready."
+                  ? "Only the leader can start the fight, and all non-leader members must be ready."
                   : "At least 2 party members are required before this fight can begin."}
               </div>
             </div>
@@ -620,7 +651,7 @@
           </div>
           <div style="margin-top:8px;opacity:.74;font-size:12px;">
             ${minReady
-              ? "All current party members must be ready before the leader can start Party Fight."
+              ? "All non-leader members must be ready before the leader can start Party Fight."
               : "At least 2 party members are required before Party Fight can begin."}
           </div>
         </div>
@@ -634,14 +665,18 @@
   }
 
   function tabsMarkup() {
-    const tabs = [["my_party", "My Party"], ["find_party", "Find Party"], ["invites", "Invites"], ["party_fight", "Party Fight"]];
+    const tabs = [
+      ["my_party", myParty() ? "My Party" : "Create Party"],
+      ["find_party", "Find Party"],
+      ["invites", "Invites"]
+    ];
     return `
-      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px;">
+      <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-bottom:16px;">
         ${tabs.map(([id, label]) => `
           <button
             type="button"
             data-party-tab="${id}"
-            style="min-width:128px;padding:10px 14px;border-radius:10px;border:2px solid ${state.tab === id ? "#c79b44" : "#333"};background:${state.tab === id ? "linear-gradient(180deg, rgba(255,245,210,.16), rgba(255,255,255,.04) 36%, rgba(0,0,0,.10) 100%), linear-gradient(180deg, #6f5320 0%, #3e2d11 100%)" : "#1b1b24"};color:#f1f2f6;font-weight:800;cursor:pointer;"
+            style="width:100%;padding:12px 14px;border-radius:10px;border:2px solid ${state.tab === id ? "#c79b44" : "#333"};background:${state.tab === id ? "linear-gradient(180deg, rgba(255,245,210,.16), rgba(255,255,255,.04) 36%, rgba(0,0,0,.10) 100%), linear-gradient(180deg, #6f5320 0%, #3e2d11 100%)" : "#1b1b24"};color:#f1f2f6;font-weight:800;cursor:pointer;"
           >${label}</button>
         `).join("")}
       </div>
@@ -656,12 +691,14 @@
     if (!state.data && state.lastError) {
       return `<div style="padding:14px;border:1px solid rgba(179,72,92,.45);border-radius:12px;background:rgba(78,22,34,.35);color:#ffd8de;">${esc(state.lastError)}</div>`;
     }
+    if (party && party.state === "active" && String(party.activity || "").toLowerCase().includes("party fight")) {
+      return partyFightMarkup();
+    }
     if (state.tab === "my_party") {
       if (!party) return createPartyMarkup();
       return isLeader() ? leaderPartyMarkup(party) : memberPartyMarkup(party);
     }
     if (state.tab === "find_party") return findPartyMarkup();
-    if (state.tab === "party_fight") return partyFightMarkup();
     return invitesMarkup();
   }
 
@@ -669,17 +706,16 @@
     document.querySelectorAll("[data-party-tab]").forEach((btn) => btn.addEventListener("click", () => {
       state.tab = btn.dataset.partyTab || "my_party";
       state.selectedPartyId = null;
-      if (state.tab !== "party_fight") state.selectedPartyFightMonsterId = null;
       renderPartyHall();
     }));
 
     document.getElementById("partyCreateBtn")?.addEventListener("click", async () => {
       const name = document.getElementById("partyCreateName")?.value || "";
       const visibility = document.getElementById("partyCreateVisibility")?.value || "private";
-      const maxMembers = Number(document.getElementById("partyCreateMaxMembers")?.value || 4);
+      const maxMembers = 4;
       const minLevel = Number(document.getElementById("partyCreateMinLevel")?.value || 1);
-      const activity = document.getElementById("partyCreateActivity")?.value || "Dungeon Run";
-      const autoAcceptRequests = !!document.getElementById("partyCreateAutoAccept")?.checked;
+      const activity = "Party Fight";
+      const autoAcceptRequests = String(visibility).toLowerCase() === "open";
       await runAction({
         action: "create_party",
         name,
@@ -688,22 +724,49 @@
         minLevel,
         activity,
         autoAcceptRequests
-      }, "Party created.");
+      }, "");
     });
 
-    document.getElementById("partySaveSettingsBtn")?.addEventListener("click", async () => {
+    document.querySelectorAll("[data-party-open-invite-modal]").forEach((btn) => btn.addEventListener("click", () => {
+      state.inviteModalOpen = true;
+      renderPartyHall();
+      window.setTimeout(() => document.getElementById("partyInviteName")?.focus(), 0);
+    }));
+
+    document.getElementById("partyChooseMonsterBtn")?.addEventListener("click", () => {
+      state.monsterModalOpen = true;
+      renderPartyHall();
+    });
+
+    document.getElementById("partyCloseMonsterModalBtn")?.addEventListener("click", () => {
+      state.monsterModalOpen = false;
+      renderPartyHall();
+    });
+
+    document.getElementById("partyMonsterModalBackdrop")?.addEventListener("click", (event) => {
+      if (event.target?.id !== "partyMonsterModalBackdrop") return;
+      state.monsterModalOpen = false;
+      renderPartyHall();
+    });
+
+    document.querySelectorAll("[data-party-choose-monster]").forEach((btn) => btn.addEventListener("click", async () => {
       const party = myParty();
-      if (!party) return;
-      await runAction({
-        action: "update_party",
-        partyId: party.id,
-        name: document.getElementById("partyNameInput")?.value || party.name,
-        visibility: document.getElementById("partyVisibilityInput")?.value || party.visibility,
-        maxMembers: Number(document.getElementById("partyMaxMembersInput")?.value || party.maxMembers),
-        minLevel: Number(document.getElementById("partyMinLevelInput")?.value || party.minLevel),
-        activity: document.getElementById("partyActivityInput")?.value || party.activity,
-        autoAcceptRequests: !!document.getElementById("partyAutoAcceptInput")?.checked
-      }, "Party settings saved.");
+      const selectedMonsterId = btn.dataset.partyChooseMonster || "";
+      if (!party || !selectedMonsterId) return;
+      await runAction({ action: "choose_monster", partyId: party.id, selectedMonsterId }, "");
+      state.monsterModalOpen = false;
+      renderPartyHall();
+    }));
+
+    document.getElementById("partyCloseInviteModalBtn")?.addEventListener("click", () => {
+      state.inviteModalOpen = false;
+      renderPartyHall();
+    });
+
+    document.getElementById("partyInviteModalBackdrop")?.addEventListener("click", (event) => {
+      if (event.target?.id !== "partyInviteModalBackdrop") return;
+      state.inviteModalOpen = false;
+      renderPartyHall();
     });
 
     document.getElementById("partySendInviteBtn")?.addEventListener("click", async () => {
@@ -719,6 +782,7 @@
         partyId: party.id,
         targetHeroName
       }, "Invite sent.");
+      state.inviteModalOpen = false;
       const input = document.getElementById("partyInviteName");
       if (input) input.value = "";
     });
@@ -740,13 +804,8 @@
     document.getElementById("partyStartActivityBtn")?.addEventListener("click", async () => {
       const party = myParty();
       if (!party) return;
-      await runAction({ action: "start_activity", partyId: party.id }, "Party activity started.");
-    });
-
-    document.getElementById("partyEndActivityBtn")?.addEventListener("click", async () => {
-      const party = myParty();
-      if (!party) return;
-      await runAction({ action: "end_activity", partyId: party.id, result: "completed" }, "Party activity ended.");
+      state.tab = "my_party";
+      await runAction({ action: "start_activity", partyId: party.id, activity: "Party Fight" }, "");
     });
 
     document.getElementById("partyFightEndBtn")?.addEventListener("click", async () => {
@@ -848,7 +907,6 @@
     if (!shell) return;
     shell.innerHTML = `
       ${tabsMarkup()}
-      <div id="partyHallMsg" style="min-height:18px;margin-bottom:10px;color:${state.lastError ? "#ffd8de" : "#ead39b"};">${esc(state.lastError || state.lastMessage || "")}</div>
       ${bodyMarkup()}
     `;
     bindActions();
@@ -859,9 +917,6 @@
     if (!left) return false;
     left.innerHTML = `
       <div id="partyHallRoot" style="max-width:980px;margin:0 auto;">
-        <div style="text-align:center;margin-bottom:12px;">
-          <h1 style="margin:0;color:#ead39b;text-shadow:0 1px 0 rgba(87,58,16,.95),0 0 10px rgba(0,0,0,.34),0 2px 8px rgba(0,0,0,.72);">PARTY HALL</h1>
-        </div>
         <div id="partyHallCard" style="background:rgba(0,0,0,.15);border:3px solid rgba(0,0,0,.55);padding:14px;border-radius:12px;"></div>
       </div>
     `;
