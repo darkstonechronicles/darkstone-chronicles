@@ -237,7 +237,7 @@
   function viewTitle(){
     if (state.view === "gear") return state.gearSlot === "all" ? "Combat Items" : `Combat Items • ${slotLabel(state.gearSlot)}`;
     if (state.view === "materials") return "Materials";
-    if (state.view === "myListings") return "My Active Listings";
+    if (state.view === "myListings") return `My Active Listings ${state.myListings.length}/10`;
     return "Items Recently Added To The Market";
   }
 
