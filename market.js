@@ -136,6 +136,14 @@
     saveSaleHistory(next);
   }
 
+  function mergeSaleHistory(entries){
+    const next = [...(Array.isArray(entries) ? entries : []), ...loadSaleHistory()]
+      .filter((row, idx, arr) => row?.key && arr.findIndex((x) => x?.key === row.key) === idx)
+      .sort((a, b) => num(b.at, 0) - num(a.at, 0))
+      .slice(0, 50);
+    saveSaleHistory(next);
+  }
+
   function setSave(next){
     localStorage.setItem(SAVE_KEY, JSON.stringify(next && typeof next === "object" ? next : {}));
     window.dispatchEvent(new Event("ds:save"));
@@ -604,6 +612,21 @@
       } else {
         const userId = getUserId();
         myListings = marketListings.filter((listing) => userId && listing.seller_user_id === userId);
+      }
+      const salesResult = await client.rpc("get_my_market_sales", { p_limit: 30 });
+      if (!salesResult.error && Array.isArray(salesResult.data)) {
+        mergeSaleHistory(salesResult.data.map((sale) => ({
+          key: `sale:${sale.id || sale.listing_id || ""}`,
+          listingId: sale.listing_id || "",
+          itemName: sale.item_name || sale.item?.name || "Item",
+          img: sale.item_img || sale.item?.img || "",
+          category: sale.category || "",
+          quantity: num(sale.quantity, 1),
+          priceEach: num(sale.price_each, 0),
+          gold: num(sale.total_gold, 0),
+          at: Date.parse(sale.sold_at || "") || Date.now(),
+          item: sale.item || {}
+        })));
       }
       const merged = new Map();
       marketListings.forEach((listing) => merged.set(String(listing.id), listing));
