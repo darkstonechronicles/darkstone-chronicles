@@ -5999,6 +5999,13 @@ function openInspector(invIndex, item) {
       ` : ``}
 
       <div class="dsSellRow">
+        <button id="dsMarketListBtn">List on Market</button>
+        <input id="dsMarketQty" type="number" min="1" max="${q}" value="1" title="Quantity">
+        <input id="dsMarketPrice" type="number" min="1" value="${p1}" title="Price each">
+        <div id="dsMarketInfo" class="dsSellInfo">EA: ${p1} Gold</div>
+      </div>
+
+      <div class="dsSellRow">
         <button id="dsBankBtn">🏦 Send to Bank</button>
         <input id="dsBankQty" type="number" min="1" max="${q}" value="${q}">
       </div>
@@ -6196,6 +6203,70 @@ function openInspector(invIndex, item) {
         return;
       }
       openInspector(invIndex);
+    });
+
+    const marketQtyInput = document.getElementById("dsMarketQty");
+    const marketPriceInput = document.getElementById("dsMarketPrice");
+    const marketBtn = document.getElementById("dsMarketListBtn");
+    const marketInfo = document.getElementById("dsMarketInfo");
+    const getMarketQty = (maxQty = q) => {
+      if (!marketQtyInput) return 1;
+      let v = Math.floor(Number(marketQtyInput.value));
+      if (!Number.isFinite(v)) v = 1;
+      v = clamp(v, 1, Math.max(1, maxQty));
+      marketQtyInput.value = String(v);
+      return v;
+    };
+    const getMarketPrice = () => {
+      if (!marketPriceInput) return p1;
+      let v = Math.floor(Number(marketPriceInput.value));
+      if (!Number.isFinite(v)) v = p1;
+      v = Math.max(1, v);
+      marketPriceInput.value = String(v);
+      return v;
+    };
+    const updateMarketInfo = () => {
+      const listQty = getMarketQty(q);
+      const priceEach = getMarketPrice();
+      if (marketInfo) marketInfo.textContent = `EA: ${priceEach} Gold • Total: ${priceEach * listQty}`;
+    };
+    marketQtyInput?.addEventListener("input", updateMarketInfo);
+    marketQtyInput?.addEventListener("change", updateMarketInfo);
+    marketPriceInput?.addEventListener("input", updateMarketInfo);
+    marketPriceInput?.addEventListener("change", updateMarketInfo);
+    updateMarketInfo();
+
+    marketBtn?.addEventListener("click", async () => {
+      const auth = window.DSAuth;
+      if (!auth?.invokeCreateMarketListing) {
+        msg("❌ Market is not ready. Refresh and try again.");
+        return;
+      }
+
+      const s = ensureSave(loadSave());
+      const invIt = s.inventory[invIndex];
+      if (!invIt) { msg("❌ Item missing."); return; }
+
+      const invQty = num(invIt.quantity ?? invIt.qty, 1);
+      const listQty = clamp(getMarketQty(invQty), 1, invQty);
+      const priceEach = getMarketPrice();
+
+      marketBtn.disabled = true;
+      msg("Listing on market...");
+      try {
+        await auth.invokeCreateMarketListing({ item: invIt, quantity: listQty, priceEach });
+        msg(`✅ Listed ${invIt.name || "Item"} x${listQty} for ${priceEach} gold EA.`);
+        const latest = ensureSave(loadSave());
+        if (!latest.inventory?.[invIndex]) {
+          restoreLeftPanelNodes();
+          window.DS?.resume?.();
+          return;
+        }
+        openInspector(invIndex);
+      } catch (error) {
+        marketBtn.disabled = false;
+        msg(`❌ ${error?.message || "Could not list on market."}`);
+      }
     });
 
     const bankQtyInput = document.getElementById("dsBankQty");
