@@ -8,6 +8,66 @@ const corsHeaders = {
 
 type JsonRecord = Record<string, unknown>;
 
+const PARTY_MONSTER_ORDER = [
+  "gravefang-hydra",
+  "embermaw-colossus",
+  "thornveil-broodmother",
+  "stormglass-seraph",
+  "cryptwarden-revenant",
+];
+
+const PARTY_FIGHT_ENCOUNTER_MS = 6000;
+const PARTY_FIGHT_MAX_ROUNDS = 15;
+const PARTY_FIGHT_STAT_POINTS_PER_LEVEL = 5;
+const PARTY_FIGHT_STAMINA_COST = 5;
+const PARTY_FIGHT_MONSTERS: Record<string, JsonRecord> = {
+  "gravefang-hydra": {
+    id: "gravefang-hydra",
+    name: "Gravefang Hydra",
+    img: "images/mobs/fighting/zone10/void_devourer.png",
+    level: 18,
+    attack: 58,
+    defense: 46,
+    hp: 420,
+  },
+  "embermaw-colossus": {
+    id: "embermaw-colossus",
+    name: "Embermaw Colossus",
+    img: "images/mobs/fighting/zone9/inferno_titan.png",
+    level: 22,
+    attack: 64,
+    defense: 60,
+    hp: 520,
+  },
+  "thornveil-broodmother": {
+    id: "thornveil-broodmother",
+    name: "Thornveil Broodmother",
+    img: "images/mobs/fighting/zone7/heart_of_the_thicket.png",
+    level: 16,
+    attack: 49,
+    defense: 38,
+    hp: 360,
+  },
+  "stormglass-seraph": {
+    id: "stormglass-seraph",
+    name: "Stormglass Seraph",
+    img: "images/mobs/fighting/zone8/ancient_storm_avatar.png",
+    level: 20,
+    attack: 61,
+    defense: 41,
+    hp: 450,
+  },
+  "cryptwarden-revenant": {
+    id: "cryptwarden-revenant",
+    name: "Cryptwarden Revenant",
+    img: "images/mobs/fighting/zone2/lord_of_the_broken_keep.png",
+    level: 14,
+    attack: 44,
+    defense: 52,
+    hp: 400,
+  },
+};
+
 type PartyRow = {
   id: string;
   leader_user_id: string;
@@ -123,6 +183,375 @@ function normalizeMonsterId(value: unknown) {
   return str(value).toLowerCase().replace(/[^a-z0-9-]/g, "").slice(0, 80);
 }
 
+function asRecord(value: unknown) {
+  return value && typeof value === "object" && !Array.isArray(value)
+    ? value as JsonRecord
+    : {};
+}
+
+function ensurePartyMonsterKills(saveData: unknown) {
+  const save = asRecord(saveData);
+  const partyHall = asRecord(save.partyHall);
+  const monsterKills = asRecord(partyHall.monsterKills);
+
+  save.partyHall = partyHall;
+  partyHall.monsterKills = monsterKills;
+
+  for (const monsterId of PARTY_MONSTER_ORDER) {
+    if (!Number.isFinite(Number(monsterKills[monsterId]))) monsterKills[monsterId] = 0;
+  }
+
+  return {
+    save,
+    partyHall,
+    monsterKills,
+  };
+}
+
+function getMonsterKillCount(saveData: unknown, monsterId: string) {
+  const { monsterKills } = ensurePartyMonsterKills(saveData);
+  return Math.max(0, int(monsterKills[monsterId], 0));
+}
+
+function isMonsterUnlocked(saveData: unknown, monsterId: string) {
+  const index = PARTY_MONSTER_ORDER.indexOf(monsterId);
+  if (index <= 0) return true;
+  if (index === -1) return false;
+  const previousMonsterId = PARTY_MONSTER_ORDER[index - 1];
+  return getMonsterKillCount(saveData, previousMonsterId) >= 1000;
+}
+
+function buildMonsterProgress(saveData: unknown) {
+  return PARTY_MONSTER_ORDER.map((monsterId, index) => {
+    const previousMonsterId = index > 0 ? PARTY_MONSTER_ORDER[index - 1] : "";
+    const previousKills = previousMonsterId ? getMonsterKillCount(saveData, previousMonsterId) : 1000;
+    return {
+      monsterId,
+      kills: getMonsterKillCount(saveData, monsterId),
+      unlocked: isMonsterUnlocked(saveData, monsterId),
+      unlockRequirementMonsterId: previousMonsterId,
+      unlockRequirementKills: index === 0 ? 0 : 1000,
+      unlockProgress: index === 0 ? 1000 : Math.min(1000, previousKills),
+    };
+  });
+}
+
+function roundLevelXP(value: unknown) {
+  const next = Math.max(1, Math.round(Number(value) || 1));
+  if (next >= 10000000) return Math.ceil(next / 50000) * 50000;
+  if (next >= 1000000) return Math.ceil(next / 10000) * 10000;
+  if (next >= 100000) return Math.ceil(next / 5000) * 5000;
+  if (next >= 10000) return Math.ceil(next / 500) * 500;
+  if (next >= 1000) return Math.ceil(next / 100) * 100;
+  return Math.round(next);
+}
+
+function xpNextForLevel(level: unknown) {
+  const heroLevel = Math.max(1, Math.floor(Number(level) || 1));
+  let xp = 100;
+  for (let current = 2; current <= heroLevel; current += 1) {
+    const previous = current - 1;
+    let rate = 1.01;
+    if (previous <= 3) rate = 2.0;
+    else if (previous <= 6) rate = 1.5;
+    else if (previous <= 10) rate = 1.3;
+    else if (previous <= 20) rate = 1.18;
+    else if (previous <= 35) rate = 1.12;
+    else if (previous <= 50) rate = 1.10;
+    else if (previous <= 70) rate = 1.075;
+    else if (previous <= 85) rate = 1.06;
+    else if (previous <= 99) rate = 1.05;
+    else if (previous <= 105) rate = 1.05 - 0.002 * (previous - 100);
+    else if (previous <= 200) {
+      const progress = (previous - 105) / 95;
+      rate = 1.04 - 0.03 * progress;
+    }
+    xp *= rate;
+  }
+  return roundLevelXP(xp);
+}
+
+function calcHpMax(level: unknown) {
+  return 100 + (Math.max(1, int(level, 1)) - 1) * 10;
+}
+
+function calcStaminaMax(level: unknown) {
+  return 100 + (Math.max(1, int(level, 1)) - 1) * 5;
+}
+
+function clamp(value: unknown, minValue: number, maxValue: number) {
+  return Math.min(maxValue, Math.max(minValue, num(value, minValue)));
+}
+
+function fightXPForMobLevel(level: unknown) {
+  const mobLevel = clamp(level, 1, 99);
+  const progress = (mobLevel - 1) / 98;
+  return Math.round(10 + 190 * progress);
+}
+
+function rollPartyFightGold(level: unknown) {
+  const mobLevel = Math.max(1, int(level, 1));
+  const minGold = 55 + Math.floor(mobLevel / 4);
+  const maxGold = 85 + Math.floor(mobLevel / 2);
+  return Math.floor(Math.random() * (maxGold - minGold + 1)) + minGold;
+}
+
+function calcDamage(att: unknown, def: unknown) {
+  const attack = num(att, 0);
+  const defense = num(def, 0);
+  if (attack <= defense) {
+    return Math.random() < 0.5 ? 0 : 1;
+  }
+  const variance = 0.9 + Math.random() * 0.2;
+  return Math.max(1, Math.floor((attack - defense) * variance));
+}
+
+function randomInt(minValue: number, maxValue: number) {
+  const min = Math.ceil(Math.min(minValue, maxValue));
+  const max = Math.floor(Math.max(minValue, maxValue));
+  return Math.floor(Math.random() * (max - min + 1)) + min;
+}
+
+function getPartyFightMonster(monsterId: string) {
+  return PARTY_FIGHT_MONSTERS[monsterId] || null;
+}
+
+function normalizePartyFightPayload(value: unknown, monster: JsonRecord | null) {
+  const payload = asRecord(value);
+  const recentEncounters = Array.isArray(payload.recentEncounters)
+    ? payload.recentEncounters.filter((entry) => entry && typeof entry === "object").slice(-6)
+    : [];
+  return {
+    mode: "party_fight",
+    encounterMs: Math.max(1000, int(payload.encounterMs, PARTY_FIGHT_ENCOUNTER_MS)),
+    resolvedCount: Math.max(0, int(payload.resolvedCount, 0)),
+    selectedMonsterId: str(payload.selectedMonsterId, str(monster?.id)),
+    monsterName: str(payload.monsterName, str(monster?.name)),
+    monsterImg: str(payload.monsterImg, str(monster?.img)),
+    monsterAttack: Math.max(0, int(payload.monsterAttack, int(monster?.attack, 0))),
+    monsterDefense: Math.max(0, int(payload.monsterDefense, int(monster?.defense, 0))),
+    monsterLevel: Math.max(1, int(payload.monsterLevel, int(monster?.level, 1))),
+    monsterHp: Math.max(1, int(payload.monsterHp, int(monster?.hp, 1))),
+    latestEncounter: payload.latestEncounter && typeof payload.latestEncounter === "object" ? payload.latestEncounter : null,
+    recentEncounters,
+    lastResolvedAt: str(payload.lastResolvedAt),
+  };
+}
+
+function applyHeroRewards(saveData: unknown, xpGain: number, goldGain: number) {
+  const save = asRecord(saveData);
+  let heroLevel = Math.max(1, int(save.heroLevel, 1));
+  let heroXP = Math.max(0, int(save.heroXP, 0)) + Math.max(0, int(xpGain, 0));
+  let heroXPNext = Math.max(1, int(save.heroXPNext, xpNextForLevel(heroLevel)));
+  let heroStatPoints = Math.max(0, int(save.heroStatPoints, 0));
+
+  while (heroXP >= heroXPNext) {
+    heroXP -= heroXPNext;
+    heroLevel += 1;
+    heroStatPoints += PARTY_FIGHT_STAT_POINTS_PER_LEVEL;
+    heroXPNext = xpNextForLevel(heroLevel);
+  }
+
+  save.heroLevel = heroLevel;
+  save.heroXP = heroXP;
+  save.heroXPNext = xpNextForLevel(heroLevel);
+  save.heroStatPoints = heroStatPoints;
+  save.gold = Math.max(0, bigintLike(save.gold, 0) + Math.max(0, int(goldGain, 0)));
+
+  const nextHpMax = calcHpMax(heroLevel);
+  save.heroHPMax = nextHpMax;
+  const currentHp = Number.isFinite(Number(save.heroHP)) ? Number(save.heroHP) : nextHpMax;
+  save.heroHP = clamp(currentHp, 0, nextHpMax);
+
+  return {
+    save,
+    heroLevel,
+    heroXP,
+    totalGold: bigintLike(save.gold, 0),
+  };
+}
+
+function getCurrentStamina(saveData: unknown) {
+  const save = asRecord(saveData);
+  const staminaMax = Math.max(1, int(save.staminaMax, calcStaminaMax(save.heroLevel)));
+  const currentStamina = Number.isFinite(Number(save.stamina)) ? Number(save.stamina) : staminaMax;
+  return Math.max(0, Math.min(staminaMax, Math.trunc(currentStamina)));
+}
+
+function spendPartyFightStamina(saveData: unknown, staminaCost: number) {
+  const save = asRecord(saveData);
+  const staminaMax = Math.max(1, int(save.staminaMax, calcStaminaMax(save.heroLevel)));
+  const currentStamina = getCurrentStamina(save);
+  save.staminaMax = staminaMax;
+  save.stamina = Math.max(0, currentStamina - Math.max(0, int(staminaCost, 0)));
+  return {
+    save,
+    stamina: Math.max(0, int(save.stamina, 0)),
+  };
+}
+
+function getCurrentHeroHpState(saveData: unknown) {
+  const save = asRecord(saveData);
+  const hpMax = Math.max(1, int(save.heroHPMax, calcHpMax(save.heroLevel)));
+  const currentHp = Number.isFinite(Number(save.heroHP)) ? Number(save.heroHP) : hpMax;
+  return {
+    hpMax,
+    hp: Math.max(0, Math.min(hpMax, Math.trunc(currentHp))),
+  };
+}
+
+async function updatePublicStatsFromSave(admin: ReturnType<typeof createClient>, userId: string, saveData: unknown) {
+  const save = asRecord(saveData);
+  const payload: JsonRecord = {
+    user_id: userId,
+    hero_name: str(save.heroName || save.playerName, "Hero"),
+    hero_level: Math.max(1, int(save.heroLevel, 1)),
+    hero_xp: Math.max(0, bigintLike(save.heroXP, 0)),
+    total_gold: Math.max(0, bigintLike(save.gold, 0)),
+    updated_at: formatIsoNow(),
+  };
+  const { error } = await admin.from("player_public_stats").upsert(payload);
+  if (error) throw error;
+}
+
+function simulatePartyFightEncounter(members: JsonRecord[], monster: JsonRecord, encounterNumber: number) {
+  const playerStates = members.map((member) => ({
+    userId: str(member.userId),
+    heroName: str(member.heroName, "Hero"),
+    avatarUrl: str(member.avatarUrl, "images/hero.png"),
+    heroLevel: Math.max(1, int(member.heroLevel, 1)),
+    heroAttack: Math.max(0, int(member.heroAttack, 0)),
+    heroDefense: Math.max(0, int(member.heroDefense, 0)),
+    hpMax: Math.max(1, int(member.hpMax, calcHpMax(member.heroLevel))),
+    hp: Math.max(0, int(member.hp, int(member.hpMax, calcHpMax(member.heroLevel)))),
+    damageDealt: 0,
+    damageTaken: 0,
+  }));
+
+  let monsterHp = Math.max(1, int(monster.hp, 1));
+  let rounds = 0;
+
+  while (monsterHp > 0 && rounds < PARTY_FIGHT_MAX_ROUNDS && playerStates.some((entry) => entry.hp > 0)) {
+    rounds += 1;
+
+    const alivePlayers = playerStates.filter((entry) => entry.hp > 0);
+    const partyAttack = alivePlayers.reduce((sum, entry) => sum + entry.heroAttack, 0);
+    const partyDefense = alivePlayers.reduce((sum, entry) => sum + entry.heroDefense, 0);
+
+    const partyDamage = calcDamage(partyAttack, monster.defense);
+    monsterHp = Math.max(0, monsterHp - partyDamage);
+
+    if (alivePlayers.length) {
+      const attackTotal = Math.max(1, alivePlayers.reduce((sum, entry) => sum + Math.max(0, entry.heroAttack), 0));
+      let distributedDamage = 0;
+      const weighted = alivePlayers.map((player) => {
+        const exactShare = partyDamage * (Math.max(0, player.heroAttack) / attackTotal);
+        const share = Math.floor(exactShare);
+        distributedDamage += share;
+        return {
+          player,
+          share,
+          remainder: exactShare - share,
+        };
+      });
+      let leftoverDamage = Math.max(0, partyDamage - distributedDamage);
+      weighted
+        .sort((a, b) => b.remainder - a.remainder)
+        .forEach((entry) => {
+          if (leftoverDamage <= 0) return;
+          entry.share += 1;
+          leftoverDamage -= 1;
+        });
+      weighted.forEach((entry) => {
+        entry.player.damageDealt += entry.share;
+      });
+    }
+
+    if (monsterHp <= 0) break;
+
+    const aliveAfterAttack = playerStates.filter((entry) => entry.hp > 0);
+    if (!aliveAfterAttack.length) break;
+
+    const monsterAttack = Math.max(0, int(monster.attack, 0));
+    const monsterDamage = monsterAttack <= partyDefense
+      ? randomInt(10, 20)
+      : calcDamage(monsterAttack, partyDefense);
+
+    if (aliveAfterAttack.length === 1) {
+      const soloPlayer = aliveAfterAttack[0];
+      soloPlayer.damageTaken += monsterDamage;
+      soloPlayer.hp = Math.max(0, soloPlayer.hp - monsterDamage);
+      continue;
+    }
+
+    const primaryIndex = randomInt(0, aliveAfterAttack.length - 1);
+    const primaryTarget = aliveAfterAttack[primaryIndex];
+    const secondaryTargets = aliveAfterAttack.filter((_, index) => index !== primaryIndex);
+    let primaryShare = Math.floor(monsterDamage * 0.7);
+    let remainingDamage = Math.max(0, monsterDamage - primaryShare);
+
+    if (!secondaryTargets.length) {
+      primaryShare = monsterDamage;
+      remainingDamage = 0;
+    }
+
+    primaryTarget.damageTaken += primaryShare;
+    primaryTarget.hp = Math.max(0, primaryTarget.hp - primaryShare);
+
+    if (secondaryTargets.length && remainingDamage > 0) {
+      const baseShare = Math.floor(remainingDamage / secondaryTargets.length);
+      let remainder = remainingDamage % secondaryTargets.length;
+      for (const player of secondaryTargets) {
+        const share = baseShare + (remainder > 0 ? 1 : 0);
+        if (remainder > 0) remainder -= 1;
+        player.damageTaken += share;
+        player.hp = Math.max(0, player.hp - share);
+      }
+    }
+  }
+
+  const outcome = monsterHp <= 0
+    ? "victory"
+    : playerStates.some((entry) => entry.hp > 0)
+      ? "stalemate"
+      : "defeat";
+  const xpGain = outcome === "victory" ? fightXPForMobLevel(monster.level) : 0;
+  const goldGain = outcome === "victory" ? rollPartyFightGold(monster.level) : 0;
+  const resolvedAt = formatIsoNow();
+
+  return {
+    encounterNumber,
+    resolvedAt,
+    outcome,
+    rounds,
+    monster: {
+      id: str(monster.id),
+      name: str(monster.name),
+      img: str(monster.img),
+      attack: Math.max(0, int(monster.attack, 0)),
+      defense: Math.max(0, int(monster.defense, 0)),
+      hpMax: Math.max(1, int(monster.hp, 1)),
+      hpRemaining: Math.max(0, monsterHp),
+    },
+    rewardSummary: {
+      xp: xpGain,
+      gold: goldGain,
+    },
+    players: playerStates.map((player) => ({
+      userId: player.userId,
+      heroName: player.heroName,
+      avatarUrl: player.avatarUrl,
+      heroLevel: player.heroLevel,
+      damageDealt: player.damageDealt,
+      damageTaken: player.damageTaken,
+      hpMax: player.hpMax,
+      hpRemaining: player.hp,
+      xp: xpGain,
+      gold: goldGain,
+    })),
+  };
+}
+
 function normalizePartyName(value: unknown, fallback: string) {
   const next = str(value, fallback).slice(0, 40);
   if (next.length < 3) throw new Error("Party name must be at least 3 characters.");
@@ -236,6 +665,7 @@ async function getUserSummaries(admin: ReturnType<typeof createClient>, userIds:
       avatarUrl: str(row.avatar_url, "images/hero.png") || "images/hero.png",
       heroAttack: readCombatStat(saveData, ["attackTotal", "heroAtk", "heroAttack"]),
       heroDefense: readCombatStat(saveData, ["defenseTotal", "heroDef", "heroDefense"]),
+      partyMonsterProgress: buildMonsterProgress(saveData),
       lastSeenAt: row.last_seen_at || null,
       lastSeenPage: str(row.last_seen_page),
     });
@@ -250,6 +680,7 @@ async function getUserSummaries(admin: ReturnType<typeof createClient>, userIds:
         avatarUrl: "images/hero.png",
         heroAttack: 0,
         heroDefense: 0,
+        partyMonsterProgress: buildMonsterProgress({}),
         lastSeenAt: null,
         lastSeenPage: "",
       });
@@ -296,6 +727,359 @@ async function getActiveSessionForParty(admin: ReturnType<typeof createClient>, 
     .maybeSingle();
   if (error) throw error;
   return (data as ActivitySessionRow | null) || null;
+}
+
+async function getLatestPartyNotice(admin: ReturnType<typeof createClient>, partyId: string) {
+  const { data, error } = await admin
+    .from("party_events")
+    .select("event_kind, payload, created_at")
+    .eq("party_id", partyId)
+    .in("event_kind", ["party_activity_stopped_stamina", "party_activity_stopped_death"])
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  if (error) throw error;
+  if (!data) return "";
+  return str((data as JsonRecord).payload && asRecord((data as JsonRecord).payload).message);
+}
+
+async function advancePartyFightSession(
+  admin: ReturnType<typeof createClient>,
+  party: PartyRow,
+  activeSession: ActivitySessionRow,
+  viewerUserId: string,
+) {
+  if (party.leader_user_id !== viewerUserId) return activeSession;
+  if (!activeSession.activity.toLowerCase().includes("party fight")) return activeSession;
+
+  const monsterId = str(party.selected_monster_id);
+  const monster = getPartyFightMonster(monsterId);
+  if (!monster) return activeSession;
+
+  const payload = normalizePartyFightPayload(activeSession.result_payload, monster);
+  const startedAtMs = Date.parse(activeSession.started_at || "");
+  if (!Number.isFinite(startedAtMs)) return activeSession;
+
+  const elapsedTicks = Math.max(0, Math.floor((Date.now() - startedAtMs) / payload.encounterMs));
+  const pendingTicks = Math.max(0, Math.min(24, elapsedTicks - payload.resolvedCount));
+  if (!pendingTicks && payload.selectedMonsterId === monsterId && payload.monsterName) {
+    return {
+      ...activeSession,
+      result_payload: payload,
+    };
+  }
+
+  const members = await getPartyMembers(admin, party.id);
+  if (!members.length) return activeSession;
+
+  const memberIds = members.map((entry) => entry.user_id);
+  const [summaries, saveRowsRes] = await Promise.all([
+    getUserSummaries(admin, memberIds),
+    admin.from("player_saves").select("user_id, save_data, revision").in("user_id", memberIds),
+  ]);
+  if (saveRowsRes.error) throw saveRowsRes.error;
+
+  const saveRows = Array.isArray(saveRowsRes.data) ? saveRowsRes.data : [];
+  const saveMap = new Map<string, JsonRecord>();
+  for (const row of saveRows as JsonRecord[]) {
+    saveMap.set(str(row.user_id), row);
+  }
+
+  for (const member of members) {
+    const saveRow = saveMap.get(member.user_id) || {};
+    const currentStamina = getCurrentStamina(saveRow.save_data);
+    if (currentStamina <= PARTY_FIGHT_STAMINA_COST) {
+      const summary = summaries.get(member.user_id) || {};
+      const exhaustedHeroName = str(summary.heroName, "Hero");
+      const message = `${exhaustedHeroName} run out of stamina.`;
+      const now = formatIsoNow();
+      const [sessionUpdate, partyUpdate, readyReset] = await Promise.all([
+        admin
+          .from("party_activity_sessions")
+          .update({
+            status: "completed",
+            ended_at: now,
+            result_payload: {
+              ...normalizePartyFightPayload(activeSession.result_payload, monster),
+              stopReason: "stamina",
+              stopMessage: message,
+            },
+          })
+          .eq("id", activeSession.id),
+        admin
+          .from("parties")
+          .update({
+            state: "forming",
+            locked: false,
+            activity: "Party Fight",
+            selected_monster_id: "",
+          })
+          .eq("id", party.id),
+        admin.from("party_members").update({ ready: false }).eq("party_id", party.id),
+      ]);
+      if (sessionUpdate.error) throw sessionUpdate.error;
+      if (partyUpdate.error) throw partyUpdate.error;
+      if (readyReset.error) throw readyReset.error;
+      await logPartyEvent(admin, party.id, member.user_id, "party_activity_stopped_stamina", {
+        userId: member.user_id,
+        heroName: exhaustedHeroName,
+        message,
+      });
+      return null;
+    }
+  }
+
+  let nextPayload = normalizePartyFightPayload(activeSession.result_payload, monster);
+  let currentResolvedCount = nextPayload.resolvedCount;
+  const touchedUsers = new Map<string, { save: JsonRecord; revision: number }>();
+
+  for (let index = 0; index < pendingTicks; index += 1) {
+    const encounterMembers = members.map((entry) => {
+      const summary = summaries.get(entry.user_id) || {};
+      const saveRow = touchedUsers.get(entry.user_id) || (() => {
+        const baseRow = saveMap.get(entry.user_id) || {};
+        return {
+          save: asRecord(baseRow.save_data),
+          revision: Math.max(0, int(baseRow.revision, 0)),
+        };
+      })();
+      const heroHpState = getCurrentHeroHpState(saveRow.save);
+      return {
+        userId: entry.user_id,
+        heroName: str(summary.heroName, "Hero"),
+        avatarUrl: str(summary.avatarUrl, "images/hero.png"),
+        heroLevel: Math.max(1, int(summary.heroLevel, 1)),
+        heroAttack: Math.max(0, int(summary.heroAttack, 0)),
+        heroDefense: Math.max(0, int(summary.heroDefense, 0)),
+        hpMax: heroHpState.hpMax,
+        hp: heroHpState.hp,
+      };
+    });
+    const encounter = simulatePartyFightEncounter(encounterMembers, monster, currentResolvedCount + 1);
+
+    for (const player of encounter.players) {
+      const row = touchedUsers.get(player.userId) || (() => {
+        const baseRow = saveMap.get(player.userId) || {};
+        return {
+          save: asRecord(baseRow.save_data),
+          revision: Math.max(0, int(baseRow.revision, 0)),
+        };
+      })();
+      row.save.heroHPMax = Math.max(1, int(player.hpMax, calcHpMax(row.save.heroLevel)));
+      row.save.heroHP = Math.max(0, int(player.hpRemaining, row.save.heroHPMax));
+      touchedUsers.set(player.userId, row);
+    }
+
+    const deadDuringLoop = encounter.players.find((player) => Math.max(0, int(player.hpRemaining, 0)) <= 0);
+    if (deadDuringLoop) {
+      const deathPayload = {
+        ...nextPayload,
+        resolvedCount: currentResolvedCount + 1,
+        latestEncounter: encounter,
+        recentEncounters: [...nextPayload.recentEncounters, encounter].slice(-6),
+        lastResolvedAt: encounter.resolvedAt,
+      };
+      if (touchedUsers.size) {
+        await Promise.all(Array.from(touchedUsers.entries()).map(async ([memberId, entry]) => {
+          const nextRevision = Math.max(1, entry.revision);
+          const saveUpsert = await admin.from("player_saves").upsert({
+            user_id: memberId,
+            save_data: entry.save,
+            revision: nextRevision,
+            last_synced_at: formatIsoNow(),
+          });
+          if (saveUpsert.error) throw saveUpsert.error;
+          await updatePublicStatsFromSave(admin, memberId, entry.save);
+        }));
+      }
+
+      const deadHeroName = str(deadDuringLoop.heroName, "Hero");
+      const message = `${deadHeroName} died.`;
+      const now = formatIsoNow();
+      const [sessionUpdate, partyUpdate, readyReset] = await Promise.all([
+        admin
+          .from("party_activity_sessions")
+          .update({
+            status: "failed",
+            ended_at: now,
+            result_payload: {
+              ...deathPayload,
+              stopReason: "death",
+              stopMessage: message,
+            },
+          })
+          .eq("id", activeSession.id),
+        admin
+          .from("parties")
+          .update({
+            state: "forming",
+            locked: false,
+            activity: "Party Fight",
+            selected_monster_id: "",
+          })
+          .eq("id", party.id),
+        admin.from("party_members").update({ ready: false }).eq("party_id", party.id),
+      ]);
+      if (sessionUpdate.error) throw sessionUpdate.error;
+      if (partyUpdate.error) throw partyUpdate.error;
+      if (readyReset.error) throw readyReset.error;
+      await logPartyEvent(admin, party.id, deadDuringLoop.userId, "party_activity_stopped_death", {
+        userId: deadDuringLoop.userId,
+        heroName: deadHeroName,
+        message,
+      });
+      return null;
+    }
+
+    if (encounter.outcome === "victory") {
+      for (const player of encounter.players) {
+        const row = touchedUsers.get(player.userId) || (() => {
+          const baseRow = saveMap.get(player.userId) || {};
+          return {
+            save: asRecord(baseRow.save_data),
+            revision: Math.max(0, int(baseRow.revision, 0)),
+          };
+        })();
+        const rewardResult = applyHeroRewards(row.save, int(player.xp, 0), int(player.gold, 0));
+        const staminaResult = spendPartyFightStamina(rewardResult.save, PARTY_FIGHT_STAMINA_COST);
+        if (isMonsterUnlocked(rewardResult.save, monsterId)) {
+          const monsterData = ensurePartyMonsterKills(staminaResult.save);
+          monsterData.monsterKills[monsterId] = getMonsterKillCount(monsterData.save, monsterId) + 1;
+          row.save = monsterData.save;
+        } else {
+          row.save = staminaResult.save;
+        }
+        row.revision += 1;
+        touchedUsers.set(player.userId, row);
+      }
+    }
+
+    currentResolvedCount += 1;
+    const recentEncounters = [...nextPayload.recentEncounters, encounter].slice(-6);
+    nextPayload = {
+      ...nextPayload,
+      resolvedCount: currentResolvedCount,
+      latestEncounter: encounter,
+      recentEncounters,
+      lastResolvedAt: encounter.resolvedAt,
+      selectedMonsterId: monsterId,
+      monsterName: str(monster.name),
+      monsterImg: str(monster.img),
+      monsterAttack: Math.max(0, int(monster.attack, 0)),
+      monsterDefense: Math.max(0, int(monster.defense, 0)),
+      monsterLevel: Math.max(1, int(monster.level, 1)),
+      monsterHp: Math.max(1, int(monster.hp, 1)),
+    };
+
+    const exhaustedDuringLoop = Array.from(touchedUsers.entries()).find(([, entry]) => getCurrentStamina(entry.save) <= PARTY_FIGHT_STAMINA_COST);
+    if (exhaustedDuringLoop) {
+      const exhaustedSummary = summaries.get(exhaustedDuringLoop[0]) || {};
+      const exhaustedHeroName = str(exhaustedSummary.heroName, "Hero");
+      const message = `${exhaustedHeroName} run out of stamina.`;
+      const now = formatIsoNow();
+      const [sessionUpdate, partyUpdate, readyReset] = await Promise.all([
+        admin
+          .from("party_activity_sessions")
+          .update({
+            status: "completed",
+            ended_at: now,
+            result_payload: {
+              ...nextPayload,
+              stopReason: "stamina",
+              stopMessage: message,
+            },
+          })
+          .eq("id", activeSession.id),
+        admin
+          .from("parties")
+          .update({
+            state: "forming",
+            locked: false,
+            activity: "Party Fight",
+            selected_monster_id: "",
+          })
+          .eq("id", party.id),
+        admin.from("party_members").update({ ready: false }).eq("party_id", party.id),
+      ]);
+      if (sessionUpdate.error) throw sessionUpdate.error;
+      if (partyUpdate.error) throw partyUpdate.error;
+      if (readyReset.error) throw readyReset.error;
+      await logPartyEvent(admin, party.id, exhaustedDuringLoop[0], "party_activity_stopped_stamina", {
+        userId: exhaustedDuringLoop[0],
+        heroName: exhaustedHeroName,
+        message,
+      });
+      return null;
+    }
+  }
+
+  if (touchedUsers.size) {
+    await Promise.all(Array.from(touchedUsers.entries()).map(async ([memberId, entry]) => {
+      const nextRevision = Math.max(1, entry.revision);
+      const saveUpsert = await admin.from("player_saves").upsert({
+        user_id: memberId,
+        save_data: entry.save,
+        revision: nextRevision,
+        last_synced_at: formatIsoNow(),
+      });
+      if (saveUpsert.error) throw saveUpsert.error;
+      await updatePublicStatsFromSave(admin, memberId, entry.save);
+    }));
+  }
+
+  const exhaustedEntry = Array.from(touchedUsers.entries()).find(([, entry]) => getCurrentStamina(entry.save) <= PARTY_FIGHT_STAMINA_COST);
+  if (exhaustedEntry) {
+    const exhaustedSummary = summaries.get(exhaustedEntry[0]) || {};
+    const exhaustedHeroName = str(exhaustedSummary.heroName, "Hero");
+    const message = `${exhaustedHeroName} run out of stamina.`;
+    const now = formatIsoNow();
+    const [sessionUpdate, partyUpdate, readyReset] = await Promise.all([
+      admin
+        .from("party_activity_sessions")
+        .update({
+          status: "completed",
+          ended_at: now,
+          result_payload: {
+            ...nextPayload,
+            stopReason: "stamina",
+            stopMessage: message,
+          },
+        })
+        .eq("id", activeSession.id),
+      admin
+        .from("parties")
+        .update({
+          state: "forming",
+          locked: false,
+          activity: "Party Fight",
+          selected_monster_id: "",
+        })
+        .eq("id", party.id),
+      admin.from("party_members").update({ ready: false }).eq("party_id", party.id),
+    ]);
+    if (sessionUpdate.error) throw sessionUpdate.error;
+    if (partyUpdate.error) throw partyUpdate.error;
+    if (readyReset.error) throw readyReset.error;
+    await logPartyEvent(admin, party.id, exhaustedEntry[0], "party_activity_stopped_stamina", {
+      userId: exhaustedEntry[0],
+      heroName: exhaustedHeroName,
+      message,
+    });
+    return null;
+  }
+
+  const sessionUpdate = await admin
+    .from("party_activity_sessions")
+    .update({
+      result_payload: nextPayload,
+    })
+    .eq("id", activeSession.id);
+  if (sessionUpdate.error) throw sessionUpdate.error;
+
+  return {
+    ...activeSession,
+    result_payload: nextPayload,
+  };
 }
 
 async function buildPartySnapshot(admin: ReturnType<typeof createClient>, partyId: string, viewerUserId: string) {
@@ -349,9 +1133,13 @@ async function buildPartySnapshot(admin: ReturnType<typeof createClient>, partyI
     pendingInvites: [],
     pendingJoinRequests: [],
     activeSession: null,
+    noticeMessage: "",
   };
 
-  const activeSession = await getActiveSessionForParty(admin, party.id);
+  let activeSession = await getActiveSessionForParty(admin, party.id);
+  if (activeSession && activeSession.activity.toLowerCase().includes("party fight")) {
+    activeSession = await advancePartyFightSession(admin, party, activeSession, viewerUserId);
+  }
   if (activeSession) {
     const relatedSummaries = await getUserSummaries(admin, [activeSession.started_by_user_id]);
     const startedBy = relatedSummaries.get(activeSession.started_by_user_id) || {};
@@ -363,6 +1151,8 @@ async function buildPartySnapshot(admin: ReturnType<typeof createClient>, partyI
       startedByHeroName: str(startedBy.heroName, "Hero"),
       startedAt: activeSession.started_at,
       endedAt: activeSession.ended_at,
+      memberSnapshot: Array.isArray(activeSession.member_snapshot) ? activeSession.member_snapshot : [],
+      resultPayload: activeSession.result_payload && typeof activeSession.result_payload === "object" ? activeSession.result_payload : {},
     };
   }
 
@@ -401,6 +1191,8 @@ async function buildPartySnapshot(admin: ReturnType<typeof createClient>, partyI
       };
     });
   }
+
+  snapshot.noticeMessage = await getLatestPartyNotice(admin, party.id);
 
   return snapshot;
 }
@@ -567,6 +1359,7 @@ async function getBootstrapState(admin: ReturnType<typeof createClient>, userId:
     ok: true,
     profile,
     myParty,
+    partyMonsterProgress: Array.isArray((profile as JsonRecord).partyMonsterProgress) ? (profile as JsonRecord).partyMonsterProgress : buildMonsterProgress({}),
     invites: inviteCards,
     myJoinRequests: requestCards,
     openParties: openCards,
@@ -737,6 +1530,14 @@ async function chooseMonster(admin: ReturnType<typeof createClient>, userId: str
   if (party.state !== "forming" || party.locked) throw new Error("Monster selection is locked right now.");
 
   const selectedMonsterId = normalizeMonsterId(payload.selectedMonsterId);
+  if (!PARTY_MONSTER_ORDER.includes(selectedMonsterId)) throw new Error("Invalid monster.");
+  const { data: leaderSaveRow, error: leaderSaveError } = await admin
+    .from("player_saves")
+    .select("save_data")
+    .eq("user_id", userId)
+    .maybeSingle();
+  if (leaderSaveError) throw leaderSaveError;
+  if (!isMonsterUnlocked(leaderSaveRow?.save_data, selectedMonsterId)) throw new Error("This monster is still locked for you.");
   const { error } = await admin
     .from("parties")
     .update({ selected_monster_id: selectedMonsterId })
@@ -1069,9 +1870,14 @@ async function startActivity(admin: ReturnType<typeof createClient>, userId: str
     };
   });
   const activity = normalizeActivity(payload.activity || party.activity);
-  if (activity.toLowerCase().includes("party fight") && !str(party.selected_monster_id)) {
+  const selectedMonsterId = str(party.selected_monster_id);
+  if (activity.toLowerCase().includes("party fight") && !selectedMonsterId) {
     throw new Error("Choose a monster before starting Party Fight.");
   }
+  const selectedMonster = getPartyFightMonster(selectedMonsterId);
+  const resultPayload = activity.toLowerCase().includes("party fight")
+    ? normalizePartyFightPayload({}, selectedMonster)
+    : {};
 
   const [sessionInsert, partyUpdate] = await Promise.all([
     admin.from("party_activity_sessions").insert({
@@ -1080,6 +1886,7 @@ async function startActivity(admin: ReturnType<typeof createClient>, userId: str
       status: "active",
       started_by_user_id: userId,
       member_snapshot: memberSnapshot,
+      result_payload: resultPayload,
     }),
     admin.from("parties").update({
       state: "active",
@@ -1102,24 +1909,32 @@ async function endActivity(admin: ReturnType<typeof createClient>, userId: strin
   if (party.state !== "active") throw new Error("Party is not in an active activity.");
 
   const now = formatIsoNow();
+  const result = str(payload.result, "completed").toLowerCase();
   const activeSession = await getActiveSessionForParty(admin, partyId);
   if (activeSession) {
     const sessionUpdate = await admin
       .from("party_activity_sessions")
       .update({
-        status: str(payload.result, "completed").toLowerCase() === "failed" ? "failed" : "completed",
+        status: result === "failed" ? "failed" : "completed",
         ended_at: now,
-        result_payload: payload.resultPayload && typeof payload.resultPayload === "object" ? payload.resultPayload : {},
+        result_payload: payload.resultPayload && typeof payload.resultPayload === "object"
+          ? payload.resultPayload
+          : activeSession.result_payload && typeof activeSession.result_payload === "object"
+            ? activeSession.result_payload
+            : {},
       })
       .eq("id", activeSession.id);
     if (sessionUpdate.error) throw sessionUpdate.error;
   }
+
+  const selectedMonsterId = str(party.selected_monster_id);
 
   const [partyUpdate, readyReset] = await Promise.all([
     admin.from("parties").update({
       state: "forming",
       locked: false,
       activity: normalizeActivity(payload.nextActivity || party.activity),
+      selected_monster_id: "",
     }).eq("id", partyId),
     admin.from("party_members").update({ ready: false }).eq("party_id", partyId),
   ]);
@@ -1127,7 +1942,8 @@ async function endActivity(admin: ReturnType<typeof createClient>, userId: strin
   if (readyReset.error) throw readyReset.error;
 
   await logPartyEvent(admin, partyId, userId, "party_activity_ended", {
-    result: str(payload.result, "completed").toLowerCase(),
+    result,
+    selectedMonsterId,
   });
 }
 

@@ -585,8 +585,13 @@
       const saveResult = await writeRemoteSaveWithRevision(localSave);
       if (!saveResult.ok) {
         if (saveResult.reason === "stale-remote" || saveResult.reason === "conflict") {
+          const remote = await fetchRemoteSave();
+          if (remote?.save_data && typeof remote.save_data === "object") {
+            applyRemoteSaveSnapshot(remote);
+          } else {
+            markLocalSaveSynced();
+          }
           localStorage.setItem(SAVE_OWNER_KEY, state.user.id);
-          markLocalSaveSynced();
           window.dispatchEvent(new CustomEvent("ds:cloud-save", {
             detail: { status: "synced", revision: state.cloud.revision, source: "remote" }
           }));
