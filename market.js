@@ -254,9 +254,11 @@
         .marketHistoryMeta{font-size:12px;color:#aeb0b8;margin-top:2px;}
         .marketShopGrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;}
         .marketShopCard{display:grid;grid-template-columns:64px minmax(0,1fr) auto;gap:12px;align-items:center;border:1px solid rgba(83,83,90,.72);border-radius:8px;background:rgba(0,0,0,.16);padding:10px;text-align:left;}
+        .marketShopCard.is-owned{border-color:rgba(55,190,104,.56);background:rgba(22,75,42,.14);}
         .marketShopCard img{width:64px;height:64px;border-radius:8px;border:1px solid rgba(92,92,102,.8);object-fit:cover;background:#101219;}
         .marketShopName{font-size:17px;font-weight:900;color:#f3ead6;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
         .marketShopMeta{margin-top:4px;font-size:12px;color:#aeb0b8;line-height:1.35;}
+        .marketOwnedText{color:#9dffb4;font-weight:900;}
         @media(max-width:760px){
           .marketHeader{align-items:flex-start;}
           .marketHeaderActions{justify-content:flex-end;}
@@ -322,21 +324,25 @@
   }
 
   function renderGeneralShop(){
+    const save = loadSave();
     return `
       <div class="marketShopGrid">
-        ${GENERAL_SHOP_ITEMS.map((item) => `
-          <div class="marketShopCard">
-            <img src="${esc(item.img)}" alt="">
-            <div style="min-width:0;">
-              <div class="marketShopName">${esc(item.name)}</div>
-              <div class="marketShopMeta">
-                ${esc(item.meta || "")}<br>
-                Price: <span class="marketGold">${fmt.format(num(item.price, 0))} gold</span>
+        ${GENERAL_SHOP_ITEMS.map((item) => {
+          const owned = item.kind === "pet" && !!save?.pets?.[item.slot];
+          return `
+            <div class="marketShopCard ${owned ? "is-owned" : ""}">
+              <img src="${esc(item.img)}" alt="">
+              <div style="min-width:0;">
+                <div class="marketShopName">${esc(item.name)}</div>
+                <div class="marketShopMeta">
+                  ${esc(item.meta || "")}<br>
+                  ${owned ? `<span class="marketOwnedText">Owned</span>` : `Price: <span class="marketGold">${fmt.format(num(item.price, 0))} gold</span>`}
+                </div>
               </div>
+              <button type="button" data-buy-shop-item="${esc(item.id)}" ${owned ? "disabled" : ""}>${owned ? "Owned" : "Buy"}</button>
             </div>
-            <button type="button" data-buy-shop-item="${esc(item.id)}">Buy</button>
-          </div>
-        `).join("")}
+          `;
+        }).join("")}
       </div>
     `;
   }
