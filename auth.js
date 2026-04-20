@@ -932,6 +932,129 @@
     return data;
   }
 
+  async function invokeCreateMarketListing(payload = {}) {
+    await ready;
+    if (!state.client || !state.user?.id) {
+      throw new Error("No active session.");
+    }
+
+    const activeOk = await validateActiveSession({ claimIfMissing: true });
+    if (!activeOk) {
+      throw new Error("Session replaced on another device.");
+    }
+
+    const item = payload?.item && typeof payload.item === "object" ? payload.item : null;
+    const quantity = Math.max(1, Math.floor(Number(payload?.quantity) || 1));
+    const priceEach = Math.max(1, Math.floor(Number(payload?.priceEach) || 1));
+    if (!item) throw new Error("Choose an item to list.");
+
+    const { data, error } = await state.client.rpc("create_market_listing", {
+      p_item: item,
+      p_quantity: quantity,
+      p_price_each: priceEach
+    });
+    if (error) throw new Error(error.message || "Market listing failed.");
+    if (!data || data.ok !== true) {
+      throw new Error(String(data?.error || "Market listing failed."));
+    }
+
+    const nextSave = data.sellerSave && typeof data.sellerSave === "object" ? data.sellerSave : null;
+    const nextRevision = Math.max(1, Number(data.sellerRevision || 0) || 1);
+    if (nextSave) {
+      state.cloud.revision = nextRevision;
+      writeLocalSave(nextSave, state.user.id, nextRevision);
+      state.cloud.userId = state.user.id;
+      state.cloud.ready = true;
+      markLocalSaveSynced(Date.now(), nextRevision);
+      window.dispatchEvent(new Event("ds:save"));
+      window.dispatchEvent(new CustomEvent("ds:cloud-save", {
+        detail: { status: "synced", revision: nextRevision, source: "market-listing" }
+      }));
+    }
+
+    return data;
+  }
+
+  async function invokeBuyMarketListing(payload = {}) {
+    await ready;
+    if (!state.client || !state.user?.id) {
+      throw new Error("No active session.");
+    }
+
+    const activeOk = await validateActiveSession({ claimIfMissing: true });
+    if (!activeOk) {
+      throw new Error("Session replaced on another device.");
+    }
+
+    const listingId = String(payload?.listingId || "").trim();
+    const quantity = Math.max(1, Math.floor(Number(payload?.quantity) || 1));
+    if (!listingId) throw new Error("Choose a market listing.");
+
+    const { data, error } = await state.client.rpc("buy_market_listing", {
+      p_listing_id: listingId,
+      p_quantity: quantity
+    });
+    if (error) throw new Error(error.message || "Market purchase failed.");
+    if (!data || data.ok !== true) {
+      throw new Error(String(data?.error || "Market purchase failed."));
+    }
+
+    const nextSave = data.buyerSave && typeof data.buyerSave === "object" ? data.buyerSave : null;
+    const nextRevision = Math.max(1, Number(data.buyerRevision || 0) || 1);
+    if (nextSave) {
+      state.cloud.revision = nextRevision;
+      writeLocalSave(nextSave, state.user.id, nextRevision);
+      state.cloud.userId = state.user.id;
+      state.cloud.ready = true;
+      markLocalSaveSynced(Date.now(), nextRevision);
+      window.dispatchEvent(new Event("ds:save"));
+      window.dispatchEvent(new CustomEvent("ds:cloud-save", {
+        detail: { status: "synced", revision: nextRevision, source: "market-buy" }
+      }));
+    }
+
+    return data;
+  }
+
+  async function invokeCancelMarketListing(payload = {}) {
+    await ready;
+    if (!state.client || !state.user?.id) {
+      throw new Error("No active session.");
+    }
+
+    const activeOk = await validateActiveSession({ claimIfMissing: true });
+    if (!activeOk) {
+      throw new Error("Session replaced on another device.");
+    }
+
+    const listingId = String(payload?.listingId || "").trim();
+    if (!listingId) throw new Error("Choose a market listing.");
+
+    const { data, error } = await state.client.rpc("cancel_market_listing", {
+      p_listing_id: listingId
+    });
+    if (error) throw new Error(error.message || "Cancel listing failed.");
+    if (!data || data.ok !== true) {
+      throw new Error(String(data?.error || "Cancel listing failed."));
+    }
+
+    const nextSave = data.sellerSave && typeof data.sellerSave === "object" ? data.sellerSave : null;
+    const nextRevision = Math.max(1, Number(data.sellerRevision || 0) || 1);
+    if (nextSave) {
+      state.cloud.revision = nextRevision;
+      writeLocalSave(nextSave, state.user.id, nextRevision);
+      state.cloud.userId = state.user.id;
+      state.cloud.ready = true;
+      markLocalSaveSynced(Date.now(), nextRevision);
+      window.dispatchEvent(new Event("ds:save"));
+      window.dispatchEvent(new CustomEvent("ds:cloud-save", {
+        detail: { status: "synced", revision: nextRevision, source: "market-cancel" }
+      }));
+    }
+
+    return data;
+  }
+
   async function invokePlayerProfile(payload = {}) {
     await ready;
     if (!state.client || !state.user?.id) {
@@ -1174,6 +1297,9 @@
     isAdmin,
     invokeAdminGrant,
     invokeSendItem,
+    invokeCreateMarketListing,
+    invokeBuyMarketListing,
+    invokeCancelMarketListing,
     invokePlayerProfile,
     invokePartyAction
   };

@@ -1,447 +1,461 @@
 (() => {
   const SAVE_KEY = "darkstone_save_v1";
+  const fmt = new Intl.NumberFormat("el-GR");
+  const MARKET_PAGE_SIZE = 80;
+  const GEAR_SLOTS = [
+    ["all", "All Gear"],
+    ["mainHand", "Main Hand"],
+    ["offHand", "Off Hand"],
+    ["helmet", "Helmet"],
+    ["shoulders", "Shoulders"],
+    ["chest", "Chest"],
+    ["bracers", "Bracers"],
+    ["gloves", "Gloves"],
+    ["belt", "Belt"],
+    ["pants", "Pants"],
+    ["boots", "Boots"],
+    ["ring", "Ring"],
+    ["amulet", "Amulet"],
+    ["shield", "Shield"]
+  ];
+
+  const state = {
+    view: "latest",
+    gearSlot: "all",
+    listings: [],
+    selectedInvIndex: -1,
+    loading: false,
+    status: "",
+    realtimeChannel: null,
+    realtimeTimer: 0
+  };
+
   const num = (v, f = 0) => (Number.isFinite(Number(v)) ? Number(v) : f);
-  const MARKET_TEMPLATE = `
-    <h1>Market</h1>
-
-    <div style="background:var(--card-medieval-bg);border:1px solid var(--card-medieval-border);border-radius:14px;padding:12px;max-width:900px;margin:0 auto;box-shadow:var(--card-medieval-shadow);">
-      <div id="marketTabs" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px;">
-        <button type="button" class="townBtn marketTabBtn marketTabBtnActive" data-market-tab="misc">Misc</button>
-        <button type="button" class="townBtn marketTabBtn" data-market-tab="pets">Pets</button>
-      </div>
-
-      <div id="marketMiscTab" class="marketTabPanel">
-        <h2 style="margin-top:0;color:#f3ead6;text-shadow:0 1px 0 rgba(74, 47, 14, .95),0 0 8px rgba(0,0,0,.3),0 2px 6px rgba(0,0,0,.58);">Misc Supplies</h2>
-
-        <div style="display:flex;gap:12px;align-items:center;background:var(--card-medieval-bg);border:1px solid var(--card-medieval-border);border-radius:12px;padding:12px;box-shadow:var(--card-medieval-shadow);">
-          <img src="images/items/arrows.png" alt="Arrows" style="width:64px;height:64px;border-radius:12px;border:1px solid rgba(126, 94, 50, .88);object-fit:cover;background:#000;box-shadow:0 0 0 1px rgba(28,20,12,.88), inset 0 1px 0 rgba(255,228,178,.08), inset 0 0 0 1px rgba(255,214,143,.04), inset 0 -10px 16px rgba(0,0,0,.14), 0 10px 18px rgba(0,0,0,.18);">
-          <div style="flex:1;">
-            <div style="font-weight:900;font-size:18px;color:#f3ead6;text-shadow:0 1px 0 rgba(74, 47, 14, .95),0 0 8px rgba(0,0,0,.3),0 2px 6px rgba(0,0,0,.58);">Arrows x100</div>
-            <div style="opacity:.85;margin-top:4px;color:#d9ccb0;">Price: <b>10 gold</b></div>
-            <div style="opacity:.8;margin-top:4px;font-size:12px;color:#d9ccb0;">Used for hunting.</div>
-          </div>
-          <button id="buyArrowsBtn">Buy</button>
-        </div>
-
-        <div style="display:flex;gap:12px;align-items:center;background:var(--card-medieval-bg);border:1px solid var(--card-medieval-border);border-radius:12px;padding:12px;margin-top:12px;box-shadow:var(--card-medieval-shadow);">
-          <img src="images/alchemy/items/empty_vial.png" alt="Empty Vial" style="width:64px;height:64px;border-radius:12px;border:1px solid rgba(126, 94, 50, .88);object-fit:cover;background:#000;box-shadow:0 0 0 1px rgba(28,20,12,.88), inset 0 1px 0 rgba(255,228,178,.08), inset 0 0 0 1px rgba(255,214,143,.04), inset 0 -10px 16px rgba(0,0,0,.14), 0 10px 18px rgba(0,0,0,.18);">
-          <div style="flex:1;">
-            <div style="font-weight:900;font-size:18px;color:#f3ead6;text-shadow:0 1px 0 rgba(74, 47, 14, .95),0 0 8px rgba(0,0,0,.3),0 2px 6px rgba(0,0,0,.58);">Empty Vial</div>
-            <div style="opacity:.85;margin-top:4px;color:#d9ccb0;">Price: <b>10 gold</b></div>
-            <div style="opacity:.8;margin-top:4px;font-size:12px;color:#d9ccb0;">Used for alchemy potions.</div>
-          </div>
-          <button id="buyEmptyVialBtn">Buy</button>
-        </div>
-      </div>
-
-      <div id="marketPetsTab" class="marketTabPanel" style="display:none;">
-        <h2 style="margin-top:0;color:#f3ead6;text-shadow:0 1px 0 rgba(74, 47, 14, .95),0 0 8px rgba(0,0,0,.3),0 2px 6px rgba(0,0,0,.58);">Pets</h2>
-
-        <div style="display:flex;gap:12px;align-items:center;background:var(--card-medieval-bg);border:1px solid var(--card-medieval-border);border-radius:12px;padding:12px;box-shadow:var(--card-medieval-shadow);">
-          <img src="images/pets/combat_wolf_cub.png" alt="Wolf Cub" style="width:64px;height:64px;border-radius:12px;border:1px solid rgba(126, 94, 50, .88);object-fit:cover;background:#121824;box-shadow:0 0 0 1px rgba(28,20,12,.88), inset 0 1px 0 rgba(255,228,178,.08), inset 0 0 0 1px rgba(255,214,143,.04), inset 0 -10px 16px rgba(0,0,0,.14), 0 10px 18px rgba(0,0,0,.18);">
-          <div style="flex:1;min-width:0;">
-            <div style="font-weight:900;font-size:18px;color:#f3ead6;text-shadow:0 1px 0 rgba(74, 47, 14, .95),0 0 8px rgba(0,0,0,.3),0 2px 6px rgba(0,0,0,.58);">Wolf Cub</div>
-            <div style="opacity:.85;margin-top:4px;color:#d9ccb0;">Unlock cost: <b>100,000 gold</b></div>
-            <div style="opacity:.8;margin-top:4px;font-size:12px;color:#d9ccb0;">Combat Pet Tier 1</div>
-            <div style="opacity:.8;margin-top:6px;font-size:12px;color:#d9ccb0;">+0.20 Attack per pet level</div>
-            <div style="opacity:.8;font-size:12px;color:#d9ccb0;">+0.20 Defense per pet level</div>
-            <div style="opacity:.72;margin-top:6px;font-size:11px;color:#d9ccb0;">Combat pet XP: gets 10% of combat XP from fights and dungeons only.</div>
-          </div>
-          <button id="buyWolfCubBtn">Buy</button>
-        </div>
-
-        <div style="display:flex;gap:12px;align-items:center;background:var(--card-medieval-bg);border:1px solid var(--card-medieval-border);border-radius:12px;padding:12px;margin-top:12px;box-shadow:var(--card-medieval-shadow);">
-          <img src="images/pets/gathering_burrower_pup.png" alt="Burrower Pup" style="width:64px;height:64px;border-radius:12px;border:1px solid rgba(126, 94, 50, .88);object-fit:cover;background:#121824;box-shadow:0 0 0 1px rgba(28,20,12,.88), inset 0 1px 0 rgba(255,228,178,.08), inset 0 0 0 1px rgba(255,214,143,.04), inset 0 -10px 16px rgba(0,0,0,.14), 0 10px 18px rgba(0,0,0,.18);">
-          <div style="flex:1;min-width:0;">
-            <div style="font-weight:900;font-size:18px;color:#f3ead6;text-shadow:0 1px 0 rgba(74, 47, 14, .95),0 0 8px rgba(0,0,0,.3),0 2px 6px rgba(0,0,0,.58);">Burrower Pup</div>
-            <div style="opacity:.85;margin-top:4px;color:#d9ccb0;">Unlock cost: <b>100,000 gold</b></div>
-            <div style="opacity:.8;margin-top:4px;font-size:12px;color:#d9ccb0;">Gathering Pet Tier 1</div>
-            <div style="opacity:.8;margin-top:6px;font-size:12px;color:#d9ccb0;">+0.10% Profession XP per pet level</div>
-            <div style="opacity:.8;font-size:12px;color:#d9ccb0;">Milestones give Double Gather Chance</div>
-            <div style="opacity:.72;margin-top:6px;font-size:11px;color:#d9ccb0;">Lv 10 +1%, Lv 25 +1%, Lv 50 +1%, Lv 75 +1%, Lv 100 +2%</div>
-          </div>
-          <button id="buyBurrowerPupBtn">Buy</button>
-        </div>
-
-        <div style="display:flex;gap:12px;align-items:center;background:var(--card-medieval-bg);border:1px solid var(--card-medieval-border);border-radius:12px;padding:12px;margin-top:12px;box-shadow:var(--card-medieval-shadow);">
-          <img src="images/pets/artisan_workshop_mouse.png" alt="Workshop Mouse" style="width:64px;height:64px;border-radius:12px;border:1px solid rgba(126, 94, 50, .88);object-fit:cover;background:#121824;box-shadow:0 0 0 1px rgba(28,20,12,.88), inset 0 1px 0 rgba(255,228,178,.08), inset 0 0 0 1px rgba(255,214,143,.04), inset 0 -10px 16px rgba(0,0,0,.14), 0 10px 18px rgba(0,0,0,.18);">
-          <div style="flex:1;min-width:0;">
-            <div style="font-weight:900;font-size:18px;color:#f3ead6;text-shadow:0 1px 0 rgba(74, 47, 14, .95),0 0 8px rgba(0,0,0,.3),0 2px 6px rgba(0,0,0,.58);">Workshop Mouse</div>
-            <div style="opacity:.85;margin-top:4px;color:#d9ccb0;">Unlock cost: <b>100,000 gold</b></div>
-            <div style="opacity:.8;margin-top:4px;font-size:12px;color:#d9ccb0;">Artisan Pet Tier 1</div>
-            <div style="opacity:.8;margin-top:6px;font-size:12px;color:#d9ccb0;">+0.10% Profession XP per pet level</div>
-            <div style="opacity:.8;font-size:12px;color:#d9ccb0;">Milestones give Double Craft Chance</div>
-            <div style="opacity:.72;margin-top:6px;font-size:11px;color:#d9ccb0;">Lv 10 +1%, Lv 25 +1%, Lv 50 +1%, Lv 75 +1%, Lv 100 +2%</div>
-          </div>
-          <button id="buyWorkshopMouseBtn">Buy</button>
-        </div>
-
-        <div style="display:flex;gap:12px;align-items:center;background:var(--card-medieval-bg);border:1px solid var(--card-medieval-border);border-radius:12px;padding:12px;margin-top:12px;box-shadow:var(--card-medieval-shadow);">
-          <img src="images/pets/fortune_coin_ferret.png" alt="Coin Ferret" style="width:64px;height:64px;border-radius:12px;border:1px solid rgba(126, 94, 50, .88);object-fit:cover;background:#121824;box-shadow:0 0 0 1px rgba(28,20,12,.88), inset 0 1px 0 rgba(255,228,178,.08), inset 0 0 0 1px rgba(255,214,143,.04), inset 0 -10px 16px rgba(0,0,0,.14), 0 10px 18px rgba(0,0,0,.18);">
-          <div style="flex:1;min-width:0;">
-            <div style="font-weight:900;font-size:18px;color:#f3ead6;text-shadow:0 1px 0 rgba(74, 47, 14, .95),0 0 8px rgba(0,0,0,.3),0 2px 6px rgba(0,0,0,.58);">Coin Ferret</div>
-            <div style="opacity:.85;margin-top:4px;color:#d9ccb0;">Unlock cost: <b>100,000 gold</b></div>
-            <div style="opacity:.8;margin-top:4px;font-size:12px;color:#d9ccb0;">Fortune Pet Tier 1</div>
-            <div style="opacity:.8;margin-top:6px;font-size:12px;color:#d9ccb0;">+0.10% Gold per pet level</div>
-            <div style="opacity:.8;font-size:12px;color:#d9ccb0;">Milestones give Luck bonus</div>
-            <div style="opacity:.72;margin-top:6px;font-size:11px;color:#d9ccb0;">Lv 10 +1%, Lv 25 +1%, Lv 50 +1%, Lv 75 +1%, Lv 100 +2%</div>
-          </div>
-          <button id="buyCoinFerretBtn">Buy</button>
-        </div>
-      </div>
-
-      <div id="shopMsg" style="margin-top:10px;opacity:.9;color:#d9ccb0;"></div>
-    </div>
-  `;
+  const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({
+    "&": "&amp;",
+    "<": "&lt;",
+    ">": "&gt;",
+    '"': "&quot;",
+    "'": "&#39;"
+  }[c]));
 
   function loadSave(){
     try { return JSON.parse(localStorage.getItem(SAVE_KEY) || "{}") || {}; }
     catch { return {}; }
   }
 
-  function setSave(next){
-    localStorage.setItem(SAVE_KEY, JSON.stringify(next));
+  function getUserId(){
+    try { return window.DSAuth?.getUser?.()?.id || ""; }
+    catch { return ""; }
   }
 
-  function itemStackKey(it){
-    return [
-      it.type || "",
-      it.name || "",
-      it.slot || "",
-      it.reqLevel ?? 1,
-      it.atk ?? 0,
-      it.def ?? 0,
-      it.rarity || "",
-      it.img || ""
-    ].join("::");
+  function isGearItem(it){
+    const slots = new Set(GEAR_SLOTS.map(([key]) => key).filter((key) => key !== "all"));
+    return it?.type === "gear" || (it?.slot && slots.has(String(it.slot)));
   }
 
-  function addToStack(arr, item, qty = 1){
-    const key = itemStackKey(item);
-    const ex = arr.find((i) => i && itemStackKey(i) === key);
-    if (ex) ex.quantity = num(ex.quantity, 1) + qty;
-    else arr.push({ ...item, quantity: qty });
+  function getQty(it){
+    return Math.max(1, Math.floor(num(it?.quantity ?? it?.qty, 1)));
   }
 
-  function hasInventorySpace(save, addUnits = 1) {
-    if (window.DSInventory?.hasSpaceFor) return window.DSInventory.hasSpaceFor(save, addUnits);
-    let used = 0;
-    for (const it of save.inventory || []) {
-      if (!it) continue;
-      used += Math.max(1, num(it.quantity ?? it.qty, 1));
+  function isSellableItem(it){
+    if (!it || typeof it !== "object") return false;
+    if (!String(it.name || "").trim()) return false;
+    return getQty(it) > 0;
+  }
+
+  function itemMeta(it){
+    const parts = [];
+    if (it?.slot) parts.push(slotLabel(it.slot));
+    if (it?.rarity) parts.push(String(it.rarity));
+    if (num(it?.atk, 0)) parts.push(`${num(it.atk)} ATK`);
+    if (num(it?.def, 0)) parts.push(`${num(it.def)} DEF`);
+    if (num(it?.reqLevel, 0)) parts.push(`R.LVL ${num(it.reqLevel)}`);
+    return parts.join(" • ");
+  }
+
+  function slotLabel(slot){
+    const found = GEAR_SLOTS.find(([key]) => key === slot);
+    return found ? found[1] : String(slot || "-");
+  }
+
+  function defaultSellPrice(item){
+    const base = 5 + num(item?.atk, 0) * 3 + num(item?.def, 0) * 3;
+    const rarity = String(item?.rarity || "").toLowerCase();
+    const mult = rarity === "legendary" ? 8 : rarity === "epic" ? 5 : rarity === "rare" ? 3 : rarity === "uncommon" ? 1.6 : 1;
+    return Math.max(1, Math.floor(base * mult));
+  }
+
+  function marketIcon(kind){
+    if (kind === "gear") return "images/ui/equipment.png";
+    if (kind === "materials") return "images/ui/bank.png";
+    return "images/ui/market.png";
+  }
+
+  function findBuyQtyInput(id){
+    return Array.from(document.querySelectorAll("[data-buy-qty]"))
+      .find((el) => String(el.dataset.buyQty || "") === String(id)) || null;
+  }
+
+  function template(){
+    return `
+      <style>
+        .marketShell{max-width:980px;margin:0 auto;color:#f3ead6;}
+        .marketTop{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;margin:6px 0 14px;}
+        .marketHeroBtn{min-height:86px;display:grid;grid-template-rows:44px auto;justify-items:center;align-items:center;gap:6px;padding:10px;border-radius:8px;border:1px solid rgba(126,94,50,.86);background:linear-gradient(180deg,rgba(26,28,34,.96),rgba(10,11,15,.96));box-shadow:inset 0 1px 0 rgba(255,232,184,.08),0 12px 24px rgba(0,0,0,.2);color:#f3ead6;cursor:pointer;}
+        .marketHeroBtn.is-active{border-color:#d0a14f;background:linear-gradient(180deg,rgba(82,58,28,.96),rgba(35,24,14,.98));}
+        .marketHeroBtn img{width:42px;height:42px;object-fit:contain;filter:drop-shadow(0 6px 8px rgba(0,0,0,.45));}
+        .marketPanel{background:linear-gradient(180deg,rgba(13,14,18,.9),rgba(8,9,12,.96));border:1px solid rgba(87,87,94,.86);border-radius:8px;padding:12px;box-shadow:inset 0 1px 0 rgba(255,255,255,.04),0 16px 30px rgba(0,0,0,.22);}
+        .marketSearchTitle{max-width:560px;margin:0 auto 10px;padding:6px 12px;border:1px solid rgba(96,96,104,.72);border-radius:8px;text-align:center;color:#aeb0b8;background:rgba(0,0,0,.18);}
+        .marketSlotBar{display:grid;grid-template-columns:repeat(7,minmax(56px,1fr));gap:4px;margin-bottom:12px;}
+        .marketSlotBtn{min-height:44px!important;border-radius:4px!important;padding:6px!important;font-size:12px!important;}
+        .marketSlotBtn.is-active{border-color:#d0a14f!important;color:#fff1cf!important;}
+        .marketTable{width:100%;border-collapse:collapse;table-layout:fixed;}
+        .marketTable th,.marketTable td{border:1px solid rgba(83,83,90,.72);padding:8px;text-align:center;vertical-align:middle;background:rgba(0,0,0,.16);}
+        .marketTable th{font-weight:900;color:#d9d9df;background:rgba(0,0,0,.28);}
+        .marketItemCell{display:flex;align-items:center;gap:10px;text-align:left;min-width:0;}
+        .marketItemIcon{width:48px;height:48px;flex:0 0 48px;border:1px solid rgba(92,92,102,.8);border-radius:6px;background:#101219;object-fit:cover;}
+        .marketItemName{font-weight:900;color:#f3ead6;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+        .marketItemMeta{font-size:12px;color:#aeb0b8;margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+        .marketGold{color:#f0d326;font-weight:900;}
+        .marketQtyInput{width:72px;padding:8px;border-radius:6px;border:1px solid rgba(126,94,50,.86);background:#090a0e;color:#fff;text-align:center;}
+        .marketSellGrid{display:grid;grid-template-columns:minmax(220px,1fr) 92px 120px auto;gap:8px;align-items:end;margin-top:12px;}
+        .marketField{display:grid;gap:5px;text-align:left;color:#d9ccb0;font-size:12px;}
+        .marketField select,.marketField input{min-height:38px;border-radius:6px;border:1px solid rgba(126,94,50,.86);background:#090a0e;color:#fff;padding:8px;}
+        .marketStatus{margin-top:10px;min-height:20px;color:#d9ccb0;text-align:center;}
+        .marketEmpty{padding:22px;text-align:center;color:#aeb0b8;border:1px solid rgba(83,83,90,.5);background:rgba(0,0,0,.12);}
+        @media(max-width:760px){
+          .marketTop{grid-template-columns:1fr;}
+          .marketSlotBar{grid-template-columns:repeat(3,minmax(0,1fr));}
+          .marketSellGrid{grid-template-columns:1fr 1fr;}
+          .marketTable{font-size:13px;}
+          .marketItemIcon{width:40px;height:40px;flex-basis:40px;}
+        }
+      </style>
+      <div class="marketShell">
+        <h1>Market</h1>
+        <div class="marketTop">
+          <button type="button" class="marketHeroBtn ${state.view === "latest" ? "is-active" : ""}" data-market-view="latest">
+            <img src="${marketIcon("latest")}" alt="">
+            <span>Latest Items</span>
+          </button>
+          <button type="button" class="marketHeroBtn ${state.view === "gear" ? "is-active" : ""}" data-market-view="gear">
+            <img src="${marketIcon("gear")}" alt="">
+            <span>Combat Gear</span>
+          </button>
+          <button type="button" class="marketHeroBtn ${state.view === "materials" ? "is-active" : ""}" data-market-view="materials">
+            <img src="${marketIcon("materials")}" alt="">
+            <span>Materials</span>
+          </button>
+        </div>
+
+        <div class="marketPanel">
+          <div class="marketSearchTitle">${viewTitle()}</div>
+          ${state.view === "gear" ? renderGearSlots() : ""}
+          <div id="marketListings">${renderListings()}</div>
+          ${renderSellBox()}
+          <div id="shopMsg" class="marketStatus">${esc(state.status)}</div>
+        </div>
+      </div>
+    `;
+  }
+
+  function viewTitle(){
+    if (state.view === "gear") return state.gearSlot === "all" ? "Combat Items" : `Combat Items • ${slotLabel(state.gearSlot)}`;
+    if (state.view === "materials") return "Materials";
+    return "Items Recently Added To The Market";
+  }
+
+  function renderGearSlots(){
+    return `
+      <div class="marketSlotBar">
+        ${GEAR_SLOTS.map(([key, label]) => `
+          <button type="button" class="marketSlotBtn ${state.gearSlot === key ? "is-active" : ""}" data-market-slot="${esc(key)}">${esc(label)}</button>
+        `).join("")}
+      </div>
+    `;
+  }
+
+  function filteredListings(){
+    return state.listings.filter((listing) => {
+      if (state.view === "latest") return true;
+      if (state.view === "materials") return listing.category === "materials";
+      if (state.view === "gear") {
+        if (listing.category !== "gear") return false;
+        return state.gearSlot === "all" || listing.gear_slot === state.gearSlot;
+      }
+      return true;
+    });
+  }
+
+  function renderListings(){
+    if (state.loading) return `<div class="marketEmpty">Loading market...</div>`;
+    const rows = filteredListings();
+    if (!rows.length) return `<div class="marketEmpty">No active listings here yet.</div>`;
+    const userId = getUserId();
+    return `
+      <table class="marketTable">
+        <thead>
+          <tr>
+            <th style="width:38%;">Item</th>
+            <th style="width:12%;">Quantity</th>
+            <th style="width:16%;">Price EA</th>
+            <th style="width:12%;">R.LVL</th>
+            <th style="width:22%;">Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${rows.map((listing) => renderListingRow(listing, userId)).join("")}
+        </tbody>
+      </table>
+    `;
+  }
+
+  function renderListingRow(listing, userId){
+    const item = listing.item || {};
+    const qty = Math.max(1, Math.floor(num(listing.quantity, 1)));
+    const req = num(item.reqLevel, 0);
+    const mine = userId && listing.seller_user_id === userId;
+    return `
+      <tr>
+        <td>
+          <div class="marketItemCell">
+            <img class="marketItemIcon" src="${esc(listing.item_img || item.img || marketIcon(listing.category))}" alt="">
+            <div style="min-width:0;">
+              <div class="marketItemName">${esc(listing.item_name || item.name || "Item")}</div>
+              <div class="marketItemMeta">${esc(itemMeta(item) || `Seller: ${listing.seller_name || "Hero"}`)}</div>
+            </div>
+          </div>
+        </td>
+        <td>${fmt.format(qty)}</td>
+        <td class="marketGold">${fmt.format(num(listing.price_each, 0))} gold</td>
+        <td>${req ? esc(req) : "-"}</td>
+        <td>
+          ${mine ? `
+            <button type="button" data-cancel-listing="${esc(listing.id)}">Cancel</button>
+          ` : `
+            <input class="marketQtyInput" type="number" min="1" max="${qty}" value="1" data-buy-qty="${esc(listing.id)}">
+            <button type="button" data-buy-listing="${esc(listing.id)}">Buy</button>
+          `}
+        </td>
+      </tr>
+    `;
+  }
+
+  function renderSellBox(){
+    const save = loadSave();
+    const inventory = Array.isArray(save.inventory) ? save.inventory : [];
+    const sellable = inventory
+      .map((it, idx) => ({ it, idx }))
+      .filter(({ it }) => isSellableItem(it));
+    const selected = sellable.find(({ idx }) => idx === state.selectedInvIndex) || sellable[0] || null;
+    if (selected && state.selectedInvIndex < 0) state.selectedInvIndex = selected.idx;
+    const q = selected ? getQty(selected.it) : 1;
+    const price = selected ? defaultSellPrice(selected.it) : 1;
+
+    return `
+      <div class="marketSearchTitle" style="margin-top:16px;">Sell An Item Or Material</div>
+      <div class="marketSellGrid">
+        <label class="marketField">
+          Item
+          <select id="marketSellItem" ${sellable.length ? "" : "disabled"}>
+            ${sellable.length ? sellable.map(({ it, idx }) => `
+              <option value="${idx}" ${idx === state.selectedInvIndex ? "selected" : ""}>
+                ${esc(it.name || "Item")} x${getQty(it)}${isGearItem(it) ? ` • ${slotLabel(it.slot)}` : ""}
+              </option>
+            `).join("") : `<option>No inventory items</option>`}
+          </select>
+        </label>
+        <label class="marketField">
+          Qty
+          <input id="marketSellQty" type="number" min="1" max="${q}" value="1" ${selected ? "" : "disabled"}>
+        </label>
+        <label class="marketField">
+          Price EA
+          <input id="marketSellPrice" type="number" min="1" value="${price}" ${selected ? "" : "disabled"}>
+        </label>
+        <button id="marketListBtn" type="button" ${selected ? "" : "disabled"}>List</button>
+      </div>
+      ${selected ? `
+        <div class="marketItemMeta" style="margin-top:8px;text-align:center;">
+          ${esc(selected.it.name || "Item")} ${itemMeta(selected.it) ? `• ${esc(itemMeta(selected.it))}` : ""} • Available x${fmt.format(q)}
+        </div>
+      ` : ""}
+    `;
+  }
+
+  async function loadListings(){
+    const client = window.DSAuth?.getClient?.();
+    if (!client) {
+      state.status = "Sign in to use the player market.";
+      render();
+      return;
     }
-    return used + Math.max(1, num(addUnits, 1)) <= num(save.inventoryMaxSlots, 1000);
-  }
 
-  function ensurePets(save){
-    if (!save.pets || typeof save.pets !== "object") save.pets = {};
-    if (!("combat" in save.pets)) save.pets.combat = null;
-    if (!("artisan" in save.pets)) save.pets.artisan = null;
-    if (!("gathering" in save.pets)) save.pets.gathering = null;
-    if (!("fortune" in save.pets)) save.pets.fortune = null;
-    return save;
-  }
-
-  function getWolfCubPet(){
-    return {
-      slot: "combat",
-      family: "wolf",
-      tier: 1,
-      name: "Wolf Cub",
-      img: "",
-      iconText: "WC",
-      level: 1,
-      xp: 0,
-      xpNext: 100,
-      atkPerLevel: 0.20,
-      defPerLevel: 0.20,
-      nextUpgradeCost: 1000000
-    };
-  }
-
-  function getBurrowerPupPet(){
-    return {
-      slot: "gathering",
-      family: "burrower",
-      tier: 1,
-      name: "Burrower Pup",
-      img: "",
-      iconText: "BP",
-      level: 1,
-      xp: 0,
-      xpNext: 100,
-      professionXpPctPerLevel: 0.0010,
-      nextUpgradeCost: 1000000
-    };
-  }
-
-  function getWorkshopMousePet(){
-    return {
-      slot: "artisan",
-      family: "workshop",
-      tier: 1,
-      name: "Workshop Mouse",
-      img: "",
-      iconText: "WM",
-      level: 1,
-      xp: 0,
-      xpNext: 100,
-      professionXpPctPerLevel: 0.0010,
-      nextUpgradeCost: 1000000
-    };
-  }
-
-  function getCoinFerretPet(){
-    return {
-      slot: "fortune",
-      family: "fortune",
-      tier: 1,
-      name: "Coin Ferret",
-      img: "",
-      iconText: "CF",
-      level: 1,
-      xp: 0,
-      xpNext: 100,
-      goldPctPerLevel: 0.0010,
-      nextUpgradeCost: 1000000
-    };
-  }
-
-  function setMsg(text){
-    const msg = document.getElementById("shopMsg");
-    if (msg) msg.textContent = text;
-  }
-
-  function refreshPetBuyState(){
-    const s = ensurePets(loadSave());
-    const wolfBtn = document.getElementById("buyWolfCubBtn");
-    const burrowerBtn = document.getElementById("buyBurrowerPupBtn");
-    if (wolfBtn) {
-      const owned = !!s.pets?.combat;
-      wolfBtn.disabled = owned;
-      wolfBtn.textContent = owned ? "Owned" : "Buy";
-    }
-    if (burrowerBtn) {
-      const owned = !!s.pets?.gathering;
-      burrowerBtn.disabled = owned;
-      burrowerBtn.textContent = owned ? "Owned" : "Buy";
-    }
-    const artisanBtn = document.getElementById("buyWorkshopMouseBtn");
-    if (artisanBtn) {
-      const owned = !!s.pets?.artisan;
-      artisanBtn.disabled = owned;
-      artisanBtn.textContent = owned ? "Owned" : "Buy";
-    }
-    const fortuneBtn = document.getElementById("buyCoinFerretBtn");
-    if (fortuneBtn) {
-      const owned = !!s.pets?.fortune;
-      fortuneBtn.disabled = owned;
-      fortuneBtn.textContent = owned ? "Owned" : "Buy";
+    state.loading = true;
+    render();
+    try {
+      const { data, error } = await client
+        .from("market_listings")
+        .select("id,seller_user_id,seller_name,item,item_name,item_img,item_rarity,category,gear_slot,quantity,price_each,created_at")
+        .eq("status", "active")
+        .order("created_at", { ascending: false })
+        .limit(MARKET_PAGE_SIZE);
+      if (error) throw error;
+      state.listings = Array.isArray(data) ? data : [];
+      state.status = "";
+    } catch (error) {
+      state.status = error?.message || "Could not load market.";
+    } finally {
+      state.loading = false;
+      render();
     }
   }
 
-  function activateMarketTab(tab){
-    const wanted = String(tab || "misc");
-    const btn = document.querySelector(`[data-market-tab="${wanted}"]`);
-    if (btn) btn.click();
+  function scheduleRealtimeRefresh(){
+    if (state.realtimeTimer) window.clearTimeout(state.realtimeTimer);
+    state.realtimeTimer = window.setTimeout(() => {
+      state.realtimeTimer = 0;
+      loadListings();
+    }, 250);
   }
 
-  function bindMarketTabs() {
-    document.querySelectorAll("[data-market-tab]").forEach((btn) => {
+  function bindRealtime(){
+    const client = window.DSAuth?.getClient?.();
+    if (!client || state.realtimeChannel) return;
+    try {
+      state.realtimeChannel = client
+        .channel("market-listings-live")
+        .on("postgres_changes", {
+          event: "*",
+          schema: "public",
+          table: "market_listings"
+        }, scheduleRealtimeRefresh)
+        .subscribe();
+    } catch (error) {
+      console.warn("[market] realtime subscription failed", error);
+      state.realtimeChannel = null;
+    }
+  }
+
+  function selectedListing(id){
+    return state.listings.find((listing) => String(listing.id) === String(id)) || null;
+  }
+
+  async function listSelectedItem(){
+    const save = loadSave();
+    const inv = Array.isArray(save.inventory) ? save.inventory : [];
+    const item = inv[state.selectedInvIndex];
+    if (!item) {
+      setStatus("Choose an item from your inventory.");
+      return;
+    }
+    const maxQty = getQty(item);
+    const qtyEl = document.getElementById("marketSellQty");
+    const priceEl = document.getElementById("marketSellPrice");
+    const qty = Math.max(1, Math.min(maxQty, Math.floor(num(qtyEl?.value, 1))));
+    const priceEach = Math.max(1, Math.floor(num(priceEl?.value, defaultSellPrice(item))));
+
+    setStatus("Listing item...");
+    try {
+      await window.DSAuth.invokeCreateMarketListing({ item, quantity: qty, priceEach });
+      state.selectedInvIndex = -1;
+      await loadListings();
+      setStatus(`Listed ${item.name || "Item"} x${qty} for ${fmt.format(priceEach)} gold EA.`);
+    } catch (error) {
+      setStatus(error?.message || "Could not list item.");
+    }
+  }
+
+  async function buyListing(id){
+    const listing = selectedListing(id);
+    if (!listing) {
+      setStatus("Listing is no longer visible.");
+      return;
+    }
+    const qtyEl = findBuyQtyInput(id);
+    const qty = Math.max(1, Math.min(num(listing.quantity, 1), Math.floor(num(qtyEl?.value, 1))));
+    setStatus("Buying item...");
+    try {
+      await window.DSAuth.invokeBuyMarketListing({ listingId: id, quantity: qty });
+      await loadListings();
+      setStatus(`Bought ${listing.item_name || "Item"} x${qty}.`);
+    } catch (error) {
+      setStatus(error?.message || "Could not buy item.");
+    }
+  }
+
+  async function cancelListing(id){
+    setStatus("Cancelling listing...");
+    try {
+      await window.DSAuth.invokeCancelMarketListing({ listingId: id });
+      await loadListings();
+      setStatus("Listing cancelled and returned to your inventory.");
+    } catch (error) {
+      setStatus(error?.message || "Could not cancel listing.");
+    }
+  }
+
+  function setStatus(text){
+    state.status = text || "";
+    const el = document.getElementById("shopMsg");
+    if (el) el.textContent = state.status;
+  }
+
+  function bind(){
+    document.querySelectorAll("[data-market-view]").forEach((btn) => {
       btn.addEventListener("click", () => {
-        const tab = String(btn.dataset.marketTab || "misc");
-        document.querySelectorAll("[data-market-tab]").forEach((el) => {
-          el.classList.toggle("marketTabBtnActive", el === btn);
-          el.style.borderColor = el === btn ? "rgba(166, 124, 64, .98)" : "";
-          el.style.background = el === btn
-            ? "linear-gradient(180deg, rgba(84,60,30,.98) 0%, rgba(58,40,20,.98) 100%)"
-            : "";
-          el.style.color = el === btn ? "#fff1cf" : "";
-          el.style.boxShadow = el === btn
-            ? "0 0 0 1px rgba(60,40,16,.82), inset 0 1px 0 rgba(255,232,184,.12), inset 0 -10px 18px rgba(0,0,0,.22), 0 12px 20px rgba(0,0,0,.2)"
-            : "";
-        });
-        const misc = document.getElementById("marketMiscTab");
-        const pets = document.getElementById("marketPetsTab");
-        if (misc) misc.style.display = tab === "misc" ? "" : "none";
-        if (pets) pets.style.display = tab === "pets" ? "" : "none";
+        state.view = String(btn.dataset.marketView || "latest");
+        render();
       });
     });
+    document.querySelectorAll("[data-market-slot]").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        state.gearSlot = String(btn.dataset.marketSlot || "all");
+        render();
+      });
+    });
+    document.querySelectorAll("[data-buy-listing]").forEach((btn) => {
+      btn.addEventListener("click", () => buyListing(btn.dataset.buyListing));
+    });
+    document.querySelectorAll("[data-cancel-listing]").forEach((btn) => {
+      btn.addEventListener("click", () => cancelListing(btn.dataset.cancelListing));
+    });
+    document.getElementById("marketSellItem")?.addEventListener("change", (event) => {
+      state.selectedInvIndex = Math.floor(num(event.target.value, -1));
+      render();
+    });
+    document.getElementById("marketListBtn")?.addEventListener("click", listSelectedItem);
   }
 
-  function bindMarketActions() {
-    document.getElementById("buyArrowsBtn")?.addEventListener("click", () => {
-      const s = loadSave();
-      if (!Array.isArray(s.inventory)) s.inventory = [];
-      s.gold = num(s.gold, 0);
-
-      const price = 10;
-      if (s.gold < price){
-        setMsg("Not enough gold.");
-        return;
-      }
-      if (!hasInventorySpace(s, 100)) {
-        setMsg("Not enough inventory space.");
-        return;
-      }
-
-      s.gold -= price;
-      addToStack(s.inventory, {
-        type: "consumable",
-        name: "Arrows",
-        quantity: 100,
-        rarity: "common",
-        img: "images/items/arrows.png"
-      }, 100);
-
-      setSave(s);
-      setMsg("Bought Arrows x100 for 10 gold.");
-    });
-
-    document.getElementById("buyEmptyVialBtn")?.addEventListener("click", () => {
-      const s = loadSave();
-      if (!Array.isArray(s.inventory)) s.inventory = [];
-      s.gold = num(s.gold, 0);
-
-      const price = 10;
-      if (s.gold < price){
-        setMsg("Not enough gold.");
-        return;
-      }
-      if (!hasInventorySpace(s, 1)) {
-        setMsg("Not enough inventory space.");
-        return;
-      }
-
-      s.gold -= price;
-      addToStack(s.inventory, {
-        type: "material",
-        name: "Empty Vial",
-        quantity: 1,
-        rarity: "common",
-        img: "images/alchemy/items/empty_vial.png"
-      }, 1);
-
-      setSave(s);
-      setMsg("Bought Empty Vial for 10 gold.");
-    });
-
-    document.getElementById("buyWolfCubBtn")?.addEventListener("click", () => {
-      const s = ensurePets(loadSave());
-      s.gold = num(s.gold, 0);
-      const price = 100000;
-
-      if (s.pets.combat) {
-        setMsg("You already own a combat pet.");
-        refreshPetBuyState();
-        return;
-      }
-      if (s.gold < price) {
-        setMsg("Not enough gold.");
-        return;
-      }
-
-      s.gold -= price;
-      s.pets.combat = getWolfCubPet();
-      setSave(s);
-      refreshPetBuyState();
-      setMsg("Bought Wolf Cub for 100,000 gold.");
-    });
-
-    document.getElementById("buyBurrowerPupBtn")?.addEventListener("click", () => {
-      const s = ensurePets(loadSave());
-      s.gold = num(s.gold, 0);
-      const price = 100000;
-
-      if (s.pets.gathering) {
-        setMsg("You already own a gathering pet.");
-        refreshPetBuyState();
-        return;
-      }
-      if (s.gold < price) {
-        setMsg("Not enough gold.");
-        return;
-      }
-
-      s.gold -= price;
-      s.pets.gathering = getBurrowerPupPet();
-      setSave(s);
-      refreshPetBuyState();
-      setMsg("Bought Burrower Pup for 100,000 gold.");
-    });
-
-    document.getElementById("buyWorkshopMouseBtn")?.addEventListener("click", () => {
-      const s = ensurePets(loadSave());
-      s.gold = num(s.gold, 0);
-      const price = 100000;
-
-      if (s.pets.artisan) {
-        setMsg("You already own an artisan pet.");
-        refreshPetBuyState();
-        return;
-      }
-      if (s.gold < price) {
-        setMsg("Not enough gold.");
-        return;
-      }
-
-      s.gold -= price;
-      s.pets.artisan = getWorkshopMousePet();
-      setSave(s);
-      refreshPetBuyState();
-      setMsg("Bought Workshop Mouse for 100,000 gold.");
-    });
-
-    document.getElementById("buyCoinFerretBtn")?.addEventListener("click", () => {
-      const s = ensurePets(loadSave());
-      s.gold = num(s.gold, 0);
-      const price = 100000;
-
-      if (s.pets.fortune) {
-        setMsg("You already own a fortune pet.");
-        refreshPetBuyState();
-        return;
-      }
-      if (s.gold < price) {
-        setMsg("Not enough gold.");
-        return;
-      }
-
-      s.gold -= price;
-      s.pets.fortune = getCoinFerretPet();
-      setSave(s);
-      refreshPetBuyState();
-      setMsg("Bought Coin Ferret for 100,000 gold.");
-    });
+  function render(){
+    const left = document.getElementById("leftPanel");
+    if (!left) return false;
+    left.innerHTML = template();
+    document.title = "Darkstone Chronicles - Market";
+    bind();
+    return true;
   }
 
   function mountMarket(root = null) {
     const left = root || document.getElementById("leftPanel");
     if (!left) return false;
-    left.innerHTML = MARKET_TEMPLATE;
-    document.title = "Darkstone Chronicles - Market";
-    bindMarketTabs();
-    bindMarketActions();
-    refreshPetBuyState();
-    if (String(window.location.hash || "").toLowerCase() === "#pets") activateMarketTab("pets");
-    return true;
-  }
-
-  function initStandaloneMarket() {
-    if (!document.getElementById("marketTabs")) return false;
-    document.title = "Darkstone Chronicles - Market";
-    bindMarketTabs();
-    bindMarketActions();
-    refreshPetBuyState();
-    if (String(window.location.hash || "").toLowerCase() === "#pets") activateMarketTab("pets");
+    render();
+    bindRealtime();
+    loadListings();
     return true;
   }
 
   window.DSMarket = {
-    mount: mountMarket
+    mount: mountMarket,
+    refresh: loadListings
   };
 
+  window.addEventListener("ds:save", () => {
+    if (document.getElementById("marketSellItem")) render();
+  });
+
   window.addEventListener("DOMContentLoaded", () => {
-    initStandaloneMarket();
+    if (document.getElementById("leftPanel")) mountMarket();
   });
 })();
