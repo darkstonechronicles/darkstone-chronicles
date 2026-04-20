@@ -11,7 +11,9 @@
   const SUPABASE_SCRIPT_SRC = "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js";
   const APP_VERSION_URL = "version.json";
   const APP_VERSION_RELOAD_PREFIX = "ds:app-version-reload:";
-  const APP_VERSION_POLL_MS = 30 * 1000;
+  const APP_VERSION_BROADCAST_KEY = "ds:app-version-latest";
+  const APP_VERSION_POLL_MS = 10 * 1000;
+  const APP_VERSION_HIDDEN_POLL_MS = 60 * 1000;
   const PRESENCE_HEARTBEAT_MS = 45 * 1000;
   const PRESENCE_MIN_UPDATE_MS = 20 * 1000;
   const ONLINE_WINDOW_MS = 2 * 60 * 1000;
@@ -51,7 +53,9 @@
       checking: null,
       justClaimedActiveSession: false
     },
-    appVersionPollTimer: 0
+    appVersionPollTimer: 0,
+    appVersionChecking: null,
+    appVersionLastCheckAt: 0
   };
 
   function isConfigured() {
@@ -71,36 +75,67 @@
     }
   }
 
-  async function checkForAppUpdateOnBoot() {
+  function hasReloadedForVersion(version) {
+    try {
+      return sessionStorage.getItem(`${APP_VERSION_RELOAD_PREFIX}${version}`) === "1";
+    } catch {
+      return false;
+    }
+  }
+
+  function markReloadedForVersion(version) {
+    try {
+      sessionStorage.setItem(`${APP_VERSION_RELOAD_PREFIX}${version}`, "1");
+    } catch {}
+  }
+
+  function reloadForAppVersion(version) {
+    const latestVersion = String(version || "").trim();
+    if (!latestVersion || hasReloadedForVersion(latestVersion)) return false;
+    markReloadedForVersion(latestVersion);
+    try {
+      localStorage.setItem(APP_VERSION_BROADCAST_KEY, `${latestVersion}:${Date.now()}`);
+    } catch {}
+    const nextUrl = new URL(window.location.href);
+    nextUrl.searchParams.set("appVersion", latestVersion);
+    window.location.replace(nextUrl.toString());
+    return true;
+  }
+
+  async function checkForAppUpdateOnBoot({ force = false } = {}) {
     const currentVersion = getCurrentAssetVersion();
     if (!currentVersion || !/^https?:$/i.test(String(window.location.protocol || ""))) return false;
+    const now = Date.now();
+    if (!force && now - state.appVersionLastCheckAt < 2500) return false;
+    if (state.appVersionChecking) return state.appVersionChecking;
+    state.appVersionLastCheckAt = now;
 
     const controller = typeof AbortController !== "undefined" ? new AbortController() : null;
-    const timeout = window.setTimeout(() => controller?.abort(), 1500);
-    try {
+    const timeout = window.setTimeout(() => controller?.abort(), 3000);
+    state.appVersionChecking = (async () => {
       const res = await fetch(`${APP_VERSION_URL}?t=${Date.now()}`, {
         cache: "no-store",
+        headers: {
+          "Cache-Control": "no-cache",
+          "Pragma": "no-cache"
+        },
         signal: controller?.signal
       });
       if (!res.ok) return false;
       const body = await res.json().catch(() => ({}));
       const latestVersion = String(body?.version || "").trim();
       if (!latestVersion || latestVersion === currentVersion) return false;
-
-      const reloadKey = `${APP_VERSION_RELOAD_PREFIX}${latestVersion}`;
-      if (sessionStorage.getItem(reloadKey) === "1") return false;
-      sessionStorage.setItem(reloadKey, "1");
-
-      const nextUrl = new URL(window.location.href);
-      nextUrl.searchParams.set("appVersion", latestVersion);
-      window.location.replace(nextUrl.toString());
-      return true;
+      return reloadForAppVersion(latestVersion);
+    })();
+    try {
+      return await state.appVersionChecking;
     } catch (error) {
       if (error?.name !== "AbortError") {
         console.warn("[auth] app version check failed", error);
       }
       return false;
     } finally {
+      state.appVersionChecking = null;
       window.clearTimeout(timeout);
     }
   }
@@ -108,8 +143,10 @@
   function startAppVersionPolling() {
     if (state.appVersionPollTimer || !getCurrentAssetVersion()) return;
     state.appVersionPollTimer = window.setInterval(() => {
-      if (document.visibilityState === "hidden") return;
-      checkForAppUpdateOnBoot();
+      const hidden = document.visibilityState === "hidden";
+      const minAge = hidden ? APP_VERSION_HIDDEN_POLL_MS : APP_VERSION_POLL_MS;
+      if (Date.now() - state.appVersionLastCheckAt < minAge) return;
+      checkForAppUpdateOnBoot({ force: true });
     }, APP_VERSION_POLL_MS);
   }
 
@@ -1287,8 +1324,26 @@
   }
 
   window.addEventListener("pagehide", flushCloudSaveSoon);
+  window.addEventListener("pageshow", () => {
+    checkForAppUpdateOnBoot({ force: true });
+  });
+  window.addEventListener("focus", () => {
+    checkForAppUpdateOnBoot({ force: true });
+  });
+  window.addEventListener("online", () => {
+    checkForAppUpdateOnBoot({ force: true });
+  });
+  window.addEventListener("storage", (event) => {
+    if (event.key !== APP_VERSION_BROADCAST_KEY) return;
+    const latestVersion = String(event.newValue || "").split(":")[0].trim();
+    const currentVersion = getCurrentAssetVersion();
+    if (latestVersion && latestVersion !== currentVersion) {
+      reloadForAppVersion(latestVersion);
+    }
+  });
   document.addEventListener("visibilitychange", () => {
     if (document.visibilityState === "hidden") flushCloudSaveSoon();
+    if (document.visibilityState === "visible") checkForAppUpdateOnBoot({ force: true });
   });
 
   window.DSAuth = {
