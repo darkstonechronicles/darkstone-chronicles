@@ -760,8 +760,10 @@
                 <div style="display:grid;gap:12px;justify-items:center;">
                   ${group.map((member) => {
                     const latest = Array.isArray(encounter?.players) ? encounter.players.find((entry) => String(entry?.userId || "") === String(member?.userId || "")) : null;
-                    const hpMax = Math.max(1, num(latest?.hpMax, 100));
-                    const hpRemaining = Math.max(0, num(latest?.hpRemaining, hpMax));
+                    const memberHpMax = Math.max(1, num(member?.heroHPMax, 100));
+                    const memberHp = Math.max(0, num(member?.heroHP, memberHpMax));
+                    const hpMax = Math.max(1, num(latest?.hpMax, memberHpMax));
+                    const hpRemaining = Math.max(0, num(latest?.hpRemaining, memberHp));
                     const hpPct = Math.max(0, Math.min(100, (hpRemaining / hpMax) * 100));
                     return `
                       <div style="display:grid;justify-items:center;gap:8px;text-align:center;">
