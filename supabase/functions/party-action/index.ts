@@ -20,6 +20,9 @@ const PARTY_FIGHT_ENCOUNTER_MS = 6000;
 const PARTY_FIGHT_MAX_ROUNDS = 15;
 const PARTY_FIGHT_STAT_POINTS_PER_LEVEL = 5;
 const PARTY_FIGHT_STAMINA_COST = 5;
+const PARTY_FIGHT_AUTO_HP_THRESHOLD = 0.40;
+const PARTY_FIGHT_AUTO_STAMINA_THRESHOLD = 0.30;
+const POTION_ACTIONS = 100;
 const PARTY_FIGHT_MONSTERS: Record<string, JsonRecord> = {
   "gravefang-hydra": {
     id: "gravefang-hydra",
@@ -378,6 +381,176 @@ function getCurrentStamina(saveData: unknown) {
   return Math.max(0, Math.min(staminaMax, Math.trunc(currentStamina)));
 }
 
+function ensureConsumables(saveData: unknown) {
+  const save = asRecord(saveData);
+  const consumables = asRecord(save.consumables);
+  save.consumables = consumables;
+  return consumables;
+}
+
+function quickSlotQuantity(item: unknown) {
+  const slot = asRecord(item);
+  return Math.max(0, int(slot.quantity ?? slot.qty, 0));
+}
+
+function consumeQuickSlotItem(saveData: unknown, slotKey: string, quantity: number) {
+  const save = asRecord(saveData);
+  const consumables = ensureConsumables(save);
+  const slot = asRecord(consumables[slotKey]);
+  const currentQty = quickSlotQuantity(slot);
+  const consumeQty = Math.max(0, Math.min(currentQty, int(quantity, 0)));
+  if (!slot || currentQty <= 0 || consumeQty <= 0) return 0;
+  if (currentQty > consumeQty) {
+    slot.quantity = currentQty - consumeQty;
+    consumables[slotKey] = slot;
+  } else {
+    consumables[slotKey] = null;
+  }
+  return consumeQty;
+}
+
+function getCookedMeatStamina(item: unknown) {
+  const slot = asRecord(item);
+  const direct = num(slot.healStamina ?? slot.healSt, 0);
+  if (direct > 0) return direct;
+  const byName: Record<string, number> = {
+    "Cooked Shadow Hare Meat": 2,
+    "Cooked Rotfeather Turkey Meat": 3,
+    "Cooked Gloom Fox Meat": 4,
+    "Cooked Bloodtusk Boar Meat": 5,
+    "Cooked Night Wolf Meat": 6,
+    "Cooked Stonehorn Ram Meat": 7,
+    "Cooked Thorn Stag Meat": 8,
+    "Cooked Grave Bear Meat": 9,
+    "Cooked Dire Warg Meat": 10,
+    "Cooked Forest Troll Meat": 11,
+  };
+  return byName[str(slot.name)] || 0;
+}
+
+function autoUseQuickHpFood(saveData: unknown) {
+  const save = asRecord(saveData);
+  const hpState = getCurrentHeroHpState(save);
+  if (hpState.hp >= hpState.hpMax) return { used: 0, healed: 0, hp: hpState.hp };
+  if (hpState.hp > 0 && hpState.hp / hpState.hpMax > PARTY_FIGHT_AUTO_HP_THRESHOLD) {
+    return { used: 0, healed: 0, hp: hpState.hp };
+  }
+  const consumables = ensureConsumables(save);
+  const slot = asRecord(consumables.quick_cooked_fish);
+  const qty = quickSlotQuantity(slot);
+  const healHp = Math.max(0, int(slot.healHp, 0));
+  if (qty <= 0 || healHp <= 0) return { used: 0, healed: 0, hp: hpState.hp };
+
+  const missingHp = Math.max(0, hpState.hpMax - hpState.hp);
+  const needed = Math.max(1, Math.ceil(missingHp / healHp));
+  const used = consumeQuickSlotItem(save, "quick_cooked_fish", Math.min(qty, needed));
+  const healed = used * healHp;
+  save.heroHPMax = hpState.hpMax;
+  save.heroHP = clamp(hpState.hp + healed, 0, hpState.hpMax);
+  return { used, healed, hp: int(save.heroHP, hpState.hp) };
+}
+
+function autoUseQuickStaminaFood(saveData: unknown, options: { force?: boolean } = {}) {
+  const save = asRecord(saveData);
+  const staminaMax = Math.max(1, int(save.staminaMax, calcStaminaMax(save.heroLevel)));
+  const stamina = getCurrentStamina(save);
+  const shouldEat = options.force === true || stamina <= PARTY_FIGHT_STAMINA_COST || stamina / staminaMax <= PARTY_FIGHT_AUTO_STAMINA_THRESHOLD;
+  if (!shouldEat || stamina >= staminaMax) return { used: 0, restored: 0, stamina };
+
+  const consumables = ensureConsumables(save);
+  const slot = asRecord(consumables.quick_meat);
+  const qty = quickSlotQuantity(slot);
+  const restoreStamina = getCookedMeatStamina(slot);
+  if (qty <= 0 || restoreStamina <= 0) return { used: 0, restored: 0, stamina };
+
+  const missingStamina = Math.max(0, staminaMax - stamina);
+  const needed = Math.max(1, Math.ceil(missingStamina / restoreStamina));
+  const used = consumeQuickSlotItem(save, "quick_meat", Math.min(qty, needed));
+  const restored = used * restoreStamina;
+  save.staminaMax = staminaMax;
+  save.stamina = clamp(stamina + restored, 0, staminaMax);
+  return { used, restored, stamina: int(save.stamina, stamina) };
+}
+
+function isPotionItem(item: unknown) {
+  const slot = asRecord(item);
+  if (str(slot.subType).toLowerCase() === "potion") return true;
+  return str(slot.name).toLowerCase().includes("potion");
+}
+
+function getPotionTier(item: unknown) {
+  const slot = asRecord(item);
+  const idMatch = str(slot.id).match(/_(\d+)$/);
+  if (idMatch) return Math.max(1, Math.min(7, int(idMatch[1], 1)));
+  const name = str(slot.name).toUpperCase();
+  const romanMap: Record<string, number> = { " VII": 7, " VI": 6, " V": 5, " IV": 4, " III": 3, " II": 2, " I": 1 };
+  for (const [roman, tier] of Object.entries(romanMap)) {
+    if (name.includes(roman)) return tier;
+  }
+  return 1;
+}
+
+function getPotionBonuses(saveData: unknown) {
+  const consumables = asRecord(asRecord(saveData).consumables);
+  let atkPct = 0;
+  let defPct = 0;
+  let luckPct = 0;
+  for (const slotKey of ["quick_potion1", "quick_potion2"]) {
+    const slot = asRecord(consumables[slotKey]);
+    if (!isPotionItem(slot) || quickSlotQuantity(slot) <= 0) continue;
+    const id = str(slot.id).toLowerCase();
+    const name = str(slot.name).toLowerCase();
+    const tier = Math.max(1, Math.min(5, getPotionTier(slot)));
+    if (id.includes("strength") || name.includes("strength potion")) atkPct += tier * 0.04;
+    if (id.includes("defense") || name.includes("defense potion")) defPct += tier * 0.04;
+    if (id.includes("luck") || name.includes("luck potion")) luckPct += tier * 0.03;
+  }
+  return { atkPct, defPct, luckPct };
+}
+
+function tickPotionActions(saveData: unknown, actions = 1) {
+  const save = asRecord(saveData);
+  const consumables = asRecord(save.consumables);
+  if (!save.consumables || typeof save.consumables !== "object") return false;
+  let changed = false;
+  for (const slotKey of ["quick_potion1", "quick_potion2"]) {
+    const slot = asRecord(consumables[slotKey]);
+    if (!isPotionItem(slot)) continue;
+    const id = str(slot.id).toLowerCase();
+    const name = str(slot.name).toLowerCase();
+    const supported = id.includes("strength") || name.includes("strength potion")
+      || id.includes("defense") || name.includes("defense potion")
+      || id.includes("luck") || name.includes("luck potion");
+    if (!supported) continue;
+
+    let qty = quickSlotQuantity(slot);
+    if (qty <= 0) {
+      consumables[slotKey] = null;
+      changed = true;
+      continue;
+    }
+    let actionsLeft = int(slot.actionsLeft, POTION_ACTIONS);
+    if (actionsLeft <= 0) actionsLeft = POTION_ACTIONS;
+    let steps = Math.max(1, int(actions, 1));
+    while (steps > 0 && qty > 0) {
+      actionsLeft -= 1;
+      steps -= 1;
+      if (actionsLeft > 0) continue;
+      qty -= 1;
+      actionsLeft = POTION_ACTIONS;
+    }
+    if (qty <= 0) {
+      consumables[slotKey] = null;
+    } else {
+      slot.quantity = qty;
+      slot.actionsLeft = actionsLeft;
+      consumables[slotKey] = slot;
+    }
+    changed = true;
+  }
+  return changed;
+}
+
 function spendPartyFightStamina(saveData: unknown, staminaCost: number) {
   const save = asRecord(saveData);
   const staminaMax = Math.max(1, int(save.staminaMax, calcStaminaMax(save.heroLevel)));
@@ -398,6 +571,21 @@ function getCurrentHeroHpState(saveData: unknown) {
     hpMax,
     hp: Math.max(0, Math.min(hpMax, Math.trunc(currentHp))),
   };
+}
+
+async function persistTouchedUserSaves(admin: ReturnType<typeof createClient>, touchedUsers: Map<string, { save: JsonRecord; revision: number }>) {
+  if (!touchedUsers.size) return;
+  await Promise.all(Array.from(touchedUsers.entries()).map(async ([memberId, entry]) => {
+    const nextRevision = Math.max(1, entry.revision);
+    const saveUpsert = await admin.from("player_saves").upsert({
+      user_id: memberId,
+      save_data: entry.save,
+      revision: nextRevision,
+      last_synced_at: formatIsoNow(),
+    });
+    if (saveUpsert.error) throw saveUpsert.error;
+    await updatePublicStatsFromSave(admin, memberId, entry.save);
+  }));
 }
 
 async function updatePublicStatsFromSave(admin: ReturnType<typeof createClient>, userId: string, saveData: unknown) {
@@ -785,10 +973,27 @@ async function advancePartyFightSession(
     saveMap.set(str(row.user_id), row);
   }
 
+  const touchedUsers = new Map<string, { save: JsonRecord; revision: number }>();
+  const getTouchedSave = (memberId: string) => {
+    const existing = touchedUsers.get(memberId);
+    if (existing) return existing;
+    const baseRow = saveMap.get(memberId) || {};
+    return {
+      save: asRecord(baseRow.save_data),
+      revision: Math.max(0, int(baseRow.revision, 0)),
+    };
+  };
+
   for (const member of members) {
-    const saveRow = saveMap.get(member.user_id) || {};
-    const currentStamina = getCurrentStamina(saveRow.save_data);
+    const saveRow = getTouchedSave(member.user_id);
+    const autoStamina = autoUseQuickStaminaFood(saveRow.save);
+    if (autoStamina.used > 0) {
+      saveRow.revision += 1;
+      touchedUsers.set(member.user_id, saveRow);
+    }
+    const currentStamina = getCurrentStamina(saveRow.save);
     if (currentStamina <= PARTY_FIGHT_STAMINA_COST) {
+      await persistTouchedUserSaves(admin, touchedUsers);
       const summary = summaries.get(member.user_id) || {};
       const exhaustedHeroName = str(summary.heroName, "Hero");
       const message = `${exhaustedHeroName} run out of stamina.`;
@@ -831,26 +1036,22 @@ async function advancePartyFightSession(
 
   let nextPayload = normalizePartyFightPayload(activeSession.result_payload, monster);
   let currentResolvedCount = nextPayload.resolvedCount;
-  const touchedUsers = new Map<string, { save: JsonRecord; revision: number }>();
 
   for (let index = 0; index < pendingTicks; index += 1) {
     const encounterMembers = members.map((entry) => {
       const summary = summaries.get(entry.user_id) || {};
-      const saveRow = touchedUsers.get(entry.user_id) || (() => {
-        const baseRow = saveMap.get(entry.user_id) || {};
-        return {
-          save: asRecord(baseRow.save_data),
-          revision: Math.max(0, int(baseRow.revision, 0)),
-        };
-      })();
+      const saveRow = getTouchedSave(entry.user_id);
       const heroHpState = getCurrentHeroHpState(saveRow.save);
+      const potionBonuses = getPotionBonuses(saveRow.save);
+      const baseAttack = readCombatStat(saveRow.save, ["attackTotal", "heroAtk", "heroAttack"]) || int(summary.heroAttack, 0);
+      const baseDefense = readCombatStat(saveRow.save, ["defenseTotal", "heroDef", "heroDefense"]) || int(summary.heroDefense, 0);
       return {
         userId: entry.user_id,
         heroName: str(summary.heroName, "Hero"),
         avatarUrl: str(summary.avatarUrl, "images/hero.png"),
         heroLevel: Math.max(1, int(summary.heroLevel, 1)),
-        heroAttack: Math.max(0, int(summary.heroAttack, 0)),
-        heroDefense: Math.max(0, int(summary.heroDefense, 0)),
+        heroAttack: Math.max(0, Math.floor(baseAttack * (1 + Math.max(0, potionBonuses.atkPct)))),
+        heroDefense: Math.max(0, Math.floor(baseDefense * (1 + Math.max(0, potionBonuses.defPct)))),
         hpMax: heroHpState.hpMax,
         hp: heroHpState.hp,
       };
@@ -858,15 +1059,20 @@ async function advancePartyFightSession(
     const encounter = simulatePartyFightEncounter(encounterMembers, monster, currentResolvedCount + 1);
 
     for (const player of encounter.players) {
-      const row = touchedUsers.get(player.userId) || (() => {
-        const baseRow = saveMap.get(player.userId) || {};
-        return {
-          save: asRecord(baseRow.save_data),
-          revision: Math.max(0, int(baseRow.revision, 0)),
-        };
-      })();
+      const row = getTouchedSave(player.userId);
       row.save.heroHPMax = Math.max(1, int(player.hpMax, calcHpMax(row.save.heroLevel)));
       row.save.heroHP = Math.max(0, int(player.hpRemaining, row.save.heroHPMax));
+      const autoHp = autoUseQuickHpFood(row.save);
+      if (autoHp.used > 0) {
+        player.hpRemaining = autoHp.hp;
+        (player as JsonRecord).autoFoodUsed = {
+          hpFood: autoHp.used,
+          healed: autoHp.healed,
+        };
+      }
+      if (tickPotionActions(row.save, 1) || autoHp.used > 0) {
+        row.revision += 1;
+      }
       touchedUsers.set(player.userId, row);
     }
 
@@ -879,19 +1085,7 @@ async function advancePartyFightSession(
         recentEncounters: [...nextPayload.recentEncounters, encounter].slice(-6),
         lastResolvedAt: encounter.resolvedAt,
       };
-      if (touchedUsers.size) {
-        await Promise.all(Array.from(touchedUsers.entries()).map(async ([memberId, entry]) => {
-          const nextRevision = Math.max(1, entry.revision);
-          const saveUpsert = await admin.from("player_saves").upsert({
-            user_id: memberId,
-            save_data: entry.save,
-            revision: nextRevision,
-            last_synced_at: formatIsoNow(),
-          });
-          if (saveUpsert.error) throw saveUpsert.error;
-          await updatePublicStatsFromSave(admin, memberId, entry.save);
-        }));
-      }
+      await persistTouchedUserSaves(admin, touchedUsers);
 
       const deadHeroName = str(deadDuringLoop.heroName, "Hero");
       const message = `${deadHeroName} died.`;
@@ -933,21 +1127,25 @@ async function advancePartyFightSession(
 
     if (encounter.outcome === "victory") {
       for (const player of encounter.players) {
-        const row = touchedUsers.get(player.userId) || (() => {
-          const baseRow = saveMap.get(player.userId) || {};
-          return {
-            save: asRecord(baseRow.save_data),
-            revision: Math.max(0, int(baseRow.revision, 0)),
-          };
-        })();
+        const row = getTouchedSave(player.userId);
         const rewardResult = applyHeroRewards(row.save, int(player.xp, 0), int(player.gold, 0));
         const staminaResult = spendPartyFightStamina(rewardResult.save, PARTY_FIGHT_STAMINA_COST);
+        const autoStamina = autoUseQuickStaminaFood(staminaResult.save);
         if (isMonsterUnlocked(rewardResult.save, monsterId)) {
           const monsterData = ensurePartyMonsterKills(staminaResult.save);
           monsterData.monsterKills[monsterId] = getMonsterKillCount(monsterData.save, monsterId) + 1;
           row.save = monsterData.save;
         } else {
           row.save = staminaResult.save;
+        }
+        if (autoStamina.used > 0) {
+          const playerResult = encounter.players.find((entry) => entry.userId === player.userId);
+          if (playerResult) {
+            (playerResult as JsonRecord).autoStaminaFoodUsed = {
+              staminaFood: autoStamina.used,
+              restored: autoStamina.restored,
+            };
+          }
         }
         row.revision += 1;
         touchedUsers.set(player.userId, row);
@@ -1013,19 +1211,7 @@ async function advancePartyFightSession(
     }
   }
 
-  if (touchedUsers.size) {
-    await Promise.all(Array.from(touchedUsers.entries()).map(async ([memberId, entry]) => {
-      const nextRevision = Math.max(1, entry.revision);
-      const saveUpsert = await admin.from("player_saves").upsert({
-        user_id: memberId,
-        save_data: entry.save,
-        revision: nextRevision,
-        last_synced_at: formatIsoNow(),
-      });
-      if (saveUpsert.error) throw saveUpsert.error;
-      await updatePublicStatsFromSave(admin, memberId, entry.save);
-    }));
-  }
+  await persistTouchedUserSaves(admin, touchedUsers);
 
   const exhaustedEntry = Array.from(touchedUsers.entries()).find(([, entry]) => getCurrentStamina(entry.save) <= PARTY_FIGHT_STAMINA_COST);
   if (exhaustedEntry) {
