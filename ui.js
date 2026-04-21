@@ -6685,7 +6685,7 @@ function renderAll() {
       }
       await window.DSPartyHall?.initRealtime?.();
 
-      const page = String(window.location.pathname || "").split("/").pop().toLowerCase();
+      const page = normalizePagePath(window.location.pathname || "index.html");
       const rawSave = loadSave();
       if (page !== "create_character.html" && !hasCreatedHero(rawSave)) {
         window.location.href = "create_character.html";
@@ -6751,6 +6751,16 @@ function renderAll() {
       });
 
       renderAll();
+      if (SHELL_ROUTES.has(page)) {
+        if (page !== "index.html") {
+          await ensureShellRouteScript(page);
+        }
+        const currentHref = `${window.location.pathname || page}${window.location.search || ""}${window.location.hash || ""}`;
+        const didMountCurrentRoute = mountShellView(page, currentHref);
+        if (!didMountCurrentRoute) {
+          console.warn("[UI] initial shell mount skipped for", page);
+        }
+      }
       maybeOpenRequestedInspector();
       refreshPresenceSnapshot(true).catch((error) => {
         console.error("[UI] initial presence refresh failed", error);
