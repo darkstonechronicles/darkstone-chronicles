@@ -2521,6 +2521,9 @@
       .invPremiumBtn:hover{
         filter:brightness(1.06);
       }
+      .invPremiumBtn #darkStoneValue{
+        color:#f7f1e3;
+      }
       .invCurrencyIcon{
         width:16px;
         height:16px;
@@ -3207,7 +3210,7 @@
         </div>
         <div class="invFooter">
           <div class="invMeta">
-            <button id="darkStoneWalletBtn" type="button" class="invMetaItem invMetaFooter invPremiumBtn" title="Open Shop">
+            <button id="darkStoneWalletBtn" type="button" class="invMetaItem invMetaFooter invPremiumBtn" title="Darkstone Coin: 0">
               <img class="invCurrencyIcon" src="images/ui/darkstone_coin.png" alt="">
               <span id="darkStoneValue">0</span>
             </button>
@@ -3971,11 +3974,17 @@ function renderGold(save) {
   const el = document.getElementById("goldValue");
   if (el) el.textContent = new Intl.NumberFormat("el-GR").format(num(save.gold, 0));
   const darkStoneEl = document.getElementById("darkStoneValue");
-  if (darkStoneEl) darkStoneEl.textContent = new Intl.NumberFormat("el-GR").format(Math.max(0, num(save.darkStones, 0)));
+  const darkStoneAmount = Math.max(0, num(save.darkStones, 0));
+  const darkStoneLabel = new Intl.NumberFormat("el-GR").format(darkStoneAmount);
+  if (darkStoneEl) darkStoneEl.textContent = darkStoneLabel;
   const darkStoneBtn = document.getElementById("darkStoneWalletBtn");
   if (darkStoneBtn && darkStoneBtn.dataset.dsBound !== "1") {
     darkStoneBtn.dataset.dsBound = "1";
     darkStoneBtn.addEventListener("click", () => navigateWithFade("shop.html"));
+  }
+  if (darkStoneBtn) {
+    darkStoneBtn.title = `Darkstone Coin: ${darkStoneLabel}`;
+    darkStoneBtn.setAttribute("aria-label", `Darkstone Coin: ${darkStoneLabel}`);
   }
 }
 
