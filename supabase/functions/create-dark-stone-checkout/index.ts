@@ -38,28 +38,28 @@ Deno.serve(async (req) => {
 
   const supabaseUrl = Deno.env.get("SUPABASE_URL");
   const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
-  const anonKey = Deno.env.get("SUPABASE_ANON_KEY");
   const stripeSecretKey = Deno.env.get("STRIPE_SECRET_KEY");
   const siteUrl = str(Deno.env.get("SITE_URL") || Deno.env.get("PUBLIC_SITE_URL"), "http://localhost:3000");
   const authHeader = req.headers.get("Authorization") || "";
+  const token = authHeader.replace(/^Bearer\s+/i, "").trim();
 
-  if (!supabaseUrl || !serviceRoleKey || !anonKey || !stripeSecretKey) {
+  if (!supabaseUrl || !serviceRoleKey || !stripeSecretKey) {
     return json({ error: "Missing required environment configuration." }, { status: 500 });
   }
 
-  if (!authHeader.trim()) return json({ error: "Missing bearer token." }, { status: 401 });
+  if (!token) return json({ error: "Missing bearer token." }, { status: 401 });
 
-  const authRes = await fetch(`${supabaseUrl}/auth/v1/user`, {
-    method: "GET",
-    headers: {
-      Authorization: authHeader,
-      apikey: anonKey,
-    },
+  const admin = createClient(supabaseUrl, serviceRoleKey, {
+    auth: { persistSession: false, autoRefreshToken: false },
   });
-  const authBody = await authRes.json().catch(() => ({}));
-  const user = authRes.ok && authBody && typeof authBody === "object" ? authBody as Record<string, unknown> : null;
-  if (!authRes.ok || !user?.id) {
-    return json({ error: String((authBody as Record<string, unknown>)?.message || (authBody as Record<string, unknown>)?.error || "Invalid or expired session.") }, { status: 401 });
+
+  const {
+    data: { user },
+    error: userError,
+  } = await admin.auth.getUser(token);
+
+  if (userError || !user) {
+    return json({ error: "Invalid or expired session." }, { status: 401 });
   }
 
   let body: Record<string, unknown> = {};
@@ -73,9 +73,6 @@ Deno.serve(async (req) => {
   const pack = DARK_STONE_PACKS[packageId];
   if (!pack) return json({ error: "Invalid Dark Stone package." }, { status: 400 });
 
-  const admin = createClient(supabaseUrl, serviceRoleKey, {
-    auth: { persistSession: false, autoRefreshToken: false },
-  });
   const stripe = new Stripe(stripeSecretKey);
 
   const successUrl = new URL(str(body.successUrl), siteUrl);
