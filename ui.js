@@ -4673,7 +4673,9 @@ function normalizePagePath(path) {
     .split("#")[0]
     .toLowerCase()
     .trim();
-  return normalized || "index.html";
+  if (!normalized) return "index.html";
+  if (!normalized.includes(".")) return `${normalized}.html`;
+  return normalized;
 }
 
 const SHELL_ROUTES = new Set(["index.html", "fight.html", "dungeons.html", "dungeon_run.html", "buildings.html", "challenges.html", "leaderboards.html", "market.html", "bank.html", "shop.html", "party_hall.html", "professions.html", "professions_overview.html", "equipment.html", "stats.html", "stats_alloc.html", "mining.html", "mining_action.html", "hunting.html", "hunting_action.html", "fishing.html", "fishing_action.html", "cooking.html", "cooking_action.html", "herbalism.html", "herbalism_action.html", "alchemy.html", "alchemy_tier.html", "alchemy_action.html", "carpentry.html", "woodcutting.html", "wood_gather_action.html", "wood_sawmill_action.html", "forge.html", "forge_action.html", "enchanting.html", "jewelcrafting.html", "jewelcrafting_action.html"]);

@@ -1,6 +1,9 @@
 (() => {
   function currentPage() {
-    return String(window.location.pathname || "").split("/").pop().toLowerCase() || "index.html";
+    const page = String(window.location.pathname || "").split("/").pop().toLowerCase().trim();
+    if (!page) return "index.html";
+    if (!page.includes(".")) return `${page}.html`;
+    return page;
   }
 
   const HOME_TEMPLATE = `
