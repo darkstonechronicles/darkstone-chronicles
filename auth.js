@@ -1194,6 +1194,46 @@
     return body;
   }
 
+  async function refreshPremiumWallet() {
+    await ready;
+    if (!state.client || !state.user?.id) {
+      throw new Error("No active session.");
+    }
+
+    const activeOk = await validateActiveSession({ claimIfMissing: true });
+    if (!activeOk) {
+      throw new Error("Session replaced on another device.");
+    }
+
+    const { data, error } = await state.client
+      .from("premium_wallets")
+      .select("dark_stones, lifetime_purchased, lifetime_spent")
+      .eq("user_id", state.user.id)
+      .maybeSingle();
+
+    if (error) {
+      throw new Error(error.message || "Premium wallet refresh failed.");
+    }
+
+    const nextSave = readLocalSave();
+    nextSave.darkStones = Math.max(0, Number(data?.dark_stones || 0) || 0);
+    writeLocalSave(nextSave, state.user.id, state.cloud.revision);
+    state.cloud.userId = state.user.id;
+    state.cloud.ready = true;
+    markLocalSaveSynced();
+    window.dispatchEvent(new Event("ds:save"));
+    window.dispatchEvent(new CustomEvent("ds:cloud-save", {
+      detail: { status: "synced", revision: state.cloud.revision, source: "premium-wallet-refresh" }
+    }));
+
+    return {
+      ok: true,
+      darkStones: nextSave.darkStones,
+      lifetimePurchased: Math.max(0, Number(data?.lifetime_purchased || 0) || 0),
+      lifetimeSpent: Math.max(0, Number(data?.lifetime_spent || 0) || 0),
+    };
+  }
+
   const ready = (async () => {
     if (await checkForAppUpdateOnBoot()) return false;
     if (!isConfigured()) return false;
@@ -1408,6 +1448,7 @@
     invokeCancelMarketListing,
     invokePlayerProfile,
     invokePartyAction,
-    invokeCreateDarkStoneCheckout
+    invokeCreateDarkStoneCheckout,
+    refreshPremiumWallet
   };
 })();
