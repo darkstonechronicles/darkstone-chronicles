@@ -1,6 +1,14 @@
 (() => {
 
 const SAVE_KEY = "darkstone_save_v1";
+const ROUGH_GEM_DROP_CHANCE = 1 / 100;
+const ROUGH_GEM_POOL = [
+  { type:"material", id:"rough_ruby", name:"Rough Ruby", img:"images/gems/rough_ruby.png" },
+  { type:"material", id:"rough_sapphire", name:"Rough Sapphire", img:"images/gems/rough_sapphire.png" },
+  { type:"material", id:"rough_emerald", name:"Rough Emerald", img:"images/gems/rough_emerald.png" },
+  { type:"material", id:"rough_topaz", name:"Rough Topaz", img:"images/gems/rough_topaz.png" },
+  { type:"material", id:"rough_amethyst", name:"Rough Amethyst", img:"images/gems/rough_amethyst.png" }
+];
 const HERBALISM_ACTION_TEMPLATE = `
   <div style="max-width:340px;margin:0 auto 12px;">
     <div class="profXpCard">
@@ -252,6 +260,12 @@ function addToInventoryStack(save, item, qty){
   else save.inventory.push({ ...item, quantity: qty });
   return { ok: true, added: qty };
 }
+
+function rollRoughGemDrop(){
+  if (Math.random() >= ROUGH_GEM_DROP_CHANCE) return null;
+  const pick = ROUGH_GEM_POOL[Math.floor(Math.random() * ROUGH_GEM_POOL.length)];
+  return pick ? { ...pick, quantity: 1 } : null;
+}
 function incStat(save, key, amount = 1){
   if (!save || typeof save !== "object") return;
   if (!save.stats || typeof save.stats !== "object") save.stats = {};
@@ -501,6 +515,8 @@ function gatherTick(){
   addToInventoryStack(save, { type:"material", id:zone.herbId, name:zone.herbName, img:zone.herbImg }, 1);
   const doubled = Math.random() < petBonus.doublePct;
   if (doubled) addToInventoryStack(save, { type:"material", id:zone.herbId, name:zone.herbName, img:zone.herbImg }, 1);
+  const roughGemDrop = rollRoughGemDrop();
+  if (roughGemDrop) addToInventoryStack(save, roughGemDrop, 1);
   incStat(save, "herbalismTicks", 1);
   tickGatheringPotionActions(save, 1);
 
@@ -525,13 +541,13 @@ function gatherTick(){
     targetRemaining -= 1;
     updateTargetUI();
     if (targetRemaining <= 0) {
-      setMsg(`Target completed! ${buildHerbMessage(zone, herbXp, true)}${petSplit.petXpGain > 0 ? ` <span style="color:#9fb5ff;">| Pet XP +${petSplit.petXpGain}</span>` : ""}${petSplit.petLevelUps > 0 ? ` <span style="color:#f7df8a;">| ${petSplit.petName} Lvl ${petSplit.petLevel}</span>` : ""}${doubled ? ` <span style="color:#9ff0b7;">Double Gather!</span>` : ""}`);
+      setMsg(`Target completed! ${buildHerbMessage(zone, herbXp, true)}${roughGemDrop ? ` <span style="color:#9ff0b7;">| <img src="${roughGemDrop.img}" alt="${roughGemDrop.name}" style="width:16px;height:16px;vertical-align:-3px;margin:0 4px;border-radius:4px;">${roughGemDrop.name} dropped!</span>` : ""}${petSplit.petXpGain > 0 ? ` <span style="color:#9fb5ff;">| Pet XP +${petSplit.petXpGain}</span>` : ""}${petSplit.petLevelUps > 0 ? ` <span style="color:#f7df8a;">| ${petSplit.petName} Lvl ${petSplit.petLevel}</span>` : ""}${doubled ? ` <span style="color:#9ff0b7;">Double Gather!</span>` : ""}`);
       stopGathering(true);
       return;
     }
   }
 
-  setMsg(buildHerbMessage(zone, herbXp, false) + (petSplit.petXpGain > 0 ? ` <span style="color:#9fb5ff;">| Pet XP +${petSplit.petXpGain}</span>` : "") + (petSplit.petLevelUps > 0 ? ` <span style="color:#f7df8a;">| ${petSplit.petName} Lvl ${petSplit.petLevel}</span>` : "") + (doubled ? ` <span style="color:#9ff0b7;">Double Gather!</span>` : ""));
+  setMsg(buildHerbMessage(zone, herbXp, false) + (roughGemDrop ? ` <span style="color:#9ff0b7;">| <img src="${roughGemDrop.img}" alt="${roughGemDrop.name}" style="width:16px;height:16px;vertical-align:-3px;margin:0 4px;border-radius:4px;">${roughGemDrop.name} dropped!</span>` : "") + (petSplit.petXpGain > 0 ? ` <span style="color:#9fb5ff;">| Pet XP +${petSplit.petXpGain}</span>` : "") + (petSplit.petLevelUps > 0 ? ` <span style="color:#f7df8a;">| ${petSplit.petName} Lvl ${petSplit.petLevel}</span>` : "") + (doubled ? ` <span style="color:#9ff0b7;">Double Gather!</span>` : ""));
   touchActionLock();
   scheduleNextGather(false);
 }

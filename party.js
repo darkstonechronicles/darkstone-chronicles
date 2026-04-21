@@ -836,9 +836,11 @@
                 const entryGold = entryPlayers.length ? num(entryPlayers[0]?.gold, 0) : 0;
                 const combatRounds = Math.max(0, num(latestRound?.rounds, 0));
                 const wonText = String(latestRound?.outcome || "").toLowerCase() === "victory" ? "Party Won" : "Party Finished";
+                const roughGem = latestRound?.roughGemDrop && typeof latestRound.roughGemDrop === "object" ? latestRound.roughGemDrop : null;
                 return `
                   <div style="font-size:13px;">
                     ${wonText} in ${combatRounds} rounds : Everyone Got ${entryXp} XP , ${entryGold} Gold
+                    ${roughGem ? ` | Everyone Got ${esc(roughGem.name || "Rough Gem")}` : ""}
                   </div>
                 `;
               })() : `<div style="font-size:13px;text-align:center;">No rounds yet.</div>`}

@@ -230,6 +230,11 @@ function applyProfessionLevel(save: Record<string, unknown>, rawKey: unknown, le
       save.enchantingXP = xp;
       save.enchantingXPNext = xpNextForLevel(level);
       return true;
+    case "jewelcrafting":
+      save.jewelcraftingLevel = level;
+      save.jewelcraftingXP = xp;
+      save.jewelcraftingXPNext = xpNextForLevel(level);
+      return true;
     default:
       return false;
   }
@@ -308,6 +313,8 @@ function buildPublicStats(save: Record<string, unknown>, email: string) {
   const alchemyXP = Math.max(0, safeInt(save.alchemyXP, 0));
   const enchantingLevel = Math.max(1, safeInt(save.enchantingLevel, 1));
   const enchantingXP = Math.max(0, safeInt(save.enchantingXP, 0));
+  const jewelcraftingLevel = Math.max(1, safeInt(save.jewelcraftingLevel, 1));
+  const jewelcraftingXP = Math.max(0, safeInt(save.jewelcraftingXP, 0));
   const totalStats = save.stats && typeof save.stats === "object"
     ? (((save.stats as Record<string, unknown>).total as Record<string, unknown> | undefined) || {})
     : {};
@@ -341,6 +348,8 @@ function buildPublicStats(save: Record<string, unknown>, email: string) {
     alchemy_xp: alchemyXP,
     enchanting_level: enchantingLevel,
     enchanting_xp: enchantingXP,
+    jewelcrafting_level: jewelcraftingLevel,
+    jewelcrafting_xp: jewelcraftingXP,
     dungeons_completed: dungeonsCompleted,
     total_gold: totalGold,
     combat_power: combatPower,

@@ -66,6 +66,13 @@
         <span class="hubLabel">Enchanting</span>
       </button>
 
+      <button class="hubNav" id="goJewelcraft" data-open-tab-href="jewelcrafting.html">
+        <span class="hubIconFrame">
+          <img class="hubIconImg" src="images/ui/jewelcrafting.png" alt="" aria-hidden="true">
+        </span>
+        <span class="hubLabel">Jewelcrafting</span>
+      </button>
+
       <button class="hubNav" id="goHerb" data-open-tab-href="herbalism.html">
         <span class="hubIconFrame">
           <img class="hubIconImg" src="images/ui/herbalism.png" alt="" aria-hidden="true">
@@ -99,6 +106,7 @@
       ["goFish", "fishing.html"],
       ["goCook", "cooking.html"],
       ["goEnchant", "enchanting.html"],
+      ["goJewelcraft", "jewelcrafting.html"],
       ["goHerb", "herbalism.html"],
       ["goAlchemy", "alchemy.html"]
     ];

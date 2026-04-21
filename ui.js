@@ -983,6 +983,11 @@
     s.enchantingXP = num(s.enchantingXP, 0);
     s.enchantingXPNext = xpNextForLevel(s.enchantingLevel);
 
+    // ===== Jewelcrafting =====
+    s.jewelcraftingLevel = num(s.jewelcraftingLevel, 1);
+    s.jewelcraftingXP = num(s.jewelcraftingXP, 0);
+    s.jewelcraftingXPNext = xpNextForLevel(s.jewelcraftingLevel);
+
     // ===== Herbalism =====
     s.herbalismLevel = num(s.herbalismLevel, 1);
     s.herbalismXP = num(s.herbalismXP, 0);
@@ -4119,7 +4124,17 @@ function adminItemThumbHtml(item) {
 function buildAdminItemCatalog() {
   const manualItems = [
     { type: "consumable", id: "arrows", name: "Arrows", img: "images/items/arrows.png" },
-    { type: "material", id: "empty_vial", name: "Empty Vial", img: "images/alchemy/items/empty_vial.png" }
+    { type: "material", id: "empty_vial", name: "Empty Vial", img: "images/alchemy/items/empty_vial.png" },
+    { type: "material", id: "rough_ruby", name: "Rough Ruby", img: "images/gems/rough_ruby.png" },
+    { type: "material", id: "rough_sapphire", name: "Rough Sapphire", img: "images/gems/rough_sapphire.png" },
+    { type: "material", id: "rough_emerald", name: "Rough Emerald", img: "images/gems/rough_emerald.png" },
+    { type: "material", id: "rough_topaz", name: "Rough Topaz", img: "images/gems/rough_topaz.png" },
+    { type: "material", id: "rough_amethyst", name: "Rough Amethyst", img: "images/gems/rough_amethyst.png" },
+    { type: "material", id: "refined_ruby", name: "Refined Ruby", img: "images/gems/refined_ruby.png" },
+    { type: "material", id: "refined_sapphire", name: "Refined Sapphire", img: "images/gems/refined_sapphire.png" },
+    { type: "material", id: "refined_emerald", name: "Refined Emerald", img: "images/gems/refined_emerald.png" },
+    { type: "material", id: "refined_topaz", name: "Refined Topaz", img: "images/gems/refined_topaz.png" },
+    { type: "material", id: "refined_amethyst", name: "Refined Amethyst", img: "images/gems/refined_amethyst.png" }
   ];
   const getters = [
     window.DSFight?.getAdminItems,
@@ -4244,7 +4259,8 @@ function getAdminProfessionOptions() {
     { key: "cooking", label: "Cooking" },
     { key: "herbalism", label: "Herbalism" },
     { key: "alchemy", label: "Alchemy" },
-    { key: "enchanting", label: "Enchanting" }
+    { key: "enchanting", label: "Enchanting" },
+    { key: "jewelcrafting", label: "Jewelcrafting" }
   ];
 }
 
@@ -4618,8 +4634,8 @@ function normalizePagePath(path) {
   return normalized || "index.html";
 }
 
-const SHELL_ROUTES = new Set(["index.html", "fight.html", "dungeons.html", "dungeon_run.html", "buildings.html", "challenges.html", "leaderboards.html", "market.html", "bank.html", "party_hall.html", "professions.html", "professions_overview.html", "equipment.html", "stats.html", "stats_alloc.html", "mining.html", "mining_action.html", "hunting.html", "hunting_action.html", "fishing.html", "fishing_action.html", "cooking.html", "cooking_action.html", "herbalism.html", "herbalism_action.html", "alchemy.html", "alchemy_tier.html", "alchemy_action.html", "carpentry.html", "woodcutting.html", "wood_gather_action.html", "wood_sawmill_action.html", "forge.html", "forge_action.html", "enchanting.html"]);
-const SHELL_INSTANT_ROUTES = new Set(["mining_action.html", "hunting_action.html", "fishing_action.html", "cooking_action.html", "herbalism_action.html", "alchemy_action.html", "wood_gather_action.html", "wood_sawmill_action.html", "forge_action.html"]);
+const SHELL_ROUTES = new Set(["index.html", "fight.html", "dungeons.html", "dungeon_run.html", "buildings.html", "challenges.html", "leaderboards.html", "market.html", "bank.html", "party_hall.html", "professions.html", "professions_overview.html", "equipment.html", "stats.html", "stats_alloc.html", "mining.html", "mining_action.html", "hunting.html", "hunting_action.html", "fishing.html", "fishing_action.html", "cooking.html", "cooking_action.html", "herbalism.html", "herbalism_action.html", "alchemy.html", "alchemy_tier.html", "alchemy_action.html", "carpentry.html", "woodcutting.html", "wood_gather_action.html", "wood_sawmill_action.html", "forge.html", "forge_action.html", "enchanting.html", "jewelcrafting.html", "jewelcrafting_action.html"]);
+const SHELL_INSTANT_ROUTES = new Set(["mining_action.html", "hunting_action.html", "fishing_action.html", "cooking_action.html", "herbalism_action.html", "alchemy_action.html", "wood_gather_action.html", "wood_sawmill_action.html", "forge_action.html", "jewelcrafting_action.html"]);
 
 function canUseShellRouting(currentPage, targetPage) {
   return SHELL_ROUTES.has(currentPage) && SHELL_ROUTES.has(targetPage);
@@ -4850,6 +4866,20 @@ function mountShellView(targetPage, targetHref = targetPage) {
     window.DS_DUNGEON?.unmountDungeonList?.();
     window.DS_DUNGEON?.unmountDungeonRun?.();
     return !!window.DSEnchanting?.mount?.(left);
+  }
+
+  if (targetPage === "jewelcrafting.html") {
+    window.DSFight?.unmount?.();
+    window.DS_DUNGEON?.unmountDungeonList?.();
+    window.DS_DUNGEON?.unmountDungeonRun?.();
+    return !!window.DSJewelcrafting?.mount?.(left);
+  }
+
+  if (targetPage === "jewelcrafting_action.html") {
+    window.DSFight?.unmount?.();
+    window.DS_DUNGEON?.unmountDungeonList?.();
+    window.DS_DUNGEON?.unmountDungeonRun?.();
+    return !!window.DSJewelcraftingAction?.mount?.(left, targetHref);
   }
 
   if (targetPage === "equipment.html") {

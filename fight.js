@@ -210,6 +210,20 @@ const VAR_MIN = 0.90;
 const VAR_MAX = 1.10;
 const WAR_SIGIL_CHANCE = 1 / 250;
 const WAR_SIGIL_ITEM = { type:"material", name:"War Sigil", img:"images/items/sigils/war_sigil.png" };
+const ROUGH_GEM_DROP_CHANCE = 1 / 100;
+const ROUGH_GEM_POOL = [
+  { type:"material", id:"rough_ruby", name:"Rough Ruby", img:"images/gems/rough_ruby.png" },
+  { type:"material", id:"rough_sapphire", name:"Rough Sapphire", img:"images/gems/rough_sapphire.png" },
+  { type:"material", id:"rough_emerald", name:"Rough Emerald", img:"images/gems/rough_emerald.png" },
+  { type:"material", id:"rough_topaz", name:"Rough Topaz", img:"images/gems/rough_topaz.png" },
+  { type:"material", id:"rough_amethyst", name:"Rough Amethyst", img:"images/gems/rough_amethyst.png" }
+];
+
+function rollRoughGemDrop(){
+  if (Math.random() >= ROUGH_GEM_DROP_CHANCE) return null;
+  const pick = ROUGH_GEM_POOL[Math.floor(Math.random() * ROUGH_GEM_POOL.length)];
+  return pick ? { ...pick, quantity: 1 } : null;
+}
 
 function roundXPNext(v){
   v = Number(v) || 0;
@@ -2866,17 +2880,21 @@ if(mythic) addItemToSave(mythic);
 
 const warSigil = Math.random() < WAR_SIGIL_CHANCE ? { ...WAR_SIGIL_ITEM, quantity: 1 } : null;
 if (warSigil) addItemToSave(warSigil);
+const roughGem = rollRoughGemDrop();
+if (roughGem) addItemToSave(roughGem);
 
 // ✅ STATS (μόνο στο win)
 window.DS?.stats?.inc("fightsWon", 1);
 window.DS?.stats?.inc("goldEarned", goldGain);
 if (uniques.length) window.DS?.stats?.inc("itemsDropped", uniques.length);
 if (mythic) window.DS?.stats?.inc("mythicsFound", 1);
+if (roughGem) window.DS?.stats?.inc("itemsDropped", 1);
 
 const obtainedDrops = [];
 if (uniques[0]) obtainedDrops.push(uniques[0]);
 if (mythic) obtainedDrops.push(mythic);
 if (warSigil) obtainedDrops.push(warSigil);
+if (roughGem) obtainedDrops.push(roughGem);
 
 const obtainedHtml = obtainedDrops.length
   ? `<div style="margin-top:8px;display:flex;align-items:center;justify-content:center;gap:8px;flex-wrap:wrap;"><span style="display:inline-flex;align-items:center;line-height:1;">You obtained:</span>${obtainedDrops.map(it => `<span style="display:inline-flex;align-items:center;gap:5px;line-height:1;"><img src="${it.img || ""}" alt="${it.name || "Item"}" style="width:16px;height:16px;border-radius:4px;object-fit:cover;">${it.name || "Item"}${(Number(it.quantity) || 1) > 1 ? ` x${Number(it.quantity) || 1}` : ""}</span>`).join("")}</div>`

@@ -1,11 +1,11 @@
 ﻿<!DOCTYPE html>
 <html lang="el">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Create Hero - Darkstone Chronicles</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Darkstone Chronicles - Jewelcrafting Action</title>
   <link rel="icon" type="image/png" href="images/ui/favicon.png">
-  <link rel="stylesheet" href="style.css?v=20260421-132149">
+  <link rel="stylesheet" href="style.css?v=20260421-132149"/>
   <style id="dsBootShellStyles">
     html{background-color:var(--bg-fallback,#090a10);}
     body{margin:0;background:transparent;}
@@ -29,7 +29,7 @@
     })();
   </script>
 </head>
-<body class="charCreatePage">
+<body>
   <div id="dsBootOverlay" aria-hidden="true">
     <div class="dsBootOverlayCard">
       <div class="dsBootOverlayTitle">Loading</div>
@@ -37,32 +37,23 @@
       <div class="dsBootOverlayHint">Preparing your session...</div>
     </div>
   </div>
-  <div class="charCreateWrap">
-    <div class="charCreateCard">
-      <h1>Create Your Hero</h1>
-      <div class="charCreateSub">Choose a portrait and enter a name to begin.</div>
+  <div id="hudRoot"></div>
 
-      <div id="heroChoiceGrid" class="heroChoiceGrid"></div>
+  <div id="mainLayout">
+    <div id="leftPanel"></div>
 
-      <div class="charCreateField">
-        <label for="heroNameInput">Hero Name</label>
-        <input id="heroNameInput" type="text" maxlength="20" placeholder="Enter hero name">
+    <div id="inventoryPanel">
+      <div class="invHeader">
+        <div class="invTitle"><span id="invTitleText">Inventory</span></div>
+        <div class="invGold"><span id="goldValue">0</span></div>
       </div>
-
-      <div class="charCreatePreview">
-        <img id="heroPreviewImg" src="images/heroes/hero_1.png" alt="Hero Preview">
-      </div>
-
-      <div id="charCreateMsg" class="charCreateMsg"></div>
-
-      <div class="charCreateActions">
-        <button type="button" id="createHeroBtn" class="townBtn">Create Hero</button>
-      </div>
+      <div id="inventoryGrid"></div>
     </div>
   </div>
 
   <script src="auth.js?v=20260421-132149"></script>
-  <script src="create_character.js?v=20260421-132149"></script>
+  <script src="ui.js?v=20260421-132149"></script>
+  <script src="jewelcrafting_action.js?v=20260421-132149"></script>
 </body>
 </html>
 

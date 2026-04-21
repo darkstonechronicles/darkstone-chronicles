@@ -13,6 +13,14 @@
   const STAT_POINTS_PER_LEVEL = 5;
   const MAX_WAVE_ROUNDS = 15;
   const CRYPT_SIGIL_ITEM = { type:"material", name:"Crypt Sigil", img:"images/items/sigils/crypt_sigil.png" };
+  const ROUGH_GEM_DROP_CHANCE = 1 / 100;
+  const ROUGH_GEM_POOL = [
+    { type:"material", id:"rough_ruby", name:"Rough Ruby", img:"images/gems/rough_ruby.png" },
+    { type:"material", id:"rough_sapphire", name:"Rough Sapphire", img:"images/gems/rough_sapphire.png" },
+    { type:"material", id:"rough_emerald", name:"Rough Emerald", img:"images/gems/rough_emerald.png" },
+    { type:"material", id:"rough_topaz", name:"Rough Topaz", img:"images/gems/rough_topaz.png" },
+    { type:"material", id:"rough_amethyst", name:"Rough Amethyst", img:"images/gems/rough_amethyst.png" }
+  ];
   const DUNGEON_LIST_TEMPLATE = `
     <h1 style="color:#ead39b;text-shadow:0 1px 0 rgba(87, 58, 16, .95),0 0 10px rgba(0,0,0,.34),0 2px 8px rgba(0,0,0,.72);">Dungeons</h1>
     <div style="width:90%;max-width:900px;margin:0 auto;">
@@ -1329,6 +1337,10 @@
       cryptSigil = { ...CRYPT_SIGIL_ITEM, quantity: 1 };
       addItemToInventory(cryptSigil);
     }
+    const roughGemDrop = Math.random() < ROUGH_GEM_DROP_CHANCE
+      ? { ...ROUGH_GEM_POOL[randInt(0, ROUGH_GEM_POOL.length - 1)], quantity: 1 }
+      : null;
+    if (roughGemDrop) addItemToInventory(roughGemDrop);
 
     window.DS?.stats?.inc?.("dungeonsCompleted", 1);
 
@@ -1337,6 +1349,7 @@
     const obtainedDrops = [];
     if (drops.length) obtainedDrops.push(drops[0]);
     if (cryptSigil) obtainedDrops.push(cryptSigil);
+    if (roughGemDrop) obtainedDrops.push(roughGemDrop);
     const obtainedHtml = obtainedDrops.length
       ? `<div style="margin-top:8px;display:flex;align-items:center;justify-content:center;gap:8px;flex-wrap:wrap;"><span style="display:inline-flex;align-items:center;line-height:1;">You obtained:</span>${obtainedDrops.map(it => `<span style="display:inline-flex;align-items:center;gap:5px;line-height:1;"><img src="${it.img || ""}" alt="${it.name || "Item"}" style="width:16px;height:16px;border-radius:4px;object-fit:cover;">${it.name || "Item"}</span>`).join("")}</div>`
       : "";

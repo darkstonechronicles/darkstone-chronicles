@@ -5,6 +5,14 @@ const WOOD_SIGIL_ITEM = {
   name: "Wood Sigil",
   img: "images/items/sigils/wood_sigil.png"
 };
+const ROUGH_GEM_DROP_CHANCE = 1 / 100;
+const ROUGH_GEM_POOL = [
+  { type:"material", id:"rough_ruby", name:"Rough Ruby", img:"images/gems/rough_ruby.png" },
+  { type:"material", id:"rough_sapphire", name:"Rough Sapphire", img:"images/gems/rough_sapphire.png" },
+  { type:"material", id:"rough_emerald", name:"Rough Emerald", img:"images/gems/rough_emerald.png" },
+  { type:"material", id:"rough_topaz", name:"Rough Topaz", img:"images/gems/rough_topaz.png" },
+  { type:"material", id:"rough_amethyst", name:"Rough Amethyst", img:"images/gems/rough_amethyst.png" }
+];
 const WOOD_GATHER_TEMPLATE = `
   <div class="profXpShell">
     <div class="profXpCard">
@@ -243,6 +251,12 @@ function addToInventoryStack(save, item, qty){
   if (ex) ex.quantity = (Number(ex.quantity) || 1) + qty;
   else save.inventory.push({ ...item, quantity: qty });
   return { ok: true, added: qty };
+}
+
+function rollRoughGemDrop(){
+  if (Math.random() >= ROUGH_GEM_DROP_CHANCE) return null;
+  const pick = ROUGH_GEM_POOL[Math.floor(Math.random() * ROUGH_GEM_POOL.length)];
+  return pick ? { ...pick, quantity: 1 } : null;
 }
 function incStat(save, key, amount = 1){
   if (!save || typeof save !== "object") return;
@@ -504,6 +518,8 @@ function gatherTick(){
     addToInventoryStack(save, { ...WOOD_SIGIL_ITEM }, 1);
     sigilDrop = true;
   }
+  const roughGemDrop = rollRoughGemDrop();
+  if (roughGemDrop) addToInventoryStack(save, roughGemDrop, 1);
   setSave(save);
   window.dispatchEvent(new Event("ds:save"));
   renderHeader();
@@ -512,12 +528,12 @@ function gatherTick(){
     targetRemaining -= 1;
     updateTargetUI();
     if (targetRemaining <= 0){
-      setMsg(`Target completed! ${buildWoodGatherMessage(logName, logImg, xpGain, sigilDrop, true)}${petSplit.petXpGain > 0 ? ` <span style="color:#9fb5ff;">| Pet XP +${petSplit.petXpGain}</span>` : ""}${petSplit.petLevelUps > 0 ? ` <span style="color:#f7df8a;">| ${petSplit.petName} Lvl ${petSplit.petLevel}</span>` : ""}${doubled ? ` <span style="color:#9ff0b7;">Double Gather!</span>` : ""}`);
+      setMsg(`Target completed! ${buildWoodGatherMessage(logName, logImg, xpGain, sigilDrop, true)}${roughGemDrop ? ` <span style="color:#9ff0b7;">| <img src="${roughGemDrop.img}" alt="${roughGemDrop.name}" style="width:16px;height:16px;vertical-align:-3px;margin:0 4px;border-radius:4px;">${roughGemDrop.name} dropped!</span>` : ""}${petSplit.petXpGain > 0 ? ` <span style="color:#9fb5ff;">| Pet XP +${petSplit.petXpGain}</span>` : ""}${petSplit.petLevelUps > 0 ? ` <span style="color:#f7df8a;">| ${petSplit.petName} Lvl ${petSplit.petLevel}</span>` : ""}${doubled ? ` <span style="color:#9ff0b7;">Double Gather!</span>` : ""}`);
       stopGather(true);
       return;
     }
   }
-  setMsg(buildWoodGatherMessage(logName, logImg, xpGain, sigilDrop, false) + (petSplit.petXpGain > 0 ? ` <span style="color:#9fb5ff;">| Pet XP +${petSplit.petXpGain}</span>` : "") + (petSplit.petLevelUps > 0 ? ` <span style="color:#f7df8a;">| ${petSplit.petName} Lvl ${petSplit.petLevel}</span>` : "") + (doubled ? ` <span style="color:#9ff0b7;">Double Gather!</span>` : ""));
+  setMsg(buildWoodGatherMessage(logName, logImg, xpGain, sigilDrop, false) + (roughGemDrop ? ` <span style="color:#9ff0b7;">| <img src="${roughGemDrop.img}" alt="${roughGemDrop.name}" style="width:16px;height:16px;vertical-align:-3px;margin:0 4px;border-radius:4px;">${roughGemDrop.name} dropped!</span>` : "") + (petSplit.petXpGain > 0 ? ` <span style="color:#9fb5ff;">| Pet XP +${petSplit.petXpGain}</span>` : "") + (petSplit.petLevelUps > 0 ? ` <span style="color:#f7df8a;">| ${petSplit.petName} Lvl ${petSplit.petLevel}</span>` : "") + (doubled ? ` <span style="color:#9ff0b7;">Double Gather!</span>` : ""));
   touchActionLock();
   scheduleNext();
 }

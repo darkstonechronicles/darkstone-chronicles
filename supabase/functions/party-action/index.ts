@@ -317,6 +317,45 @@ function randomInt(minValue: number, maxValue: number) {
   return Math.floor(Math.random() * (max - min + 1)) + min;
 }
 
+const ROUGH_GEM_DROP_CHANCE = 1 / 100;
+const ROUGH_GEM_POOL = [
+  { type: "material", id: "rough_ruby", name: "Rough Ruby", img: "images/gems/rough_ruby.png" },
+  { type: "material", id: "rough_sapphire", name: "Rough Sapphire", img: "images/gems/rough_sapphire.png" },
+  { type: "material", id: "rough_emerald", name: "Rough Emerald", img: "images/gems/rough_emerald.png" },
+  { type: "material", id: "rough_topaz", name: "Rough Topaz", img: "images/gems/rough_topaz.png" },
+  { type: "material", id: "rough_amethyst", name: "Rough Amethyst", img: "images/gems/rough_amethyst.png" },
+] as const;
+
+function rollRoughGemDrop() {
+  if (Math.random() >= ROUGH_GEM_DROP_CHANCE) return null;
+  return ROUGH_GEM_POOL[randomInt(0, ROUGH_GEM_POOL.length - 1)] || null;
+}
+
+function ensureInventory(saveData: unknown) {
+  const save = asRecord(saveData);
+  if (!Array.isArray(save.inventory)) save.inventory = [];
+  return save.inventory as JsonRecord[];
+}
+
+function addStackableInventoryItem(saveData: unknown, itemData: unknown, quantity: number) {
+  const save = asRecord(saveData);
+  const item = asRecord(itemData);
+  const qty = Math.max(1, int(quantity, 1));
+  const inventory = ensureInventory(save);
+  const key = [str(item.type), str(item.id), str(item.name), str(item.img)].join("::");
+  const existing = inventory.find((entry) => {
+    const row = asRecord(entry);
+    return [str(row.type), str(row.id), str(row.name), str(row.img)].join("::") === key;
+  });
+  if (existing) {
+    existing.quantity = Math.max(1, int(existing.quantity ?? existing.qty, 1)) + qty;
+  } else {
+    inventory.push({ ...item, quantity: qty });
+  }
+  save.inventory = inventory;
+  return save;
+}
+
 function getPartyFightMonster(monsterId: string) {
   return PARTY_FIGHT_MONSTERS[monsterId] || null;
 }
@@ -1142,11 +1181,13 @@ async function advancePartyFightSession(
     }
 
     if (encounter.outcome === "victory") {
+      const roughGemDrop = rollRoughGemDrop();
       for (const player of encounter.players) {
         const row = getTouchedSave(player.userId);
         const rewardResult = applyHeroRewards(row.save, int(player.xp, 0), int(player.gold, 0));
         const staminaResult = spendPartyFightStamina(rewardResult.save, PARTY_FIGHT_STAMINA_COST);
         const autoStamina = autoUseQuickStaminaFood(staminaResult.save);
+        if (roughGemDrop) addStackableInventoryItem(staminaResult.save, roughGemDrop, 1);
         if (isMonsterUnlocked(rewardResult.save, monsterId)) {
           const monsterData = ensurePartyMonsterKills(staminaResult.save);
           monsterData.monsterKills[monsterId] = getMonsterKillCount(monsterData.save, monsterId) + 1;
@@ -1168,10 +1209,12 @@ async function advancePartyFightSession(
           const staminaMax = Math.max(1, int(row.save.staminaMax, calcStaminaMax(row.save.heroLevel)));
           (playerResult as JsonRecord).staminaMax = staminaMax;
           (playerResult as JsonRecord).staminaRemaining = getCurrentStamina(row.save);
+          if (roughGemDrop) (playerResult as JsonRecord).roughGemDrop = roughGemDrop;
         }
         row.revision += 1;
         touchedUsers.set(player.userId, row);
       }
+      if (roughGemDrop) (encounter as JsonRecord).roughGemDrop = roughGemDrop;
     }
 
     currentResolvedCount += 1;
