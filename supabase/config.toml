@@ -405,3 +405,15 @@ enabled = true
 verify_jwt = false
 import_map = "./functions/party-action/deno.json"
 entrypoint = "./functions/party-action/index.ts"
+
+[functions.create-dark-stone-checkout]
+enabled = true
+verify_jwt = false
+import_map = "./functions/create-dark-stone-checkout/deno.json"
+entrypoint = "./functions/create-dark-stone-checkout/index.ts"
+
+[functions.stripe-webhook]
+enabled = true
+verify_jwt = false
+import_map = "./functions/stripe-webhook/deno.json"
+entrypoint = "./functions/stripe-webhook/index.ts"

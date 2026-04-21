@@ -32,18 +32,68 @@ function str(value: unknown, fallback = "") {
   return next || fallback;
 }
 
+function tryParseJson(value: string) {
+  try {
+    return JSON.parse(value) as Record<string, unknown>;
+  } catch {
+    return null;
+  }
+}
+
+function decodeBase64Url(value: string) {
+  try {
+    const normalized = String(value || "").replace(/-/g, "+").replace(/_/g, "/");
+    const padding = normalized.length % 4 === 0 ? "" : "=".repeat(4 - (normalized.length % 4));
+    const binary = atob(`${normalized}${padding}`);
+    const bytes = Uint8Array.from(binary, (char) => char.charCodeAt(0));
+    return new TextDecoder().decode(bytes);
+  } catch {
+    return "";
+  }
+}
+
+function inspectJwt(token: string) {
+  const parts = String(token || "").split(".");
+  const header = parts[0] ? tryParseJson(decodeBase64Url(parts[0])) : null;
+  const payload = parts[1] ? tryParseJson(decodeBase64Url(parts[1])) : null;
+  return {
+    tokenLength: String(token || "").length,
+    parts: parts.length,
+    header: header
+      ? {
+          alg: str(header.alg),
+          typ: str(header.typ),
+          kid: str(header.kid),
+        }
+      : null,
+    payload: payload
+      ? {
+          iss: str(payload.iss),
+          aud: typeof payload.aud === "string" ? payload.aud : Array.isArray(payload.aud) ? payload.aud.join(",") : "",
+          sub: str(payload.sub),
+          email: str(payload.email),
+          role: str(payload.role),
+          session_id: str(payload.session_id),
+          exp: str(payload.exp),
+        }
+      : null,
+  };
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
   if (req.method !== "POST") return json({ error: "Method not allowed" }, { status: 405 });
 
   const supabaseUrl = Deno.env.get("SUPABASE_URL");
   const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+  const anonKey = Deno.env.get("SUPABASE_ANON_KEY");
   const stripeSecretKey = Deno.env.get("STRIPE_SECRET_KEY");
   const siteUrl = str(Deno.env.get("SITE_URL") || Deno.env.get("PUBLIC_SITE_URL"), "http://localhost:3000");
   const authHeader = req.headers.get("Authorization") || "";
   const token = authHeader.replace(/^Bearer\s+/i, "").trim();
+  const tokenInfo = inspectJwt(token);
 
-  if (!supabaseUrl || !serviceRoleKey || !stripeSecretKey) {
+  if (!supabaseUrl || !serviceRoleKey || !anonKey || !stripeSecretKey) {
     return json({ error: "Missing required environment configuration." }, { status: 500 });
   }
 
@@ -53,13 +103,24 @@ Deno.serve(async (req) => {
     auth: { persistSession: false, autoRefreshToken: false },
   });
 
+  const userClient = createClient(supabaseUrl, anonKey, {
+    global: {
+      headers: { Authorization: authHeader },
+    },
+    auth: { persistSession: false, autoRefreshToken: false },
+  });
+
   const {
     data: { user },
     error: userError,
-  } = await admin.auth.getUser(token);
+  } = await userClient.auth.getUser();
 
   if (userError || !user) {
-    return json({ error: "Invalid or expired session." }, { status: 401 });
+    return json({
+      error: String(userError?.message || "Invalid or expired session."),
+      code: String((userError as { code?: string } | null)?.code || "UNAUTHORIZED"),
+      authDebug: tokenInfo,
+    }, { status: 401 });
   }
 
   let body: Record<string, unknown> = {};
