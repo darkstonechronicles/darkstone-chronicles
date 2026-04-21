@@ -94,6 +94,7 @@ function buildOverview(profile: JsonRecord, publicStats: JsonRecord, save: JsonR
     heroHPMax: Math.max(0, int(save.heroHPMax, 0)),
     stamina: Math.max(0, int(save.stamina, 0)),
     staminaMax: Math.max(0, int(save.staminaMax, 0)),
+    darkStones: Math.max(0, int(save.darkStones, 0)),
     heroAttack: Math.max(0, int(save.attackTotal ?? save.heroAtk ?? save.heroAttack, 0)),
     heroDefense: Math.max(0, int(save.defenseTotal ?? save.heroDef ?? save.heroDefense, 0)),
     stats: {
@@ -200,6 +201,14 @@ Deno.serve(async (req) => {
   const save = saveRes.data?.save_data && typeof saveRes.data.save_data === "object"
     ? saveRes.data.save_data as JsonRecord
     : {};
+  const { data: walletRow, error: walletError } = await admin
+    .from("premium_wallets")
+    .select("dark_stones")
+    .eq("user_id", targetUserId)
+    .maybeSingle();
+
+  if (walletError) return json({ error: walletError.message }, { status: 500 });
+  save.darkStones = Math.max(0, int(walletRow?.dark_stones, 0));
 
   return json({
     ok: true,

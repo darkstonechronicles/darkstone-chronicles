@@ -33,6 +33,74 @@
         filter:brightness(1.06);
         opacity:1;
       }
+      .gemStageCard{
+        appearance:none;
+        -webkit-appearance:none;
+        display:flex;
+        flex-direction:column;
+        align-items:center;
+        justify-content:flex-start;
+        gap:14px;
+        padding:12px 8px 8px;
+        width:100%;
+        border:none !important;
+        outline:none;
+        background:transparent !important;
+        box-shadow:none !important;
+        border-radius:0;
+        cursor:pointer;
+        transition:transform .14s ease, filter .14s ease;
+      }
+      .gemStageCard::before,
+      .gemStageCard::after{
+        display:none !important;
+      }
+      .gemStageCard:hover{
+        transform:translateY(-2px);
+        filter:brightness(1.04);
+      }
+      .gemStageIcon{
+        width:96px;
+        height:96px;
+        border-radius:16px;
+        object-fit:cover;
+        border:2px solid rgba(214,183,103,.9);
+        box-shadow:0 8px 22px rgba(0,0,0,.35);
+        background:rgba(10,12,18,.72);
+      }
+      .gemStageLabel{
+        width:118px;
+        min-height:58px;
+        padding:9px 12px;
+        border-radius:14px;
+        border:1px solid rgba(255,255,255,.08);
+        background:rgba(17,19,31,.78);
+        color:#f4f1e8;
+        font-weight:800;
+        font-size:13px;
+        line-height:1.1;
+        text-align:center;
+        display:flex;
+        flex-direction:column;
+        align-items:center;
+        justify-content:center;
+        gap:4px;
+        text-shadow:0 1px 0 rgba(0,0,0,.8);
+        box-shadow:inset 0 1px 0 rgba(255,255,255,.05);
+      }
+      .gemStageTitle{
+        display:block;
+        width:100%;
+      }
+      .gemStageMeta{
+        display:block;
+        width:100%;
+        min-height:13px;
+        font-size:10px;
+        font-weight:700;
+        line-height:1;
+        opacity:.82;
+      }
     </style>
 
     <div class="profXpShell">
@@ -58,13 +126,15 @@
       </div>
 
       <div id="gemcraftingPanel">
-        <div id="gemcraftingSubtabs" style="display:flex;gap:12px;flex-wrap:wrap;margin:0 0 14px;">
-          <button id="tabRefineGems" class="forgeTabBtn is-active" type="button">Refine Gems</button>
+        <div id="gemcraftingHome">
+          <div id="gemcraftingCategoryGrid" class="profChoiceGrid" style="grid-template-columns:repeat(4,minmax(0,1fr));"></div>
         </div>
-
-        <div id="refineGemsPanel">
-          <h2 class="profSectionTitle">Refine Gems</h2>
-          <div id="refineGemGrid" class="profChoiceGrid" style="grid-template-columns:repeat(auto-fit,minmax(220px,1fr));"></div>
+        <div id="gemcraftingDetail" style="display:none;">
+          <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin:0 0 14px;">
+            <button id="gemcraftingBackBtn" class="forgeTabBtn" type="button" style="min-width:140px;">Back</button>
+            <h2 id="gemcraftingDetailTitle" class="profSectionTitle" style="margin:0;"></h2>
+          </div>
+          <div id="gemcraftingDetailGrid" class="profChoiceGrid" style="grid-template-columns:repeat(auto-fit,minmax(220px,1fr));"></div>
         </div>
       </div>
 
@@ -77,16 +147,49 @@
   `;
 
   const REFINE_RECIPES = [
-    { id: "rough_ruby", name: "Rough Ruby", refinedName: "Refined Ruby", reqLevel: 1, img: "images/gems/rough_ruby.png", refinedImg: "images/gems/refined_ruby.png" },
-    { id: "rough_sapphire", name: "Rough Sapphire", refinedName: "Refined Sapphire", reqLevel: 1, img: "images/gems/rough_sapphire.png", refinedImg: "images/gems/refined_sapphire.png" },
-    { id: "rough_emerald", name: "Rough Emerald", refinedName: "Refined Emerald", reqLevel: 1, img: "images/gems/rough_emerald.png", refinedImg: "images/gems/refined_emerald.png" },
-    { id: "rough_topaz", name: "Rough Topaz", refinedName: "Refined Topaz", reqLevel: 1, img: "images/gems/rough_topaz.png", refinedImg: "images/gems/refined_topaz.png" },
-    { id: "rough_amethyst", name: "Rough Amethyst", refinedName: "Refined Amethyst", reqLevel: 1, img: "images/gems/rough_amethyst.png", refinedImg: "images/gems/refined_amethyst.png" }
+    { id: "rough_ruby", name: "Rough Ruby", refinedName: "Refined Ruby", reqLevel: 1, img: "images/gems/rough_ruby.png", refinedImg: "images/gems/refined_ruby.png", needText: "Needs 1 Rough Ruby" },
+    { id: "rough_sapphire", name: "Rough Sapphire", refinedName: "Refined Sapphire", reqLevel: 1, img: "images/gems/rough_sapphire.png", refinedImg: "images/gems/refined_sapphire.png", needText: "Needs 1 Rough Sapphire" },
+    { id: "rough_emerald", name: "Rough Emerald", refinedName: "Refined Emerald", reqLevel: 1, img: "images/gems/rough_emerald.png", refinedImg: "images/gems/refined_emerald.png", needText: "Needs 1 Rough Emerald" },
+    { id: "rough_topaz", name: "Rough Topaz", refinedName: "Refined Topaz", reqLevel: 1, img: "images/gems/rough_topaz.png", refinedImg: "images/gems/refined_topaz.png", needText: "Needs 1 Rough Topaz" },
+    { id: "rough_amethyst", name: "Rough Amethyst", refinedName: "Refined Amethyst", reqLevel: 1, img: "images/gems/rough_amethyst.png", refinedImg: "images/gems/refined_amethyst.png", needText: "Needs 1 Rough Amethyst" }
   ];
+
+  const FLAWLESS_RECIPES = [
+    { id: "refined_ruby", name: "Refined Ruby", refinedName: "Flawless Ruby", reqLevel: 5, img: "images/gems/refined_ruby.png", refinedImg: "images/gems/flawless_ruby.png", needText: "Needs 3 Refined Ruby" },
+    { id: "refined_sapphire", name: "Refined Sapphire", refinedName: "Flawless Sapphire", reqLevel: 5, img: "images/gems/refined_sapphire.png", refinedImg: "images/gems/flawless_sapphire.png", needText: "Needs 3 Refined Sapphire" },
+    { id: "refined_emerald", name: "Refined Emerald", refinedName: "Flawless Emerald", reqLevel: 5, img: "images/gems/refined_emerald.png", refinedImg: "images/gems/flawless_emerald.png", needText: "Needs 3 Refined Emerald" },
+    { id: "refined_topaz", name: "Refined Topaz", refinedName: "Flawless Topaz", reqLevel: 5, img: "images/gems/refined_topaz.png", refinedImg: "images/gems/flawless_topaz.png", needText: "Needs 3 Refined Topaz" },
+    { id: "refined_amethyst", name: "Refined Amethyst", refinedName: "Flawless Amethyst", reqLevel: 5, img: "images/gems/refined_amethyst.png", refinedImg: "images/gems/flawless_amethyst.png", needText: "Needs 3 Refined Amethyst" }
+  ];
+
+  const MASTERWORK_RECIPES = [
+    { id: "flawless_ruby", name: "Flawless Ruby", refinedName: "Masterwork Ruby", reqLevel: 10, img: "images/gems/flawless_ruby.png", refinedImg: "images/gems/masterwork_ruby.png", needText: "Needs 3 Flawless Ruby" },
+    { id: "flawless_sapphire", name: "Flawless Sapphire", refinedName: "Masterwork Sapphire", reqLevel: 10, img: "images/gems/flawless_sapphire.png", refinedImg: "images/gems/masterwork_sapphire.png", needText: "Needs 3 Flawless Sapphire" },
+    { id: "flawless_emerald", name: "Flawless Emerald", refinedName: "Masterwork Emerald", reqLevel: 10, img: "images/gems/flawless_emerald.png", refinedImg: "images/gems/masterwork_emerald.png", needText: "Needs 3 Flawless Emerald" },
+    { id: "flawless_topaz", name: "Flawless Topaz", refinedName: "Masterwork Topaz", reqLevel: 10, img: "images/gems/flawless_topaz.png", refinedImg: "images/gems/masterwork_topaz.png", needText: "Needs 3 Flawless Topaz" },
+    { id: "flawless_amethyst", name: "Flawless Amethyst", refinedName: "Masterwork Amethyst", reqLevel: 10, img: "images/gems/flawless_amethyst.png", refinedImg: "images/gems/masterwork_amethyst.png", needText: "Needs 3 Flawless Amethyst" }
+  ];
+
+  const EXQUISITE_RECIPES = [
+    { id: "masterwork_ruby", name: "Masterwork Ruby", refinedName: "Exquisite Ruby", reqLevel: 15, img: "images/gems/masterwork_ruby.png", refinedImg: "images/gems/exquisite_ruby.png", needText: "Needs 3 Masterwork Ruby" },
+    { id: "masterwork_sapphire", name: "Masterwork Sapphire", refinedName: "Exquisite Sapphire", reqLevel: 15, img: "images/gems/masterwork_sapphire.png", refinedImg: "images/gems/exquisite_sapphire.png", needText: "Needs 3 Masterwork Sapphire" },
+    { id: "masterwork_emerald", name: "Masterwork Emerald", refinedName: "Exquisite Emerald", reqLevel: 15, img: "images/gems/masterwork_emerald.png", refinedImg: "images/gems/exquisite_emerald.png", needText: "Needs 3 Masterwork Emerald" },
+    { id: "masterwork_topaz", name: "Masterwork Topaz", refinedName: "Exquisite Topaz", reqLevel: 15, img: "images/gems/masterwork_topaz.png", refinedImg: "images/gems/exquisite_topaz.png", needText: "Needs 3 Masterwork Topaz" },
+    { id: "masterwork_amethyst", name: "Masterwork Amethyst", refinedName: "Exquisite Amethyst", reqLevel: 15, img: "images/gems/masterwork_amethyst.png", refinedImg: "images/gems/exquisite_amethyst.png", needText: "Needs 3 Masterwork Amethyst" }
+  ];
+
+  const GEM_VIEWS = {
+    refine: { title: "Refine Gems", recipes: REFINE_RECIPES },
+    flawless: { title: "Flawless Gems", recipes: FLAWLESS_RECIPES },
+    masterwork: { title: "Masterwork Gems", recipes: MASTERWORK_RECIPES },
+    exquisite: { title: "Exquisite Gems", recipes: EXQUISITE_RECIPES }
+  };
 
   const num = (v, f = 0) => (Number.isFinite(Number(v)) ? Number(v) : f);
 
   let activeMainTab = "gemcrafting";
+  let activeGemView = "home";
+  let currentHref = window.location.href;
 
   function loadSave() {
     try { return JSON.parse(localStorage.getItem(SAVE_KEY) || "{}") || {}; }
@@ -143,6 +246,16 @@
     return save;
   }
 
+  function getViewFromHref(href = window.location.href) {
+    try {
+      const url = new URL(href, window.location.origin);
+      const view = String(url.searchParams.get("view") || "").trim().toLowerCase();
+      return GEM_VIEWS[view] ? view : "home";
+    } catch {
+      return "home";
+    }
+  }
+
   function renderHeader() {
     const save = ensureSave(loadSave());
     const lvlEl = document.getElementById("jewelcraftLevel");
@@ -159,82 +272,149 @@
     }
   }
 
-  function renderRefineGemGrid() {
-    const grid = document.getElementById("refineGemGrid");
-    if (!grid) return;
-    const save = ensureSave(loadSave());
-    grid.innerHTML = "";
+  function openGemView(view) {
+    const href = view === "home" ? "jewelcrafting.html" : `jewelcrafting.html?view=${encodeURIComponent(view)}`;
+    if (window.DSUI?.navigateWithinShell?.(href, { force: true })) return;
+    window.location.href = href;
+  }
 
-    REFINE_RECIPES.forEach((recipe) => {
-      const locked = save.jewelcraftingLevel < recipe.reqLevel;
-      const card = document.createElement("div");
-      card.className = "profChoiceCard";
-      card.style.display = "flex";
-      card.style.gap = "12px";
-      card.style.alignItems = "center";
-      card.style.padding = "12px";
-      card.style.borderRadius = "12px";
+  function renderRecipeCard(grid, recipe) {
+    const save = ensureSave(loadSave());
+    const locked = save.jewelcraftingLevel < recipe.reqLevel;
+    const card = document.createElement("div");
+    card.className = "profChoiceCard";
+    card.style.display = "flex";
+    card.style.gap = "12px";
+    card.style.alignItems = "center";
+    card.style.padding = "12px";
+    card.style.borderRadius = "12px";
+    card.style.cursor = locked ? "not-allowed" : "pointer";
+    card.style.opacity = locked ? "0.55" : "1";
+    if (!locked) card.dataset.openTabHref = `jewelcrafting_action.html?recipe=${encodeURIComponent(recipe.id)}`;
+
+    const img = document.createElement("img");
+    img.src = recipe.refinedImg || recipe.img;
+    img.alt = recipe.refinedName;
+    img.className = "profChoiceThumb";
+    img.style.width = "64px";
+    img.style.height = "64px";
+    img.style.borderRadius = "12px";
+    img.style.objectFit = "cover";
+
+    const info = document.createElement("div");
+    info.style.flex = "1";
+
+    const title = document.createElement("div");
+    title.className = "profChoiceTitle";
+    title.style.fontWeight = "900";
+    title.style.fontSize = "16px";
+    title.textContent = recipe.refinedName;
+
+    const req = document.createElement("div");
+    req.className = "profChoiceMeta";
+    req.style.marginTop = "4px";
+    req.style.color = locked ? "#ff9090" : "";
+    req.textContent = `Req Lv ${recipe.reqLevel}`;
+
+    const meta = document.createElement("div");
+    meta.className = "profChoiceMeta";
+    meta.style.marginTop = "6px";
+    meta.textContent = recipe.needText || "";
+
+    info.appendChild(title);
+    info.appendChild(req);
+    info.appendChild(meta);
+    card.appendChild(img);
+    card.appendChild(info);
+
+    if (!locked) {
+      card.addEventListener("click", () => {
+        const href = `jewelcrafting_action.html?recipe=${encodeURIComponent(recipe.id)}`;
+        if (window.DSUI?.navigateWithinShell?.(href)) return;
+        window.location.href = href;
+      });
+    }
+
+    grid.appendChild(card);
+  }
+
+  function renderGemcraftingHome() {
+    const grid = document.getElementById("gemcraftingCategoryGrid");
+    if (!grid) return;
+    grid.innerHTML = "";
+    const save = ensureSave(loadSave());
+    [
+      { view: "refine", title: "Refine", meta: "", img: "images/gems/refined_ruby.png", reqLevel: 1 },
+      { view: "flawless", title: "Flawless", meta: "Req Level 5", img: "images/gems/flawless_ruby.png", reqLevel: 5 },
+      { view: "masterwork", title: "Masterwork", meta: "Req Level 10", img: "images/gems/masterwork_ruby.png", reqLevel: 10 },
+      { view: "exquisite", title: "Exquisite", meta: "Req Level 15", img: "images/gems/exquisite_ruby.png", reqLevel: 15 }
+    ].forEach((entry) => {
+      const locked = save.jewelcraftingLevel < entry.reqLevel;
+      const card = document.createElement("button");
+      card.type = "button";
+      card.className = "gemStageCard";
+      card.style.width = "100%";
+      card.disabled = locked;
+      card.style.opacity = locked ? "0.58" : "1";
       card.style.cursor = locked ? "not-allowed" : "pointer";
-      card.style.opacity = locked ? "0.55" : "1";
-      if (!locked) card.dataset.openTabHref = `jewelcrafting_action.html?recipe=${encodeURIComponent(recipe.id)}`;
 
       const img = document.createElement("img");
-      img.src = recipe.refinedImg || recipe.img;
-      img.alt = recipe.refinedName;
-      img.className = "profChoiceThumb";
-      img.style.width = "64px";
-      img.style.height = "64px";
-      img.style.borderRadius = "12px";
-      img.style.objectFit = "cover";
+      img.src = entry.img;
+      img.alt = entry.title;
+      img.className = "gemStageIcon";
+      if (locked) img.style.filter = "grayscale(.35) brightness(.82)";
 
-      const info = document.createElement("div");
-      info.style.flex = "1";
+      const label = document.createElement("div");
+      label.className = "gemStageLabel";
+      const title = document.createElement("span");
+      title.className = "gemStageTitle";
+      title.textContent = entry.title;
+      const meta = document.createElement("span");
+      meta.className = "gemStageMeta";
+      meta.textContent = entry.meta || "";
 
-      const title = document.createElement("div");
-      title.className = "profChoiceTitle";
-      title.style.fontWeight = "900";
-      title.style.fontSize = "16px";
-      title.textContent = recipe.refinedName;
-
-      const req = document.createElement("div");
-      req.className = "profChoiceMeta";
-      req.style.marginTop = "4px";
-      req.style.color = locked ? "#ff9090" : "";
-      req.textContent = `Req Lv ${recipe.reqLevel}`;
-
-      const meta = document.createElement("div");
-      meta.className = "profChoiceMeta";
-      meta.style.marginTop = "6px";
-      meta.textContent = `Needs 1 ${recipe.name}`;
-
-      info.appendChild(title);
-      info.appendChild(req);
-      info.appendChild(meta);
-
+      label.appendChild(title);
+      label.appendChild(meta);
       card.appendChild(img);
-      card.appendChild(info);
-
-      if (!locked) {
-        card.addEventListener("click", () => {
-          const href = `jewelcrafting_action.html?recipe=${encodeURIComponent(recipe.id)}`;
-          if (window.DSUI?.navigateWithinShell?.(href)) return;
-          window.location.href = href;
-        });
-      }
-
+      card.appendChild(label);
+      if (!locked) card.addEventListener("click", () => openGemView(entry.view));
       grid.appendChild(card);
     });
   }
 
+  function renderGemcraftingDetail() {
+    const homeEl = document.getElementById("gemcraftingHome");
+    const detailEl = document.getElementById("gemcraftingDetail");
+    const titleEl = document.getElementById("gemcraftingDetailTitle");
+    const grid = document.getElementById("gemcraftingDetailGrid");
+    if (!homeEl || !detailEl || !titleEl || !grid) return;
+
+    if (activeGemView === "home" || !GEM_VIEWS[activeGemView]) {
+      homeEl.style.display = "";
+      detailEl.style.display = "none";
+      return;
+    }
+
+    homeEl.style.display = "none";
+    detailEl.style.display = "";
+    titleEl.textContent = GEM_VIEWS[activeGemView].title;
+    grid.innerHTML = "";
+    GEM_VIEWS[activeGemView].recipes.forEach((recipe) => renderRecipeCard(grid, recipe));
+  }
+
   function updateTabs() {
+    const tabsRow = document.getElementById("jewelcraftTabs");
     const gemBtn = document.getElementById("tabGemcrafting");
     const jewelBtn = document.getElementById("tabJewelcrafting");
     const gemPanel = document.getElementById("gemcraftingPanel");
     const jewelPanel = document.getElementById("jewelcraftingPanel");
+    const showTopTabs = activeMainTab !== "gemcrafting" || activeGemView === "home";
+    if (tabsRow) tabsRow.style.display = showTopTabs ? "flex" : "none";
     if (gemBtn) gemBtn.classList.toggle("is-active", activeMainTab === "gemcrafting");
     if (jewelBtn) jewelBtn.classList.toggle("is-active", activeMainTab === "jewelcrafting");
     if (gemPanel) gemPanel.style.display = activeMainTab === "gemcrafting" ? "" : "none";
     if (jewelPanel) jewelPanel.style.display = activeMainTab === "jewelcrafting" ? "" : "none";
+    renderGemcraftingDetail();
   }
 
   function bindEvents() {
@@ -246,16 +426,21 @@
       activeMainTab = "jewelcrafting";
       updateTabs();
     });
+    document.getElementById("gemcraftingBackBtn")?.addEventListener("click", () => {
+      openGemView("home");
+    });
   }
 
-  function mount(root = null) {
+  function mount(root = null, href = window.location.href) {
     const left = root || document.getElementById("leftPanel");
     if (!left) return false;
+    currentHref = href;
+    activeGemView = getViewFromHref(href);
     left.innerHTML = JEWELCRAFTING_TEMPLATE;
     document.title = "Darkstone Chronicles - Jewelcrafting";
     activeMainTab = "gemcrafting";
     renderHeader();
-    renderRefineGemGrid();
+    renderGemcraftingHome();
     updateTabs();
     bindEvents();
     return true;
@@ -269,6 +454,6 @@
 
   window.addEventListener("DOMContentLoaded", () => {
     if (currentPage() !== "jewelcrafting.html") return;
-    mount();
+    mount(null, window.location.href);
   });
 })();

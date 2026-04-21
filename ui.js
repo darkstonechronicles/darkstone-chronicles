@@ -1026,6 +1026,7 @@
     s.forgeAcademyLevel = Math.max(0, Math.round(num(s.forgeAcademyLevel, 0)));
 
     s.gold = num(s.gold, 0);
+    s.darkStones = Math.max(0, num(s.darkStones, 0));
     s.inventoryMaxSlots = num(s.inventoryMaxSlots, 1000);
 
     // HP persistent (keep ratio if hpMax changes)
@@ -2512,6 +2513,21 @@
         display:block;
       }
       .invGold{opacity:.92;white-space:nowrap;}
+      .invPremiumBtn{
+        appearance:none;
+        -webkit-appearance:none;
+        cursor:pointer;
+      }
+      .invPremiumBtn:hover{
+        filter:brightness(1.06);
+      }
+      .invCurrencyIcon{
+        width:16px;
+        height:16px;
+        display:block;
+        object-fit:contain;
+        border-radius:50%;
+      }
       .invBodyFrame{
         width:100%;
         display:flex;
@@ -3191,6 +3207,10 @@
         </div>
         <div class="invFooter">
           <div class="invMeta">
+            <button id="darkStoneWalletBtn" type="button" class="invMetaItem invMetaFooter invPremiumBtn" title="Open Shop">
+              <img class="invCurrencyIcon" src="images/ui/darkstone_coin.png" alt="">
+              <span id="darkStoneValue">0</span>
+            </button>
             <div class="invMetaItem invMetaFooter invGold">
             <span class="invMetaEmoji" aria-hidden="true">&#128176;</span>
             <span id="goldValue">0</span>
@@ -3950,6 +3970,13 @@ function claimActiveChallengeFromQuest(){
 function renderGold(save) {
   const el = document.getElementById("goldValue");
   if (el) el.textContent = new Intl.NumberFormat("el-GR").format(num(save.gold, 0));
+  const darkStoneEl = document.getElementById("darkStoneValue");
+  if (darkStoneEl) darkStoneEl.textContent = new Intl.NumberFormat("el-GR").format(Math.max(0, num(save.darkStones, 0)));
+  const darkStoneBtn = document.getElementById("darkStoneWalletBtn");
+  if (darkStoneBtn && darkStoneBtn.dataset.dsBound !== "1") {
+    darkStoneBtn.dataset.dsBound = "1";
+    darkStoneBtn.addEventListener("click", () => navigateWithFade("shop.html"));
+  }
 }
 
 function getAuthUserLabel() {
@@ -4134,7 +4161,22 @@ function buildAdminItemCatalog() {
     { type: "material", id: "refined_sapphire", name: "Refined Sapphire", img: "images/gems/refined_sapphire.png" },
     { type: "material", id: "refined_emerald", name: "Refined Emerald", img: "images/gems/refined_emerald.png" },
     { type: "material", id: "refined_topaz", name: "Refined Topaz", img: "images/gems/refined_topaz.png" },
-    { type: "material", id: "refined_amethyst", name: "Refined Amethyst", img: "images/gems/refined_amethyst.png" }
+    { type: "material", id: "refined_amethyst", name: "Refined Amethyst", img: "images/gems/refined_amethyst.png" },
+    { type: "material", id: "flawless_ruby", name: "Flawless Ruby", img: "images/gems/flawless_ruby.png" },
+    { type: "material", id: "flawless_sapphire", name: "Flawless Sapphire", img: "images/gems/flawless_sapphire.png" },
+    { type: "material", id: "flawless_emerald", name: "Flawless Emerald", img: "images/gems/flawless_emerald.png" },
+    { type: "material", id: "flawless_topaz", name: "Flawless Topaz", img: "images/gems/flawless_topaz.png" },
+    { type: "material", id: "flawless_amethyst", name: "Flawless Amethyst", img: "images/gems/flawless_amethyst.png" },
+    { type: "material", id: "masterwork_ruby", name: "Masterwork Ruby", img: "images/gems/masterwork_ruby.png" },
+    { type: "material", id: "masterwork_sapphire", name: "Masterwork Sapphire", img: "images/gems/masterwork_sapphire.png" },
+    { type: "material", id: "masterwork_emerald", name: "Masterwork Emerald", img: "images/gems/masterwork_emerald.png" },
+    { type: "material", id: "masterwork_topaz", name: "Masterwork Topaz", img: "images/gems/masterwork_topaz.png" },
+    { type: "material", id: "masterwork_amethyst", name: "Masterwork Amethyst", img: "images/gems/masterwork_amethyst.png" },
+    { type: "material", id: "exquisite_ruby", name: "Exquisite Ruby", img: "images/gems/exquisite_ruby.png" },
+    { type: "material", id: "exquisite_sapphire", name: "Exquisite Sapphire", img: "images/gems/exquisite_sapphire.png" },
+    { type: "material", id: "exquisite_emerald", name: "Exquisite Emerald", img: "images/gems/exquisite_emerald.png" },
+    { type: "material", id: "exquisite_topaz", name: "Exquisite Topaz", img: "images/gems/exquisite_topaz.png" },
+    { type: "material", id: "exquisite_amethyst", name: "Exquisite Amethyst", img: "images/gems/exquisite_amethyst.png" }
   ];
   const getters = [
     window.DSFight?.getAdminItems,
@@ -4634,7 +4676,7 @@ function normalizePagePath(path) {
   return normalized || "index.html";
 }
 
-const SHELL_ROUTES = new Set(["index.html", "fight.html", "dungeons.html", "dungeon_run.html", "buildings.html", "challenges.html", "leaderboards.html", "market.html", "bank.html", "party_hall.html", "professions.html", "professions_overview.html", "equipment.html", "stats.html", "stats_alloc.html", "mining.html", "mining_action.html", "hunting.html", "hunting_action.html", "fishing.html", "fishing_action.html", "cooking.html", "cooking_action.html", "herbalism.html", "herbalism_action.html", "alchemy.html", "alchemy_tier.html", "alchemy_action.html", "carpentry.html", "woodcutting.html", "wood_gather_action.html", "wood_sawmill_action.html", "forge.html", "forge_action.html", "enchanting.html", "jewelcrafting.html", "jewelcrafting_action.html"]);
+const SHELL_ROUTES = new Set(["index.html", "fight.html", "dungeons.html", "dungeon_run.html", "buildings.html", "challenges.html", "leaderboards.html", "market.html", "bank.html", "shop.html", "party_hall.html", "professions.html", "professions_overview.html", "equipment.html", "stats.html", "stats_alloc.html", "mining.html", "mining_action.html", "hunting.html", "hunting_action.html", "fishing.html", "fishing_action.html", "cooking.html", "cooking_action.html", "herbalism.html", "herbalism_action.html", "alchemy.html", "alchemy_tier.html", "alchemy_action.html", "carpentry.html", "woodcutting.html", "wood_gather_action.html", "wood_sawmill_action.html", "forge.html", "forge_action.html", "enchanting.html", "jewelcrafting.html", "jewelcrafting_action.html"]);
 const SHELL_INSTANT_ROUTES = new Set(["mining_action.html", "hunting_action.html", "fishing_action.html", "cooking_action.html", "herbalism_action.html", "alchemy_action.html", "wood_gather_action.html", "wood_sawmill_action.html", "forge_action.html", "jewelcrafting_action.html"]);
 
 function canUseShellRouting(currentPage, targetPage) {
@@ -4691,6 +4733,13 @@ function mountShellView(targetPage, targetHref = targetPage) {
     window.DS_DUNGEON?.unmountDungeonList?.();
     window.DS_DUNGEON?.unmountDungeonRun?.();
     return !!window.DSMarket?.mount?.(left);
+  }
+
+  if (targetPage === "shop.html") {
+    window.DSFight?.unmount?.();
+    window.DS_DUNGEON?.unmountDungeonList?.();
+    window.DS_DUNGEON?.unmountDungeonRun?.();
+    return !!window.DSShop?.mount?.(left);
   }
 
   if (targetPage === "bank.html") {
@@ -4872,7 +4921,7 @@ function mountShellView(targetPage, targetHref = targetPage) {
     window.DSFight?.unmount?.();
     window.DS_DUNGEON?.unmountDungeonList?.();
     window.DS_DUNGEON?.unmountDungeonRun?.();
-    return !!window.DSJewelcrafting?.mount?.(left);
+    return !!window.DSJewelcrafting?.mount?.(left, targetHref);
   }
 
   if (targetPage === "jewelcrafting_action.html") {
@@ -4909,6 +4958,9 @@ function mountShellView(targetPage, targetHref = targetPage) {
 function ensureShellRouteScript(targetPage) {
   if (targetPage === "market.html" && !window.DSMarket) {
     return ensureOptionalScript("market.js");
+  }
+  if (targetPage === "shop.html" && !window.DSShop) {
+    return ensureOptionalScript("shop.js");
   }
   return Promise.resolve();
 }

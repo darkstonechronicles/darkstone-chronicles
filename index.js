@@ -54,6 +54,12 @@
         <div class="hubLabel">Market</div>
       </div>
       <div class="hubNav">
+        <button class="hubNavBtn" id="goShop" type="button" aria-label="Shop" data-open-tab-href="shop.html">
+          <span class="hubIconFrame" aria-hidden="true"><img class="hubIconImg" src="images/ui/darkstone_coin.png" alt=""></span>
+        </button>
+        <div class="hubLabel">Shop</div>
+      </div>
+      <div class="hubNav">
         <button class="hubNavBtn" id="goBank" type="button" aria-label="Bank" data-open-tab-href="bank.html">
           <span class="hubIconFrame" aria-hidden="true"><img class="hubIconImg" src="images/ui/bank.png" alt=""></span>
         </button>
@@ -1097,6 +1103,7 @@
       ["goChallenges", "challenges.html"],
       ["goEquip", "equipment.html"],
       ["goMarket", "market.html"],
+      ["goShop", "shop.html"],
       ["goBank", "bank.html"],
       ["goStats", "stats.html"]
     ];

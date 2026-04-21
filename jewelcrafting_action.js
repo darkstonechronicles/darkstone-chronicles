@@ -73,7 +73,7 @@
           <div style="margin-top:12px;display:flex;gap:10px;flex-wrap:wrap;align-items:center;">
             <div style="opacity:.85;font-size:12px;">Target amount:</div>
             <input id="targetInput" type="number" min="1" step="1" placeholder="e.g. 100" class="profTargetInput">
-            <button id="targetBtn">Refine Target</button>
+            <button id="targetBtn">Craft Target</button>
             <div id="targetStatus" style="opacity:.85;font-size:12px;"></div>
           </div>
         </div>
@@ -84,17 +84,33 @@
   `;
 
   const RECIPES = [
-    { id: "rough_ruby", name: "Rough Ruby", refinedName: "Refined Ruby", reqLevel: 1, img: "images/gems/rough_ruby.png", refinedImg: "images/gems/refined_ruby.png", xp: 12 },
-    { id: "rough_sapphire", name: "Rough Sapphire", refinedName: "Refined Sapphire", reqLevel: 1, img: "images/gems/rough_sapphire.png", refinedImg: "images/gems/refined_sapphire.png", xp: 18 },
-    { id: "rough_emerald", name: "Rough Emerald", refinedName: "Refined Emerald", reqLevel: 1, img: "images/gems/rough_emerald.png", refinedImg: "images/gems/refined_emerald.png", xp: 24 },
-    { id: "rough_topaz", name: "Rough Topaz", refinedName: "Refined Topaz", reqLevel: 1, img: "images/gems/rough_topaz.png", refinedImg: "images/gems/refined_topaz.png", xp: 32 },
-    { id: "rough_amethyst", name: "Rough Amethyst", refinedName: "Refined Amethyst", reqLevel: 1, img: "images/gems/rough_amethyst.png", refinedImg: "images/gems/refined_amethyst.png", xp: 42 }
+    { id: "rough_ruby", name: "Rough Ruby", refinedName: "Refined Ruby", reqLevel: 1, img: "images/gems/rough_ruby.png", refinedImg: "images/gems/refined_ruby.png", xp: 12, inputQty: 1, outputId: "refined_ruby", outputName: "Refined Ruby", outputImg: "images/gems/refined_ruby.png", verb: "Refined" },
+    { id: "rough_sapphire", name: "Rough Sapphire", refinedName: "Refined Sapphire", reqLevel: 1, img: "images/gems/rough_sapphire.png", refinedImg: "images/gems/refined_sapphire.png", xp: 18, inputQty: 1, outputId: "refined_sapphire", outputName: "Refined Sapphire", outputImg: "images/gems/refined_sapphire.png", verb: "Refined" },
+    { id: "rough_emerald", name: "Rough Emerald", refinedName: "Refined Emerald", reqLevel: 1, img: "images/gems/rough_emerald.png", refinedImg: "images/gems/refined_emerald.png", xp: 24, inputQty: 1, outputId: "refined_emerald", outputName: "Refined Emerald", outputImg: "images/gems/refined_emerald.png", verb: "Refined" },
+    { id: "rough_topaz", name: "Rough Topaz", refinedName: "Refined Topaz", reqLevel: 1, img: "images/gems/rough_topaz.png", refinedImg: "images/gems/refined_topaz.png", xp: 32, inputQty: 1, outputId: "refined_topaz", outputName: "Refined Topaz", outputImg: "images/gems/refined_topaz.png", verb: "Refined" },
+    { id: "rough_amethyst", name: "Rough Amethyst", refinedName: "Refined Amethyst", reqLevel: 1, img: "images/gems/rough_amethyst.png", refinedImg: "images/gems/refined_amethyst.png", xp: 42, inputQty: 1, outputId: "refined_amethyst", outputName: "Refined Amethyst", outputImg: "images/gems/refined_amethyst.png", verb: "Refined" },
+    { id: "refined_ruby", name: "Refined Ruby", refinedName: "Flawless Ruby", reqLevel: 5, img: "images/gems/refined_ruby.png", refinedImg: "images/gems/flawless_ruby.png", xp: 20, inputQty: 3, outputId: "flawless_ruby", outputName: "Flawless Ruby", outputImg: "images/gems/flawless_ruby.png", verb: "Crafted" },
+    { id: "refined_sapphire", name: "Refined Sapphire", refinedName: "Flawless Sapphire", reqLevel: 5, img: "images/gems/refined_sapphire.png", refinedImg: "images/gems/flawless_sapphire.png", xp: 26, inputQty: 3, outputId: "flawless_sapphire", outputName: "Flawless Sapphire", outputImg: "images/gems/flawless_sapphire.png", verb: "Crafted" },
+    { id: "refined_emerald", name: "Refined Emerald", refinedName: "Flawless Emerald", reqLevel: 5, img: "images/gems/refined_emerald.png", refinedImg: "images/gems/flawless_emerald.png", xp: 32, inputQty: 3, outputId: "flawless_emerald", outputName: "Flawless Emerald", outputImg: "images/gems/flawless_emerald.png", verb: "Crafted" },
+    { id: "refined_topaz", name: "Refined Topaz", refinedName: "Flawless Topaz", reqLevel: 5, img: "images/gems/refined_topaz.png", refinedImg: "images/gems/flawless_topaz.png", xp: 38, inputQty: 3, outputId: "flawless_topaz", outputName: "Flawless Topaz", outputImg: "images/gems/flawless_topaz.png", verb: "Crafted" },
+    { id: "refined_amethyst", name: "Refined Amethyst", refinedName: "Flawless Amethyst", reqLevel: 5, img: "images/gems/refined_amethyst.png", refinedImg: "images/gems/flawless_amethyst.png", xp: 44, inputQty: 3, outputId: "flawless_amethyst", outputName: "Flawless Amethyst", outputImg: "images/gems/flawless_amethyst.png", verb: "Crafted" },
+    { id: "flawless_ruby", name: "Flawless Ruby", refinedName: "Masterwork Ruby", reqLevel: 10, img: "images/gems/flawless_ruby.png", refinedImg: "images/gems/masterwork_ruby.png", xp: 28, inputQty: 3, outputId: "masterwork_ruby", outputName: "Masterwork Ruby", outputImg: "images/gems/masterwork_ruby.png", verb: "Crafted" },
+    { id: "flawless_sapphire", name: "Flawless Sapphire", refinedName: "Masterwork Sapphire", reqLevel: 10, img: "images/gems/flawless_sapphire.png", refinedImg: "images/gems/masterwork_sapphire.png", xp: 34, inputQty: 3, outputId: "masterwork_sapphire", outputName: "Masterwork Sapphire", outputImg: "images/gems/masterwork_sapphire.png", verb: "Crafted" },
+    { id: "flawless_emerald", name: "Flawless Emerald", refinedName: "Masterwork Emerald", reqLevel: 10, img: "images/gems/flawless_emerald.png", refinedImg: "images/gems/masterwork_emerald.png", xp: 40, inputQty: 3, outputId: "masterwork_emerald", outputName: "Masterwork Emerald", outputImg: "images/gems/masterwork_emerald.png", verb: "Crafted" },
+    { id: "flawless_topaz", name: "Flawless Topaz", refinedName: "Masterwork Topaz", reqLevel: 10, img: "images/gems/flawless_topaz.png", refinedImg: "images/gems/masterwork_topaz.png", xp: 46, inputQty: 3, outputId: "masterwork_topaz", outputName: "Masterwork Topaz", outputImg: "images/gems/masterwork_topaz.png", verb: "Crafted" },
+    { id: "flawless_amethyst", name: "Flawless Amethyst", refinedName: "Masterwork Amethyst", reqLevel: 10, img: "images/gems/flawless_amethyst.png", refinedImg: "images/gems/masterwork_amethyst.png", xp: 52, inputQty: 3, outputId: "masterwork_amethyst", outputName: "Masterwork Amethyst", outputImg: "images/gems/masterwork_amethyst.png", verb: "Crafted" },
+    { id: "masterwork_ruby", name: "Masterwork Ruby", refinedName: "Exquisite Ruby", reqLevel: 15, img: "images/gems/masterwork_ruby.png", refinedImg: "images/gems/exquisite_ruby.png", xp: 36, inputQty: 3, outputId: "exquisite_ruby", outputName: "Exquisite Ruby", outputImg: "images/gems/exquisite_ruby.png", verb: "Crafted" },
+    { id: "masterwork_sapphire", name: "Masterwork Sapphire", refinedName: "Exquisite Sapphire", reqLevel: 15, img: "images/gems/masterwork_sapphire.png", refinedImg: "images/gems/exquisite_sapphire.png", xp: 42, inputQty: 3, outputId: "exquisite_sapphire", outputName: "Exquisite Sapphire", outputImg: "images/gems/exquisite_sapphire.png", verb: "Crafted" },
+    { id: "masterwork_emerald", name: "Masterwork Emerald", refinedName: "Exquisite Emerald", reqLevel: 15, img: "images/gems/masterwork_emerald.png", refinedImg: "images/gems/exquisite_emerald.png", xp: 48, inputQty: 3, outputId: "exquisite_emerald", outputName: "Exquisite Emerald", outputImg: "images/gems/exquisite_emerald.png", verb: "Crafted" },
+    { id: "masterwork_topaz", name: "Masterwork Topaz", refinedName: "Exquisite Topaz", reqLevel: 15, img: "images/gems/masterwork_topaz.png", refinedImg: "images/gems/exquisite_topaz.png", xp: 54, inputQty: 3, outputId: "exquisite_topaz", outputName: "Exquisite Topaz", outputImg: "images/gems/exquisite_topaz.png", verb: "Crafted" },
+    { id: "masterwork_amethyst", name: "Masterwork Amethyst", refinedName: "Exquisite Amethyst", reqLevel: 15, img: "images/gems/masterwork_amethyst.png", refinedImg: "images/gems/exquisite_amethyst.png", xp: 60, inputQty: 3, outputId: "exquisite_amethyst", outputName: "Exquisite Amethyst", outputImg: "images/gems/exquisite_amethyst.png", verb: "Crafted" }
   ];
 
   const num = (v, f = 0) => (Number.isFinite(Number(v)) ? Number(v) : f);
   const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 
   let timer = null;
+  let timerAnim = null;
   let actionStartAt = 0;
   let running = false;
   let completed = 0;
@@ -276,12 +292,14 @@
     return match ? Math.max(0, num(match.quantity ?? match.qty, 1)) : 0;
   }
 
-  function removeOne(save, id) {
+  function removeQuantity(save, id, amount = 1) {
     const idx = (save.inventory || []).findIndex((item) => String(item?.id || "") === id);
     if (idx < 0) return false;
     const item = save.inventory[idx];
     const qty = Math.max(1, num(item.quantity ?? item.qty, 1));
-    if (qty > 1) item.quantity = qty - 1;
+    const need = Math.max(1, Math.trunc(num(amount, 1)));
+    if (qty < need) return false;
+    if (qty > need) item.quantity = qty - need;
     else save.inventory.splice(idx, 1);
     return true;
   }
@@ -332,18 +350,25 @@
   function setMessage(text, bad = false) {
     const msg = document.getElementById("msg");
     if (!msg) return;
-    msg.textContent = text || "";
+    msg.innerHTML = text || "";
     msg.style.color = bad ? "#ff9e9e" : "#d8d8e8";
   }
 
+  function buildCraftMessage(recipe, outputQty, xpGain, isLast = false) {
+    const outputName = recipe.outputName || recipe.refinedName || recipe.name;
+    const outputImg = recipe.outputImg || recipe.refinedImg || recipe.img;
+    const lastText = isLast ? " (last)" : "";
+    return `You obtained ${outputQty} <img src="${outputImg}" alt="${outputName}" style="width:18px;height:18px;vertical-align:-3px;margin:0 4px 0 6px;border-radius:4px;object-fit:cover;">${outputName}${lastText} (+${xpGain} XP)`;
+  }
+
   function renderRecipe() {
-    recipe = getRecipeFromHref();
+    recipe = recipe || getRecipeFromHref();
     const nameEl = document.getElementById("recipeName");
     const imgEl = document.getElementById("recipeImg");
     const metaEl = document.getElementById("recipeMeta");
     const save = ensureSave(loadSave());
     const owned = getQty(save, recipe.id);
-    if (nameEl) nameEl.textContent = recipe.name;
+    if (nameEl) nameEl.textContent = recipe.refinedName || recipe.name;
     if (imgEl) {
       imgEl.src = recipe.refinedImg || recipe.img;
       imgEl.alt = recipe.refinedName;
@@ -352,14 +377,20 @@
   }
 
   function stopRun() {
-    if (timer) window.clearInterval(timer);
+    if (timer) window.clearTimeout(timer);
     timer = null;
+    if (timerAnim) window.cancelAnimationFrame(timerAnim);
+    timerAnim = null;
     running = false;
     actionStartAt = 0;
     const timerWrap = document.getElementById("timerWrap");
     const startBtn = document.getElementById("startBtn");
     const stopBtn = document.getElementById("stopBtn");
     if (timerWrap) timerWrap.style.display = "none";
+    const timerBar = document.getElementById("timerBar");
+    const timerText = document.getElementById("timerText");
+    if (timerBar) timerBar.style.width = "0%";
+    if (timerText) timerText.textContent = `${(ACTION_MS / 1000).toFixed(1)}s`;
     if (startBtn) startBtn.disabled = false;
     if (stopBtn) stopBtn.disabled = true;
   }
@@ -377,6 +408,34 @@
     timerBar.style.width = `${pct.toFixed(1)}%`;
   }
 
+  function startCooldownUI(remainingMs = ACTION_MS) {
+    const timerWrap = document.getElementById("timerWrap");
+    const timerText = document.getElementById("timerText");
+    const timerBar = document.getElementById("timerBar");
+    if (!timerWrap || !timerText || !timerBar) return;
+
+    timerWrap.style.display = "";
+    const rem = Math.max(0, Math.min(ACTION_MS, remainingMs));
+    actionStartAt = performance.now() - (ACTION_MS - rem);
+
+    const tick = (now) => {
+      if (!running) {
+        timerAnim = null;
+        return;
+      }
+      const elapsed = now - actionStartAt;
+      const pct = clamp((elapsed / ACTION_MS) * 100, 0, 100);
+      const remain = Math.max(0, ACTION_MS - elapsed);
+      timerText.textContent = `${(remain / 1000).toFixed(1)}s`;
+      timerBar.style.width = `${pct.toFixed(1)}%`;
+      if (pct < 100) timerAnim = window.requestAnimationFrame(tick);
+      else timerAnim = null;
+    };
+
+    if (timerAnim) window.cancelAnimationFrame(timerAnim);
+    timerAnim = window.requestAnimationFrame(tick);
+  }
+
   function runSingleAction() {
     const save = ensureSave(loadSave());
     if (save.jewelcraftingLevel < recipe.reqLevel) {
@@ -384,13 +443,14 @@
       stopRun();
       return;
     }
-    if (getQty(save, recipe.id) < 1) {
+    const inputQty = Math.max(1, Math.trunc(num(recipe.inputQty, 1)));
+    if (getQty(save, recipe.id) < inputQty) {
       setMessage(`No more ${recipe.name}.`, true);
       stopRun();
       renderRecipe();
       return;
     }
-    removeOne(save, recipe.id);
+    removeQuantity(save, recipe.id, inputQty);
 
     const bonuses = getArtisanBonuses(save);
     let outputQty = 1;
@@ -398,9 +458,9 @@
 
     addItem(save, {
       type: "material",
-      id: recipe.id.replace("rough_", "refined_"),
-      name: recipe.refinedName,
-      img: recipe.refinedImg || recipe.img
+      id: recipe.outputId,
+      name: recipe.outputName || recipe.refinedName,
+      img: recipe.outputImg || recipe.refinedImg || recipe.img
     }, outputQty);
 
     const xpGain = gainJewelcraftingXp(save, recipe.xp);
@@ -412,12 +472,13 @@
     renderRecipe();
     updateHeader();
     updateBonusBox();
-    setMessage(`Refined ${outputQty}x ${recipe.refinedName} and gained ${xpGain} XP.`);
 
     if (targetAmount != null && completed >= targetAmount) {
-      setMessage(`Target complete: refined ${completed}x ${recipe.refinedName}.`);
+      setMessage(`Target completed! ${buildCraftMessage(recipe, outputQty, xpGain, true)}`);
       stopRun();
+      return;
     }
+    setMessage(buildCraftMessage(recipe, outputQty, xpGain, false));
   }
 
   function startRun() {
@@ -427,25 +488,26 @@
       setMessage("Your Jewelcrafting level is too low for this gem.", true);
       return;
     }
-    if (getQty(save, recipe.id) < 1) {
-      setMessage(`You do not have any ${recipe.name}.`, true);
+    const inputQty = Math.max(1, Math.trunc(num(recipe.inputQty, 1)));
+    if (getQty(save, recipe.id) < inputQty) {
+      setMessage(`You need ${inputQty} ${recipe.name}.`, true);
       return;
     }
     running = true;
     completed = 0;
-    actionStartAt = Date.now();
     document.getElementById("startBtn")?.setAttribute("disabled", "disabled");
     const stopBtn = document.getElementById("stopBtn");
     if (stopBtn) stopBtn.disabled = false;
-    updateTimer();
-    timer = window.setInterval(() => {
-      updateTimer();
-      if (Date.now() - actionStartAt < ACTION_MS) return;
+    runSingleAction();
+    if (!running) return;
+    startCooldownUI(ACTION_MS);
+    timer = window.setTimeout(function loop() {
+      if (!running) return;
       runSingleAction();
       if (!running) return;
-      actionStartAt = Date.now();
-      updateTimer();
-    }, 100);
+      startCooldownUI(ACTION_MS);
+      timer = window.setTimeout(loop, ACTION_MS);
+    }, ACTION_MS);
   }
 
   function bindEvents() {

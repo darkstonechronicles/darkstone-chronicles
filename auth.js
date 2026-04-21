@@ -193,6 +193,7 @@
       "professions.html": "Professions",
       "professions_overview.html": "Overview",
       "market.html": "Market",
+      "shop.html": "Shop",
       "bank.html": "Bank",
       "buildings.html": "Buildings",
       "challenges.html": "Challenges",
@@ -1160,6 +1161,39 @@
     return body;
   }
 
+  async function invokeCreateDarkStoneCheckout(payload = {}) {
+    await ready;
+    if (!state.client || !state.user?.id) {
+      throw new Error("No active session.");
+    }
+
+    const activeOk = await validateActiveSession({ claimIfMissing: true });
+    if (!activeOk) {
+      throw new Error("Session replaced on another device.");
+    }
+
+    const session = await getSession();
+    const token = session?.access_token;
+    if (!token) throw new Error("Missing access token.");
+
+    const res = await fetch(`${CONFIG.url}/functions/v1/create-dark-stone-checkout`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${token}`,
+        "apikey": CONFIG.anonKey
+      },
+      body: JSON.stringify(payload || {})
+    });
+
+    const body = await res.json().catch(() => ({}));
+    if (!res.ok || body?.ok === false) {
+      throw new Error(body?.error || body?.message || `Dark Stone checkout failed (${res.status})`);
+    }
+
+    return body;
+  }
+
   const ready = (async () => {
     if (await checkForAppUpdateOnBoot()) return false;
     if (!isConfigured()) return false;
@@ -1373,6 +1407,7 @@
     invokeBuyMarketListing,
     invokeCancelMarketListing,
     invokePlayerProfile,
-    invokePartyAction
+    invokePartyAction,
+    invokeCreateDarkStoneCheckout
   };
 })();
