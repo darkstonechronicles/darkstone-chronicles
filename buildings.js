@@ -66,6 +66,26 @@
       bonusText: "Blacksmith XP",
       desc: "Bonus applies only to smelting XP.",
       img: "images/buildings/forge_academy.png"
+    },
+    {
+      id: "foresterLodge",
+      name: "Forester Lodge",
+      levelKey: "foresterLodgeLevel",
+      sigilName: "Wood Sigil",
+      bonusPerLevel: BUILDING_BONUS_PER_LEVEL,
+      bonusText: "Woodcutting XP",
+      desc: "Bonus applies only to wood gathering XP.",
+      img: "images/buildings/miner_hut.png"
+    },
+    {
+      id: "carpenterWorkshop",
+      name: "Carpenter Workshop",
+      levelKey: "carpenterWorkshopLevel",
+      sigilName: "Wood Sigil",
+      bonusPerLevel: BUILDING_BONUS_PER_LEVEL,
+      bonusText: "Carpentry XP",
+      desc: "Bonus applies only to plank crafting XP.",
+      img: "images/buildings/forge_academy.png"
     }
   ];
 

@@ -5,6 +5,7 @@ const WOOD_SIGIL_ITEM = {
   name: "Wood Sigil",
   img: "images/items/sigils/wood_sigil.png"
 };
+const BUILDING_BONUS_PER_LEVEL = 0.0005;
 const ROUGH_GEM_DROP_CHANCE = 1 / 100;
 const ROUGH_GEM_POOL = [
   { type:"material", id:"rough_ruby", name:"Rough Ruby", img:"images/gems/rough_ruby.png" },
@@ -338,9 +339,10 @@ function formatPct(value, digits = 2){
 }
 function renderBonusBox(save){
   const petBonus = getGatheringPetState(save);
+  const buildingPct = num(save?.foresterLodgeLevel, 0) * BUILDING_BONUS_PER_LEVEL;
   if (gatheringBonusPetValue) gatheringBonusPetValue.textContent = formatPct(num(petBonus.xpPct, 0));
   if (gatheringBonusDoubleValue) gatheringBonusDoubleValue.textContent = formatPct(num(petBonus.doublePct, 0));
-  if (gatheringBonusBuildingValue) gatheringBonusBuildingValue.textContent = formatPct(0);
+  if (gatheringBonusBuildingValue) gatheringBonusBuildingValue.textContent = formatPct(buildingPct);
   if (gatheringBonusPotionValue) gatheringBonusPotionValue.textContent = formatPct(0);
 }
 
@@ -502,7 +504,8 @@ function gatherTick(){
   if (doubled) addToInventoryStack(save, { type:"material", name: logName, img: logImg }, 1);
   incStat(save, "woodGatherTicks", 1);
   tickGatheringPotionActions(save, 1);
-  const totalXpGain = Math.max(1, Math.round(gatherXpForReq(wood.req) * (1 + petBonus.xpPct)));
+  const buildingMult = 1 + (num(save.foresterLodgeLevel, 0) * BUILDING_BONUS_PER_LEVEL);
+  const totalXpGain = Math.max(1, Math.round(gatherXpForReq(wood.req) * buildingMult * (1 + petBonus.xpPct)));
   const petSplit = window.DS?.pets?.splitXpWithPet
     ? window.DS.pets.splitXpWithPet(save, "gathering", totalXpGain)
     : { playerXpGain: totalXpGain, petXpGain: 0, petLevelUps: 0, petLevel: 0, petName: "" };

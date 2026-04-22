@@ -5,6 +5,7 @@ const WOOD_SIGIL_ITEM = {
   name: "Wood Sigil",
   img: "images/items/sigils/wood_sigil.png"
 };
+const BUILDING_BONUS_PER_LEVEL = 0.0005;
 const WOOD_SAWMILL_TEMPLATE = `
   <div class="profXpShell">
     <div class="profXpCard">
@@ -380,9 +381,10 @@ function formatPct(value, digits = 2){
 }
 function renderBonusBox(save){
   const petBonus = getArtisanPetState(save);
+  const buildingPct = num(save?.carpenterWorkshopLevel, 0) * BUILDING_BONUS_PER_LEVEL;
   if (artisanBonusPetValue) artisanBonusPetValue.textContent = formatPct(num(petBonus.xpPct, 0));
   if (artisanBonusDoubleValue) artisanBonusDoubleValue.textContent = formatPct(num(petBonus.doublePct, 0));
-  if (artisanBonusBuildingValue) artisanBonusBuildingValue.textContent = formatPct(0);
+  if (artisanBonusBuildingValue) artisanBonusBuildingValue.textContent = formatPct(buildingPct);
   if (artisanBonusPotionValue) artisanBonusPotionValue.textContent = formatPct(0);
 }
 
@@ -548,7 +550,8 @@ function craftTick(){
   const targetXp = gatherXpForReq(r.req) * 4;
   const mult = 1 + (Number(r.req || 1) / 20);
   const baseXP = Math.max(1, Math.round(targetXp / mult));
-  const totalXpGain = Math.max(1, Math.round(Number(baseXP || 0) * (1 + (Number(r.req || 1) / 20)) * (1 + petBonus.xpPct)));
+  const buildingMult = 1 + (num(save.carpenterWorkshopLevel, 0) * BUILDING_BONUS_PER_LEVEL);
+  const totalXpGain = Math.max(1, Math.round(Number(baseXP || 0) * (1 + (Number(r.req || 1) / 20)) * buildingMult * (1 + petBonus.xpPct)));
   const petSplit = window.DS?.pets?.splitXpWithPet
     ? window.DS.pets.splitXpWithPet(save, "artisan", totalXpGain)
     : { playerXpGain: totalXpGain, petXpGain: 0, petLevelUps: 0, petLevel: 0, petName: "" };

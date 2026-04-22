@@ -133,6 +133,8 @@
     save.cryptHallLevel = Math.max(0, Math.round(num(save.cryptHallLevel, 0)));
     save.minerHutLevel = Math.max(0, Math.round(num(save.minerHutLevel, 0)));
     save.forgeAcademyLevel = Math.max(0, Math.round(num(save.forgeAcademyLevel, 0)));
+    save.foresterLodgeLevel = Math.max(0, Math.round(num(save.foresterLodgeLevel, 0)));
+    save.carpenterWorkshopLevel = Math.max(0, Math.round(num(save.carpenterWorkshopLevel, 0)));
 
     return save;
   }
