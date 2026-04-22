@@ -203,6 +203,16 @@
     catch { return ""; }
   }
 
+  function sameUserId(a, b){
+    return String(a || "").trim() !== "" && String(a || "").trim() === String(b || "").trim();
+  }
+
+  function onlyCurrentUserListings(listings, userId = getUserId()){
+    if (!userId) return [];
+    return (Array.isArray(listings) ? listings : [])
+      .filter((listing) => sameUserId(listing?.seller_user_id, userId));
+  }
+
   function isGearItem(it){
     const slots = new Set(GEAR_SLOTS.map(([key]) => key).filter((key) => key !== "all"));
     return it?.type === "gear" || (it?.slot && slots.has(String(it.slot)));
@@ -510,7 +520,7 @@
     const item = listing.item || {};
     const qty = Math.max(1, Math.floor(num(listing.quantity, 1)));
     const req = num(item.reqLevel, 0);
-    const mine = userId && listing.seller_user_id === userId;
+    const mine = sameUserId(listing.seller_user_id, userId);
     return `
       <tr>
         <td>
@@ -545,7 +555,7 @@
     const item = listing.item || {};
     const qty = Math.max(1, Math.floor(num(listing.quantity, 1)));
     const priceEach = Math.max(1, Math.floor(num(listing.price_each, 1)));
-    const mine = userId && listing.seller_user_id === userId;
+    const mine = sameUserId(listing.seller_user_id, userId);
     const details = itemMeta(item);
     const statParts = [];
     if (item?.slot) statParts.push(`Slot: ${slotLabel(item.slot)}`);
@@ -691,14 +701,23 @@
       }
 
       if (error) throw error;
+      const userId = getUserId();
       const marketListings = Array.isArray(data) ? data : [];
       let myListings = [];
       const myResult = await client.rpc("get_my_market_listings");
       if (!myResult.error && Array.isArray(myResult.data)) {
-        myListings = myResult.data;
+        myListings = onlyCurrentUserListings(myResult.data, userId);
       } else {
-        const userId = getUserId();
-        myListings = marketListings.filter((listing) => userId && listing.seller_user_id === userId);
+        const fallback = userId ? await client
+          .from("market_listings")
+          .select("id,seller_user_id,seller_name,item,item_name,item_img,item_rarity,category,gear_slot,quantity,price_each,created_at")
+          .eq("seller_user_id", userId)
+          .eq("status", "active")
+          .gt("quantity", 0)
+          .order("created_at", { ascending: false }) : { data: [], error: null };
+        myListings = !fallback.error
+          ? onlyCurrentUserListings(fallback.data, userId)
+          : onlyCurrentUserListings(marketListings, userId);
       }
       const salesResult = await client.rpc("get_my_market_sales", { p_limit: 30 });
       if (!salesResult.error && Array.isArray(salesResult.data)) {
@@ -722,7 +741,7 @@
       marketListings.forEach((listing) => merged.set(String(listing.id), listing));
       myListings.forEach((listing) => merged.set(String(listing.id), listing));
       state.listings = Array.from(merged.values()).sort((a, b) => String(b.created_at || "").localeCompare(String(a.created_at || "")));
-      state.myListings = myListings;
+      state.myListings = onlyCurrentUserListings(myListings, userId);
       const totalPages = Math.max(1, Math.ceil(filteredListings().length / LISTINGS_PER_PAGE));
       state.page = Math.max(1, Math.min(Math.floor(num(state.page, 1)), totalPages));
       state.status = "";
