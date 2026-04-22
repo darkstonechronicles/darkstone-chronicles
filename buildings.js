@@ -1,6 +1,7 @@
 (() => {
   const SAVE_KEY = "darkstone_save_v1";
   const MAX_LEVEL = 150;
+  const BUILDING_BONUS_PER_LEVEL = 0.0005;
   const BUILDINGS_TEMPLATE = `
     <h1>Buildings</h1>
 
@@ -31,7 +32,7 @@
       name: "Barracks",
       levelKey: "barracksLevel",
       sigilName: "War Sigil",
-      bonusPerLevel: 0.05,
+      bonusPerLevel: BUILDING_BONUS_PER_LEVEL,
       bonusText: "Fighting Fields ATK/DEF",
       desc: "Permanent bonus in Fight only.",
       img: "images/buildings/barracks.png"
@@ -41,7 +42,7 @@
       name: "Crypt Hall",
       levelKey: "cryptHallLevel",
       sigilName: "Crypt Sigil",
-      bonusPerLevel: 0.05,
+      bonusPerLevel: BUILDING_BONUS_PER_LEVEL,
       bonusText: "Dungeon ATK/DEF",
       desc: "Bonus applies only inside Dungeons.",
       img: "images/buildings/crypt_hall.png"
@@ -51,7 +52,7 @@
       name: "Miner Hut",
       levelKey: "minerHutLevel",
       sigilName: "Ore Sigil",
-      bonusPerLevel: 0.0005,
+      bonusPerLevel: BUILDING_BONUS_PER_LEVEL,
       bonusText: "Mining XP",
       desc: "Bonus applies only to Mining XP.",
       img: "images/buildings/miner_hut.png"
@@ -61,7 +62,7 @@
       name: "Forge Academy",
       levelKey: "forgeAcademyLevel",
       sigilName: "Ore Sigil",
-      bonusPerLevel: 0.0005,
+      bonusPerLevel: BUILDING_BONUS_PER_LEVEL,
       bonusText: "Blacksmith XP",
       desc: "Bonus applies only to smelting XP.",
       img: "images/buildings/forge_academy.png"
