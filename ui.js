@@ -3752,11 +3752,9 @@ function getEquipmentContextStats(save){
     const buildingPct = __equipStatsMode === "dungeon"
       ? buildingBonusPct(save.cryptHallLevel)
       : buildingBonusPct(save.barracksLevel);
-    const baseTotalAtk = Math.floor(rawAtk * (1 + setAtk + buildingPct));
-    const baseTotalDef = Math.floor(rawDef * (1 + setDef + buildingPct));
     const potionBonuses = getPotionBonusesForUI(save);
-    const totalAtk = Math.floor(baseTotalAtk * (1 + potionBonuses.atkPct));
-    const totalDef = Math.floor(baseTotalDef * (1 + potionBonuses.defPct));
+    const totalAtk = Math.floor(rawAtk * (1 + setAtk + buildingPct + potionBonuses.atkPct));
+    const totalDef = Math.floor(rawDef * (1 + setDef + buildingPct + potionBonuses.defPct));
     const modeLabel = __equipStatsMode === "dungeon" ? "Dungeon" : "Fight";
     const atkPctTxt = potionBonuses.atkPct > 0 ? ` (+${Math.round(potionBonuses.atkPct * 100)}%)` : "";
     const defPctTxt = potionBonuses.defPct > 0 ? ` (+${Math.round(potionBonuses.defPct * 100)}%)` : "";

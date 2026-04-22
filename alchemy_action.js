@@ -1,6 +1,13 @@
 (() => {
 const SAVE_KEY = "darkstone_save_v1";
 const num = (v, f = 0) => (Number.isFinite(Number(v)) ? Number(v) : f);
+const BUILDING_BONUS_PER_LEVEL = 0.0005;
+const VERDANT_SIGIL_ITEM = {
+  type: "material",
+  name: "Verdant Sigil",
+  img: "images/items/sigils/wood_sigil.png"
+};
+const VERDANT_SIGIL_DROP_CHANCE = 1 / 250;
 const ALCHEMY_ACTION_TEMPLATE = `
   <div class="profXpShell">
     <div class="profXpCard">
@@ -385,9 +392,10 @@ function formatPct(value, digits = 2){
 
 function renderBonusBox(save){
   const petBonus = getArtisanPetState(save);
+  const buildingPct = num(save?.alchemistLaboratoryLevel, 0) * BUILDING_BONUS_PER_LEVEL;
   if (artisanBonusPetValue) artisanBonusPetValue.textContent = formatPct(num(petBonus.xpPct, 0));
   if (artisanBonusDoubleValue) artisanBonusDoubleValue.textContent = formatPct(num(petBonus.doublePct, 0));
-  if (artisanBonusBuildingValue) artisanBonusBuildingValue.textContent = formatPct(0);
+  if (artisanBonusBuildingValue) artisanBonusBuildingValue.textContent = formatPct(buildingPct);
   if (artisanBonusPotionValue) artisanBonusPotionValue.textContent = formatPct(0);
 }
 
@@ -445,9 +453,9 @@ function touchActionLock(){
 function setMsg(text){
   if (msgEl) msgEl.innerHTML = text || "";
 }
-function buildPotionMessage(recipe, xpGain, isLast = false){
+function buildPotionMessage(recipe, xpGain, sigilDrop = false, isLast = false){
   const lastText = isLast ? " (last)" : "";
-  return `You brewed 1 <img src="${recipe.img}" alt="${recipe.name}" style="width:18px;height:18px;vertical-align:-3px;margin:0 4px 0 6px;border-radius:4px;object-fit:cover;">${recipe.name}${lastText} (+${xpGain} XP)`;
+  return `You brewed 1 <img src="${recipe.img}" alt="${recipe.name}" style="width:18px;height:18px;vertical-align:-3px;margin:0 4px 0 6px;border-radius:4px;object-fit:cover;">${recipe.name}${lastText} (+${xpGain} XP)${sigilDrop ? " | Verdant Sigil +1" : ""}`;
 }
 function getArtisanPetState(save){
   const pet = save?.pets?.artisan;
@@ -578,9 +586,15 @@ function actionTick(){
   addToInventoryStack(save, recipe.output, 1);
   const doubled = Math.random() < petBonus.doublePct;
   if (doubled) addToInventoryStack(save, recipe.output, 1);
+  let sigilDrop = false;
+  if (Math.random() < VERDANT_SIGIL_DROP_CHANCE) {
+    addToInventoryStack(save, { ...VERDANT_SIGIL_ITEM }, 1);
+    sigilDrop = true;
+  }
   incStat(save, "alchemyTicks", 1);
   tickArtisanPotionActions(save, 1);
-  const totalXpGain = Math.max(1, Math.round(Number(recipe.baseXP || 0) * (1 + petBonus.xpPct)));
+  const buildingPct = num(save.alchemistLaboratoryLevel, 0) * BUILDING_BONUS_PER_LEVEL;
+  const totalXpGain = Math.max(1, Math.round(Number(recipe.baseXP || 0) * (1 + num(petBonus.xpPct, 0) + buildingPct)));
   const petSplit = window.DS?.pets?.splitXpWithPet
     ? window.DS.pets.splitXpWithPet(save, "artisan", totalXpGain)
     : { playerXpGain: totalXpGain, petXpGain: 0, petLevelUps: 0, petLevel: 0, petName: "" };
@@ -602,13 +616,13 @@ function actionTick(){
     targetRemaining -= 1;
     updateTargetUI();
     if (targetRemaining <= 0) {
-      setMsg(`Target completed! ${buildPotionMessage(recipe, xpGain, true)}${petSplit.petXpGain > 0 ? ` <span style="color:#9fb5ff;">| Pet XP +${petSplit.petXpGain}</span>` : ""}${petSplit.petLevelUps > 0 ? ` <span style="color:#f7df8a;">| ${petSplit.petName} Lvl ${petSplit.petLevel}</span>` : ""}${doubled ? ` <span style="color:#9ff0b7;">Double Craft!</span>` : ""}`);
+      setMsg(`Target completed! ${buildPotionMessage(recipe, xpGain, sigilDrop, true)}${petSplit.petXpGain > 0 ? ` <span style="color:#9fb5ff;">| Pet XP +${petSplit.petXpGain}</span>` : ""}${petSplit.petLevelUps > 0 ? ` <span style="color:#f7df8a;">| ${petSplit.petName} Lvl ${petSplit.petLevel}</span>` : ""}${doubled ? ` <span style="color:#9ff0b7;">Double Craft!</span>` : ""}`);
       stopAlchemyAction(true);
       return;
     }
   }
 
-  setMsg(buildPotionMessage(recipe, xpGain, false) + (petSplit.petXpGain > 0 ? ` <span style="color:#9fb5ff;">| Pet XP +${petSplit.petXpGain}</span>` : "") + (petSplit.petLevelUps > 0 ? ` <span style="color:#f7df8a;">| ${petSplit.petName} Lvl ${petSplit.petLevel}</span>` : "") + (doubled ? ` <span style="color:#9ff0b7;">Double Craft!</span>` : ""));
+  setMsg(buildPotionMessage(recipe, xpGain, sigilDrop, false) + (petSplit.petXpGain > 0 ? ` <span style="color:#9fb5ff;">| Pet XP +${petSplit.petXpGain}</span>` : "") + (petSplit.petLevelUps > 0 ? ` <span style="color:#f7df8a;">| ${petSplit.petName} Lvl ${petSplit.petLevel}</span>` : "") + (doubled ? ` <span style="color:#9ff0b7;">Double Craft!</span>` : ""));
   touchActionLock();
   scheduleNextAction(false);
 }

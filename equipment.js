@@ -135,6 +135,8 @@
     save.forgeAcademyLevel = Math.max(0, Math.round(num(save.forgeAcademyLevel, 0)));
     save.foresterLodgeLevel = Math.max(0, Math.round(num(save.foresterLodgeLevel, 0)));
     save.carpenterWorkshopLevel = Math.max(0, Math.round(num(save.carpenterWorkshopLevel, 0)));
+    save.herbalistConservatoryLevel = Math.max(0, Math.round(num(save.herbalistConservatoryLevel, 0)));
+    save.alchemistLaboratoryLevel = Math.max(0, Math.round(num(save.alchemistLaboratoryLevel, 0)));
 
     return save;
   }
@@ -475,15 +477,10 @@
       : buildingBonusPct(s.barracksLevel);
     const potionBonuses = getPotionBonuses(s);
 
-    const basePctAtk = setAtk + bPct;
-    const basePctDef = setDef + bPct;
-
-    const baseTotalAtk = Math.floor(rawAtk * (1 + basePctAtk));
-    const baseTotalDef = Math.floor(rawDef * (1 + basePctDef));
-    const totalAtk = Math.floor(baseTotalAtk * (1 + potionBonuses.atkPct));
-    const totalDef = Math.floor(baseTotalDef * (1 + potionBonuses.defPct));
-    const pctAtk = ((1 + basePctAtk) * (1 + potionBonuses.atkPct)) - 1;
-    const pctDef = ((1 + basePctDef) * (1 + potionBonuses.defPct)) - 1;
+    const pctAtk = setAtk + bPct + potionBonuses.atkPct;
+    const pctDef = setDef + bPct + potionBonuses.defPct;
+    const totalAtk = Math.floor(rawAtk * (1 + pctAtk));
+    const totalDef = Math.floor(rawDef * (1 + pctDef));
 
     setText("baseAtk", baseAtk);
     setText("baseDef", baseDef);

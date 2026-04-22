@@ -645,10 +645,10 @@ function mineTick(){
     incStat(save, "miningTicks", 1);
     tickGatheringPotionActions(save, 1);
 
-  // XP gain (scaled by ore tier + building bonus)
+  // XP gain (scaled by ore tier + additive profession XP bonuses)
   const baseXpGain = gatherXpForReq(ore.req);
-  const miningBonusMult = 1 + (Number(save.minerHutLevel) || 0) * 0.0005;
-  const totalXpGain = Math.max(1, Math.round(baseXpGain * miningBonusMult * (1 + petBonus.xpPct)));
+  const buildingPct = (Number(save.minerHutLevel) || 0) * 0.0005;
+  const totalXpGain = Math.max(1, Math.round(baseXpGain * (1 + num(petBonus.xpPct, 0) + buildingPct)));
   const petSplit = window.DS?.pets?.splitXpWithPet
     ? window.DS.pets.splitXpWithPet(save, "gathering", totalXpGain)
     : { playerXpGain: totalXpGain, petXpGain: 0, petLevelUps: 0, petLevel: 0, petName: "" };

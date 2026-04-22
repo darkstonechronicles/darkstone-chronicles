@@ -524,9 +524,9 @@
       return changed;
     }
 
-  function buildingBonus(level){
+  function buildingBonusPct(level){
     const lvl = Math.max(0, num(level, 0));
-    return 1 + (lvl * 0.0005);
+    return lvl * 0.0005;
   }
 
   function loadSave(){
@@ -645,8 +645,10 @@
     }
 
     const bonuses = getSetBonusPcts(eq);
-    const attackTotal = Math.floor((baseAtk + atkB) * (1 + bonuses.atkPct));
-    const defenseTotal = Math.floor((baseDef + defB) * (1 + bonuses.defPct));
+    const rawAtk = baseAtk + atkB;
+    const rawDef = baseDef + defB;
+    const attackTotal = Math.floor(rawAtk * (1 + bonuses.atkPct));
+    const defenseTotal = Math.floor(rawDef * (1 + bonuses.defPct));
 
     savePatch({
       attackTotal,
@@ -655,12 +657,19 @@
       setBonusDefPct: bonuses.defPct,
       setBonusGoldPct: bonuses.goldPct
     });
-    return { attackTotal, defenseTotal };
+    return {
+      rawAtk,
+      rawDef,
+      atkPct: bonuses.atkPct,
+      defPct: bonuses.defPct,
+      attackTotal,
+      defenseTotal
+    };
   }
 
     function getHeroRuntime(){
       const s = loadSave();
-      const { attackTotal, defenseTotal } = recomputeTotalsAndSave();
+      const totals = recomputeTotalsAndSave();
 
     const heroLevel = Math.max(1, num(s.heroLevel, 1));
 
@@ -672,13 +681,12 @@
     const stamina = clamp(num(s.stamina, stMax), 0, stMax);
 
       const potionBonus = getPotionBonuses(s);
-      const baseAtk = Math.floor(num(s.attackTotal, attackTotal) * buildingBonus(s.cryptHallLevel));
-      const baseDef = Math.floor(num(s.defenseTotal, defenseTotal) * buildingBonus(s.cryptHallLevel));
+      const buildingPct = buildingBonusPct(s.cryptHallLevel);
 
       return {
         level: heroLevel,
-        atk: Math.floor(baseAtk * (1 + potionBonus.atkPct)),
-        def: Math.floor(baseDef * (1 + potionBonus.defPct)),
+        atk: Math.floor(totals.rawAtk * (1 + totals.atkPct + buildingPct + potionBonus.atkPct)),
+        def: Math.floor(totals.rawDef * (1 + totals.defPct + buildingPct + potionBonus.defPct)),
         hpMax,
         hp,
         stamina,

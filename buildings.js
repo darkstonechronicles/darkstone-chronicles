@@ -86,6 +86,26 @@
       bonusText: "Carpentry XP",
       desc: "Bonus applies only to plank crafting XP.",
       img: "images/buildings/forge_academy.png"
+    },
+    {
+      id: "herbalistConservatory",
+      name: "Herbalist Conservatory",
+      levelKey: "herbalistConservatoryLevel",
+      sigilName: "Verdant Sigil",
+      bonusPerLevel: BUILDING_BONUS_PER_LEVEL,
+      bonusText: "Herbalism XP",
+      desc: "Bonus applies only to herb gathering XP.",
+      img: "images/buildings/miner_hut.png"
+    },
+    {
+      id: "alchemistLaboratory",
+      name: "Alchemist Laboratory",
+      levelKey: "alchemistLaboratoryLevel",
+      sigilName: "Verdant Sigil",
+      bonusPerLevel: BUILDING_BONUS_PER_LEVEL,
+      bonusText: "Alchemy XP",
+      desc: "Bonus applies only to potion brewing XP.",
+      img: "images/buildings/forge_academy.png"
     }
   ];
 

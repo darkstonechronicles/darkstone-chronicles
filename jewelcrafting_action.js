@@ -242,7 +242,7 @@
 
   function getArtisanBonuses(save) {
     const petBonus = window.DS?.pets?.getArtisanPetBonuses?.(save?.pets?.artisan) || { professionXpPct: 0, doubleCraftPct: 0 };
-    const buildingPct = Math.max(0, num(save.forgeAcademyLevel, 0) * 0.01);
+    const buildingPct = Math.max(0, num(save.forgeAcademyLevel, 0) * 0.0005);
     const potionPct = Math.max(0, getArtisanPotionBonus(save) * 0.01);
     return {
       petXpPct: num(petBonus.professionXpPct, 0),

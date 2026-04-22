@@ -1855,9 +1855,9 @@ function getEquipBonuses(saveObj){
   return { atkB, defB };
 }
 
-function buildingBonus(level){
+function buildingBonusPct(level){
   const lvl = Math.max(0, num(level, 0));
-  return 1 + (lvl * 0.0005);
+  return lvl * 0.0005;
 }
 
 function getSetCounts(equipment){
@@ -1950,7 +1950,16 @@ function recomputeTotalsAndSave(){
     _petBonusDefPct: petBonuses.defPct
   });
 
-  return { baseAtk, baseDef, totalAtk, totalDef };
+  return {
+    baseAtk,
+    baseDef,
+    rawAtk,
+    rawDef,
+    atkPct: bonuses.atkPct + petBonuses.atkPct,
+    defPct: bonuses.defPct + petBonuses.defPct,
+    totalAtk,
+    totalDef
+  };
 }
 
 // =========================
@@ -2280,9 +2289,10 @@ function getHeroState(){
   const staminaMax = Math.max(1, num(s.staminaMax, 100));
   const staminaNow = clamp(num(s.stamina, staminaMax), 0, staminaMax);
 
-  const barracksMult = buildingBonus(s.barracksLevel);
-  const atk = Math.floor(num(s.attackTotal, totals.totalAtk) * barracksMult);
-  const def = Math.floor(num(s.defenseTotal, totals.totalDef) * barracksMult);
+  const potionBonuses = getPotionBonuses(loadSave());
+  const buildingPct = buildingBonusPct(s.barracksLevel);
+  const atk = Math.floor(totals.rawAtk * (1 + totals.atkPct + buildingPct + potionBonuses.atkPct));
+  const def = Math.floor(totals.rawDef * (1 + totals.defPct + buildingPct + potionBonuses.defPct));
 
   return {
     level: heroLevel,
@@ -2796,13 +2806,7 @@ function runEncounter(){
     return;
   }
 
-    const potionSave = loadSave();
-    const potionBonus = getPotionBonuses(potionSave);
     let hero = getHeroState();
-    if (potionBonus.atkPct || potionBonus.defPct){
-      hero.atk = Math.floor(hero.atk * (1 + potionBonus.atkPct));
-      hero.def = Math.floor(hero.def * (1 + potionBonus.defPct));
-    }
 
   // fresh mob each encounter
   currentMob = { ...currentMobData, hpMax: currentMobData.hp, hp: currentMobData.hp };

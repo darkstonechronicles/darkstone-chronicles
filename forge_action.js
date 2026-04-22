@@ -448,8 +448,8 @@ function xpNextForLevel(lvl){
 }
 function gainBlacksmithXP(save, baseXP, reqLevel, artisanXpPct = 0){
   const mult = 1 + (Number(reqLevel || 1) / 20);
-  const forgeBonusMult = 1 + (Number(save.forgeAcademyLevel) || 0) * 0.0005;
-  const gained = Math.round(Number(baseXP || 0) * mult * forgeBonusMult * (1 + artisanXpPct));
+  const buildingPct = (Number(save.forgeAcademyLevel) || 0) * 0.0005;
+  const gained = Math.round(Number(baseXP || 0) * mult * (1 + num(artisanXpPct, 0) + buildingPct));
   save.blacksmithXP += gained;
 
   while (save.blacksmithXP >= save.blacksmithXPNext){
@@ -835,8 +835,8 @@ function forgeTick(){
   // xp
   save.blacksmithXPNext = xpNextForLevel(save.blacksmithLevel);
   const xpMult = 1 + (Number(r.req || 1) / 20);
-  const forgeBonusMult = 1 + (Number(save.forgeAcademyLevel) || 0) * 0.0005;
-  const totalXpGain = Math.max(1, Math.round(Number(r.baseXP || 0) * xpMult * forgeBonusMult * (1 + petBonus.xpPct)));
+  const buildingPct = (Number(save.forgeAcademyLevel) || 0) * 0.0005;
+  const totalXpGain = Math.max(1, Math.round(Number(r.baseXP || 0) * xpMult * (1 + num(petBonus.xpPct, 0) + buildingPct)));
   const petSplit = window.DS?.pets?.splitXpWithPet
     ? window.DS.pets.splitXpWithPet(save, "artisan", totalXpGain)
     : { playerXpGain: totalXpGain, petXpGain: 0, petLevelUps: 0, petLevel: 0, petName: "" };
