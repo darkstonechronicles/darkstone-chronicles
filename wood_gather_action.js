@@ -504,8 +504,8 @@ function gatherTick(){
   if (doubled) addToInventoryStack(save, { type:"material", name: logName, img: logImg }, 1);
   incStat(save, "woodGatherTicks", 1);
   tickGatheringPotionActions(save, 1);
-  const buildingMult = 1 + (num(save.foresterLodgeLevel, 0) * BUILDING_BONUS_PER_LEVEL);
-  const totalXpGain = Math.max(1, Math.round(gatherXpForReq(wood.req) * buildingMult * (1 + petBonus.xpPct)));
+  const buildingPct = num(save.foresterLodgeLevel, 0) * BUILDING_BONUS_PER_LEVEL;
+  const totalXpGain = Math.max(1, Math.round(gatherXpForReq(wood.req) * (1 + num(petBonus.xpPct, 0) + buildingPct)));
   const petSplit = window.DS?.pets?.splitXpWithPet
     ? window.DS.pets.splitXpWithPet(save, "gathering", totalXpGain)
     : { playerXpGain: totalXpGain, petXpGain: 0, petLevelUps: 0, petLevel: 0, petName: "" };

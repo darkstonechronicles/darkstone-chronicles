@@ -550,8 +550,8 @@ function craftTick(){
   const targetXp = gatherXpForReq(r.req) * 4;
   const mult = 1 + (Number(r.req || 1) / 20);
   const baseXP = Math.max(1, Math.round(targetXp / mult));
-  const buildingMult = 1 + (num(save.carpenterWorkshopLevel, 0) * BUILDING_BONUS_PER_LEVEL);
-  const totalXpGain = Math.max(1, Math.round(Number(baseXP || 0) * (1 + (Number(r.req || 1) / 20)) * buildingMult * (1 + petBonus.xpPct)));
+  const buildingPct = num(save.carpenterWorkshopLevel, 0) * BUILDING_BONUS_PER_LEVEL;
+  const totalXpGain = Math.max(1, Math.round(Number(baseXP || 0) * (1 + (Number(r.req || 1) / 20)) * (1 + num(petBonus.xpPct, 0) + buildingPct)));
   const petSplit = window.DS?.pets?.splitXpWithPet
     ? window.DS.pets.splitXpWithPet(save, "artisan", totalXpGain)
     : { playerXpGain: totalXpGain, petXpGain: 0, petLevelUps: 0, petLevel: 0, petName: "" };
