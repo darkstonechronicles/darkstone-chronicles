@@ -295,8 +295,8 @@
         .marketPager{display:flex;align-items:center;justify-content:center;gap:6px;flex-wrap:wrap;margin-top:10px;}
         .marketPagerBtn{width:auto!important;min-width:38px!important;min-height:34px!important;padding:6px 10px!important;border-radius:6px!important;}
         .marketPagerBtn.is-active{border-color:#d0a14f!important;color:#fff1cf!important;background:linear-gradient(180deg,rgba(82,58,28,.96),rgba(35,24,14,.98))!important;}
-        .marketModalBackdrop{position:fixed;inset:0;z-index:80;background:rgba(0,0,0,.35);}
-        .marketModal{position:fixed;left:var(--market-modal-left,50%);top:var(--market-modal-top,90px);transform:translateX(-50%);width:min(640px,calc(100vw - 24px));max-height:calc(100vh - 24px);overflow:auto;border:1px solid rgba(126,94,50,.95);border-radius:10px;background:linear-gradient(180deg,rgba(22,23,31,.98),rgba(9,10,14,.98));box-shadow:0 18px 54px rgba(0,0,0,.62),inset 0 1px 0 rgba(255,232,184,.08);padding:16px;color:#f3ead6;}
+        .marketModalBackdrop{position:fixed;inset:0;z-index:80;display:flex;align-items:flex-start;justify-content:center;padding:96px 14px 14px;background:rgba(0,0,0,.35);}
+        .marketModal{width:min(640px,calc(100vw - 28px));max-height:calc(100vh - 112px);overflow:auto;border:1px solid rgba(126,94,50,.95);border-radius:10px;background:linear-gradient(180deg,rgba(22,23,31,.98),rgba(9,10,14,.98));box-shadow:0 18px 54px rgba(0,0,0,.62),inset 0 1px 0 rgba(255,232,184,.08);padding:16px;color:#f3ead6;}
         .marketModalTop{display:flex;align-items:flex-start;gap:14px;}
         .marketModalIcon{width:84px;height:84px;border-radius:8px;border:2px solid #333;background:#0f0f16;object-fit:cover;flex:0 0 auto;}
         .marketModalName{font-size:24px;font-weight:900;line-height:1.1;}
@@ -336,6 +336,8 @@
           .marketModalTop{align-items:center;}
           .marketModalIcon{width:70px;height:70px;}
           .marketModalName{font-size:20px;}
+          .marketModalBackdrop{padding-top:72px;}
+          .marketModal{max-height:calc(100vh - 88px);}
         }
       </style>
       <div class="marketShell">
@@ -543,12 +545,9 @@
     if (num(item?.reqLevel, 0)) statParts.push(`Required Level: ${num(item.reqLevel, 1)}`);
     if (num(item?.atk, 0)) statParts.push(`Attack +${num(item.atk, 0)}`);
     if (num(item?.def, 0)) statParts.push(`Defense +${num(item.def, 0)}`);
-    const anchor = state.inspectAnchor || {};
-    const left = Math.max(12, Math.min(num(anchor.x, window.innerWidth / 2), window.innerWidth - 12));
-    const top = Math.max(12, Math.min(num(anchor.y, 90), window.innerHeight - 120));
     return `
       <div class="marketModalBackdrop" data-close-market-inspector="1">
-        <div class="marketModal" role="dialog" aria-modal="true" aria-label="${esc(listing.item_name || item.name || "Market Item")}" data-market-modal="1" style="--market-modal-left:${left}px;--market-modal-top:${top}px;">
+        <div class="marketModal" role="dialog" aria-modal="true" aria-label="${esc(listing.item_name || item.name || "Market Item")}" data-market-modal="1">
           <div class="marketModalTop">
             <img class="marketModalIcon" src="${esc(listing.item_img || item.img || marketIcon(listing.category))}" alt="">
             <div style="min-width:0;flex:1;">
