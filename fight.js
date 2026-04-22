@@ -2874,6 +2874,9 @@ const mobId = currentMobData.id;
 
 const uniques = rollUniqueDrops(zoneId, mobId);
 for(const it of uniques) addItemToSave(it);
+uniques
+  .filter((it) => String(it?.rarity || "").toLowerCase() === "legendary")
+  .forEach((it) => window.DS?.announcements?.legendaryDrop?.(getCurrentSave(), it));
 
 const mythic = rollZoneMythic(zoneId);
 if(mythic) addItemToSave(mythic);
@@ -2936,6 +2939,7 @@ function addHeroXP(xp){
     heroXPNext = xpNextForLevel(heroLevel);
 
     statPoints += STAT_POINTS_PER_LEVEL;
+    window.DS?.announcements?.combatLevel?.(s, heroLevel);
 
     pushBattleLog(`✨ Level Up! Hero Level ${heroLevel} (+${STAT_POINTS_PER_LEVEL} Stat Points)`);
   }

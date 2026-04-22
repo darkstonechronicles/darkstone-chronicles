@@ -456,6 +456,7 @@ function gainBlacksmithXP(save, baseXP, reqLevel, artisanXpPct = 0){
     save.blacksmithXP -= save.blacksmithXPNext;
     save.blacksmithLevel += 1;
     save.blacksmithXPNext = xpNextForLevel(save.blacksmithLevel);
+    window.DS?.announcements?.professionLevel?.(save, "Forge", save.blacksmithLevel);
   }
   return gained;
 }
@@ -845,6 +846,7 @@ function forgeTick(){
     save.blacksmithXP -= save.blacksmithXPNext;
     save.blacksmithLevel += 1;
     save.blacksmithXPNext = xpNextForLevel(save.blacksmithLevel);
+    window.DS?.announcements?.professionLevel?.(save, "Forge", save.blacksmithLevel);
   }
 
   setSave(save);

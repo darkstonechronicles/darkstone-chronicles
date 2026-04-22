@@ -659,6 +659,7 @@ function mineTick(){
     save.miningXP -= save.miningXPNext;
     save.miningLevel += 1;
     save.miningXPNext = xpNextForLevel(save.miningLevel);
+    window.DS?.announcements?.professionLevel?.(save, "Mining", save.miningLevel);
   }
 
   let sigilDrop = false;

@@ -786,6 +786,7 @@
       heroXPNext = Math.floor(heroXPNext * 1.5);
       statPoints += STAT_POINTS_PER_LEVEL;
       ups++;
+      window.DS?.announcements?.combatLevel?.(s, heroLevel);
     }
 
     s.heroXP = heroXP;
@@ -1330,6 +1331,9 @@
 
     const drops = rollSetDrops(dungeon);
     for (const it of drops) addItemToInventory(it);
+    drops
+      .filter((it) => String(it?.rarity || "").toLowerCase() === "legendary")
+      .forEach((it) => window.DS?.announcements?.legendaryDrop?.(loadSave(), it));
 
     let cryptSigil = null;
     const potionBonuses = getPotionBonuses(loadSave());

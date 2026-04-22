@@ -508,6 +508,7 @@ function gainAlchemyXP(save, baseXP, artisanXpPct = 0){
     save.alchemyXP -= save.alchemyXPNext;
     save.alchemyLevel += 1;
     save.alchemyXPNext = xpNextForLevel(save.alchemyLevel);
+    window.DS?.announcements?.professionLevel?.(save, "Alchemy", save.alchemyLevel);
   }
   return gained;
 }
@@ -589,6 +590,7 @@ function actionTick(){
     save.alchemyXP -= save.alchemyXPNext;
     save.alchemyLevel += 1;
     save.alchemyXPNext = xpNextForLevel(save.alchemyLevel);
+    window.DS?.announcements?.professionLevel?.(save, "Alchemy", save.alchemyLevel);
   }
 
   setSave(save);

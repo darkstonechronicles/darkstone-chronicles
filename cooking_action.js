@@ -917,6 +917,7 @@ function releaseActionLock(){
       s.cookingXP -= s.cookingXPNext;
       s.cookingLevel += 1;
       s.cookingXPNext = xpNextForLevel(s.cookingLevel);
+      window.DS?.announcements?.professionLevel?.(s, "Cooking", s.cookingLevel);
     }
 
     setSave(s);

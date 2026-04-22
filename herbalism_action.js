@@ -530,6 +530,7 @@ function gatherTick(){
     save.herbalismXP -= save.herbalismXPNext;
     save.herbalismLevel += 1;
     save.herbalismXPNext = xpNextForLevel(save.herbalismLevel);
+    window.DS?.announcements?.professionLevel?.(save, "Herbalism", save.herbalismLevel);
   }
 
   setSave(save);

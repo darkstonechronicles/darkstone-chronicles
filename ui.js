@@ -672,10 +672,13 @@
 
   function normalizeRemoteChatMessage(row) {
     if (!row || typeof row !== "object") return null;
+    const metadata = row.metadata && typeof row.metadata === "object" ? row.metadata : {};
     return {
       id: Number(row.id || 0) || Date.now(),
       author: String(row.author_name || "Player").trim() || "Player",
       text: String(row.body || "").trim(),
+      kind: String(metadata.kind || "").trim(),
+      announcementType: String(metadata.announcementType || "").trim(),
       ts: Date.parse(row.created_at || "") || Date.now(),
       pending: false
     };
@@ -698,7 +701,7 @@
     try {
       const { data, error } = await client
         .from("chat_messages")
-        .select("id, author_name, body, created_at")
+        .select("id, author_name, body, metadata, created_at")
         .eq("channel_kind", tab)
         .order("created_at", { ascending: false })
         .limit(GLOBAL_CHAT_FETCH_LIMIT);
@@ -754,7 +757,10 @@
           const sameAuthor = pendingMsg.author === nextMessage.author;
           const sameText = pendingMsg.text === nextMessage.text;
           const nearTime = Math.abs(Number(pendingMsg.ts || 0) - Number(nextMessage.ts || 0)) < 15000;
-          if (sameAuthor && sameText && nearTime) delete state.pendingMap[key];
+          if (sameAuthor && sameText && nearTime) {
+            delete state.pendingMap[key];
+            state.messages = state.messages.filter((msg) => msg.id !== key);
+          }
         });
         const exists = state.messages.some((msg) => Number(msg.id || 0) === nextMessage.id);
         if (exists) return;
@@ -838,6 +844,89 @@
       state.sending = false;
     }
   }
+
+  function shouldAnnounceLevel(level) {
+    const n = Math.floor(num(level, 0));
+    return n > 0 && n % 10 === 0;
+  }
+
+  async function sendGlobalAnnouncement(text, save, announcementType = "event") {
+    const client = getSupabaseClient();
+    const user = window.DSAuth?.getUser?.();
+    const body = String(text || "").trim();
+    if (!client || !user?.id || !body) return { ok: false };
+
+    const state = getLiveChatState("global");
+    const now = Date.now();
+    const optimisticId = `announcement:${now}:${Math.random().toString(36).slice(2, 8)}`;
+    const optimisticMessage = {
+      id: optimisticId,
+      author: getChatAuthorName(save),
+      text: body,
+      kind: "announcement",
+      announcementType,
+      ts: now,
+      pending: true
+    };
+
+    if (state) {
+      state.pendingMap[optimisticId] = optimisticMessage;
+      state.messages = [...state.messages, optimisticMessage].slice(-GLOBAL_CHAT_FETCH_LIMIT);
+      state.signature = getChatMessageSignature(state.messages);
+      if (__chatTab === "global") renderChatPanel(ensureSave(loadSave()));
+    }
+
+    try {
+      const { error } = await client.from("chat_messages").insert({
+        channel_kind: "global",
+        user_id: user.id,
+        author_name: getChatAuthorName(save),
+        body,
+        metadata: {
+          kind: "announcement",
+          announcementType
+        }
+      });
+      if (error) throw error;
+      return { ok: true };
+    } catch (error) {
+      if (state) {
+        delete state.pendingMap[optimisticId];
+        state.messages = state.messages.filter((msg) => msg.id !== optimisticId);
+        state.signature = getChatMessageSignature(state.messages);
+        if (__chatTab === "global") renderChatPanel(ensureSave(loadSave()));
+      }
+      console.error("[chat] failed to send global announcement", error);
+      return { ok: false, error: error?.message || "Failed to send announcement." };
+    }
+  }
+
+  window.DS.announcements = {
+    send(text, type = "event", save = null) {
+      return sendGlobalAnnouncement(text, save || ensureSave(loadSave()), type);
+    },
+    professionLevel(save, professionLabel, level) {
+      const targetLevel = Math.floor(num(level, 0));
+      if (!shouldAnnounceLevel(targetLevel)) return { ok: false };
+      const safeSave = save || ensureSave(loadSave());
+      const heroName = getChatAuthorName(safeSave);
+      const label = String(professionLabel || "Profession").trim() || "Profession";
+      return sendGlobalAnnouncement(`${heroName} has achieved ${label} profession level ${targetLevel}.`, safeSave, "profession-level");
+    },
+    combatLevel(save, level) {
+      const targetLevel = Math.floor(num(level, 0));
+      if (!shouldAnnounceLevel(targetLevel)) return { ok: false };
+      const safeSave = save || ensureSave(loadSave());
+      const heroName = getChatAuthorName(safeSave);
+      return sendGlobalAnnouncement(`${heroName} has achieved combat level ${targetLevel}.`, safeSave, "combat-level");
+    },
+    legendaryDrop(save, item) {
+      const safeSave = save || ensureSave(loadSave());
+      const name = String(item?.name || "a legendary item").trim() || "a legendary item";
+      const heroName = getChatAuthorName(safeSave);
+      return sendGlobalAnnouncement(`${heroName} has looted legendary item ${name}.`, safeSave, "legendary-drop");
+    }
+  };
 
   function ensureLiveChatPolling(tab) {
     const state = getLiveChatState(tab);
@@ -1622,6 +1711,18 @@
         word-break:break-word;
         min-width:0;
         flex:1;
+      }
+      .chatMsgAnnouncement .chatMsgHead{
+        border-left:2px solid #64d889;
+        padding-left:7px;
+      }
+      .chatMsgAnnouncement .chatMsgAuthor,
+      .chatMsgAnnouncement .chatMsgText{
+        color:#82f0a6;
+        font-style:italic;
+      }
+      .chatMsgAnnouncement .chatMsgAuthor{
+        display:none;
       }
       .chatEmpty{
         min-height:100%;
@@ -3421,7 +3522,7 @@ function getChatInputSelectionSnapshot() {
         <div id="chatMessages" class="chatMessages">
           ${isLiveChatTab(__chatTab) && liveState?.loading && !visibleMessages.length ? `<div class="chatEmpty">Loading ${escapeHtml(__chatTab)} chat...</div>` : ""}
           ${visibleMessages.length ? visibleMessages.map((msg) => `
-            <div class="chatMsg">
+            <div class="chatMsg ${msg.kind === "announcement" ? "chatMsgAnnouncement" : ""}">
               <div class="chatMsgHead">
                 <div style="display:flex;align-items:center;gap:4px;min-width:0;flex:1;">
                   <span class="chatMsgAuthor">${escapeHtml(msg.author || "Player")}:</span>

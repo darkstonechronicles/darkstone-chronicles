@@ -369,6 +369,7 @@
       save.enchantingXP -= save.enchantingXPNext;
       save.enchantingLevel += 1;
       save.enchantingXPNext = xpNextForLevel(save.enchantingLevel);
+      window.DS?.announcements?.professionLevel?.(save, "Enchanting", save.enchantingLevel);
     }
   }
 

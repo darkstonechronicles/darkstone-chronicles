@@ -706,6 +706,7 @@ function grantHuntXP(save, amount){
     save.huntingXP -= save.huntingXPNext;
     save.huntingLevel += 1;
     save.huntingXPNext = xpNextForLevel(save.huntingLevel);
+    window.DS?.announcements?.professionLevel?.(save, "Hunting", save.huntingLevel);
   }
 }
 

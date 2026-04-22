@@ -314,6 +314,7 @@
       save.jewelcraftingXP -= save.jewelcraftingXPNext;
       save.jewelcraftingLevel += 1;
       save.jewelcraftingXPNext = xpNextForLevel(save.jewelcraftingLevel);
+      window.DS?.announcements?.professionLevel?.(save, "Jewelcrafting", save.jewelcraftingLevel);
     }
     return gained;
   }

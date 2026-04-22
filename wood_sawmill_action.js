@@ -558,6 +558,7 @@ function craftTick(){
     save.carpentryXP -= save.carpentryXPNext;
     save.carpentryLevel += 1;
     save.carpentryXPNext = xpNextForLevel(save.carpentryLevel);
+    window.DS?.announcements?.professionLevel?.(save, "Carpentry", save.carpentryLevel);
   }
   setSave(save);
   window.dispatchEvent(new Event("ds:save"));

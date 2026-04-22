@@ -512,6 +512,7 @@ function gatherTick(){
     save.woodcuttingXP -= save.woodcuttingXPNext;
     save.woodcuttingLevel += 1;
     save.woodcuttingXPNext = xpNextForLevel(save.woodcuttingLevel);
+    window.DS?.announcements?.professionLevel?.(save, "Woodcutting", save.woodcuttingLevel);
   }
   let sigilDrop = false;
   if (Math.random() < (1 / 250)) {

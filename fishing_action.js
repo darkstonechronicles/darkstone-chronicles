@@ -728,6 +728,7 @@ function fishTick(){
     s.fishingXP -= s.fishingXPNext;
     s.fishingLevel += 1;
     s.fishingXPNext = xpNextForLevel(s.fishingLevel);
+    window.DS?.announcements?.professionLevel?.(s, "Fishing", s.fishingLevel);
   }
 
   setSave(s);
