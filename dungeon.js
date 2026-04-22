@@ -1648,7 +1648,8 @@
     }
     setPending({
       id: dungeon.id,
-      queuedAt: Date.now()
+      queuedAt: Date.now(),
+      autoStart: true
     });
 
     return { ok:true };
@@ -2063,6 +2064,12 @@
     runDOM.enterBtn()?.addEventListener("click", __dungeonRunEnterHandler);
     runDOM.runAgainBtn()?.addEventListener("click", __dungeonRunAgainHandler);
     __dungeonRunMounted = true;
+    if (mounted.autoStart) {
+      window.setTimeout(() => {
+        const result = startActiveRun();
+        if (!result.ok) pushLog(result.msg || "Could not start dungeon.");
+      }, 0);
+    }
     return true;
   }
 
@@ -2073,6 +2080,7 @@
     const source = active || pending;
     const dungeon = source ? getDungeon(source.id) : null;
     if(!source || !dungeon) return { ok:false, msg:"No dungeon selected." };
+    const shouldAutoStart = !!pending?.autoStart && !active;
 
     // must be on run page (DOM exists)
     if(!runDOM.battleLog() || !runDOM.heroHpBar() || !runDOM.mobHpBar()){
@@ -2118,7 +2126,7 @@
       if(enterRow) enterRow.style.display = "flex";
       const enterBtn = runDOM.enterBtn();
       if(enterBtn) enterBtn.textContent = "Continue Dungeon";
-      return { ok:true };
+      return { ok:true, autoStart: false };
     }
 
     state.phase = "prepare";
@@ -2126,7 +2134,7 @@
     state.enemy = null;
     bossRound = 0;
     startPrepare();
-    return { ok:true };
+    return { ok:true, autoStart: shouldAutoStart };
   }
 
   function startActiveRun(){
