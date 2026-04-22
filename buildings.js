@@ -125,6 +125,14 @@
     return Math.max(0, num(level, 0)) * Math.max(0, num(perLevel, 0));
   }
 
+  function formatBonusPct(value){
+    const pct = Math.max(0, num(value, 0) * 100);
+    const rounded = Math.round(pct * 100) / 100;
+    return Number.isInteger(rounded)
+      ? rounded.toFixed(0)
+      : rounded.toFixed(2).replace(/\.?0+$/, "");
+  }
+
   function setMsg(t){
     const el = document.getElementById("msg");
     if (el) el.textContent = t || "";
@@ -213,8 +221,8 @@
             <div style="padding:6px 10px;border-radius:999px;background:linear-gradient(180deg, rgba(46,35,23,.96) 0%, rgba(24,20,19,.98) 100%);border:1px solid rgba(126,94,50,.88);color:#f3ead6;box-shadow:0 0 0 1px rgba(28,20,12,.84), inset 0 1px 0 rgba(255,228,178,.08), inset 0 -10px 16px rgba(0,0,0,.14);">Level ${lvl}/${MAX_LEVEL}</div>
           </div>
           <div style="margin-top:6px;opacity:.9;color:#d9ccb0;">${b.desc}</div>
-          <div style="margin-top:12px;font-size:14px;color:#f3ead6;">Current bonus: <b>+${bonusPct(lvl, b.bonusPerLevel).toFixed(2)}%</b> ${b.bonusText}</div>
-          <div style="margin-top:6px;font-size:14px;color:#f3ead6;">Next level bonus: <b>+${bonusPct(nextLvl, b.bonusPerLevel).toFixed(2)}%</b> ${b.bonusText}</div>
+          <div style="margin-top:12px;font-size:14px;color:#f3ead6;">Current bonus: <b>+${formatBonusPct(bonusPct(lvl, b.bonusPerLevel))}%</b> ${b.bonusText}</div>
+          <div style="margin-top:6px;font-size:14px;color:#f3ead6;">Next level bonus: <b>+${formatBonusPct(bonusPct(nextLvl, b.bonusPerLevel))}%</b> ${b.bonusText}</div>
         </div>
       </div>
       <div style="margin-top:14px;padding:12px;border-radius:12px;background:linear-gradient(180deg, rgba(46,35,23,.92) 0%, rgba(18,18,22,.96) 100%);border:1px solid rgba(126,94,50,.88);box-shadow:0 0 0 1px rgba(28,20,12,.84), inset 0 1px 0 rgba(255,228,178,.06), inset 0 -10px 16px rgba(0,0,0,.14);">
@@ -260,6 +268,7 @@
 
     save[b.levelKey] = nextLvl;
     setSave(save);
+    window.dispatchEvent(new Event("ds:save"));
     setMsg(`${b.name} upgraded to Level ${nextLvl}.`);
     renderBuildings();
   }
