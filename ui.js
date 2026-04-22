@@ -4260,6 +4260,7 @@ function buildAdminItemCatalog() {
   const manualItems = [
     { type: "consumable", id: "arrows", name: "Arrows", img: "images/items/arrows.png" },
     { type: "material", id: "empty_vial", name: "Empty Vial", img: "images/alchemy/items/empty_vial.png" },
+    { type: "material", id: "orb_of_creation", name: "Orb of Creation", img: "images/ui/orb_of_creation.png" },
     { type: "material", id: "rough_ruby", name: "Rough Ruby", img: "images/gems/rough_ruby.png" },
     { type: "material", id: "rough_sapphire", name: "Rough Sapphire", img: "images/gems/rough_sapphire.png" },
     { type: "material", id: "rough_emerald", name: "Rough Emerald", img: "images/gems/rough_emerald.png" },

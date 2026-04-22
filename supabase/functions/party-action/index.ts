@@ -318,6 +318,8 @@ function randomInt(minValue: number, maxValue: number) {
 }
 
 const ROUGH_GEM_DROP_CHANCE = 1 / 100;
+const ORB_OF_CREATION_DROP_CHANCE = 1 / 150;
+const ORB_OF_CREATION_ITEM = { type: "material", id: "orb_of_creation", name: "Orb of Creation", img: "images/ui/orb_of_creation.png" } as const;
 const ROUGH_GEM_POOL = [
   { type: "material", id: "rough_ruby", name: "Rough Ruby", img: "images/gems/rough_ruby.png" },
   { type: "material", id: "rough_sapphire", name: "Rough Sapphire", img: "images/gems/rough_sapphire.png" },
@@ -329,6 +331,10 @@ const ROUGH_GEM_POOL = [
 function rollRoughGemDrop() {
   if (Math.random() >= ROUGH_GEM_DROP_CHANCE) return null;
   return ROUGH_GEM_POOL[randomInt(0, ROUGH_GEM_POOL.length - 1)] || null;
+}
+
+function rollOrbOfCreationDrop() {
+  return Math.random() < ORB_OF_CREATION_DROP_CHANCE ? ORB_OF_CREATION_ITEM : null;
 }
 
 function ensureInventory(saveData: unknown) {
@@ -1182,12 +1188,14 @@ async function advancePartyFightSession(
 
     if (encounter.outcome === "victory") {
       const roughGemDrop = rollRoughGemDrop();
+      const orbOfCreationDrop = rollOrbOfCreationDrop();
       for (const player of encounter.players) {
         const row = getTouchedSave(player.userId);
         const rewardResult = applyHeroRewards(row.save, int(player.xp, 0), int(player.gold, 0));
         const staminaResult = spendPartyFightStamina(rewardResult.save, PARTY_FIGHT_STAMINA_COST);
         const autoStamina = autoUseQuickStaminaFood(staminaResult.save);
         if (roughGemDrop) addStackableInventoryItem(staminaResult.save, roughGemDrop, 1);
+        if (orbOfCreationDrop) addStackableInventoryItem(staminaResult.save, orbOfCreationDrop, 1);
         if (isMonsterUnlocked(rewardResult.save, monsterId)) {
           const monsterData = ensurePartyMonsterKills(staminaResult.save);
           monsterData.monsterKills[monsterId] = getMonsterKillCount(monsterData.save, monsterId) + 1;
@@ -1210,11 +1218,13 @@ async function advancePartyFightSession(
           (playerResult as JsonRecord).staminaMax = staminaMax;
           (playerResult as JsonRecord).staminaRemaining = getCurrentStamina(row.save);
           if (roughGemDrop) (playerResult as JsonRecord).roughGemDrop = roughGemDrop;
+          if (orbOfCreationDrop) (playerResult as JsonRecord).orbOfCreationDrop = orbOfCreationDrop;
         }
         row.revision += 1;
         touchedUsers.set(player.userId, row);
       }
       if (roughGemDrop) (encounter as JsonRecord).roughGemDrop = roughGemDrop;
+      if (orbOfCreationDrop) (encounter as JsonRecord).orbOfCreationDrop = orbOfCreationDrop;
     }
 
     currentResolvedCount += 1;

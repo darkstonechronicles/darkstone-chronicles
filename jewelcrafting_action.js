@@ -56,6 +56,7 @@
           <img id="recipeImg" src="" alt="" class="profChoiceThumb" style="width:86px;height:86px;border-radius:12px;object-fit:cover;">
         </div>
         <div style="flex:1;">
+          <div id="recipeMeta" style="font-size:12px;opacity:.82;line-height:1.45;"></div>
           <div id="timerWrap" style="margin-top:12px;display:none;">
             <div style="display:flex;justify-content:space-between;font-size:12px;opacity:.9;">
               <span>Refining...</span>
@@ -99,7 +100,367 @@
     { id: "masterwork_sapphire", name: "Masterwork Sapphire", refinedName: "Exquisite Sapphire", reqLevel: 15, img: "images/gems/masterwork_sapphire.png", refinedImg: "images/gems/exquisite_sapphire.png", xp: 42, inputQty: 3, outputId: "exquisite_sapphire", outputName: "Exquisite Sapphire", outputImg: "images/gems/exquisite_sapphire.png", verb: "Crafted" },
     { id: "masterwork_emerald", name: "Masterwork Emerald", refinedName: "Exquisite Emerald", reqLevel: 15, img: "images/gems/masterwork_emerald.png", refinedImg: "images/gems/exquisite_emerald.png", xp: 48, inputQty: 3, outputId: "exquisite_emerald", outputName: "Exquisite Emerald", outputImg: "images/gems/exquisite_emerald.png", verb: "Crafted" },
     { id: "masterwork_topaz", name: "Masterwork Topaz", refinedName: "Exquisite Topaz", reqLevel: 15, img: "images/gems/masterwork_topaz.png", refinedImg: "images/gems/exquisite_topaz.png", xp: 54, inputQty: 3, outputId: "exquisite_topaz", outputName: "Exquisite Topaz", outputImg: "images/gems/exquisite_topaz.png", verb: "Crafted" },
-    { id: "masterwork_amethyst", name: "Masterwork Amethyst", refinedName: "Exquisite Amethyst", reqLevel: 15, img: "images/gems/masterwork_amethyst.png", refinedImg: "images/gems/exquisite_amethyst.png", xp: 60, inputQty: 3, outputId: "exquisite_amethyst", outputName: "Exquisite Amethyst", outputImg: "images/gems/exquisite_amethyst.png", verb: "Crafted" }
+    { id: "masterwork_amethyst", name: "Masterwork Amethyst", refinedName: "Exquisite Amethyst", reqLevel: 15, img: "images/gems/masterwork_amethyst.png", refinedImg: "images/gems/exquisite_amethyst.png", xp: 60, inputQty: 3, outputId: "exquisite_amethyst", outputName: "Exquisite Amethyst", outputImg: "images/gems/exquisite_amethyst.png", verb: "Crafted" },
+    {
+      recipeId: "refined_orb_of_attack",
+      name: "Refined Orb of Attack",
+      refinedName: "Refined Orb of Attack",
+      reqLevel: 1,
+      img: "images/orbs/Refined_Orb_of_Attack.png",
+      refinedImg: "images/orbs/Refined_Orb_of_Attack.png",
+      xp: 12,
+      outputId: "refined_orb_of_attack",
+      outputName: "Refined Orb of Attack",
+      outputImg: "images/orbs/Refined_Orb_of_Attack.png",
+      verb: "Crafted",
+      returnHref: "jewelcrafting.html?tab=enchanting-orbs&orbView=refined",
+      ingredients: [
+        { id: "orb_of_creation", name: "Orb of Creation", qty: 1 },
+        { id: "refined_ruby", name: "Refined Ruby", qty: 1 }
+      ]
+    },
+    {
+      recipeId: "refined_orb_of_defense",
+      name: "Refined Orb of Defense",
+      refinedName: "Refined Orb of Defense",
+      reqLevel: 1,
+      img: "images/orbs/Refined_orb_of_defense.png",
+      refinedImg: "images/orbs/Refined_orb_of_defense.png",
+      xp: 18,
+      outputId: "refined_orb_of_defense",
+      outputName: "Refined Orb of Defense",
+      outputImg: "images/orbs/Refined_orb_of_defense.png",
+      verb: "Crafted",
+      returnHref: "jewelcrafting.html?tab=enchanting-orbs&orbView=refined",
+      ingredients: [
+        { id: "orb_of_creation", name: "Orb of Creation", qty: 1 },
+        { id: "refined_sapphire", name: "Refined Sapphire", qty: 1 }
+      ]
+    },
+    {
+      recipeId: "refined_orb_of_xp",
+      name: "Refined Orb of XP",
+      refinedName: "Refined Orb of XP",
+      reqLevel: 1,
+      img: "images/orbs/refined_orb_of_xp.png",
+      refinedImg: "images/orbs/refined_orb_of_xp.png",
+      xp: 24,
+      outputId: "refined_orb_of_xp",
+      outputName: "Refined Orb of XP",
+      outputImg: "images/orbs/refined_orb_of_xp.png",
+      verb: "Crafted",
+      returnHref: "jewelcrafting.html?tab=enchanting-orbs&orbView=refined",
+      ingredients: [
+        { id: "orb_of_creation", name: "Orb of Creation", qty: 1 },
+        { id: "refined_emerald", name: "Refined Emerald", qty: 1 }
+      ]
+    },
+    {
+      recipeId: "refined_orb_of_gold",
+      name: "Refined Orb of Gold",
+      refinedName: "Refined Orb of Gold",
+      reqLevel: 1,
+      img: "images/orbs/Refined_orb_of_gold.png",
+      refinedImg: "images/orbs/Refined_orb_of_gold.png",
+      xp: 32,
+      outputId: "refined_orb_of_gold",
+      outputName: "Refined Orb of Gold",
+      outputImg: "images/orbs/Refined_orb_of_gold.png",
+      verb: "Crafted",
+      returnHref: "jewelcrafting.html?tab=enchanting-orbs&orbView=refined",
+      ingredients: [
+        { id: "orb_of_creation", name: "Orb of Creation", qty: 1 },
+        { id: "refined_topaz", name: "Refined Topaz", qty: 1 }
+      ]
+    },
+    {
+      recipeId: "refined_orb_of_luck",
+      name: "Refined Orb of Luck",
+      refinedName: "Refined Orb of Luck",
+      reqLevel: 1,
+      img: "images/orbs/refined_orb_of_luck.png",
+      refinedImg: "images/orbs/refined_orb_of_luck.png",
+      xp: 42,
+      outputId: "refined_orb_of_luck",
+      outputName: "Refined Orb of Luck",
+      outputImg: "images/orbs/refined_orb_of_luck.png",
+      verb: "Crafted",
+      returnHref: "jewelcrafting.html?tab=enchanting-orbs&orbView=refined",
+      ingredients: [
+        { id: "orb_of_creation", name: "Orb of Creation", qty: 1 },
+        { id: "refined_amethyst", name: "Refined Amethyst", qty: 1 }
+      ]
+    },
+    {
+      recipeId: "flawless_orb_of_attack",
+      name: "Flawless Orb of Attack",
+      refinedName: "Flawless Orb of Attack",
+      reqLevel: 5,
+      img: "images/orbs/flawless_orb_of_attack.png",
+      refinedImg: "images/orbs/flawless_orb_of_attack.png",
+      xp: 20,
+      outputId: "flawless_orb_of_attack",
+      outputName: "Flawless Orb of Attack",
+      outputImg: "images/orbs/flawless_orb_of_attack.png",
+      verb: "Crafted",
+      returnHref: "jewelcrafting.html?tab=enchanting-orbs&orbView=flawless",
+      ingredients: [
+        { id: "orb_of_creation", name: "Orb of Creation", qty: 1 },
+        { id: "flawless_ruby", name: "Flawless Ruby", qty: 1 }
+      ]
+    },
+    {
+      recipeId: "flawless_orb_of_defense",
+      name: "Flawless Orb of Defense",
+      refinedName: "Flawless Orb of Defense",
+      reqLevel: 5,
+      img: "images/orbs/flawless_orb_of_defense.png",
+      refinedImg: "images/orbs/flawless_orb_of_defense.png",
+      xp: 26,
+      outputId: "flawless_orb_of_defense",
+      outputName: "Flawless Orb of Defense",
+      outputImg: "images/orbs/flawless_orb_of_defense.png",
+      verb: "Crafted",
+      returnHref: "jewelcrafting.html?tab=enchanting-orbs&orbView=flawless",
+      ingredients: [
+        { id: "orb_of_creation", name: "Orb of Creation", qty: 1 },
+        { id: "flawless_sapphire", name: "Flawless Sapphire", qty: 1 }
+      ]
+    },
+    {
+      recipeId: "flawless_orb_of_xp",
+      name: "Flawless Orb of XP",
+      refinedName: "Flawless Orb of XP",
+      reqLevel: 5,
+      img: "images/orbs/flawless_orb_of_xp.png",
+      refinedImg: "images/orbs/flawless_orb_of_xp.png",
+      xp: 32,
+      outputId: "flawless_orb_of_xp",
+      outputName: "Flawless Orb of XP",
+      outputImg: "images/orbs/flawless_orb_of_xp.png",
+      verb: "Crafted",
+      returnHref: "jewelcrafting.html?tab=enchanting-orbs&orbView=flawless",
+      ingredients: [
+        { id: "orb_of_creation", name: "Orb of Creation", qty: 1 },
+        { id: "flawless_emerald", name: "Flawless Emerald", qty: 1 }
+      ]
+    },
+    {
+      recipeId: "flawless_orb_of_gold",
+      name: "Flawless Orb of Gold",
+      refinedName: "Flawless Orb of Gold",
+      reqLevel: 5,
+      img: "images/orbs/flawless_orb_of_gold.png",
+      refinedImg: "images/orbs/flawless_orb_of_gold.png",
+      xp: 38,
+      outputId: "flawless_orb_of_gold",
+      outputName: "Flawless Orb of Gold",
+      outputImg: "images/orbs/flawless_orb_of_gold.png",
+      verb: "Crafted",
+      returnHref: "jewelcrafting.html?tab=enchanting-orbs&orbView=flawless",
+      ingredients: [
+        { id: "orb_of_creation", name: "Orb of Creation", qty: 1 },
+        { id: "flawless_topaz", name: "Flawless Topaz", qty: 1 }
+      ]
+    },
+    {
+      recipeId: "flawless_orb_of_luck",
+      name: "Flawless Orb of Luck",
+      refinedName: "Flawless Orb of Luck",
+      reqLevel: 5,
+      img: "images/orbs/flawless_orb_of_luck.png",
+      refinedImg: "images/orbs/flawless_orb_of_luck.png",
+      xp: 44,
+      outputId: "flawless_orb_of_luck",
+      outputName: "Flawless Orb of Luck",
+      outputImg: "images/orbs/flawless_orb_of_luck.png",
+      verb: "Crafted",
+      returnHref: "jewelcrafting.html?tab=enchanting-orbs&orbView=flawless",
+      ingredients: [
+        { id: "orb_of_creation", name: "Orb of Creation", qty: 1 },
+        { id: "flawless_amethyst", name: "Flawless Amethyst", qty: 1 }
+      ]
+    },
+    {
+      recipeId: "masterwork_orb_of_attack",
+      name: "Masterwork Orb of Attack",
+      refinedName: "Masterwork Orb of Attack",
+      reqLevel: 10,
+      img: "images/orbs/masterwork_orb_of_attack.png",
+      refinedImg: "images/orbs/masterwork_orb_of_attack.png",
+      xp: 28,
+      outputId: "masterwork_orb_of_attack",
+      outputName: "Masterwork Orb of Attack",
+      outputImg: "images/orbs/masterwork_orb_of_attack.png",
+      verb: "Crafted",
+      returnHref: "jewelcrafting.html?tab=enchanting-orbs&orbView=masterwork",
+      ingredients: [
+        { id: "orb_of_creation", name: "Orb of Creation", qty: 1 },
+        { id: "masterwork_ruby", name: "Masterwork Ruby", qty: 1 }
+      ]
+    },
+    {
+      recipeId: "masterwork_orb_of_defense",
+      name: "Masterwork Orb of Defense",
+      refinedName: "Masterwork Orb of Defense",
+      reqLevel: 10,
+      img: "images/orbs/masterwork_orb_of_defense.png",
+      refinedImg: "images/orbs/masterwork_orb_of_defense.png",
+      xp: 34,
+      outputId: "masterwork_orb_of_defense",
+      outputName: "Masterwork Orb of Defense",
+      outputImg: "images/orbs/masterwork_orb_of_defense.png",
+      verb: "Crafted",
+      returnHref: "jewelcrafting.html?tab=enchanting-orbs&orbView=masterwork",
+      ingredients: [
+        { id: "orb_of_creation", name: "Orb of Creation", qty: 1 },
+        { id: "masterwork_sapphire", name: "Masterwork Sapphire", qty: 1 }
+      ]
+    },
+    {
+      recipeId: "masterwork_orb_of_xp",
+      name: "Masterwork Orb of XP",
+      refinedName: "Masterwork Orb of XP",
+      reqLevel: 10,
+      img: "images/orbs/masterwork_orb_of_xp.png",
+      refinedImg: "images/orbs/masterwork_orb_of_xp.png",
+      xp: 40,
+      outputId: "masterwork_orb_of_xp",
+      outputName: "Masterwork Orb of XP",
+      outputImg: "images/orbs/masterwork_orb_of_xp.png",
+      verb: "Crafted",
+      returnHref: "jewelcrafting.html?tab=enchanting-orbs&orbView=masterwork",
+      ingredients: [
+        { id: "orb_of_creation", name: "Orb of Creation", qty: 1 },
+        { id: "masterwork_emerald", name: "Masterwork Emerald", qty: 1 }
+      ]
+    },
+    {
+      recipeId: "masterwork_orb_of_gold",
+      name: "Masterwork Orb of Gold",
+      refinedName: "Masterwork Orb of Gold",
+      reqLevel: 10,
+      img: "images/orbs/masterwork_orb_of_gold.png",
+      refinedImg: "images/orbs/masterwork_orb_of_gold.png",
+      xp: 46,
+      outputId: "masterwork_orb_of_gold",
+      outputName: "Masterwork Orb of Gold",
+      outputImg: "images/orbs/masterwork_orb_of_gold.png",
+      verb: "Crafted",
+      returnHref: "jewelcrafting.html?tab=enchanting-orbs&orbView=masterwork",
+      ingredients: [
+        { id: "orb_of_creation", name: "Orb of Creation", qty: 1 },
+        { id: "masterwork_topaz", name: "Masterwork Topaz", qty: 1 }
+      ]
+    },
+    {
+      recipeId: "masterwork_orb_of_luck",
+      name: "Masterwork Orb of Luck",
+      refinedName: "Masterwork Orb of Luck",
+      reqLevel: 10,
+      img: "images/orbs/masterwork_orb_of_luck.png",
+      refinedImg: "images/orbs/masterwork_orb_of_luck.png",
+      xp: 52,
+      outputId: "masterwork_orb_of_luck",
+      outputName: "Masterwork Orb of Luck",
+      outputImg: "images/orbs/masterwork_orb_of_luck.png",
+      verb: "Crafted",
+      returnHref: "jewelcrafting.html?tab=enchanting-orbs&orbView=masterwork",
+      ingredients: [
+        { id: "orb_of_creation", name: "Orb of Creation", qty: 1 },
+        { id: "masterwork_amethyst", name: "Masterwork Amethyst", qty: 1 }
+      ]
+    },
+    {
+      recipeId: "exquisite_orb_of_attack",
+      name: "Exquisite Orb of Attack",
+      refinedName: "Exquisite Orb of Attack",
+      reqLevel: 15,
+      img: "images/orbs/exquisite_orb_of_attack.png",
+      refinedImg: "images/orbs/exquisite_orb_of_attack.png",
+      xp: 36,
+      outputId: "exquisite_orb_of_attack",
+      outputName: "Exquisite Orb of Attack",
+      outputImg: "images/orbs/exquisite_orb_of_attack.png",
+      verb: "Crafted",
+      returnHref: "jewelcrafting.html?tab=enchanting-orbs&orbView=exquisite",
+      ingredients: [
+        { id: "orb_of_creation", name: "Orb of Creation", qty: 1 },
+        { id: "exquisite_ruby", name: "Exquisite Ruby", qty: 1 }
+      ]
+    },
+    {
+      recipeId: "exquisite_orb_of_defense",
+      name: "Exquisite Orb of Defense",
+      refinedName: "Exquisite Orb of Defense",
+      reqLevel: 15,
+      img: "images/orbs/exquisite_orb_of_defense.png",
+      refinedImg: "images/orbs/exquisite_orb_of_defense.png",
+      xp: 42,
+      outputId: "exquisite_orb_of_defense",
+      outputName: "Exquisite Orb of Defense",
+      outputImg: "images/orbs/exquisite_orb_of_defense.png",
+      verb: "Crafted",
+      returnHref: "jewelcrafting.html?tab=enchanting-orbs&orbView=exquisite",
+      ingredients: [
+        { id: "orb_of_creation", name: "Orb of Creation", qty: 1 },
+        { id: "exquisite_sapphire", name: "Exquisite Sapphire", qty: 1 }
+      ]
+    },
+    {
+      recipeId: "exquisite_orb_of_xp",
+      name: "Exquisite Orb of XP",
+      refinedName: "Exquisite Orb of XP",
+      reqLevel: 15,
+      img: "images/orbs/exquisite_orb_of_xp.png",
+      refinedImg: "images/orbs/exquisite_orb_of_xp.png",
+      xp: 48,
+      outputId: "exquisite_orb_of_xp",
+      outputName: "Exquisite Orb of XP",
+      outputImg: "images/orbs/exquisite_orb_of_xp.png",
+      verb: "Crafted",
+      returnHref: "jewelcrafting.html?tab=enchanting-orbs&orbView=exquisite",
+      ingredients: [
+        { id: "orb_of_creation", name: "Orb of Creation", qty: 1 },
+        { id: "exquisite_emerald", name: "Exquisite Emerald", qty: 1 }
+      ]
+    },
+    {
+      recipeId: "exquisite_orb_of_gold",
+      name: "Exquisite Orb of Gold",
+      refinedName: "Exquisite Orb of Gold",
+      reqLevel: 15,
+      img: "images/orbs/exquisite_orb_of_gold.png",
+      refinedImg: "images/orbs/exquisite_orb_of_gold.png",
+      xp: 54,
+      outputId: "exquisite_orb_of_gold",
+      outputName: "Exquisite Orb of Gold",
+      outputImg: "images/orbs/exquisite_orb_of_gold.png",
+      verb: "Crafted",
+      returnHref: "jewelcrafting.html?tab=enchanting-orbs&orbView=exquisite",
+      ingredients: [
+        { id: "orb_of_creation", name: "Orb of Creation", qty: 1 },
+        { id: "exquisite_topaz", name: "Exquisite Topaz", qty: 1 }
+      ]
+    },
+    {
+      recipeId: "exquisite_orb_of_luck",
+      name: "Exquisite Orb of Luck",
+      refinedName: "Exquisite Orb of Luck",
+      reqLevel: 15,
+      img: "images/orbs/exquisite_orb_of_luck.png",
+      refinedImg: "images/orbs/exquisite_orb_of_luck.png",
+      xp: 60,
+      outputId: "exquisite_orb_of_luck",
+      outputName: "Exquisite Orb of Luck",
+      outputImg: "images/orbs/exquisite_orb_of_luck.png",
+      verb: "Crafted",
+      returnHref: "jewelcrafting.html?tab=enchanting-orbs&orbView=exquisite",
+      ingredients: [
+        { id: "orb_of_creation", name: "Orb of Creation", qty: 1 },
+        { id: "exquisite_amethyst", name: "Exquisite Amethyst", qty: 1 }
+      ]
+    }
   ];
 
   const num = (v, f = 0) => (Number.isFinite(Number(v)) ? Number(v) : f);
@@ -251,7 +612,22 @@
   }
 
   function findRecipe(id) {
-    return RECIPES.find((entry) => entry.id === id) || RECIPES[0];
+    return RECIPES.find((entry) => String(entry.recipeId || entry.id || "") === String(id || "")) || RECIPES[0];
+  }
+
+  function getRecipeIngredients(entry) {
+    if (Array.isArray(entry?.ingredients) && entry.ingredients.length) {
+      return entry.ingredients.map((ingredient) => ({
+        id: String(ingredient.id || ""),
+        name: String(ingredient.name || ingredient.id || "Item"),
+        qty: Math.max(1, Math.trunc(num(ingredient.qty, 1)))
+      }));
+    }
+    return [{
+      id: String(entry?.id || ""),
+      name: String(entry?.name || "Item"),
+      qty: Math.max(1, Math.trunc(num(entry?.inputQty, 1)))
+    }];
   }
 
   function getRecipeFromHref(href = window.location.href) {
@@ -360,13 +736,17 @@
     const imgEl = document.getElementById("recipeImg");
     const metaEl = document.getElementById("recipeMeta");
     const save = ensureSave(loadSave());
-    const owned = getQty(save, recipe.id);
-    if (nameEl) nameEl.textContent = recipe.refinedName || recipe.name;
+    const ingredients = getRecipeIngredients(recipe);
+    if (nameEl) nameEl.textContent = recipe.outputName || recipe.refinedName || recipe.name;
     if (imgEl) {
-      imgEl.src = recipe.refinedImg || recipe.img;
-      imgEl.alt = recipe.refinedName;
+      imgEl.src = recipe.outputImg || recipe.refinedImg || recipe.img;
+      imgEl.alt = recipe.outputName || recipe.refinedName || recipe.name;
     }
-    if (metaEl) metaEl.textContent = "";
+    if (metaEl) {
+      metaEl.textContent = ingredients
+        .map((ingredient) => `Needs ${ingredient.qty} ${ingredient.name} (${getQty(save, ingredient.id)} owned)`)
+        .join(" | ");
+    }
   }
 
   function stopRun() {
@@ -432,18 +812,19 @@
   function runSingleAction() {
     const save = ensureSave(loadSave());
     if (save.jewelcraftingLevel < recipe.reqLevel) {
-      setMessage("Your Jewelcrafting level is too low for this gem.", true);
+      setMessage("Your Jewelcrafting level is too low for this recipe.", true);
       stopRun();
       return;
     }
-    const inputQty = Math.max(1, Math.trunc(num(recipe.inputQty, 1)));
-    if (getQty(save, recipe.id) < inputQty) {
-      setMessage(`No more ${recipe.name}.`, true);
+    const ingredients = getRecipeIngredients(recipe);
+    const missingIngredient = ingredients.find((ingredient) => getQty(save, ingredient.id) < ingredient.qty);
+    if (missingIngredient) {
+      setMessage(`No more ${missingIngredient.name}.`, true);
       stopRun();
       renderRecipe();
       return;
     }
-    removeQuantity(save, recipe.id, inputQty);
+    ingredients.forEach((ingredient) => removeQuantity(save, ingredient.id, ingredient.qty));
 
     const bonuses = getArtisanBonuses(save);
     let outputQty = 1;
@@ -478,12 +859,13 @@
     if (running) return;
     const save = ensureSave(loadSave());
     if (save.jewelcraftingLevel < recipe.reqLevel) {
-      setMessage("Your Jewelcrafting level is too low for this gem.", true);
+      setMessage("Your Jewelcrafting level is too low for this recipe.", true);
       return;
     }
-    const inputQty = Math.max(1, Math.trunc(num(recipe.inputQty, 1)));
-    if (getQty(save, recipe.id) < inputQty) {
-      setMessage(`You need ${inputQty} ${recipe.name}.`, true);
+    const ingredients = getRecipeIngredients(recipe);
+    const missingIngredient = ingredients.find((ingredient) => getQty(save, ingredient.id) < ingredient.qty);
+    if (missingIngredient) {
+      setMessage(`You need ${missingIngredient.qty} ${missingIngredient.name}.`, true);
       return;
     }
     running = true;
@@ -505,7 +887,7 @@
 
   function bindEvents() {
     document.getElementById("backBtn")?.addEventListener("click", () => {
-      const href = "jewelcrafting.html";
+      const href = recipe?.returnHref || "jewelcrafting.html";
       if (window.DSUI?.navigateWithinShell?.(href)) return;
       window.location.href = href;
     });

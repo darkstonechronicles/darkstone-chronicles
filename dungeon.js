@@ -14,6 +14,8 @@
   const MAX_WAVE_ROUNDS = 15;
   const CRYPT_SIGIL_ITEM = { type:"material", name:"Crypt Sigil", img:"images/items/sigils/crypt_sigil.png" };
   const ROUGH_GEM_DROP_CHANCE = 1 / 100;
+  const ORB_OF_CREATION_DROP_CHANCE = 1 / 100;
+  const ORB_OF_CREATION_ITEM = { type:"material", id:"orb_of_creation", name:"Orb of Creation", img:"images/ui/orb_of_creation.png" };
   const ROUGH_GEM_POOL = [
     { type:"material", id:"rough_ruby", name:"Rough Ruby", img:"images/gems/rough_ruby.png" },
     { type:"material", id:"rough_sapphire", name:"Rough Sapphire", img:"images/gems/rough_sapphire.png" },
@@ -1353,6 +1355,10 @@
       ? { ...ROUGH_GEM_POOL[randInt(0, ROUGH_GEM_POOL.length - 1)], quantity: 1 }
       : null;
     if (roughGemDrop) addItemToInventory(roughGemDrop);
+    const orbOfCreationDrop = Math.random() < ORB_OF_CREATION_DROP_CHANCE
+      ? { ...ORB_OF_CREATION_ITEM, quantity: 1 }
+      : null;
+    if (orbOfCreationDrop) addItemToInventory(orbOfCreationDrop);
 
     window.DS?.stats?.inc?.("dungeonsCompleted", 1);
 
@@ -1362,6 +1368,7 @@
     if (drops.length) obtainedDrops.push(drops[0]);
     if (cryptSigil) obtainedDrops.push(cryptSigil);
     if (roughGemDrop) obtainedDrops.push(roughGemDrop);
+    if (orbOfCreationDrop) obtainedDrops.push(orbOfCreationDrop);
     const obtainedHtml = obtainedDrops.length
       ? `<div style="margin-top:8px;display:flex;align-items:center;justify-content:center;gap:8px;flex-wrap:wrap;"><span style="display:inline-flex;align-items:center;line-height:1;">You obtained:</span>${obtainedDrops.map(it => `<span style="display:inline-flex;align-items:center;gap:5px;line-height:1;"><img src="${it.img || ""}" alt="${it.name || "Item"}" style="width:16px;height:16px;border-radius:4px;object-fit:cover;">${it.name || "Item"}</span>`).join("")}</div>`
       : "";
@@ -2206,7 +2213,8 @@
     getPending: () => loadPending(),
     clearActive,
     getAdminItems: () => [
-      { ...CRYPT_SIGIL_ITEM, quantity: 1 }
+      { ...CRYPT_SIGIL_ITEM, quantity: 1 },
+      { ...ORB_OF_CREATION_ITEM, quantity: 1 }
     ]
   };
 

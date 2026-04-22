@@ -122,6 +122,7 @@
     <div class="profSection">
       <div id="jewelcraftTabs" style="display:flex;gap:14px;flex-wrap:wrap;margin:0 0 14px;">
         <button id="tabGemcrafting" class="forgeTabBtn is-active" type="button">Gemcrafting</button>
+        <button id="tabEnchantingOrbs" class="forgeTabBtn" type="button">Enchanting Orbs</button>
         <button id="tabJewelcrafting" class="forgeTabBtn" type="button">Jewelry</button>
       </div>
 
@@ -135,6 +136,19 @@
             <h2 id="gemcraftingDetailTitle" class="profSectionTitle" style="margin:0;"></h2>
           </div>
           <div id="gemcraftingDetailGrid" class="profChoiceGrid" style="grid-template-columns:repeat(auto-fit,minmax(220px,1fr));"></div>
+        </div>
+      </div>
+
+      <div id="enchantingOrbsPanel" style="display:none;">
+        <div id="enchantingOrbHome">
+          <div id="enchantingOrbCategoryGrid" class="profChoiceGrid" style="grid-template-columns:repeat(4,minmax(0,1fr));"></div>
+        </div>
+        <div id="enchantingOrbDetail" style="display:none;">
+          <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin:0 0 14px;">
+            <button id="enchantingOrbBackBtn" class="forgeTabBtn" type="button" style="min-width:140px;">Back</button>
+            <h2 id="enchantingOrbDetailTitle" class="profSectionTitle" style="margin:0;"></h2>
+          </div>
+          <div id="enchantingOrbDetailGrid" class="profChoiceGrid" style="grid-template-columns:repeat(auto-fit,minmax(220px,1fr));"></div>
         </div>
       </div>
 
@@ -185,10 +199,57 @@
     exquisite: { title: "Exquisite Gems", recipes: EXQUISITE_RECIPES }
   };
 
+  const ENCHANTING_ORB_VIEWS = [
+    { view: "refined", title: "Refined", meta: "", img: "images/orbs/Refined_Orb_of_Attack.png", reqLevel: 1 },
+    { view: "flawless", title: "Flawless", meta: "", img: "images/orbs/flawless_orb_of_attack.png", reqLevel: 5 },
+    { view: "masterwork", title: "Masterwork", meta: "", img: "images/orbs/masterwork_orb_of_attack.png", reqLevel: 10 },
+    { view: "exquisite", title: "Exquisite", meta: "", img: "images/orbs/exquisite_orb_of_attack.png", reqLevel: 15 }
+  ];
+
+  const REFINED_ORB_RECIPES = [
+    { recipeId: "refined_orb_of_attack", name: "Refined Orb of Attack", refinedName: "Refined Orb of Attack", reqLevel: 1, img: "images/orbs/Refined_Orb_of_Attack.png", refinedImg: "images/orbs/Refined_Orb_of_Attack.png", needText: "Needs 1 Orb of Creation + 1 Refined Ruby", outputId: "refined_orb_of_attack" },
+    { recipeId: "refined_orb_of_defense", name: "Refined Orb of Defense", refinedName: "Refined Orb of Defense", reqLevel: 1, img: "images/orbs/Refined_orb_of_defense.png", refinedImg: "images/orbs/Refined_orb_of_defense.png", needText: "Needs 1 Orb of Creation + 1 Refined Sapphire", outputId: "refined_orb_of_defense" },
+    { recipeId: "refined_orb_of_xp", name: "Refined Orb of XP", refinedName: "Refined Orb of XP", reqLevel: 1, img: "images/orbs/refined_orb_of_xp.png", refinedImg: "images/orbs/refined_orb_of_xp.png", needText: "Needs 1 Orb of Creation + 1 Refined Emerald", outputId: "refined_orb_of_xp" },
+    { recipeId: "refined_orb_of_gold", name: "Refined Orb of Gold", refinedName: "Refined Orb of Gold", reqLevel: 1, img: "images/orbs/Refined_orb_of_gold.png", refinedImg: "images/orbs/Refined_orb_of_gold.png", needText: "Needs 1 Orb of Creation + 1 Refined Topaz", outputId: "refined_orb_of_gold" },
+    { recipeId: "refined_orb_of_luck", name: "Refined Orb of Luck", refinedName: "Refined Orb of Luck", reqLevel: 1, img: "images/orbs/refined_orb_of_luck.png", refinedImg: "images/orbs/refined_orb_of_luck.png", needText: "Needs 1 Orb of Creation + 1 Refined Amethyst", outputId: "refined_orb_of_luck" }
+  ];
+
+  const FLAWLESS_ORB_RECIPES = [
+    { recipeId: "flawless_orb_of_attack", name: "Flawless Orb of Attack", refinedName: "Flawless Orb of Attack", reqLevel: 5, img: "images/orbs/flawless_orb_of_attack.png", refinedImg: "images/orbs/flawless_orb_of_attack.png", needText: "Needs 1 Orb of Creation + 1 Flawless Ruby", outputId: "flawless_orb_of_attack" },
+    { recipeId: "flawless_orb_of_defense", name: "Flawless Orb of Defense", refinedName: "Flawless Orb of Defense", reqLevel: 5, img: "images/orbs/flawless_orb_of_defense.png", refinedImg: "images/orbs/flawless_orb_of_defense.png", needText: "Needs 1 Orb of Creation + 1 Flawless Sapphire", outputId: "flawless_orb_of_defense" },
+    { recipeId: "flawless_orb_of_xp", name: "Flawless Orb of XP", refinedName: "Flawless Orb of XP", reqLevel: 5, img: "images/orbs/flawless_orb_of_xp.png", refinedImg: "images/orbs/flawless_orb_of_xp.png", needText: "Needs 1 Orb of Creation + 1 Flawless Emerald", outputId: "flawless_orb_of_xp" },
+    { recipeId: "flawless_orb_of_gold", name: "Flawless Orb of Gold", refinedName: "Flawless Orb of Gold", reqLevel: 5, img: "images/orbs/flawless_orb_of_gold.png", refinedImg: "images/orbs/flawless_orb_of_gold.png", needText: "Needs 1 Orb of Creation + 1 Flawless Topaz", outputId: "flawless_orb_of_gold" },
+    { recipeId: "flawless_orb_of_luck", name: "Flawless Orb of Luck", refinedName: "Flawless Orb of Luck", reqLevel: 5, img: "images/orbs/flawless_orb_of_luck.png", refinedImg: "images/orbs/flawless_orb_of_luck.png", needText: "Needs 1 Orb of Creation + 1 Flawless Amethyst", outputId: "flawless_orb_of_luck" }
+  ];
+
+  const MASTERWORK_ORB_RECIPES = [
+    { recipeId: "masterwork_orb_of_attack", name: "Masterwork Orb of Attack", refinedName: "Masterwork Orb of Attack", reqLevel: 10, img: "images/orbs/masterwork_orb_of_attack.png", refinedImg: "images/orbs/masterwork_orb_of_attack.png", needText: "Needs 1 Orb of Creation + 1 Masterwork Ruby", outputId: "masterwork_orb_of_attack" },
+    { recipeId: "masterwork_orb_of_defense", name: "Masterwork Orb of Defense", refinedName: "Masterwork Orb of Defense", reqLevel: 10, img: "images/orbs/masterwork_orb_of_defense.png", refinedImg: "images/orbs/masterwork_orb_of_defense.png", needText: "Needs 1 Orb of Creation + 1 Masterwork Sapphire", outputId: "masterwork_orb_of_defense" },
+    { recipeId: "masterwork_orb_of_xp", name: "Masterwork Orb of XP", refinedName: "Masterwork Orb of XP", reqLevel: 10, img: "images/orbs/masterwork_orb_of_xp.png", refinedImg: "images/orbs/masterwork_orb_of_xp.png", needText: "Needs 1 Orb of Creation + 1 Masterwork Emerald", outputId: "masterwork_orb_of_xp" },
+    { recipeId: "masterwork_orb_of_gold", name: "Masterwork Orb of Gold", refinedName: "Masterwork Orb of Gold", reqLevel: 10, img: "images/orbs/masterwork_orb_of_gold.png", refinedImg: "images/orbs/masterwork_orb_of_gold.png", needText: "Needs 1 Orb of Creation + 1 Masterwork Topaz", outputId: "masterwork_orb_of_gold" },
+    { recipeId: "masterwork_orb_of_luck", name: "Masterwork Orb of Luck", refinedName: "Masterwork Orb of Luck", reqLevel: 10, img: "images/orbs/masterwork_orb_of_luck.png", refinedImg: "images/orbs/masterwork_orb_of_luck.png", needText: "Needs 1 Orb of Creation + 1 Masterwork Amethyst", outputId: "masterwork_orb_of_luck" }
+  ];
+
+  const EXQUISITE_ORB_RECIPES = [
+    { recipeId: "exquisite_orb_of_attack", name: "Exquisite Orb of Attack", refinedName: "Exquisite Orb of Attack", reqLevel: 15, img: "images/orbs/exquisite_orb_of_attack.png", refinedImg: "images/orbs/exquisite_orb_of_attack.png", needText: "Needs 1 Orb of Creation + 1 Exquisite Ruby", outputId: "exquisite_orb_of_attack" },
+    { recipeId: "exquisite_orb_of_defense", name: "Exquisite Orb of Defense", refinedName: "Exquisite Orb of Defense", reqLevel: 15, img: "images/orbs/exquisite_orb_of_defense.png", refinedImg: "images/orbs/exquisite_orb_of_defense.png", needText: "Needs 1 Orb of Creation + 1 Exquisite Sapphire", outputId: "exquisite_orb_of_defense" },
+    { recipeId: "exquisite_orb_of_xp", name: "Exquisite Orb of XP", refinedName: "Exquisite Orb of XP", reqLevel: 15, img: "images/orbs/exquisite_orb_of_xp.png", refinedImg: "images/orbs/exquisite_orb_of_xp.png", needText: "Needs 1 Orb of Creation + 1 Exquisite Emerald", outputId: "exquisite_orb_of_xp" },
+    { recipeId: "exquisite_orb_of_gold", name: "Exquisite Orb of Gold", refinedName: "Exquisite Orb of Gold", reqLevel: 15, img: "images/orbs/exquisite_orb_of_gold.png", refinedImg: "images/orbs/exquisite_orb_of_gold.png", needText: "Needs 1 Orb of Creation + 1 Exquisite Topaz", outputId: "exquisite_orb_of_gold" },
+    { recipeId: "exquisite_orb_of_luck", name: "Exquisite Orb of Luck", refinedName: "Exquisite Orb of Luck", reqLevel: 15, img: "images/orbs/exquisite_orb_of_luck.png", refinedImg: "images/orbs/exquisite_orb_of_luck.png", needText: "Needs 1 Orb of Creation + 1 Exquisite Amethyst", outputId: "exquisite_orb_of_luck" }
+  ];
+
+  const ORB_VIEWS = {
+    refined: { title: "Refined Orbs", recipes: REFINED_ORB_RECIPES },
+    flawless: { title: "Flawless Orbs", recipes: FLAWLESS_ORB_RECIPES },
+    masterwork: { title: "Masterwork Orbs", recipes: MASTERWORK_ORB_RECIPES },
+    exquisite: { title: "Exquisite Orbs", recipes: EXQUISITE_ORB_RECIPES }
+  };
+
   const num = (v, f = 0) => (Number.isFinite(Number(v)) ? Number(v) : f);
 
   let activeMainTab = "gemcrafting";
   let activeGemView = "home";
+  let activeOrbView = "home";
   let currentHref = window.location.href;
 
   function loadSave() {
@@ -256,6 +317,27 @@
     }
   }
 
+  function getMainTabFromHref(href = window.location.href) {
+    try {
+      const url = new URL(href, window.location.origin);
+      const tab = String(url.searchParams.get("tab") || "").trim().toLowerCase();
+      if (tab === "enchanting-orbs" || tab === "jewelcrafting" || tab === "gemcrafting") return tab;
+      return "gemcrafting";
+    } catch {
+      return "gemcrafting";
+    }
+  }
+
+  function getOrbViewFromHref(href = window.location.href) {
+    try {
+      const url = new URL(href, window.location.origin);
+      const view = String(url.searchParams.get("orbView") || "").trim().toLowerCase();
+      return ORB_VIEWS[view] ? view : "home";
+    } catch {
+      return "home";
+    }
+  }
+
   function renderHeader() {
     const save = ensureSave(loadSave());
     const lvlEl = document.getElementById("jewelcraftLevel");
@@ -273,7 +355,17 @@
   }
 
   function openGemView(view) {
-    const href = view === "home" ? "jewelcrafting.html" : `jewelcrafting.html?view=${encodeURIComponent(view)}`;
+    const href = view === "home"
+      ? "jewelcrafting.html"
+      : `jewelcrafting.html?tab=gemcrafting&view=${encodeURIComponent(view)}`;
+    if (window.DSUI?.navigateWithinShell?.(href, { force: true })) return;
+    window.location.href = href;
+  }
+
+  function openOrbView(view) {
+    const href = view === "home"
+      ? "jewelcrafting.html?tab=enchanting-orbs"
+      : `jewelcrafting.html?tab=enchanting-orbs&orbView=${encodeURIComponent(view)}`;
     if (window.DSUI?.navigateWithinShell?.(href, { force: true })) return;
     window.location.href = href;
   }
@@ -290,7 +382,8 @@
     card.style.borderRadius = "12px";
     card.style.cursor = locked ? "not-allowed" : "pointer";
     card.style.opacity = locked ? "0.55" : "1";
-    if (!locked) card.dataset.openTabHref = `jewelcrafting_action.html?recipe=${encodeURIComponent(recipe.id)}`;
+    const recipeKey = recipe.recipeId || recipe.id;
+    if (!locked) card.dataset.openTabHref = `jewelcrafting_action.html?recipe=${encodeURIComponent(recipeKey)}`;
 
     const img = document.createElement("img");
     img.src = recipe.refinedImg || recipe.img;
@@ -329,7 +422,7 @@
 
     if (!locked) {
       card.addEventListener("click", () => {
-        const href = `jewelcrafting_action.html?recipe=${encodeURIComponent(recipe.id)}`;
+        const href = `jewelcrafting_action.html?recipe=${encodeURIComponent(recipeKey)}`;
         if (window.DSUI?.navigateWithinShell?.(href)) return;
         window.location.href = href;
       });
@@ -338,18 +431,14 @@
     grid.appendChild(card);
   }
 
-  function renderGemcraftingHome() {
-    const grid = document.getElementById("gemcraftingCategoryGrid");
+  function renderStageCards(grid, entries, options = {}) {
     if (!grid) return;
-    grid.innerHTML = "";
     const save = ensureSave(loadSave());
-    [
-      { view: "refine", title: "Refine", meta: "", img: "images/gems/refined_ruby.png", reqLevel: 1 },
-      { view: "flawless", title: "Flawless", meta: "Req Level 5", img: "images/gems/flawless_ruby.png", reqLevel: 5 },
-      { view: "masterwork", title: "Masterwork", meta: "Req Level 10", img: "images/gems/masterwork_ruby.png", reqLevel: 10 },
-      { view: "exquisite", title: "Exquisite", meta: "Req Level 15", img: "images/gems/exquisite_ruby.png", reqLevel: 15 }
-    ].forEach((entry) => {
-      const locked = save.jewelcraftingLevel < entry.reqLevel;
+    const onSelect = typeof options.onSelect === "function" ? options.onSelect : null;
+    grid.innerHTML = "";
+
+    entries.forEach((entry) => {
+      const locked = save.jewelcraftingLevel < num(entry.reqLevel, 1);
       const card = document.createElement("button");
       card.type = "button";
       card.className = "gemStageCard";
@@ -377,9 +466,64 @@
       label.appendChild(meta);
       card.appendChild(img);
       card.appendChild(label);
-      if (!locked) card.addEventListener("click", () => openGemView(entry.view));
+      if (!locked && onSelect) card.addEventListener("click", () => onSelect(entry));
       grid.appendChild(card);
     });
+  }
+
+  function renderGemcraftingHome() {
+    const grid = document.getElementById("gemcraftingCategoryGrid");
+    if (!grid) return;
+    renderStageCards(grid, [
+      { view: "refine", title: "Refine", meta: "", img: "images/gems/refined_ruby.png", reqLevel: 1 },
+      { view: "flawless", title: "Flawless", meta: "Req Level 5", img: "images/gems/flawless_ruby.png", reqLevel: 5 },
+      { view: "masterwork", title: "Masterwork", meta: "Req Level 10", img: "images/gems/masterwork_ruby.png", reqLevel: 10 },
+      { view: "exquisite", title: "Exquisite", meta: "Req Level 15", img: "images/gems/exquisite_ruby.png", reqLevel: 15 }
+    ], {
+      onSelect: (entry) => openGemView(entry.view)
+    });
+  }
+
+  function renderEnchantingOrbHome() {
+    const grid = document.getElementById("enchantingOrbCategoryGrid");
+    if (!grid) return;
+    renderStageCards(grid, ENCHANTING_ORB_VIEWS, {
+      onSelect: (entry) => openOrbView(entry.view)
+    });
+  }
+
+  function renderEnchantingOrbDetail() {
+    const homeEl = document.getElementById("enchantingOrbHome");
+    const detailEl = document.getElementById("enchantingOrbDetail");
+    const titleEl = document.getElementById("enchantingOrbDetailTitle");
+    const grid = document.getElementById("enchantingOrbDetailGrid");
+    if (!homeEl || !detailEl || !titleEl || !grid) return;
+
+    if (activeOrbView === "home" || !ORB_VIEWS[activeOrbView]) {
+      homeEl.style.display = "";
+      detailEl.style.display = "none";
+      return;
+    }
+
+    homeEl.style.display = "none";
+    detailEl.style.display = "";
+    titleEl.textContent = ORB_VIEWS[activeOrbView].title;
+    grid.innerHTML = "";
+
+    if (!ORB_VIEWS[activeOrbView].recipes.length) {
+      const empty = document.createElement("div");
+      empty.className = "profActionCard";
+      empty.style.minHeight = "180px";
+      empty.style.display = "flex";
+      empty.style.alignItems = "center";
+      empty.style.justifyContent = "center";
+      empty.style.textAlign = "center";
+      empty.innerHTML = `<div style="opacity:.82;font-weight:700;">Enchanting orb recipes will be added here.</div>`;
+      grid.appendChild(empty);
+      return;
+    }
+
+    ORB_VIEWS[activeOrbView].recipes.forEach((recipe) => renderRecipeCard(grid, recipe));
   }
 
   function renderGemcraftingDetail() {
@@ -405,21 +549,34 @@
   function updateTabs() {
     const tabsRow = document.getElementById("jewelcraftTabs");
     const gemBtn = document.getElementById("tabGemcrafting");
+    const orbBtn = document.getElementById("tabEnchantingOrbs");
     const jewelBtn = document.getElementById("tabJewelcrafting");
     const gemPanel = document.getElementById("gemcraftingPanel");
+    const orbPanel = document.getElementById("enchantingOrbsPanel");
     const jewelPanel = document.getElementById("jewelcraftingPanel");
-    const showTopTabs = activeMainTab !== "gemcrafting" || activeGemView === "home";
+    const showTopTabs =
+      (activeMainTab === "gemcrafting" && activeGemView === "home")
+      || (activeMainTab === "enchanting-orbs" && activeOrbView === "home")
+      || activeMainTab === "jewelcrafting";
     if (tabsRow) tabsRow.style.display = showTopTabs ? "flex" : "none";
     if (gemBtn) gemBtn.classList.toggle("is-active", activeMainTab === "gemcrafting");
+    if (orbBtn) orbBtn.classList.toggle("is-active", activeMainTab === "enchanting-orbs");
     if (jewelBtn) jewelBtn.classList.toggle("is-active", activeMainTab === "jewelcrafting");
     if (gemPanel) gemPanel.style.display = activeMainTab === "gemcrafting" ? "" : "none";
+    if (orbPanel) orbPanel.style.display = activeMainTab === "enchanting-orbs" ? "" : "none";
     if (jewelPanel) jewelPanel.style.display = activeMainTab === "jewelcrafting" ? "" : "none";
     renderGemcraftingDetail();
+    renderEnchantingOrbDetail();
   }
 
   function bindEvents() {
     document.getElementById("tabGemcrafting")?.addEventListener("click", () => {
       activeMainTab = "gemcrafting";
+      updateTabs();
+    });
+    document.getElementById("tabEnchantingOrbs")?.addEventListener("click", () => {
+      activeMainTab = "enchanting-orbs";
+      activeOrbView = "home";
       updateTabs();
     });
     document.getElementById("tabJewelcrafting")?.addEventListener("click", () => {
@@ -429,18 +586,23 @@
     document.getElementById("gemcraftingBackBtn")?.addEventListener("click", () => {
       openGemView("home");
     });
+    document.getElementById("enchantingOrbBackBtn")?.addEventListener("click", () => {
+      openOrbView("home");
+    });
   }
 
   function mount(root = null, href = window.location.href) {
     const left = root || document.getElementById("leftPanel");
     if (!left) return false;
     currentHref = href;
+    activeMainTab = getMainTabFromHref(href);
     activeGemView = getViewFromHref(href);
+    activeOrbView = getOrbViewFromHref(href);
     left.innerHTML = JEWELCRAFTING_TEMPLATE;
     document.title = "Darkstone Chronicles - Jewelcrafting";
-    activeMainTab = "gemcrafting";
     renderHeader();
     renderGemcraftingHome();
+    renderEnchantingOrbHome();
     updateTabs();
     bindEvents();
     return true;
