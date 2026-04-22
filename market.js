@@ -91,6 +91,8 @@
     inspectListingId: "",
     listings: [],
     myListings: [],
+    sortKey: "",
+    sortDir: "asc",
     saleHistory: loadSaleHistory(),
     activeSaleNotice: null,
     selectedInvIndex: -1,
@@ -272,6 +274,10 @@
         .marketTable{width:100%;border-collapse:collapse;table-layout:fixed;}
         .marketTable th,.marketTable td{border:1px solid rgba(83,83,90,.72);padding:8px;text-align:center;vertical-align:middle;background:rgba(0,0,0,.16);}
         .marketTable th{font-weight:900;color:#d9d9df;background:rgba(0,0,0,.28);}
+        .marketSortBtn{width:100%;min-height:28px!important;padding:4px 4px!important;border:0!important;background:transparent!important;box-shadow:none!important;color:inherit!important;font:inherit!important;font-size:15px!important;line-height:1.1!important;white-space:nowrap;overflow:visible;cursor:pointer;}
+        .marketSortBtn:hover{color:#fff1cf!important;transform:none!important;}
+        .marketSortBtn.is-active{color:#f0d326!important;}
+        .marketSortArrow{display:inline-block;min-width:10px;margin-left:3px;font-size:11px;vertical-align:middle;color:#f0d326;}
         .marketItemCell{display:flex;align-items:center;gap:10px;text-align:left;min-width:0;}
         .marketItemIcon{width:48px;height:48px;flex:0 0 48px;border:1px solid rgba(92,92,102,.8);border-radius:6px;background:#101219;object-fit:cover;}
         .marketItemIconBtn{width:48px;height:48px;flex:0 0 48px;padding:0!important;min-height:0!important;border:0!important;background:transparent!important;box-shadow:none!important;cursor:pointer;}
@@ -323,6 +329,7 @@
           .marketSlotBar{grid-template-columns:repeat(3,minmax(0,1fr));}
           .marketSellGrid{grid-template-columns:1fr 1fr;}
           .marketTable{font-size:13px;}
+          .marketSortBtn{font-size:12px!important;white-space:normal;}
           .marketItemIcon{width:40px;height:40px;flex-basis:40px;}
           .marketItemIconBtn{width:40px;height:40px;flex-basis:40px;}
           .marketModalTop{align-items:center;}
@@ -412,8 +419,7 @@
 
   function filteredListings(){
     const userId = getUserId();
-    if (state.view === "myListings") return state.myListings;
-    return state.listings.filter((listing) => {
+    const rows = state.view === "myListings" ? state.myListings : state.listings.filter((listing) => {
       if (state.view === "latest") return true;
       if (state.view === "materials") return listing.category === "materials";
       if (state.view === "gear") {
@@ -422,6 +428,36 @@
       }
       return true;
     });
+    return sortListings(rows);
+  }
+
+  function listingSortValue(listing, key){
+    const item = listing?.item || {};
+    if (key === "quantity") return num(listing?.quantity, 0);
+    if (key === "price") return num(listing?.price_each, 0);
+    if (key === "reqLevel") return num(item?.reqLevel, 0);
+    return 0;
+  }
+
+  function sortListings(rows){
+    const key = String(state.sortKey || "");
+    if (!key) return rows;
+    const dir = state.sortDir === "desc" ? -1 : 1;
+    return [...rows].sort((a, b) => {
+      const diff = listingSortValue(a, key) - listingSortValue(b, key);
+      if (diff !== 0) return diff * dir;
+      return String(b.created_at || "").localeCompare(String(a.created_at || ""));
+    });
+  }
+
+  function renderSortHeader(key, label){
+    const active = state.sortKey === key;
+    const arrow = active ? (state.sortDir === "desc" ? "↓" : "↑") : "";
+    return `
+      <button type="button" class="marketSortBtn ${active ? "is-active" : ""}" data-market-sort="${esc(key)}">
+        ${esc(label)}<span class="marketSortArrow">${arrow}</span>
+      </button>
+    `;
   }
 
   function renderListings(){
@@ -437,11 +473,11 @@
       <table class="marketTable">
         <thead>
           <tr>
-            <th style="width:38%;">Item</th>
-            <th style="width:12%;">Quantity</th>
-            <th style="width:16%;">Price EA</th>
-            <th style="width:12%;">R.LVL</th>
-            <th style="width:22%;">Action</th>
+            <th style="width:34%;">Item</th>
+            <th style="width:15%;">${renderSortHeader("quantity", "Quantity")}</th>
+            <th style="width:18%;">${renderSortHeader("price", "Price EA")}</th>
+            <th style="width:13%;">${renderSortHeader("reqLevel", "R.LVL")}</th>
+            <th style="width:20%;">Action</th>
           </tr>
         </thead>
         <tbody>
@@ -997,6 +1033,19 @@
         render();
       });
     });
+    document.querySelectorAll("[data-market-sort]").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const key = String(btn.dataset.marketSort || "");
+        if (state.sortKey === key) {
+          state.sortDir = state.sortDir === "asc" ? "desc" : "asc";
+        } else {
+          state.sortKey = key;
+          state.sortDir = "asc";
+        }
+        state.page = 1;
+        render();
+      });
+    });
     document.querySelectorAll("[data-inspect-listing]").forEach((btn) => {
       btn.addEventListener("click", () => {
         state.inspectListingId = String(btn.dataset.inspectListing || "");
@@ -1053,6 +1102,9 @@
     }
     const left = root || document.getElementById("leftPanel");
     if (!left) return false;
+    state.sortKey = "";
+    state.sortDir = "asc";
+    state.page = 1;
     if (String(window.location.hash || "").toLowerCase() === "#pets") {
       state.view = "generalShop";
     }
