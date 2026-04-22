@@ -93,6 +93,7 @@
     myListings: [],
     sortKey: "",
     sortDir: "asc",
+    inspectAnchor: null,
     saleHistory: loadSaleHistory(),
     activeSaleNotice: null,
     selectedInvIndex: -1,
@@ -262,10 +263,10 @@
         .marketHeaderActions{display:flex;align-items:center;justify-content:flex-end;gap:8px;flex-wrap:wrap;}
         .marketMyBtn{width:auto!important;min-height:34px!important;padding:7px 12px!important;border-radius:6px!important;font-size:12px!important;white-space:nowrap;}
         .marketMyBtn.is-active{border-color:#d0a14f!important;color:#fff1cf!important;background:linear-gradient(180deg,rgba(82,58,28,.96),rgba(35,24,14,.98))!important;}
-        .marketTop{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;margin:6px 0 14px;}
-        .marketHeroBtn{min-height:86px;display:grid;grid-template-rows:44px auto;justify-items:center;align-items:center;gap:6px;padding:10px;border-radius:8px;border:1px solid rgba(126,94,50,.86);background:linear-gradient(180deg,rgba(26,28,34,.96),rgba(10,11,15,.96));box-shadow:inset 0 1px 0 rgba(255,232,184,.08),0 12px 24px rgba(0,0,0,.2);color:#f3ead6;cursor:pointer;}
-        .marketHeroBtn.is-active{border-color:#d0a14f;background:linear-gradient(180deg,rgba(82,58,28,.96),rgba(35,24,14,.98));}
-        .marketHeroBtn img{width:42px;height:42px;object-fit:contain;filter:drop-shadow(0 6px 8px rgba(0,0,0,.45));}
+        .marketTop{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin:6px 0 12px;}
+        .marketHeroBtn{min-height:46px;display:flex;justify-content:center;align-items:center;gap:8px;padding:8px 12px;border-radius:6px;border:1px solid rgba(126,94,50,.7);background:linear-gradient(180deg,rgba(28,65,61,.88),rgba(13,35,34,.92));box-shadow:inset 0 1px 0 rgba(255,232,184,.06);color:#f3ead6;cursor:pointer;}
+        .marketHeroBtn.is-active{border-color:#d0a14f;background:linear-gradient(180deg,rgba(54,88,76,.95),rgba(24,51,45,.98));}
+        .marketHeroBtn img{width:26px;height:26px;object-fit:contain;filter:drop-shadow(0 4px 6px rgba(0,0,0,.4));}
         .marketPanel{background:linear-gradient(180deg,rgba(13,14,18,.9),rgba(8,9,12,.96));border:1px solid rgba(87,87,94,.86);border-radius:8px;padding:12px;box-shadow:inset 0 1px 0 rgba(255,255,255,.04),0 16px 30px rgba(0,0,0,.22);}
         .marketSearchTitle{max-width:560px;margin:0 auto 10px;padding:6px 12px;border:1px solid rgba(96,96,104,.72);border-radius:8px;text-align:center;color:#aeb0b8;background:rgba(0,0,0,.18);}
         .marketSlotBar{display:grid;grid-template-columns:repeat(7,minmax(56px,1fr));gap:4px;margin-bottom:12px;}
@@ -294,8 +295,8 @@
         .marketPager{display:flex;align-items:center;justify-content:center;gap:6px;flex-wrap:wrap;margin-top:10px;}
         .marketPagerBtn{width:auto!important;min-width:38px!important;min-height:34px!important;padding:6px 10px!important;border-radius:6px!important;}
         .marketPagerBtn.is-active{border-color:#d0a14f!important;color:#fff1cf!important;background:linear-gradient(180deg,rgba(82,58,28,.96),rgba(35,24,14,.98))!important;}
-        .marketModalBackdrop{position:fixed;inset:0;z-index:80;display:flex;align-items:center;justify-content:center;padding:18px;background:rgba(0,0,0,.72);}
-        .marketModal{width:min(720px,96vw);border:1px solid rgba(126,94,50,.95);border-radius:10px;background:linear-gradient(180deg,rgba(22,23,31,.98),rgba(9,10,14,.98));box-shadow:0 24px 80px rgba(0,0,0,.62),inset 0 1px 0 rgba(255,232,184,.08);padding:16px;color:#f3ead6;}
+        .marketModalBackdrop{position:fixed;inset:0;z-index:80;background:rgba(0,0,0,.35);}
+        .marketModal{position:fixed;left:var(--market-modal-left,50%);top:var(--market-modal-top,90px);transform:translateX(-50%);width:min(640px,calc(100vw - 24px));max-height:calc(100vh - 24px);overflow:auto;border:1px solid rgba(126,94,50,.95);border-radius:10px;background:linear-gradient(180deg,rgba(22,23,31,.98),rgba(9,10,14,.98));box-shadow:0 18px 54px rgba(0,0,0,.62),inset 0 1px 0 rgba(255,232,184,.08);padding:16px;color:#f3ead6;}
         .marketModalTop{display:flex;align-items:flex-start;gap:14px;}
         .marketModalIcon{width:84px;height:84px;border-radius:8px;border:2px solid #333;background:#0f0f16;object-fit:cover;flex:0 0 auto;}
         .marketModalName{font-size:24px;font-weight:900;line-height:1.1;}
@@ -321,7 +322,7 @@
         @media(max-width:760px){
           .marketHeader{align-items:flex-start;}
           .marketHeaderActions{justify-content:flex-end;}
-          .marketTop{grid-template-columns:1fr;}
+          .marketTop{grid-template-columns:1fr 1fr;}
           .marketShopGrid{grid-template-columns:1fr;}
           .marketShopCard{grid-template-columns:54px minmax(0,1fr);}
           .marketShopCard img{width:54px;height:54px;}
@@ -346,10 +347,6 @@
           </div>
         </div>
         <div class="marketTop">
-          <button type="button" class="marketHeroBtn ${state.view === "latest" ? "is-active" : ""}" data-market-view="latest">
-            <img src="${marketIcon("latest")}" alt="">
-            <span>Latest Items</span>
-          </button>
           <button type="button" class="marketHeroBtn ${state.view === "gear" ? "is-active" : ""}" data-market-view="gear">
             <img src="${marketIcon("gear")}" alt="">
             <span>Combat Gear</span>
@@ -513,7 +510,6 @@
             </button>
             <div style="min-width:0;">
               <div class="marketItemName">${esc(listing.item_name || item.name || "Item")}</div>
-              <div class="marketItemMeta">${esc(itemMeta(item) || `Seller: ${listing.seller_name || "Hero"}`)}</div>
             </div>
           </div>
         </td>
@@ -547,9 +543,12 @@
     if (num(item?.reqLevel, 0)) statParts.push(`Required Level: ${num(item.reqLevel, 1)}`);
     if (num(item?.atk, 0)) statParts.push(`Attack +${num(item.atk, 0)}`);
     if (num(item?.def, 0)) statParts.push(`Defense +${num(item.def, 0)}`);
+    const anchor = state.inspectAnchor || {};
+    const left = Math.max(12, Math.min(num(anchor.x, window.innerWidth / 2), window.innerWidth - 12));
+    const top = Math.max(12, Math.min(num(anchor.y, 90), window.innerHeight - 120));
     return `
       <div class="marketModalBackdrop" data-close-market-inspector="1">
-        <div class="marketModal" role="dialog" aria-modal="true" aria-label="${esc(listing.item_name || item.name || "Market Item")}" data-market-modal="1">
+        <div class="marketModal" role="dialog" aria-modal="true" aria-label="${esc(listing.item_name || item.name || "Market Item")}" data-market-modal="1" style="--market-modal-left:${left}px;--market-modal-top:${top}px;">
           <div class="marketModalTop">
             <img class="marketModalIcon" src="${esc(listing.item_img || item.img || marketIcon(listing.category))}" alt="">
             <div style="min-width:0;flex:1;">
@@ -1017,6 +1016,7 @@
         state.view = String(btn.dataset.marketView || "latest");
         state.page = 1;
         state.inspectListingId = "";
+        state.inspectAnchor = null;
         render();
       });
     });
@@ -1047,8 +1047,9 @@
       });
     });
     document.querySelectorAll("[data-inspect-listing]").forEach((btn) => {
-      btn.addEventListener("click", () => {
+      btn.addEventListener("click", (event) => {
         state.inspectListingId = String(btn.dataset.inspectListing || "");
+        state.inspectAnchor = { x: event.clientX, y: event.clientY };
         render();
       });
     });
@@ -1056,6 +1057,7 @@
       btn.addEventListener("click", (event) => {
         if (btn.classList.contains("marketModalBackdrop") && event.target !== btn) return;
         state.inspectListingId = "";
+        state.inspectAnchor = null;
         render();
       });
     });
