@@ -319,6 +319,8 @@
         .marketShopCard img{width:64px;height:64px;border-radius:8px;border:1px solid rgba(92,92,102,.8);object-fit:cover;background:#101219;}
         .marketShopName{font-size:17px;font-weight:900;color:#f3ead6;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
         .marketShopMeta{margin-top:4px;font-size:12px;color:#aeb0b8;line-height:1.35;}
+        .marketShopActions{display:grid;grid-template-columns:74px auto;gap:6px;align-items:center;}
+        .marketShopQty{width:74px;min-height:38px;border-radius:6px;border:1px solid rgba(126,94,50,.86);background:#090a0e;color:#fff;text-align:center;padding:6px;}
         .marketOwnedText{color:#9dffb4;font-weight:900;}
         @media(max-width:760px){
           .marketHeader{align-items:flex-start;}
@@ -327,7 +329,8 @@
           .marketShopGrid{grid-template-columns:1fr;}
           .marketShopCard{grid-template-columns:54px minmax(0,1fr);}
           .marketShopCard img{width:54px;height:54px;}
-          .marketShopCard button{grid-column:1 / -1;}
+          .marketShopActions{grid-column:1 / -1;grid-template-columns:1fr 1fr;}
+          .marketShopQty{width:100%;}
           .marketSlotBar{grid-template-columns:repeat(3,minmax(0,1fr));}
           .marketSellGrid{grid-template-columns:1fr 1fr;}
           .marketTable{font-size:13px;}
@@ -393,13 +396,16 @@
             <div class="marketShopCard ${owned ? "is-owned" : ""}">
               <img src="${esc(item.img)}" alt="">
               <div style="min-width:0;">
-                <div class="marketShopName">${esc(item.name)}</div>
-                <div class="marketShopMeta">
-                  ${esc(item.meta || "")}<br>
-                  ${owned ? `<span class="marketOwnedText">Owned</span>` : `Price: <span class="marketGold">${fmt.format(num(item.price, 0))} gold</span>`}
-                </div>
+              <div class="marketShopName">${esc(item.name)}</div>
+              <div class="marketShopMeta">
+                ${esc(item.meta || "")}<br>
+                  ${owned ? `<span class="marketOwnedText">Owned</span>` : `Price EA: <span class="marketGold">${fmt.format(num(item.price, 0))} gold</span>`}
               </div>
-              <button type="button" data-buy-shop-item="${esc(item.id)}" ${owned ? "disabled" : ""}>${owned ? "Owned" : "Buy"}</button>
+            </div>
+              <div class="marketShopActions">
+                ${item.kind === "item" && !owned ? `<input class="marketShopQty" type="number" min="1" max="999" value="1" data-shop-qty="${esc(item.id)}" aria-label="Quantity for ${esc(item.name)}">` : ""}
+                <button type="button" data-buy-shop-item="${esc(item.id)}" ${owned ? "disabled" : ""}>${owned ? "Owned" : "Buy"}</button>
+              </div>
             </div>
           `;
         }).join("")}
@@ -885,6 +891,15 @@
     return { ok: true };
   }
 
+  function shopBuyMultiplier(id){
+    const input = Array.from(document.querySelectorAll("[data-shop-qty]"))
+      .find((el) => String(el.dataset.shopQty || "") === String(id));
+    if (!input) return 1;
+    const qty = Math.max(1, Math.min(999, Math.floor(num(input.value, 1))));
+    input.value = String(qty);
+    return qty;
+  }
+
   function buyGeneralShopItem(id){
     const shopItem = GENERAL_SHOP_ITEMS.find((item) => item.id === id);
     if (!shopItem) {
@@ -894,8 +909,10 @@
 
     const save = loadSave();
     save.gold = Math.max(0, Math.floor(num(save.gold, 0)));
-    if (save.gold < shopItem.price) {
-      setStatus(`Not enough gold. Need ${fmt.format(shopItem.price)} gold.`);
+    const multiplier = shopItem.kind === "item" ? shopBuyMultiplier(id) : 1;
+    const totalPrice = shopItem.price * multiplier;
+    if (save.gold < totalPrice) {
+      setStatus(`Not enough gold. Need ${fmt.format(totalPrice)} gold.`);
       return;
     }
 
@@ -914,7 +931,7 @@
         xpNext,
         nextUpgradeCost: 1000000
       };
-      save.gold -= shopItem.price;
+      save.gold -= totalPrice;
       save.pets[shopItem.slot] = window.DS?.pets?.normalizePet ? window.DS.pets.normalizePet(shopItem.slot, pet) : pet;
       setSave(save);
       window.DSAuth?.syncCloudSaveNow?.();
@@ -923,15 +940,16 @@
       return;
     }
 
-    const added = addShopItemToInventory(save, shopItem.item, shopItem.quantity);
+    const totalQuantity = Math.max(1, Math.floor(num(shopItem.quantity, 1))) * multiplier;
+    const added = addShopItemToInventory(save, shopItem.item, totalQuantity);
     if (!added?.ok) {
       setStatus("Not enough inventory space.");
       return;
     }
-    save.gold -= shopItem.price;
+    save.gold -= totalPrice;
     setSave(save);
     window.DSAuth?.syncCloudSaveNow?.();
-    setStatus(`Bought ${shopItem.name}.`);
+    setStatus(`Bought ${shopItem.name} x${fmt.format(multiplier)}.`);
     render();
   }
 
