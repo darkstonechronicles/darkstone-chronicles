@@ -5,6 +5,7 @@
   const fmt = new Intl.NumberFormat("el-GR");
   const MARKET_PAGE_SIZE = 80;
   const LISTINGS_PER_PAGE = 7;
+  const LATEST_LISTINGS_LIMIT = 5;
   const GEAR_SLOTS = [
     ["all", "All Gear"],
     ["mainHand", "Main Hand"],
@@ -464,10 +465,11 @@
     const rows = filteredListings();
     if (!rows.length) return `<div class="marketEmpty">No active listings here yet.</div>`;
     const userId = getUserId();
-    const totalPages = Math.max(1, Math.ceil(rows.length / LISTINGS_PER_PAGE));
+    const latestView = state.view === "latest";
+    const totalPages = latestView ? 1 : Math.max(1, Math.ceil(rows.length / LISTINGS_PER_PAGE));
     state.page = Math.max(1, Math.min(Math.floor(num(state.page, 1)), totalPages));
-    const start = (state.page - 1) * LISTINGS_PER_PAGE;
-    const visibleRows = rows.slice(start, start + LISTINGS_PER_PAGE);
+    const start = latestView ? 0 : (state.page - 1) * LISTINGS_PER_PAGE;
+    const visibleRows = rows.slice(start, start + (latestView ? LATEST_LISTINGS_LIMIT : LISTINGS_PER_PAGE));
     return `
       <table class="marketTable">
         <thead>
@@ -1103,9 +1105,12 @@
     }
     const left = root || document.getElementById("leftPanel");
     if (!left) return false;
+    state.view = "latest";
     state.sortKey = "";
     state.sortDir = "asc";
     state.page = 1;
+    state.inspectListingId = "";
+    state.inspectAnchor = null;
     if (String(window.location.hash || "").toLowerCase() === "#pets") {
       state.view = "generalShop";
     }
