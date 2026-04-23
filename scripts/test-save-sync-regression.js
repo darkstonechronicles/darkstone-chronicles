@@ -405,6 +405,30 @@ async function runAll() {
     expectRemoteWins: false
   });
 
+  await runScenario({
+    name: "cross-device stale progress-ahead local does not overwrite cloud",
+    localSave: {
+      heroCreated: true,
+      heroName: "OldLaptop",
+      heroLevel: 50,
+      heroXP: 100,
+      gold: 100000
+    },
+    remoteSave: {
+      heroCreated: true,
+      heroName: "CurrentCloud",
+      heroLevel: 45,
+      heroXP: 900,
+      gold: 50000
+    },
+    localBaseRevision: 6,
+    remoteRevision: 7,
+    activeSessionId: "client-session-1",
+    lastLocalClientSessionId: "other-device-session",
+    localMetaSynced: true,
+    expectRemoteWins: true
+  });
+
   process.exitCode = 0;
   process.exit();
 }

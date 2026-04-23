@@ -3,6 +3,7 @@
   const SAVE_KEY = "darkstone_save_v1";
   const SAVE_OWNER_KEY = "darkstone_save_owner_v1";
   const SAVE_META_KEY = "darkstone_save_meta_v1";
+  const SAVE_BACKUP_KEY = "darkstone_save_backup_latest_v1";
   const ACTIVE_SESSION_KEY = "darkstone_active_client_session_v1";
   const ACTIVE_SESSION_PENDING_KEY = "ds:claim-active-session";
   const ACTIVE_SESSION_HANDOFF_GRACE_MS = 1500;
@@ -358,6 +359,7 @@
   }
 
   function applyRemoteSaveSnapshot(remote) {
+    backupLocalSave("remote-snapshot-applied");
     const remoteSave = normalizeRemoteSavePayload(remote);
     state.cloud.revision = Math.max(1, Number(remote?.revision || 1) || 1);
     writeLocalSave(remoteSave, state.user?.id || "", state.cloud.revision);
@@ -375,11 +377,28 @@
     );
   }
 
+  function backupLocalSave(reason = "unknown") {
+    const save = readLocalSave();
+    if (!hasMeaningfulSave(save)) return false;
+    try {
+      localStorage.setItem(SAVE_BACKUP_KEY, JSON.stringify({
+        reason: String(reason || "unknown"),
+        backedUpAt: Date.now(),
+        ownerId: getLocalOwnerId(),
+        meta: readLocalSaveMeta(),
+        save
+      }));
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
   function saveProgressScore(save) {
     const next = save && typeof save === "object" ? save : {};
     const statNames = [
       "hero", "mining", "forge", "blacksmith", "woodcutting", "woodworking",
-      "carpentry", "hunting", "fishing", "cooking", "herbalism", "alchemy", "enchanting"
+      "carpentry", "hunting", "fishing", "cooking", "herbalism", "alchemy", "enchanting", "jewelcrafting"
     ];
     let score = 0;
     statNames.forEach((name, index) => {
@@ -388,6 +407,15 @@
       score += (level * 1000000 + xp) * (index + 1);
     });
     score += Math.max(0, Number(next.gold || 0) || 0);
+    score += Math.max(0, Number(next.darkStones || 0) || 0) * 1000;
+    [
+      "barracksLevel", "cryptHallLevel", "minerHutLevel", "forgeAcademyLevel",
+      "foresterLodgeLevel", "carpenterWorkshopLevel", "herbalistConservatoryLevel",
+      "alchemistLaboratoryLevel", "hunterLodgeLevel", "anglerPierLevel", "cookhouseLevel",
+      "enchanterSanctumLevel", "jewelcrafterAtelierLevel"
+    ].forEach((key, index) => {
+      score += Math.max(0, Number(next[key] || 0) || 0) * 100000 * (index + 1);
+    });
     if (Array.isArray(next.inventory)) {
       score += next.inventory.reduce((sum, item) => sum + Math.max(1, Number(item?.quantity || 1) || 1), 0) * 10;
     }
@@ -703,15 +731,17 @@
         !hasKnownLocalBaseRevision &&
         hasUnsyncedLocalSave() &&
         !state.sessionGuard.justClaimedActiveSession;
-      const sameSessionLocalProgressAhead =
+      const sameClientLocalProgressAhead =
         !state.sessionGuard.justClaimedActiveSession &&
+        localClientSessionId &&
+        localClientSessionId === currentClientSessionId &&
         saveProgressScore(localSave) > saveProgressScore(remoteSave);
       const preferLocalSave =
         localHasSave &&
         ownerMatches &&
         !state.sessionGuard.justClaimedActiveSession &&
-        (hasUnsyncedLocalSave() || sameSessionLocalProgressAhead) &&
-        (!remoteHasSave || localBaseRevision >= remoteRevision || sameClientUnsyncedLocalSave || hasLegacyUnsyncedLocalSave || sameSessionLocalProgressAhead);
+        (hasUnsyncedLocalSave() || sameClientLocalProgressAhead) &&
+        (!remoteHasSave || localBaseRevision >= remoteRevision || sameClientUnsyncedLocalSave || hasLegacyUnsyncedLocalSave || sameClientLocalProgressAhead);
 
       if (preferLocalSave) {
         const saveResult = await writeRemoteSaveWithRevision(localSave, { allowRemoteOverride: true });
@@ -730,6 +760,7 @@
         markLocalSaveSynced();
       } else {
         if (!ownerMatches) {
+          backupLocalSave("owner-mismatch-cleared");
           writeLocalSave({}, state.user.id);
         }
         await upsertProfileAndStats({});
