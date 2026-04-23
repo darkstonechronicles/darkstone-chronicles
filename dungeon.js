@@ -697,6 +697,17 @@
       };
     }
 
+    function getEquipmentEnchantBonuses(equipment){
+      const out = { xpPct: 0, goldPct: 0, luckPct: 0 };
+      Object.values(equipment || {}).forEach((it) => {
+        if (!it) return;
+        out.xpPct += Math.max(0, num(it.enchantXpPct, 0));
+        out.goldPct += Math.max(0, num(it.enchantGoldPct, 0));
+        out.luckPct += Math.max(0, num(it.enchantLuckPct, 0));
+      });
+      return out;
+    }
+
   function setHeroHP(hp, hpMax){
     savePatch({ heroHP: hp, heroHPMax: hpMax, lastActiveTs: Date.now() });
   }
@@ -892,7 +903,8 @@
       ? (window.DS.pets.getFortunePetBonuses(save?.pets?.fortune) || {})
       : {};
     const potionBonuses = getPotionBonuses(save);
-    const luckMult = 1 + Math.max(0, num(fortuneBonuses.luckPct, 0)) + Math.max(0, num(potionBonuses.luckPct, 0));
+    const enchantBonuses = getEquipmentEnchantBonuses(save.equipment);
+    const luckMult = 1 + Math.max(0, num(fortuneBonuses.luckPct, 0)) + Math.max(0, num(potionBonuses.luckPct, 0)) + Math.max(0, num(enchantBonuses.luckPct, 0));
 
     if (dungeon.dropMode === "onePerRun"){
       const pick = items[randInt(0, items.length - 1)];
@@ -907,7 +919,7 @@
 
     if (dungeon.dropMode === "perItem"){
       const out = [];
-      const p = dungeon.perItemChance ?? 0;
+      const p = (dungeon.perItemChance ?? 0) * luckMult;
       for (const it of items){
         if (Math.random() < p) out.push({ ...it, quantity: 1 });
       }
@@ -1330,10 +1342,13 @@
     const fortuneBonuses = window.DS?.pets?.getFortunePetBonuses
       ? (window.DS.pets.getFortunePetBonuses(loadSave()?.pets?.fortune) || {})
       : {};
+    const rewardSave = loadSave();
+    const enchantBonuses = getEquipmentEnchantBonuses(rewardSave.equipment);
     const goldBase = randInt(dungeon.rewards.goldMin, dungeon.rewards.goldMax);
-    const goldGain = Math.floor(goldBase * (1 + Math.max(0, num(fortuneBonuses.goldPct, 0))));
+    const goldGain = Math.floor(goldBase * (1 + Math.max(0, num(fortuneBonuses.goldPct, 0)) + Math.max(0, num(enchantBonuses.goldPct, 0))));
     const xpBase = randInt(dungeon.rewards.xpMin, dungeon.rewards.xpMax);
-    const petXpResult = addDungeonCompanionXP(xpBase);
+    const boostedXpBase = Math.max(0, Math.floor(xpBase * (1 + Math.max(0, num(enchantBonuses.xpPct, 0)))));
+    const petXpResult = addDungeonCompanionXP(boostedXpBase);
     const xpGain = petXpResult.playerXpGain;
 
     addGold(goldGain);
@@ -1347,15 +1362,17 @@
 
     let cryptSigil = null;
     const potionBonuses = getPotionBonuses(loadSave());
-    if (Math.random() < ((1 / 75) * (1 + Math.max(0, num(fortuneBonuses.luckPct, 0)) + Math.max(0, num(potionBonuses.luckPct, 0))))) {
+    if (Math.random() < ((1 / 75) * (1 + Math.max(0, num(fortuneBonuses.luckPct, 0)) + Math.max(0, num(potionBonuses.luckPct, 0)) + Math.max(0, num(enchantBonuses.luckPct, 0))))) {
       cryptSigil = { ...CRYPT_SIGIL_ITEM, quantity: 1 };
       addItemToInventory(cryptSigil);
     }
     const roughGemDrop = Math.random() < ROUGH_GEM_DROP_CHANCE
+      * (1 + Math.max(0, num(fortuneBonuses.luckPct, 0)) + Math.max(0, num(potionBonuses.luckPct, 0)) + Math.max(0, num(enchantBonuses.luckPct, 0)))
       ? { ...ROUGH_GEM_POOL[randInt(0, ROUGH_GEM_POOL.length - 1)], quantity: 1 }
       : null;
     if (roughGemDrop) addItemToInventory(roughGemDrop);
     const orbOfCreationDrop = Math.random() < ORB_OF_CREATION_DROP_CHANCE
+      * (1 + Math.max(0, num(fortuneBonuses.luckPct, 0)) + Math.max(0, num(potionBonuses.luckPct, 0)) + Math.max(0, num(enchantBonuses.luckPct, 0)))
       ? { ...ORB_OF_CREATION_ITEM, quantity: 1 }
       : null;
     if (orbOfCreationDrop) addItemToInventory(orbOfCreationDrop);

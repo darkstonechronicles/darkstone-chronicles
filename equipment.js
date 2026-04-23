@@ -89,6 +89,9 @@
       it.reqLevel ?? 1,
       it.atk ?? 0,
       it.def ?? 0,
+      it.enchantXpPct ?? 0,
+      it.enchantGoldPct ?? 0,
+      it.enchantLuckPct ?? 0,
       it.rarity || "",
       it.img || "",
       it.upg ?? 0
@@ -532,6 +535,9 @@
         const statParts = [];
         if (a) statParts.push(`ATK +${a}`);
         if (d) statParts.push(`DEF +${d}`);
+        if (num(it.enchantXpPct, 0)) statParts.push(`XP +${Math.round(num(it.enchantXpPct, 0) * 100)}%`);
+        if (num(it.enchantGoldPct, 0)) statParts.push(`Gold +${Math.round(num(it.enchantGoldPct, 0) * 100)}%`);
+        if (num(it.enchantLuckPct, 0)) statParts.push(`Luck +${Math.round(num(it.enchantLuckPct, 0) * 100)}%`);
         const statText = statParts.length ? statParts.join(" ") : "No stats";
         node.title = `${SLOT_LABEL[slotKey] || slotKey}: ${it.name || "Item"} (${statText})`;
 

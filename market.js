@@ -234,6 +234,9 @@
     if (it?.rarity) parts.push(String(it.rarity));
     if (num(it?.atk, 0)) parts.push(`${num(it.atk)} ATK`);
     if (num(it?.def, 0)) parts.push(`${num(it.def)} DEF`);
+    if (num(it?.enchantXpPct, 0)) parts.push(`${Math.round(num(it.enchantXpPct, 0) * 100)}% XP`);
+    if (num(it?.enchantGoldPct, 0)) parts.push(`${Math.round(num(it.enchantGoldPct, 0) * 100)}% Gold`);
+    if (num(it?.enchantLuckPct, 0)) parts.push(`${Math.round(num(it.enchantLuckPct, 0) * 100)}% Luck`);
     if (num(it?.reqLevel, 0)) parts.push(`R.LVL ${num(it.reqLevel)}`);
     return parts.join(" • ");
   }
@@ -563,6 +566,9 @@
     if (num(item?.reqLevel, 0)) statParts.push(`Required Level: ${num(item.reqLevel, 1)}`);
     if (num(item?.atk, 0)) statParts.push(`Attack +${num(item.atk, 0)}`);
     if (num(item?.def, 0)) statParts.push(`Defense +${num(item.def, 0)}`);
+    if (num(item?.enchantXpPct, 0)) statParts.push(`XP +${Math.round(num(item.enchantXpPct, 0) * 100)}%`);
+    if (num(item?.enchantGoldPct, 0)) statParts.push(`Gold +${Math.round(num(item.enchantGoldPct, 0) * 100)}%`);
+    if (num(item?.enchantLuckPct, 0)) statParts.push(`Luck +${Math.round(num(item.enchantLuckPct, 0) * 100)}%`);
     return `
       <div class="marketModalBackdrop" data-close-market-inspector="1">
         <div class="marketModal" role="dialog" aria-modal="true" aria-label="${esc(listing.item_name || item.name || "Market Item")}" data-market-modal="1">

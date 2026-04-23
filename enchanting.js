@@ -1,10 +1,11 @@
 (() => {
   const SAVE_KEY = "darkstone_save_v1";
   const PICK_KEY = "ds_enchant_pick_v1";
+  const ORB_PICK_KEY = "ds_enchant_orb_pick_v1";
   const ENCHANTING_TEMPLATE = `
     <h1 style="margin-bottom:6px;">Enchanting</h1>
     <div style="opacity:.85;margin-bottom:14px;">
-      Select gear from your inventory and enchant it with the matching tier bar and plank.
+      Select gear from your inventory and enchant it with an enchanting orb.
     </div>
 
     <div class="profXpShell">
@@ -55,10 +56,10 @@
       <hr style="border:none;border-top:1px solid rgba(255,255,255,.08);margin:12px 0;">
 
       <div style="font-weight:900;margin-bottom:8px;">Requirements</div>
-      <div style="opacity:.9;margin-bottom:6px;">Enchanting Req: <b><span id="reqEnchantLevel">1</span></b></div>
-      <div style="opacity:.9;margin-bottom:6px;"><span id="needBarLabel">Bar</span>: <b><span id="needBar">0</span></b> (you have <span id="haveBar">0</span>)</div>
-      <div style="opacity:.9;margin-bottom:6px;"><span id="needPlankLabel">Plank</span>: <b><span id="needPlank">0</span></b> (you have <span id="havePlank">0</span>)</div>
+      <div style="opacity:.9;margin-bottom:6px;">Selected Orb: <b><span id="selectedOrbText">None</span></b></div>
+      <div style="opacity:.9;margin-bottom:6px;">Effect: <b><span id="selectedOrbEffect">-</span></b></div>
       <div style="opacity:.9;margin-bottom:10px;">Success chance: <b><span id="chanceText">-</span></b></div>
+      <div id="orbList" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:8px;margin:10px 0 12px;"></div>
 
       <div style="display:flex;gap:10px;flex-wrap:wrap;">
         <button id="btnEnchant" disabled>Enchant</button>
@@ -82,6 +83,19 @@
     "Ash Plank","Pine Plank","Birch Plank","Oak Plank","Cedar Plank",
     "Maple Plank","Ironwood Plank","Heartwood Plank","Darkwood Plank","Ebony Plank"
   ];
+  const ORB_TIERS = {
+    refined: { label: "Refined", power: 1, baseChance: 0.40 },
+    flawless: { label: "Flawless", power: 2, baseChance: 0.35 },
+    masterwork: { label: "Masterwork", power: 3, baseChance: 0.30 },
+    exquisite: { label: "Exquisite", power: 4, baseChance: 0.25 }
+  };
+  const ORB_TYPES = {
+    attack: { label: "Attack", field: "atk", pct: false },
+    defense: { label: "Defense", field: "def", pct: false },
+    xp: { label: "Combat XP", field: "enchantXpPct", pct: true },
+    gold: { label: "Gold", field: "enchantGoldPct", pct: true },
+    luck: { label: "Luck", field: "enchantLuckPct", pct: true }
+  };
 
   const num = (v, f = 0) => (Number.isFinite(Number(v)) ? Number(v) : f);
   const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
@@ -268,6 +282,14 @@
 
   function clearPick() { localStorage.removeItem(PICK_KEY); }
   function setPick(pick) { localStorage.setItem(PICK_KEY, JSON.stringify(pick)); }
+  function getOrbPickId() {
+    try { return String(localStorage.getItem(ORB_PICK_KEY) || "").trim(); }
+    catch { return ""; }
+  }
+  function setOrbPickId(id) {
+    try { localStorage.setItem(ORB_PICK_KEY, String(id || "")); }
+    catch {}
+  }
 
   function isDetailMode() {
     if (shellMounted) return shellDetailMode;
@@ -339,6 +361,50 @@
     return { bar: BAR_TIERS[idx], plank: PLANK_TIERS[idx] };
   }
 
+  function parseEnchantOrb(item) {
+    const id = String(item?.id || "").toLowerCase();
+    const name = String(item?.name || "").toLowerCase();
+    const tierKey = Object.keys(ORB_TIERS).find((key) => id.startsWith(`${key}_orb_of_`) || name.startsWith(`${key} orb of `));
+    const typeKey = Object.keys(ORB_TYPES).find((key) => id.endsWith(`_orb_of_${key}`) || name.endsWith(`orb of ${key}`));
+    if (!tierKey || !typeKey) return null;
+    const tier = ORB_TIERS[tierKey];
+    const type = ORB_TYPES[typeKey];
+    return {
+      id: String(item.id || ""),
+      name: String(item.name || `${tier.label} Orb of ${type.label}`),
+      img: String(item.img || ""),
+      tierKey,
+      typeKey,
+      tierLabel: tier.label,
+      typeLabel: type.label,
+      power: tier.power,
+      baseChance: tier.baseChance,
+      effectText: type.pct ? `+${tier.power}% ${type.label}` : `+${tier.power} ${type.label}`,
+      field: type.field,
+      pct: type.pct
+    };
+  }
+
+  function getEnchantOrbs(save) {
+    const grouped = new Map();
+    (save.inventory || []).forEach((item) => {
+      const orb = parseEnchantOrb(item);
+      if (!orb) return;
+      const qty = Math.max(1, num(item.quantity ?? item.qty, 1));
+      const prev = grouped.get(orb.id);
+      if (prev) prev.qty += qty;
+      else grouped.set(orb.id, { ...orb, qty });
+    });
+    return [...grouped.values()].sort((a, b) => (a.power - b.power) || a.typeLabel.localeCompare(b.typeLabel));
+  }
+
+  function getSelectedOrb(save) {
+    const orbs = getEnchantOrbs(save);
+    if (!orbs.length) return null;
+    const picked = getOrbPickId();
+    return orbs.find((orb) => orb.id === picked) || orbs[0];
+  }
+
   function getUnitsByName(inv, name) {
     return inv.reduce((sum, it) => {
       if (!it) return sum;
@@ -363,6 +429,16 @@
       }
     }
     return remaining === 0;
+  }
+
+  function removeOneById(save, id) {
+    const idx = (save.inventory || []).findIndex((it) => String(it?.id || "") === String(id || ""));
+    if (idx < 0) return false;
+    const item = save.inventory[idx];
+    const qty = Math.max(1, num(item.quantity ?? item.qty, 1));
+    if (qty > 1) item.quantity = qty - 1;
+    else save.inventory.splice(idx, 1);
+    return true;
   }
 
   function recomputeTotals(save) {
@@ -399,12 +475,29 @@
     }
   }
 
-  function applyEnchantStats(item) {
-    const atk = num(item?.atk, 0);
-    const def = num(item?.def, 0);
-    if (atk > 0) item.atk = atk + 1;
-    if (def > 0) item.def = def + 1;
-    if (atk <= 0 && def <= 0) item.atk = 1;
+  function successChance(save, orb) {
+    if (!orb) return 0;
+    const effectiveLevel = getEffectiveEnchantLevel(save);
+    return clamp(num(orb.baseChance, 0.4) + Math.max(0, effectiveLevel - 1) * 0.005, 0.05, 0.95);
+  }
+
+  function applyEnchantStats(item, orb) {
+    if (!orb) return;
+    if (orb.field === "atk") item.atk = num(item.atk, 0) + orb.power;
+    else if (orb.field === "def") item.def = num(item.def, 0) + orb.power;
+    else item[orb.field] = num(item[orb.field], 0) + (orb.power * 0.01);
+    if (!Array.isArray(item.enchantHistory)) item.enchantHistory = [];
+    item.enchantHistory.push({ type: orb.typeKey, tier: orb.tierKey, power: orb.power });
+  }
+
+  function enchantSummary(item) {
+    const parts = [];
+    if (num(item?.atk, 0) > 0) parts.push(`ATK +${num(item.atk, 0)}`);
+    if (num(item?.def, 0) > 0) parts.push(`DEF +${num(item.def, 0)}`);
+    if (num(item?.enchantXpPct, 0) > 0) parts.push(`XP +${Math.round(num(item.enchantXpPct, 0) * 100)}%`);
+    if (num(item?.enchantGoldPct, 0) > 0) parts.push(`Gold +${Math.round(num(item.enchantGoldPct, 0) * 100)}%`);
+    if (num(item?.enchantLuckPct, 0) > 0) parts.push(`Luck +${Math.round(num(item.enchantLuckPct, 0) * 100)}%`);
+    return parts;
   }
 
   function getGearEntries(save) {
@@ -432,13 +525,6 @@
     const gears = getGearEntries(save);
     if (gears.length === 0) return { idx: null, item: null };
     return { idx: gears[0].index, item: gears[0].item };
-  }
-
-  function successChance(save, item) {
-    const tier = getItemTier(item);
-    const reqLevel = reqEnchantLevelForTier(tier);
-    const delta = Math.max(0, getEffectiveEnchantLevel(save) - reqLevel);
-    return clamp(0.4 + delta * 0.015, 0.4, 0.85);
   }
 
   function rarityColors(item) {
@@ -527,13 +613,9 @@
       if (el("selImgFrame")) el("selImgFrame").style.display = "none";
       if (el("selImg")) el("selImg").style.display = "none";
       if (el("selUpgBadge")) el("selUpgBadge").style.display = "none";
-      if (el("reqEnchantLevel")) el("reqEnchantLevel").textContent = "1";
-      if (el("needBarLabel")) el("needBarLabel").textContent = "Bar";
-      if (el("needPlankLabel")) el("needPlankLabel").textContent = "Plank";
-      if (el("needBar")) el("needBar").textContent = "0";
-      if (el("needPlank")) el("needPlank").textContent = "0";
-      if (el("haveBar")) el("haveBar").textContent = "0";
-      if (el("havePlank")) el("havePlank").textContent = "0";
+      if (el("selectedOrbText")) el("selectedOrbText").textContent = "None";
+      if (el("selectedOrbEffect")) el("selectedOrbEffect").textContent = "-";
+      if (el("orbList")) el("orbList").innerHTML = "";
       if (el("chanceText")) el("chanceText").textContent = "-";
       if (el("btnEnchant")) el("btnEnchant").disabled = true;
       renderGearList(save, selectedIndex);
@@ -543,21 +625,15 @@
     setUpgName(selectedItem);
     const upg = upgradeLevel(selectedItem);
     const maxUpg = maxEnchantForItem(selectedItem);
-    const tier = getItemTier(selectedItem);
-    const mats = materialForTier(tier);
     const colors = rarityColors(selectedItem);
-    const reqEnchantLevel = reqEnchantLevelForTier(tier);
-    const effectiveLevel = getEffectiveEnchantLevel(save);
-    const haveBar = getUnitsByName(save.inventory, mats.bar);
-    const havePlank = getUnitsByName(save.inventory, mats.plank);
-    const chance = successChance(save, selectedItem);
-    const canEnchant = effectiveLevel >= reqEnchantLevel && haveBar >= 1 && havePlank >= 1 && upg < maxUpg;
+    const orbs = getEnchantOrbs(save);
+    const selectedOrb = getSelectedOrb(save);
+    const chance = successChance(save, selectedOrb);
+    const canEnchant = !!selectedOrb && upg < maxUpg;
     if (el("selName")) el("selName").textContent = selectedItem.name || "Item";
-    if (el("selInfo")) el("selInfo").textContent = `Tier ${tier} | ${normalizeEnchantRarity(selectedItem)} | Req Lv ${num(selectedItem.reqLevel, 1)} | Max +${maxUpg}`;
+    if (el("selInfo")) el("selInfo").textContent = `${normalizeEnchantRarity(selectedItem)} | Max +${maxUpg} | Item level ignored`;
     if (el("selStats")) {
-      const statParts = [];
-      if (num(selectedItem.atk, 0) > 0) statParts.push(`ATK +${num(selectedItem.atk, 0)}`);
-      if (num(selectedItem.def, 0) > 0) statParts.push(`DEF +${num(selectedItem.def, 0)}`);
+      const statParts = enchantSummary(selectedItem);
       statParts.push(`Current +${upg}`);
       el("selStats").textContent = statParts.join(" | ");
     }
@@ -588,26 +664,55 @@
       el("selWrap").style.borderRadius = "12px";
       el("selWrap").style.padding = "12px";
     }
-    if (el("reqEnchantLevel")) el("reqEnchantLevel").textContent = String(reqEnchantLevel);
-    if (el("needBarLabel")) el("needBarLabel").textContent = mats.bar;
-    if (el("needPlankLabel")) el("needPlankLabel").textContent = mats.plank;
-    if (el("needBar")) el("needBar").textContent = "1";
-    if (el("needPlank")) el("needPlank").textContent = "1";
-    if (el("haveBar")) el("haveBar").textContent = String(haveBar);
-    if (el("havePlank")) el("havePlank").textContent = String(havePlank);
+    if (el("selectedOrbText")) el("selectedOrbText").textContent = selectedOrb ? `${selectedOrb.name} x${selectedOrb.qty}` : "None";
+    if (el("selectedOrbEffect")) el("selectedOrbEffect").textContent = selectedOrb ? selectedOrb.effectText : "-";
+    if (el("orbList")) {
+      el("orbList").innerHTML = "";
+      if (!orbs.length) {
+        const empty = document.createElement("div");
+        empty.style.opacity = ".85";
+        empty.textContent = "No enchanting orbs found.";
+        el("orbList").appendChild(empty);
+      } else {
+        orbs.forEach((orb) => {
+          const btn = document.createElement("button");
+          btn.type = "button";
+          btn.style.display = "flex";
+          btn.style.alignItems = "center";
+          btn.style.gap = "8px";
+          btn.style.padding = "8px";
+          btn.style.borderRadius = "10px";
+          btn.style.border = selectedOrb?.id === orb.id ? "2px solid #f1d18a" : "1px solid rgba(255,255,255,.14)";
+          btn.style.background = "rgba(17,19,31,.86)";
+          btn.style.color = "#f4f1e8";
+          btn.style.cursor = "pointer";
+          btn.innerHTML = `
+            <img src="${orb.img}" alt="${orb.name}" style="width:36px;height:36px;border-radius:8px;object-fit:cover;">
+            <span style="min-width:0;text-align:left;">
+              <span style="display:block;font-weight:900;font-size:12px;">${orb.name} x${orb.qty}</span>
+              <span style="display:block;opacity:.82;font-size:11px;">${orb.effectText}</span>
+            </span>
+          `;
+          btn.addEventListener("click", () => {
+            setOrbPickId(orb.id);
+            render();
+          });
+          el("orbList").appendChild(btn);
+        });
+      }
+    }
     if (upg >= maxUpg) {
       if (el("chanceText")) el("chanceText").textContent = "MAX";
       if (el("btnEnchant")) el("btnEnchant").disabled = true;
       if (msgEl) msgEl.textContent = `Max enchant reached for this item (+${maxUpg}).`;
-    } else if (effectiveLevel < reqEnchantLevel) {
-      if (el("chanceText")) el("chanceText").textContent = "Locked";
+    } else if (!selectedOrb) {
+      if (el("chanceText")) el("chanceText").textContent = "-";
       if (el("btnEnchant")) el("btnEnchant").disabled = true;
-      if (msgEl) msgEl.textContent = `Requires Enchanting Level ${reqEnchantLevel}.`;
+      if (msgEl) msgEl.textContent = "You need an enchanting orb.";
     } else {
-      if (el("chanceText")) el("chanceText").textContent = `${Math.round(chance * 100)}%`;
+      if (el("chanceText")) el("chanceText").textContent = `${(chance * 100).toFixed(1)}%`;
       if (el("btnEnchant")) el("btnEnchant").disabled = !canEnchant;
-      if (msgEl && (haveBar < 1 || havePlank < 1)) msgEl.textContent = "Missing materials.";
-      else if (msgEl && msgEl.textContent === "Missing materials.") msgEl.textContent = "";
+      if (msgEl && msgEl.textContent === "You need an enchanting orb.") msgEl.textContent = "";
     }
     renderGearList(save, selectedIndex);
   }
@@ -650,29 +755,19 @@
     ensureBaseName(item);
     const upg = upgradeLevel(item);
     const maxUpg = maxEnchantForItem(item);
-    const tier = getItemTier(item);
-    const reqEnchantLevel = reqEnchantLevelForTier(tier);
-    const mats = materialForTier(tier);
+    const selectedOrb = getSelectedOrb(save);
     if (upg >= maxUpg) {
       if (el("enchMsg")) el("enchMsg").textContent = `Max enchant reached (+${maxUpg}).`;
       render();
       return;
     }
-    const effectiveLevel = getEffectiveEnchantLevel(save);
-    if (effectiveLevel < reqEnchantLevel) {
-      if (el("enchMsg")) el("enchMsg").textContent = `Requires Enchanting Level ${reqEnchantLevel}.`;
+    if (!selectedOrb) {
+      if (el("enchMsg")) el("enchMsg").textContent = "You need an enchanting orb.";
       render();
       return;
     }
-    if (getUnitsByName(save.inventory, mats.bar) < 1 || getUnitsByName(save.inventory, mats.plank) < 1) {
-      if (el("enchMsg")) el("enchMsg").textContent = "Not enough materials.";
-      render();
-      return;
-    }
-    const removedBar = removeUnitsByName(save, mats.bar, 1);
-    const removedPlank = removeUnitsByName(save, mats.plank, 1);
-    if (!removedBar || !removedPlank) {
-      if (el("enchMsg")) el("enchMsg").textContent = "Material removal failed.";
+    if (!removeOneById(save, selectedOrb.id)) {
+      if (el("enchMsg")) el("enchMsg").textContent = "Orb removal failed.";
       setSave(save);
       render();
       return;
@@ -683,7 +778,7 @@
       render();
       return;
     }
-    const chance = successChance(save, item);
+    const chance = successChance(save, selectedOrb);
     const rolledSuccess = Math.random() <= chance;
     if (rolledSuccess) {
       let enchantedItem = item;
@@ -693,7 +788,7 @@
       }
       ensureBaseName(enchantedItem);
       enchantedItem.upg = upgradeLevel(enchantedItem) + 1;
-      applyEnchantStats(enchantedItem);
+      applyEnchantStats(enchantedItem, selectedOrb);
       setUpgName(enchantedItem);
       if (stackQty > 1) {
         if (window.DSInventory?.addItem) {
@@ -711,12 +806,12 @@
       } else {
         setPick(buildPick(idx, item));
       }
-      gainEnchantXP(save, 20 + tier * 5);
-      if (el("enchMsg")) el("enchMsg").textContent = `Success! ${enchantedItem.name} reached +${enchantedItem.upg}.`;
+      gainEnchantXP(save, 20 + selectedOrb.power * 8);
+      if (el("enchMsg")) el("enchMsg").textContent = `Success! ${enchantedItem.name} gained ${selectedOrb.effectText}.`;
     } else {
-      gainEnchantXP(save, 10 + tier * 3);
+      gainEnchantXP(save, 10 + selectedOrb.power * 5);
       setPick(buildPick(idx, item));
-      if (el("enchMsg")) el("enchMsg").textContent = "Failed. Materials were consumed.";
+      if (el("enchMsg")) el("enchMsg").textContent = "Failed. The orb was consumed.";
     }
     tickArtisanPotionActions(save, 1);
     recomputeTotals(save);

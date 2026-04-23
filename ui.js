@@ -4230,6 +4230,9 @@ function adminItemStackKey(item) {
     item?.reqLevel ?? 1,
     item?.atk ?? 0,
     item?.def ?? 0,
+    item?.enchantXpPct ?? 0,
+    item?.enchantGoldPct ?? 0,
+    item?.enchantLuckPct ?? 0,
     item?.rarity || "",
     item?.img || "",
     item?.crafted ? "crafted" : "",
@@ -5178,6 +5181,7 @@ function invSignature(save) {
       return [
         it.type||"", it.name||"", it.slot||"", it.reqLevel??1,
         it.atk??0, it.def??0, it.rarity||"", it.img||"",
+        it.enchantXpPct??0, it.enchantGoldPct??0, it.enchantLuckPct??0,
         it.crafted ? 1 : 0,
         it.quantity ?? it.qty ?? 1,
         it.upg ?? 0,
@@ -5449,6 +5453,9 @@ function renderInventory(save) {
       const parts = [];
       if (atk) parts.push(`ATK +${atk}`);
       if (def) parts.push(`DEF +${def}`);
+      if (num(it.enchantXpPct, 0)) parts.push(`XP +${Math.round(num(it.enchantXpPct, 0) * 100)}%`);
+      if (num(it.enchantGoldPct, 0)) parts.push(`Gold +${Math.round(num(it.enchantGoldPct, 0) * 100)}%`);
+      if (num(it.enchantLuckPct, 0)) parts.push(`Luck +${Math.round(num(it.enchantLuckPct, 0) * 100)}%`);
     return parts.length ? ` - ${parts.join(" ")}` : "";
   })();
   const reqLine = isGearItem(it) ? ` - Req Lv ${req}` : "";
@@ -5655,6 +5662,9 @@ function rarityMult(r) {
       it.reqLevel ?? 1,
       it.atk ?? 0,
       it.def ?? 0,
+      it.enchantXpPct ?? 0,
+      it.enchantGoldPct ?? 0,
+      it.enchantLuckPct ?? 0,
       it.rarity || "",
       it.img || "",
       it.upg ?? 0,
@@ -6312,6 +6322,9 @@ function openInspector(invIndex, item) {
         const parts = [];
         if (a) parts.push(`ATK +${a}`);
         if (d) parts.push(`DEF +${d}`);
+        if (num(item.enchantXpPct, 0)) parts.push(`XP +${Math.round(num(item.enchantXpPct, 0) * 100)}%`);
+        if (num(item.enchantGoldPct, 0)) parts.push(`Gold +${Math.round(num(item.enchantGoldPct, 0) * 100)}%`);
+        if (num(item.enchantLuckPct, 0)) parts.push(`Luck +${Math.round(num(item.enchantLuckPct, 0) * 100)}%`);
         const potionBonus = getPotionBonusText(item);
         if (potionBonus) parts.push(potionBonus);
         if (showEat) {

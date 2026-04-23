@@ -1807,7 +1807,8 @@ function rollUniqueDrops(zoneId, mobId){
   const save = getCurrentSave();
   const fortune = getFortunePetBonuses(save);
   const potionBonuses = getPotionBonuses(save);
-  const luckMult = 1 + Math.max(0, num(fortune.luckPct, 0)) + Math.max(0, num(potionBonuses.luckPct, 0));
+  const enchantBonuses = getEquipmentEnchantBonuses(save.equipment);
+  const luckMult = 1 + Math.max(0, num(fortune.luckPct, 0)) + Math.max(0, num(potionBonuses.luckPct, 0)) + Math.max(0, num(enchantBonuses.luckPct, 0));
 
   const out = [];
   for(const it of list){
@@ -1825,7 +1826,8 @@ function rollZoneMythic(zoneId){
   const save = getCurrentSave();
   const fortune = getFortunePetBonuses(save);
   const potionBonuses = getPotionBonuses(save);
-  const chance = ZONE_MYTHIC_CHANCE * (1 + Math.max(0, num(fortune.luckPct, 0)) + Math.max(0, num(potionBonuses.luckPct, 0)));
+  const enchantBonuses = getEquipmentEnchantBonuses(save.equipment);
+  const chance = ZONE_MYTHIC_CHANCE * (1 + Math.max(0, num(fortune.luckPct, 0)) + Math.max(0, num(potionBonuses.luckPct, 0)) + Math.max(0, num(enchantBonuses.luckPct, 0)));
   return (Math.random() < chance) ? { ...it, quantity: 1 } : null;
 }
 
@@ -1926,6 +1928,16 @@ function getFortunePetBonuses(saveObj){
     goldPct: num(bonuses.goldPct, 0),
     luckPct: num(bonuses.luckPct, 0)
   };
+}
+function getEquipmentEnchantBonuses(equipment){
+  const out = { xpPct: 0, goldPct: 0, luckPct: 0 };
+  Object.values(equipment || {}).forEach((it) => {
+    if (!it) return;
+    out.xpPct += Math.max(0, num(it.enchantXpPct, 0));
+    out.goldPct += Math.max(0, num(it.enchantGoldPct, 0));
+    out.luckPct += Math.max(0, num(it.enchantLuckPct, 0));
+  });
+  return out;
 }
 
 function recomputeTotalsAndSave(){
@@ -2868,13 +2880,16 @@ window.DS?.stats?.inc("fightsLost", 1);
   // win rewards
   // win rewards
 const zoneId = currentZone.id;
-const xpGain = fightXPForMobLevel(currentMob.lvl);
+const curSave = getCurrentSave();
+const enchantBonuses = getEquipmentEnchantBonuses(curSave.equipment);
+const xpGain = Math.max(0, Math.floor(fightXPForMobLevel(currentMob.lvl) * (1 + Math.max(0, num(enchantBonuses.xpPct, 0)))));
 const petXpResult = addCombatPetXP(xpGain);
 const playerXpGain = Math.max(0, Math.floor(num(petXpResult.playerXpGain, xpGain)));
-const curSave = getCurrentSave();
 const setGoldBonusPct = getSetBonusPcts(curSave.equipment).goldPct ?? 0;
 const fortuneBonuses = getFortunePetBonuses(curSave);
-const goldBonusPct = setGoldBonusPct + Math.max(0, num(fortuneBonuses.goldPct, 0));
+const potionBonuses = getPotionBonuses(curSave);
+const dropLuckMult = 1 + Math.max(0, num(fortuneBonuses.luckPct, 0)) + Math.max(0, num(potionBonuses.luckPct, 0)) + Math.max(0, num(enchantBonuses.luckPct, 0));
+const goldBonusPct = setGoldBonusPct + Math.max(0, num(fortuneBonuses.goldPct, 0)) + Math.max(0, num(enchantBonuses.goldPct, 0));
 const goldBase = rollGold(zoneId, currentMob.lvl);
 const goldGain = Math.floor(goldBase * (1 + goldBonusPct));
 const goldBonus = Math.max(0, goldGain - goldBase);
@@ -2891,11 +2906,13 @@ uniques
 const mythic = rollZoneMythic(zoneId);
 if(mythic) addItemToSave(mythic);
 
-const warSigil = Math.random() < WAR_SIGIL_CHANCE ? { ...WAR_SIGIL_ITEM, quantity: 1 } : null;
+const warSigil = Math.random() < (WAR_SIGIL_CHANCE * dropLuckMult) ? { ...WAR_SIGIL_ITEM, quantity: 1 } : null;
 if (warSigil) addItemToSave(warSigil);
-const roughGem = rollRoughGemDrop();
+const roughGem = Math.random() < (ROUGH_GEM_DROP_CHANCE * dropLuckMult)
+  ? { ...ROUGH_GEM_POOL[Math.floor(Math.random() * ROUGH_GEM_POOL.length)], quantity: 1 }
+  : null;
 if (roughGem) addItemToSave(roughGem);
-const orbOfCreation = rollOrbOfCreationDrop();
+const orbOfCreation = Math.random() < (ORB_OF_CREATION_DROP_CHANCE * dropLuckMult) ? { ...ORB_OF_CREATION_ITEM, quantity: 1 } : null;
 if (orbOfCreation) addItemToSave(orbOfCreation);
 
 // ✅ STATS (μόνο στο win)
