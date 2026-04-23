@@ -367,6 +367,18 @@
     return remoteSave;
   }
 
+  function applyRemoteEmptySaveSnapshot(remote, reason = "remote-empty-snapshot-applied") {
+    backupLocalSave(reason);
+    state.cloud.revision = Math.max(1, Number(remote?.revision || 1) || 1);
+    writeLocalSave({}, state.user?.id || "", state.cloud.revision);
+    window.dispatchEvent(new Event("ds:save"));
+    return {};
+  }
+
+  function isAdminResetSave(save) {
+    return Boolean(save && typeof save === "object" && save.__adminReset);
+  }
+
   function hasMeaningfulSave(save) {
     const next = save && typeof save === "object" ? save : {};
     return Object.keys(next).length > 0 && (
@@ -717,6 +729,7 @@
       const remoteSave = normalizeRemoteSavePayload(remote);
       const remoteRevision = Math.max(0, Number(remote?.revision || 0) || 0);
       const remoteHasSave = hasMeaningfulSave(remoteSave);
+      const remoteIsAdminReset = isAdminResetSave(remoteSave);
       const localHasSave = hasMeaningfulSave(localSave);
       const ownerMatches = !localOwnerId || localOwnerId === state.user.id;
       const localBaseRevision = Math.max(0, Number(localMeta.cloudRevision || 0) || 0);
@@ -740,10 +753,13 @@
         localHasSave &&
         ownerMatches &&
         !state.sessionGuard.justClaimedActiveSession &&
+        !remoteIsAdminReset &&
         (hasUnsyncedLocalSave() || sameClientLocalProgressAhead) &&
         (!remoteHasSave || localBaseRevision >= remoteRevision || sameClientUnsyncedLocalSave || hasLegacyUnsyncedLocalSave || sameClientLocalProgressAhead);
 
-      if (preferLocalSave) {
+      if (remote && !remoteHasSave && localHasSave && ownerMatches && remoteRevision > localBaseRevision) {
+        applyRemoteEmptySaveSnapshot(remote, remoteIsAdminReset ? "admin-reset-applied" : "remote-empty-save-applied");
+      } else if (preferLocalSave) {
         const saveResult = await writeRemoteSaveWithRevision(localSave, { allowRemoteOverride: true });
         if (saveResult.ok) {
           await upsertProfileAndStats(localSave);

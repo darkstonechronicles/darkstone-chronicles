@@ -429,6 +429,47 @@ async function runAll() {
     expectRemoteWins: true
   });
 
+  await runScenario({
+    name: "admin reset empty cloud save clears stale local cache",
+    localSave: {
+      heroCreated: true,
+      heroName: "Kazoul",
+      heroLevel: 70,
+      heroXP: 12345,
+      gold: 999999
+    },
+    remoteSave: {},
+    localBaseRevision: 10,
+    remoteRevision: 11,
+    activeSessionId: "client-session-1",
+    lastLocalClientSessionId: "client-session-1",
+    localMetaSynced: true,
+    expectRemoteWins: true
+  });
+
+  await runScenario({
+    name: "admin reset marker clears stale local cache",
+    localSave: {
+      heroCreated: true,
+      heroName: "Kazoul",
+      heroLevel: 70,
+      heroXP: 12345,
+      gold: 999999
+    },
+    remoteSave: {
+      __adminReset: {
+        at: new Date().toISOString(),
+        by: "admin-user"
+      }
+    },
+    localBaseRevision: 11,
+    remoteRevision: 12,
+    activeSessionId: "client-session-1",
+    lastLocalClientSessionId: "client-session-1",
+    localMetaSynced: true,
+    expectRemoteWins: true
+  });
+
   process.exitCode = 0;
   process.exit();
 }

@@ -565,7 +565,12 @@ Deno.serve(async (req) => {
       }
     }
 
-    const emptySave: Record<string, unknown> = {};
+    const emptySave: Record<string, unknown> = {
+      __adminReset: {
+        at: new Date().toISOString(),
+        by: user.id,
+      },
+    };
     const nextRevision = currentRevision + 1;
     const { error: saveError } = await admin.from("player_saves").upsert({
       user_id: targetUserId,
