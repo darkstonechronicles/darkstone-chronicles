@@ -7,6 +7,13 @@
 
 (() => {
   const SAVE_KEY = "darkstone_save_v1";
+  const WARDEN_SIGIL_ITEM = {
+    type: "material",
+    id: "warden_sigil",
+    name: "Warden Sigil",
+    img: "images/items/sigils/warden_sigil.png"
+  };
+  const WARDEN_SIGIL_DROP_CHANCE = 1 / 250;
   const COOKING_ACTION_TEMPLATE = `
   <div class="profXpShell">
     <div class="profXpCard">
@@ -647,9 +654,10 @@ function renderCookingHeader() {
 
   function renderBonusBox(save){
     const petBonus = getArtisanPetState(save);
+    const buildingPct = Math.max(0, num(save?.cookhouseLevel, 0)) * 0.0005;
     if (artisanBonusPetValue) artisanBonusPetValue.textContent = formatPct(num(petBonus.xpPct, 0));
     if (artisanBonusDoubleValue) artisanBonusDoubleValue.textContent = formatPct(num(petBonus.doublePct, 0));
-    if (artisanBonusBuildingValue) artisanBonusBuildingValue.textContent = formatPct(0);
+    if (artisanBonusBuildingValue) artisanBonusBuildingValue.textContent = formatPct(buildingPct);
     if (artisanBonusPotionValue) artisanBonusPotionValue.textContent = formatPct(0);
   }
 
@@ -747,9 +755,9 @@ function releaseActionLock(){
     el.textContent = `+${(pet.xpPct * 100).toFixed(2)}% XP (${pet.name})`;
   }
 
-  function buildCookMessage(recipe, xpGain, isLast = false) {
+  function buildCookMessage(recipe, xpGain, sigilDrop = false, isLast = false) {
     const lastText = isLast ? " (last)" : "";
-    return `You cooked 1 <img src="${recipe.out.img}" alt="${recipe.out.name}" style="width:18px;height:18px;vertical-align:-3px;margin:0 4px 0 6px;border-radius:4px;object-fit:cover;">${recipe.out.name}${lastText} (+${xpGain} XP)`;
+    return `You cooked 1 <img src="${recipe.out.img}" alt="${recipe.out.name}" style="width:18px;height:18px;vertical-align:-3px;margin:0 4px 0 6px;border-radius:4px;object-fit:cover;">${recipe.out.name}${lastText} (+${xpGain} XP)${sigilDrop ? " | Warden Sigil +1" : ""}`;
   }
 
   function stopCooldownUI() {
@@ -901,13 +909,19 @@ function releaseActionLock(){
         healStamina: num(r.out.healStamina, 0)
       }, 1);
     }
+    let sigilDrop = false;
+    if (Math.random() < WARDEN_SIGIL_DROP_CHANCE) {
+      addToInventoryStack(s, { ...WARDEN_SIGIL_ITEM }, 1);
+      sigilDrop = true;
+    }
 
     // Stats
     incStat(s, "cookingCrafts", 1);
     tickArtisanPotionActions(s, 1);
 
     // XP gain
-    const totalXpGain = Math.max(1, Math.round(6 * (1 + petBonus.xpPct)));
+    const buildingPct = Math.max(0, num(s.cookhouseLevel, 0)) * 0.0005;
+    const totalXpGain = Math.max(1, Math.round(6 * (1 + petBonus.xpPct + buildingPct)));
     const petSplit = window.DS?.pets?.splitXpWithPet
       ? window.DS.pets.splitXpWithPet(s, "artisan", totalXpGain)
       : { playerXpGain: totalXpGain, petXpGain: 0, petLevelUps: 0, petLevel: 0, petName: "" };
@@ -929,13 +943,13 @@ function releaseActionLock(){
       targetRemaining -= 1;
       updateTargetUI();
       if (targetRemaining <= 0) {
-        setMsg(`Target completed! ${buildCookMessage(r, xpGain, true)}${petSplit.petXpGain > 0 ? ` <span style="color:#9fb5ff;">| Pet XP +${petSplit.petXpGain}</span>` : ""}${petSplit.petLevelUps > 0 ? ` <span style="color:#f7df8a;">| ${petSplit.petName} Lvl ${petSplit.petLevel}</span>` : ""}${doubled ? ` <span style="color:#9ff0b7;">Double Craft!</span>` : ""}`);
+        setMsg(`Target completed! ${buildCookMessage(r, xpGain, sigilDrop, true)}${petSplit.petXpGain > 0 ? ` <span style="color:#9fb5ff;">| Pet XP +${petSplit.petXpGain}</span>` : ""}${petSplit.petLevelUps > 0 ? ` <span style="color:#f7df8a;">| ${petSplit.petName} Lvl ${petSplit.petLevel}</span>` : ""}${doubled ? ` <span style="color:#9ff0b7;">Double Craft!</span>` : ""}`);
         stopCooking(true);
         return;
       }
     }
 
-    setMsg(buildCookMessage(r, xpGain, false) + (petSplit.petXpGain > 0 ? ` <span style="color:#9fb5ff;">| Pet XP +${petSplit.petXpGain}</span>` : "") + (petSplit.petLevelUps > 0 ? ` <span style="color:#f7df8a;">| ${petSplit.petName} Lvl ${petSplit.petLevel}</span>` : "") + (doubled ? ` <span style="color:#9ff0b7;">Double Craft!</span>` : ""));
+    setMsg(buildCookMessage(r, xpGain, sigilDrop, false) + (petSplit.petXpGain > 0 ? ` <span style="color:#9fb5ff;">| Pet XP +${petSplit.petXpGain}</span>` : "") + (petSplit.petLevelUps > 0 ? ` <span style="color:#f7df8a;">| ${petSplit.petName} Lvl ${petSplit.petLevel}</span>` : "") + (doubled ? ` <span style="color:#9ff0b7;">Double Craft!</span>` : ""));
     touchActionLock();
     scheduleNext(false);
   }

@@ -1,6 +1,13 @@
 (() => {
 
 const SAVE_KEY = "darkstone_save_v1";
+const WARDEN_SIGIL_ITEM = {
+  type: "material",
+  id: "warden_sigil",
+  name: "Warden Sigil",
+  img: "images/items/sigils/warden_sigil.png"
+};
+const WARDEN_SIGIL_DROP_CHANCE = 1 / 250;
 const ROUGH_GEM_DROP_CHANCE = 1 / 100;
 const ROUGH_GEM_POOL = [
   { type:"material", id:"rough_ruby", name:"Rough Ruby", img:"images/gems/rough_ruby.png" },
@@ -437,13 +444,14 @@ function formatPct(value, digits = 2){
 
 function renderBonusBox(save){
   const petBonus = getGatheringPetState(save);
+  const buildingPct = Math.max(0, num(save?.anglerPierLevel, 0)) * 0.0005;
   const petEl = document.getElementById("gatheringBonusPetValue");
   const doubleEl = document.getElementById("gatheringBonusDoubleValue");
   const buildingEl = document.getElementById("gatheringBonusBuildingValue");
   const potionEl = document.getElementById("gatheringBonusPotionValue");
   if (petEl) petEl.textContent = formatPct(num(petBonus.xpPct, 0));
   if (doubleEl) doubleEl.textContent = formatPct(num(petBonus.doublePct, 0));
-  if (buildingEl) buildingEl.textContent = formatPct(0);
+  if (buildingEl) buildingEl.textContent = formatPct(buildingPct);
   if (potionEl) potionEl.textContent = formatPct(0);
 }
 
@@ -560,9 +568,9 @@ function setMsg(t){
   if (msgEl) msgEl.innerHTML = t || "";
 }
 
-function buildFishMessage(fish, xpGain, isLast = false){
+function buildFishMessage(fish, xpGain, sigilDrop = false, isLast = false){
   const lastText = isLast ? " (last)" : "";
-  return `You caught 1 <img src="${fish.img}" alt="${fish.name}" style="width:18px;height:18px;vertical-align:-3px;margin:0 4px 0 6px;border-radius:4px;object-fit:cover;">${fish.name}${lastText} (+${xpGain} XP)`;
+  return `You caught 1 <img src="${fish.img}" alt="${fish.name}" style="width:18px;height:18px;vertical-align:-3px;margin:0 4px 0 6px;border-radius:4px;object-fit:cover;">${fish.name}${lastText} (+${xpGain} XP)${sigilDrop ? " | Warden Sigil +1" : ""}`;
 }
 
 function stopCooldownUI(){
@@ -711,13 +719,19 @@ function fishTick(){
   }
   const roughGemDrop = rollRoughGemDrop();
   if (roughGemDrop) addToInventoryStack(s, roughGemDrop, 1);
+  let sigilDrop = false;
+  if (Math.random() < WARDEN_SIGIL_DROP_CHANCE) {
+    addToInventoryStack(s, { ...WARDEN_SIGIL_ITEM }, 1);
+    sigilDrop = true;
+  }
 
   // Stats
   incStat(s, "fishingTicks", 1);
   tickGatheringPotionActions(s, 1);
 
   // XP gain (simple core)
-  const totalXpGain = Math.max(1, Math.round(gatherXpForReq(spot.req) * (1 + petBonus.xpPct)));
+  const buildingPct = Math.max(0, num(s.anglerPierLevel, 0)) * 0.0005;
+  const totalXpGain = Math.max(1, Math.round(gatherXpForReq(spot.req) * (1 + petBonus.xpPct + buildingPct)));
   const petSplit = window.DS?.pets?.splitXpWithPet
     ? window.DS.pets.splitXpWithPet(s, "gathering", totalXpGain)
     : { playerXpGain: totalXpGain, petXpGain: 0, petLevelUps: 0, petLevel: 0, petName: "" };
@@ -740,13 +754,13 @@ function fishTick(){
     targetRemaining -= 1;
     updateTargetUI();
     if (targetRemaining <= 0){
-      setMsg("Target completed! " + buildFishMessage(f, xpGain, true) + (roughGemDrop ? ` <span style="color:#9ff0b7;">| <img src="${roughGemDrop.img}" alt="${roughGemDrop.name}" style="width:16px;height:16px;vertical-align:-3px;margin:0 4px;border-radius:4px;">${roughGemDrop.name} dropped!</span>` : "") + (petSplit.petXpGain > 0 ? ` <span style="color:#9fb5ff;">| Pet XP +${petSplit.petXpGain}</span>` : "") + (petSplit.petLevelUps > 0 ? ` <span style="color:#f7df8a;">| ${petSplit.petName} Lvl ${petSplit.petLevel}</span>` : "") + (doubled ? ` <span style="color:#9ff0b7;">Double Gather!</span>` : ""));
+      setMsg("Target completed! " + buildFishMessage(f, xpGain, sigilDrop, true) + (roughGemDrop ? ` <span style="color:#9ff0b7;">| <img src="${roughGemDrop.img}" alt="${roughGemDrop.name}" style="width:16px;height:16px;vertical-align:-3px;margin:0 4px;border-radius:4px;">${roughGemDrop.name} dropped!</span>` : "") + (petSplit.petXpGain > 0 ? ` <span style="color:#9fb5ff;">| Pet XP +${petSplit.petXpGain}</span>` : "") + (petSplit.petLevelUps > 0 ? ` <span style="color:#f7df8a;">| ${petSplit.petName} Lvl ${petSplit.petLevel}</span>` : "") + (doubled ? ` <span style="color:#9ff0b7;">Double Gather!</span>` : ""));
       stopFishing(true);
       return;
     }
   }
 
-  setMsg(buildFishMessage(f, xpGain, false) + (roughGemDrop ? ` <span style="color:#9ff0b7;">| <img src="${roughGemDrop.img}" alt="${roughGemDrop.name}" style="width:16px;height:16px;vertical-align:-3px;margin:0 4px;border-radius:4px;">${roughGemDrop.name} dropped!</span>` : "") + (petSplit.petXpGain > 0 ? ` <span style="color:#9fb5ff;">| Pet XP +${petSplit.petXpGain}</span>` : "") + (petSplit.petLevelUps > 0 ? ` <span style="color:#f7df8a;">| ${petSplit.petName} Lvl ${petSplit.petLevel}</span>` : "") + (doubled ? ` <span style="color:#9ff0b7;">Double Gather!</span>` : ""));
+  setMsg(buildFishMessage(f, xpGain, sigilDrop, false) + (roughGemDrop ? ` <span style="color:#9ff0b7;">| <img src="${roughGemDrop.img}" alt="${roughGemDrop.name}" style="width:16px;height:16px;vertical-align:-3px;margin:0 4px;border-radius:4px;">${roughGemDrop.name} dropped!</span>` : "") + (petSplit.petXpGain > 0 ? ` <span style="color:#9fb5ff;">| Pet XP +${petSplit.petXpGain}</span>` : "") + (petSplit.petLevelUps > 0 ? ` <span style="color:#f7df8a;">| ${petSplit.petName} Lvl ${petSplit.petLevel}</span>` : "") + (doubled ? ` <span style="color:#9ff0b7;">Double Gather!</span>` : ""));
   touchActionLock();
   scheduleNext(false);
 }

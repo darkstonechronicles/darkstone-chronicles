@@ -21,6 +21,22 @@
       </div>
     </div>
 
+    <div class="profXpShell">
+      <div class="profBonusCard" style="padding:12px;width:100%;min-height:56px;display:flex;align-items:flex-start;gap:10px;">
+        <div style="font-weight:800;font-size:14px;white-space:nowrap;line-height:1.05;text-align:center;">Bonus<br>XP</div>
+        <div style="width:1px;align-self:stretch;background:#333;"></div>
+        <div style="flex:1;display:flex;flex-direction:column;justify-content:flex-start;gap:2px;padding-top:2px;">
+          <div style="display:grid;grid-template-columns:1fr;gap:8px;font-size:11px;font-weight:700;opacity:.9;text-align:center;align-items:center;">
+            <div>Building</div>
+          </div>
+          <div style="height:1px;background:#333;width:100%;"></div>
+          <div style="display:grid;grid-template-columns:1fr;gap:8px;min-height:14px;align-items:stretch;text-align:center;font-size:11px;font-weight:700;color:#cfe7ff;">
+            <div id="enchBonusBuildingValue">+0%</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <div id="selectedCard" class="profActionCard" style="display:none;">
       <div style="font-weight:900;font-size:16px;margin-bottom:10px;">Selected Item</div>
 
@@ -214,6 +230,7 @@
     s.enchantingLevel = Math.max(1, num(s.enchantingLevel, 1));
     s.enchantingXP = Math.max(0, num(s.enchantingXP, 0));
     s.enchantingXPNext = Math.max(1, num(s.enchantingXPNext, xpNextForLevel(s.enchantingLevel)));
+    s.enchanterSanctumLevel = Math.max(0, Math.round(num(s.enchanterSanctumLevel, 0)));
     return s;
   }
 
@@ -362,8 +379,17 @@
     save.defenseTotal = baseDef + defBonus;
   }
 
+  function getEnchantingBuildingPct(save) {
+    return Math.max(0, num(save?.enchanterSanctumLevel, 0)) * 0.0005;
+  }
+
+  function formatPct(value) {
+    return `+${(num(value, 0) * 100).toFixed(1)}%`;
+  }
+
   function gainEnchantXP(save, amount) {
-    save.enchantingXP += Math.max(0, Math.round(num(amount, 0)));
+    const totalMult = 1 + getEnchantingBuildingPct(save);
+    save.enchantingXP += Math.max(0, Math.round(num(amount, 0) * totalMult));
     save.enchantingXPNext = xpNextForLevel(save.enchantingLevel);
     while (save.enchantingXP >= save.enchantingXPNext) {
       save.enchantingXP -= save.enchantingXPNext;
@@ -437,6 +463,7 @@
       el("enchXPBar").style.width = `${pct}%`;
       el("enchXPBar").style.background = xpBarGradient(pct);
     }
+    if (el("enchBonusBuildingValue")) el("enchBonusBuildingValue").textContent = formatPct(getEnchantingBuildingPct(save));
   }
 
   function renderGearList(save, selectedIndex) {

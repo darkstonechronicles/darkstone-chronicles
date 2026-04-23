@@ -63,7 +63,7 @@
       levelKey: "forgeAcademyLevel",
       sigilName: "Ore Sigil",
       bonusPerLevel: BUILDING_BONUS_PER_LEVEL,
-      bonusText: "Blacksmith XP",
+      bonusText: "Forge XP",
       desc: "Bonus applies only to smelting XP.",
       img: "images/buildings/forge_academy.png"
     },
@@ -106,6 +106,56 @@
       bonusText: "Alchemy XP",
       desc: "Bonus applies only to potion brewing XP.",
       img: "images/buildings/forge_academy.png"
+    },
+    {
+      id: "hunterLodge",
+      name: "Hunter Lodge",
+      levelKey: "hunterLodgeLevel",
+      sigilName: "Warden Sigil",
+      bonusPerLevel: BUILDING_BONUS_PER_LEVEL,
+      bonusText: "Hunting XP",
+      desc: "Bonus applies only to hunting XP.",
+      img: "images/buildings/miner_hut.png"
+    },
+    {
+      id: "anglerPier",
+      name: "Angler Pier",
+      levelKey: "anglerPierLevel",
+      sigilName: "Warden Sigil",
+      bonusPerLevel: BUILDING_BONUS_PER_LEVEL,
+      bonusText: "Fishing XP",
+      desc: "Bonus applies only to fishing XP.",
+      img: "images/buildings/miner_hut.png"
+    },
+    {
+      id: "cookhouse",
+      name: "Cookhouse",
+      levelKey: "cookhouseLevel",
+      sigilName: "Warden Sigil",
+      bonusPerLevel: BUILDING_BONUS_PER_LEVEL,
+      bonusText: "Cooking XP",
+      desc: "Bonus applies only to cooking XP.",
+      img: "images/buildings/forge_academy.png"
+    },
+    {
+      id: "enchanterSanctum",
+      name: "Enchanter Sanctum",
+      levelKey: "enchanterSanctumLevel",
+      sigilPool: "existing",
+      bonusPerLevel: BUILDING_BONUS_PER_LEVEL,
+      bonusText: "Enchanting XP",
+      desc: "Bonus applies only to enchanting XP.",
+      img: "images/buildings/forge_academy.png"
+    },
+    {
+      id: "jewelcrafterAtelier",
+      name: "Jewelcrafter Atelier",
+      levelKey: "jewelcrafterAtelierLevel",
+      sigilPool: "existing",
+      bonusPerLevel: BUILDING_BONUS_PER_LEVEL,
+      bonusText: "Jewelcrafting XP",
+      desc: "Bonus applies only to jewelcrafting XP.",
+      img: "images/buildings/forge_academy.png"
     }
   ];
 
@@ -116,25 +166,92 @@
     { min: 91, max: 120, bar: "Mithril Bar", plank: "Oak Plank", sigilBase: 10 },
     { min: 121, max: 150, bar: "Adamant Bar", plank: "Cedar Plank", sigilBase: 13 }
   ];
+  const GEM_COLORS = ["Ruby", "Sapphire", "Emerald", "Topaz", "Amethyst"];
+  const EXISTING_SIGILS = ["War Sigil", "Crypt Sigil", "Ore Sigil", "Wood Sigil", "Verdant Sigil", "Warden Sigil"];
+
+  function seededHash(value){
+    let hash = 2166136261;
+    const text = String(value || "");
+    for (let i = 0; i < text.length; i++){
+      hash ^= text.charCodeAt(i);
+      hash = Math.imul(hash, 16777619);
+    }
+    return hash >>> 0;
+  }
+
+  function shuffledList(list, seedText){
+    const arr = [...list];
+    let seed = seededHash(seedText);
+    for (let i = arr.length - 1; i > 0; i--){
+      seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0;
+      const j = seed % (i + 1);
+      const tmp = arr[i];
+      arr[i] = arr[j];
+      arr[j] = tmp;
+    }
+    return arr;
+  }
+
+  function shuffledGemColors(seedText){
+    return shuffledList(GEM_COLORS, seedText);
+  }
+
+  function getSigilRequirementName(level, building){
+    const pool = building?.sigilPool === "existing"
+      ? EXISTING_SIGILS
+      : (Array.isArray(building?.sigilPool) ? building.sigilPool : null);
+    if (!pool || !pool.length) return building?.sigilName || "";
+    const block = Math.floor((level - 1) / pool.length);
+    const index = (level - 1) % pool.length;
+    return shuffledList(pool, `${building?.id || "building"}:sigil:${block}`)[index];
+  }
+
+  function getGemRequirementForLevel(level, buildingId){
+    if (level < 1 || level > MAX_LEVEL) return null;
+    const block = Math.floor((level - 1) / GEM_COLORS.length);
+    const index = (level - 1) % GEM_COLORS.length;
+    const color = shuffledGemColors(`${buildingId || "building"}:${block}`)[index];
+    let quality = "Refined";
+    let tierStart = 1;
+    if (level >= 150) {
+      quality = "Exquisite";
+      tierStart = 150;
+    } else if (level >= 100) {
+      quality = "Masterwork";
+      tierStart = 100;
+    } else if (level >= 50) {
+      quality = "Flawless";
+      tierStart = 50;
+    }
+    const qty = quality === "Exquisite"
+      ? 3
+      : 2 + Math.floor((level - tierStart) / 10);
+    return { name: `${quality} ${color}`, qty };
+  }
 
   function getTierForLevel(level){
     return TIERS.find((t) => level >= t.min && level <= t.max) || null;
   }
 
-  function getCostForLevel(level, sigilName){
+  function getCostForLevel(level, buildingOrSigilName, buildingId = ""){
     if (level < 1 || level > MAX_LEVEL) return null;
     const tier = getTierForLevel(level);
     if (!tier) return null;
 
+    const building = buildingOrSigilName && typeof buildingOrSigilName === "object" ? buildingOrSigilName : null;
+    const sigilName = building ? getSigilRequirementName(level, building) : String(buildingOrSigilName || "");
+    const costBuildingId = building ? building.id : buildingId;
     const offset = Math.floor((level - tier.min) / 10);
     const qty = 5 + (offset * 5);
     const sigils = tier.sigilBase + offset;
+    const gem = getGemRequirementForLevel(level, costBuildingId);
 
     return [
       { name: tier.bar, qty },
       { name: tier.plank, qty },
-      { name: sigilName, qty: sigils }
-    ];
+      { name: sigilName, qty: sigils },
+      gem
+    ].filter(Boolean);
   }
 
   function getQtyByName(inv, name){
@@ -248,7 +365,7 @@
 
     const lvl = Math.max(0, num(save[b.levelKey], 0));
     const nextLvl = lvl + 1;
-    const cost = getCostForLevel(nextLvl, b.sigilName);
+    const cost = getCostForLevel(nextLvl, b);
     const maxed = lvl >= MAX_LEVEL;
     const costLines = cost ? cost.map((c) => `${c.qty} ${c.name}`).join(" | ") : "Max level reached";
 
@@ -293,7 +410,7 @@
     }
 
     const nextLvl = lvl + 1;
-    const cost = getCostForLevel(nextLvl, b.sigilName);
+    const cost = getCostForLevel(nextLvl, b);
     if (!cost){
       setMsg("Invalid upgrade level.");
       return;

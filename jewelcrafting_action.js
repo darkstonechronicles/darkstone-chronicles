@@ -24,16 +24,20 @@
         <div style="font-weight:800;font-size:14px;white-space:nowrap;line-height:1.05;text-align:center;">Bonus<br>XP</div>
         <div style="width:1px;align-self:stretch;background:#333;"></div>
         <div style="flex:1;display:flex;flex-direction:column;justify-content:flex-start;gap:2px;padding-top:2px;">
-          <div style="display:grid;grid-template-columns:0.8fr 1px 1.5fr 1px 1fr;gap:8px;font-size:11px;font-weight:700;opacity:.9;text-align:center;align-items:center;">
+          <div style="display:grid;grid-template-columns:0.8fr 1px 1.1fr 1px 1.5fr 1px 1fr;gap:8px;font-size:11px;font-weight:700;opacity:.9;text-align:center;align-items:center;">
             <div>Pet</div>
+            <div style="width:1px;align-self:stretch;background:#333;"></div>
+            <div>Building</div>
             <div style="width:1px;align-self:stretch;background:#333;"></div>
             <div style="font-size:10px;line-height:1;white-space:nowrap;align-self:center;">Double Craft</div>
             <div style="width:1px;align-self:stretch;background:#333;"></div>
             <div>Potion</div>
           </div>
           <div style="height:1px;background:#333;width:100%;"></div>
-          <div style="display:grid;grid-template-columns:0.8fr 1px 1.5fr 1px 1fr;gap:8px;min-height:14px;align-items:stretch;text-align:center;font-size:11px;font-weight:700;color:#cfe7ff;">
+          <div style="display:grid;grid-template-columns:0.8fr 1px 1.1fr 1px 1.5fr 1px 1fr;gap:8px;min-height:14px;align-items:stretch;text-align:center;font-size:11px;font-weight:700;color:#cfe7ff;">
             <div id="artisanBonusPetValue">+0%</div>
+            <div style="width:1px;align-self:stretch;background:#333;"></div>
+            <div id="artisanBonusBuildingValue">+0%</div>
             <div style="width:1px;align-self:stretch;background:#333;"></div>
             <div id="artisanBonusDoubleValue">+0%</div>
             <div style="width:1px;align-self:stretch;background:#333;"></div>
@@ -600,9 +604,11 @@
   function getArtisanBonuses(save) {
     const petBonus = window.DS?.pets?.getArtisanPetBonuses?.(save?.pets?.artisan) || { professionXpPct: 0, doubleCraftPct: 0 };
     const potionPct = Math.max(0, getArtisanPotionBonus(save) * 0.01);
+    const buildingPct = Math.max(0, num(save?.jewelcrafterAtelierLevel, 0)) * 0.0005;
     return {
       petXpPct: num(petBonus.professionXpPct, 0),
       doublePct: num(petBonus.doubleCraftPct, 0),
+      buildingPct,
       potionPct
     };
   }
@@ -676,7 +682,7 @@
 
   function gainJewelcraftingXp(save, baseXp) {
     const bonuses = getArtisanBonuses(save);
-    const totalMult = 1 + bonuses.petXpPct + bonuses.potionPct;
+    const totalMult = 1 + bonuses.petXpPct + bonuses.buildingPct + bonuses.potionPct;
     const gained = Math.max(1, Math.round(num(baseXp, 0) * totalMult));
     save.jewelcraftingXP += gained;
     save.jewelcraftingXPNext = xpNextForLevel(save.jewelcraftingLevel);
@@ -709,9 +715,11 @@
     const save = ensureSave(loadSave());
     const bonuses = getArtisanBonuses(save);
     const petEl = document.getElementById("artisanBonusPetValue");
+    const buildingEl = document.getElementById("artisanBonusBuildingValue");
     const doubleEl = document.getElementById("artisanBonusDoubleValue");
     const potionEl = document.getElementById("artisanBonusPotionValue");
     if (petEl) petEl.textContent = formatPct(bonuses.petXpPct);
+    if (buildingEl) buildingEl.textContent = formatPct(bonuses.buildingPct);
     if (doubleEl) doubleEl.textContent = formatPct(bonuses.doublePct);
     if (potionEl) potionEl.textContent = formatPct(bonuses.potionPct);
   }

@@ -1113,6 +1113,15 @@
     s.cryptHallLevel = Math.max(0, Math.round(num(s.cryptHallLevel, 0)));
     s.minerHutLevel = Math.max(0, Math.round(num(s.minerHutLevel, 0)));
     s.forgeAcademyLevel = Math.max(0, Math.round(num(s.forgeAcademyLevel, 0)));
+    s.foresterLodgeLevel = Math.max(0, Math.round(num(s.foresterLodgeLevel, 0)));
+    s.carpenterWorkshopLevel = Math.max(0, Math.round(num(s.carpenterWorkshopLevel, 0)));
+    s.herbalistConservatoryLevel = Math.max(0, Math.round(num(s.herbalistConservatoryLevel, 0)));
+    s.alchemistLaboratoryLevel = Math.max(0, Math.round(num(s.alchemistLaboratoryLevel, 0)));
+    s.hunterLodgeLevel = Math.max(0, Math.round(num(s.hunterLodgeLevel, 0)));
+    s.anglerPierLevel = Math.max(0, Math.round(num(s.anglerPierLevel, 0)));
+    s.cookhouseLevel = Math.max(0, Math.round(num(s.cookhouseLevel, 0)));
+    s.enchanterSanctumLevel = Math.max(0, Math.round(num(s.enchanterSanctumLevel, 0)));
+    s.jewelcrafterAtelierLevel = Math.max(0, Math.round(num(s.jewelcrafterAtelierLevel, 0)));
 
     s.gold = num(s.gold, 0);
     s.darkStones = Math.max(0, num(s.darkStones, 0));
