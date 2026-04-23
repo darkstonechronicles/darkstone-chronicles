@@ -18,7 +18,13 @@ type GrantItem = Record<string, unknown> & {
 type GrantPayload = {
   targetUserId?: string;
   targetHeroName?: string;
+  targetEmail?: string;
   clearChat?: "global" | "market";
+  resetPlayer?: boolean | {
+    releaseHeroName?: boolean;
+    clearMarketListings?: boolean;
+    clearPartyState?: boolean;
+  };
   set?: {
     gold?: number;
     heroLevel?: number;
@@ -356,6 +362,32 @@ function buildPublicStats(save: Record<string, unknown>, email: string) {
   };
 }
 
+function resetOptions(payload: GrantPayload) {
+  const raw = payload.resetPlayer;
+  if (!raw) {
+    return {
+      enabled: false,
+      releaseHeroName: false,
+      clearMarketListings: false,
+      clearPartyState: false,
+    };
+  }
+  if (typeof raw === "object") {
+    return {
+      enabled: true,
+      releaseHeroName: raw.releaseHeroName !== false,
+      clearMarketListings: raw.clearMarketListings !== false,
+      clearPartyState: raw.clearPartyState !== false,
+    };
+  }
+  return {
+    enabled: true,
+    releaseHeroName: true,
+    clearMarketListings: true,
+    clearPartyState: true,
+  };
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
@@ -413,7 +445,24 @@ Deno.serve(async (req) => {
   }
 
   const targetHeroName = String(payload.targetHeroName || "").trim();
+  const targetEmail = String(payload.targetEmail || "").trim().toLowerCase();
   let targetUserId = String(payload.targetUserId || "").trim();
+
+  if (!targetUserId && targetEmail) {
+    const { data: emailProfileRow, error: emailProfileError } = await admin
+      .from("profiles")
+      .select("id")
+      .ilike("email", targetEmail)
+      .maybeSingle();
+
+    if (emailProfileError) {
+      return json({ error: emailProfileError.message }, { status: 500 });
+    }
+    if (!emailProfileRow?.id) {
+      return json({ error: `Email '${targetEmail}' not found.` }, { status: 404 });
+    }
+    targetUserId = String(emailProfileRow.id);
+  }
 
   if (!targetUserId && targetHeroName) {
     const normalizedName = targetHeroName.trim().toLowerCase();
@@ -461,6 +510,105 @@ Deno.serve(async (req) => {
     existingSaveRow?.save_data && typeof existingSaveRow.save_data === "object"
       ? { ...(existingSaveRow.save_data as Record<string, unknown>) }
       : {};
+
+  const reset = resetOptions(payload);
+  if (reset.enabled) {
+    const currentRevision = Math.max(0, safeInt(existingSaveRow?.revision, 0));
+
+    const { error: backupError } = await admin.from("player_save_backups").insert({
+      user_id: targetUserId,
+      actor_user_id: user.id,
+      reason: "admin-reset",
+      save_data: save,
+      revision: currentRevision,
+    });
+    if (backupError) {
+      return json({ error: `Could not create reset backup: ${backupError.message}` }, { status: 500 });
+    }
+
+    if (reset.clearMarketListings) {
+      const { error: listingsError } = await admin
+        .from("market_listings")
+        .update({
+          status: "cancelled",
+        })
+        .eq("seller_user_id", targetUserId)
+        .eq("status", "active");
+      if (listingsError) {
+        return json({ error: listingsError.message }, { status: 500 });
+      }
+    }
+
+    if (reset.clearPartyState) {
+      await admin.from("party_join_requests").delete().eq("user_id", targetUserId);
+      await admin.from("party_invites").delete().eq("from_user_id", targetUserId);
+      await admin.from("party_invites").delete().eq("to_user_id", targetUserId);
+      await admin.from("party_members").delete().eq("user_id", targetUserId);
+      await admin
+        .from("parties")
+        .update({
+          state: "disbanded",
+          disbanded_at: new Date().toISOString(),
+          locked: true,
+        })
+        .eq("leader_user_id", targetUserId)
+        .neq("state", "disbanded");
+    }
+
+    if (reset.releaseHeroName) {
+      const { error: heroNameDeleteError } = await admin
+        .from("hero_names")
+        .delete()
+        .eq("user_id", targetUserId);
+      if (heroNameDeleteError) {
+        return json({ error: heroNameDeleteError.message }, { status: 500 });
+      }
+    }
+
+    const emptySave: Record<string, unknown> = {};
+    const nextRevision = currentRevision + 1;
+    const { error: saveError } = await admin.from("player_saves").upsert({
+      user_id: targetUserId,
+      save_data: emptySave,
+      revision: nextRevision,
+      last_synced_at: new Date().toISOString(),
+    });
+    if (saveError) {
+      return json({ error: saveError.message }, { status: 500 });
+    }
+
+    const fallbackEmail = String(targetProfileRow.email || targetEmail || user.email || "hero@darkstone.local");
+    const publicStats = buildPublicStats(emptySave, fallbackEmail);
+    const { error: statsError } = await admin.from("player_public_stats").upsert({
+      user_id: targetUserId,
+      ...publicStats,
+    });
+    if (statsError) {
+      return json({ error: statsError.message }, { status: 500 });
+    }
+
+    const { error: profileError } = await admin
+      .from("profiles")
+      .update({
+        display_name: fallbackEmail.split("@")[0] || "Hero",
+        active_session_id: null,
+        active_session_claimed_at: null,
+      })
+      .eq("id", targetUserId);
+    if (profileError) {
+      return json({ error: profileError.message }, { status: 500 });
+    }
+
+    return json({
+      ok: true,
+      reset: true,
+      userId: targetUserId,
+      actorUserId: user.id,
+      revision: nextRevision,
+      releasedHeroName: reset.releaseHeroName,
+      publicStats,
+    });
+  }
 
   const setOps = payload.set || {};
   const addOps = payload.add || {};

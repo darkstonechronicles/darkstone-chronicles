@@ -4498,12 +4498,22 @@ function ensureAdminToolsModal() {
         <button id="dsAdminApplyLevel" type="button" class="townBtn" style="width:100%;">Apply Level</button>
       </div>
 
-      <div style="margin-top:14px;padding-top:14px;border-top:1px solid rgba(255,255,255,.08);display:grid;grid-template-columns:minmax(0,1fr) 170px;gap:10px;align-items:end;">
-        <label style="display:flex;flex-direction:column;gap:6px;">
-          <span style="font-size:12px;font-weight:800;opacity:.88;">Target Hero Name</span>
-          <input id="dsAdminTargetHeroName" type="text" placeholder="kentros" style="height:38px;border-radius:10px;border:1px solid rgba(255,255,255,.12);background:#10131d;color:#eef2ff;padding:0 10px;">
-        </label>
-        <button id="dsAdminResetPetsLv1" type="button" class="townBtn" style="width:100%;">Reset Pets to Lv 1</button>
+      <div style="margin-top:14px;padding-top:14px;border-top:1px solid rgba(255,255,255,.08);">
+        <div style="font-size:15px;font-weight:900;color:#f3ead6;margin-bottom:10px;">Target Player Tools</div>
+        <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-bottom:10px;">
+          <label style="display:flex;flex-direction:column;gap:6px;">
+            <span style="font-size:12px;font-weight:800;opacity:.88;">Target Hero Name</span>
+            <input id="dsAdminTargetHeroName" type="text" placeholder="kazoul" style="height:38px;border-radius:10px;border:1px solid rgba(255,255,255,.12);background:#10131d;color:#eef2ff;padding:0 10px;">
+          </label>
+          <label style="display:flex;flex-direction:column;gap:6px;">
+            <span style="font-size:12px;font-weight:800;opacity:.88;">Target Email</span>
+            <input id="dsAdminTargetEmail" type="email" placeholder="tomazosnikolaos@gmail.com" style="height:38px;border-radius:10px;border:1px solid rgba(255,255,255,.12);background:#10131d;color:#eef2ff;padding:0 10px;">
+          </label>
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;">
+          <button id="dsAdminResetTargetAccount" type="button" class="townBtn" style="width:100%;border-color:#9d3d4c;background:linear-gradient(180deg,#6a2431,#47131f);color:#fff0f3;">Reset Target Account</button>
+          <button id="dsAdminResetPetsLv1" type="button" class="townBtn" style="width:100%;">Reset Pets to Lv 1</button>
+        </div>
       </div>
 
       <div style="margin-top:10px;display:grid;grid-template-columns:minmax(0,1fr) 170px;gap:10px;align-items:end;">
@@ -4611,6 +4621,14 @@ function bindAdminToolsModal() {
       setStatus(error?.message || "Admin grant failed.", true);
     }
   };
+  const getAdminTargetPayload = () => {
+    const heroName = String(modal.querySelector("#dsAdminTargetHeroName")?.value || "").trim();
+    const email = String(modal.querySelector("#dsAdminTargetEmail")?.value || "").trim();
+    const payload = {};
+    if (email) payload.targetEmail = email;
+    else if (heroName) payload.targetHeroName = heroName;
+    return { payload, heroName, email };
+  };
 
   modal.addEventListener("click", (e) => {
     if (e.target === modal) closeAdminToolsModal();
@@ -4681,6 +4699,24 @@ function bindAdminToolsModal() {
     }
     const result = setAdminPetLevel(slotKey, Math.trunc(level));
     setStatus(result.msg, !result.ok);
+  });
+
+  modal.querySelector("#dsAdminResetTargetAccount")?.addEventListener("click", () => {
+    const { payload, heroName, email } = getAdminTargetPayload();
+    const label = email || heroName;
+    if (!label) {
+      setStatus("Enter a target email or hero name first.", true);
+      return;
+    }
+    if (!window.confirm(`This will reset ${label} to a new account state and release their hero name. Type OK only if you are sure.`)) return;
+    runGrant({
+      ...payload,
+      resetPlayer: {
+        releaseHeroName: true,
+        clearMarketListings: true,
+        clearPartyState: true
+      }
+    }, `Reset ${label}. Hero name released.`);
   });
 
   modal.querySelector("#dsAdminSetTargetGold")?.addEventListener("click", () => {
