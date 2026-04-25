@@ -362,6 +362,25 @@ function buildPublicStats(save: Record<string, unknown>, email: string) {
   };
 }
 
+function omitJewelcraftingStats(stats: Record<string, unknown>) {
+  const next = { ...stats };
+  delete next.jewelcrafting_level;
+  delete next.jewelcrafting_xp;
+  return next;
+}
+
+function isMissingJewelcraftingStatsColumn(error: unknown) {
+  const message = String((error as { message?: unknown } | null)?.message || error || "");
+  return /jewelcrafting_(level|xp).*schema cache/i.test(message)
+    || /schema cache.*jewelcrafting_(level|xp)/i.test(message);
+}
+
+async function upsertPublicStats(admin: ReturnType<typeof createClient>, payload: Record<string, unknown>) {
+  const first = await admin.from("player_public_stats").upsert(payload);
+  if (!first.error || !isMissingJewelcraftingStatsColumn(first.error)) return first;
+  return await admin.from("player_public_stats").upsert(omitJewelcraftingStats(payload));
+}
+
 function resetOptions(payload: GrantPayload) {
   const raw = payload.resetPlayer;
   if (!raw) {
@@ -584,7 +603,7 @@ Deno.serve(async (req) => {
 
     const fallbackEmail = String(targetProfileRow.email || targetEmail || user.email || "hero@darkstone.local");
     const publicStats = buildPublicStats(emptySave, fallbackEmail);
-    const { error: statsError } = await admin.from("player_public_stats").upsert({
+    const { error: statsError } = await upsertPublicStats(admin, {
       user_id: targetUserId,
       ...publicStats,
     });
@@ -700,7 +719,7 @@ Deno.serve(async (req) => {
   }
 
   const publicStats = buildPublicStats(save, String(targetProfileRow.email || user.email || "hero@darkstone.local"));
-  const { error: statsError } = await admin.from("player_public_stats").upsert({
+  const { error: statsError } = await upsertPublicStats(admin, {
     user_id: targetUserId,
     ...publicStats,
   });

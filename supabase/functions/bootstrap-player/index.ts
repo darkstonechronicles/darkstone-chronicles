@@ -212,6 +212,8 @@ Deno.serve(async (req) => {
     alchemy_xp: stats.alchemyXP,
     enchanting_level: stats.enchantingLevel,
     enchanting_xp: stats.enchantingXP,
+    jewelcrafting_level: stats.jewelcraftingLevel,
+    jewelcrafting_xp: stats.jewelcraftingXP,
     dungeons_completed: stats.dungeonsCompleted,
     total_gold: stats.totalGold,
     combat_power: stats.combatPower,
