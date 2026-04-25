@@ -6,7 +6,7 @@
     <h1>Buildings</h1>
 
     <div id="buildingsWrap" style="max-width:900px;margin:0 auto;display:grid;gap:18px;">
-      <div id="buildingsGrid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:16px;justify-items:center;"></div>
+      <div id="buildingsGrid" style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));column-gap:14px;row-gap:22px;justify-items:center;"></div>
       <div id="buildingDetail" style="display:none;background:var(--card-medieval-bg);border:1px solid var(--card-medieval-border);border-radius:14px;padding:16px;box-shadow:var(--card-medieval-shadow);"></div>
     </div>
 
@@ -75,7 +75,7 @@
       bonusPerLevel: BUILDING_BONUS_PER_LEVEL,
       bonusText: "Woodcutting XP",
       desc: "Bonus applies only to wood gathering XP.",
-      img: "images/buildings/miner_hut.png"
+      img: "images/buildings/forester_lodge.png"
     },
     {
       id: "carpenterWorkshop",
@@ -85,7 +85,7 @@
       bonusPerLevel: BUILDING_BONUS_PER_LEVEL,
       bonusText: "Carpentry XP",
       desc: "Bonus applies only to plank crafting XP.",
-      img: "images/buildings/forge_academy.png"
+      img: "images/buildings/carpenter_workshop.png"
     },
     {
       id: "herbalistConservatory",
@@ -95,7 +95,7 @@
       bonusPerLevel: BUILDING_BONUS_PER_LEVEL,
       bonusText: "Herbalism XP",
       desc: "Bonus applies only to herb gathering XP.",
-      img: "images/buildings/miner_hut.png"
+      img: "images/buildings/herbalist_conservatory.png"
     },
     {
       id: "alchemistLaboratory",
@@ -105,7 +105,7 @@
       bonusPerLevel: BUILDING_BONUS_PER_LEVEL,
       bonusText: "Alchemy XP",
       desc: "Bonus applies only to potion brewing XP.",
-      img: "images/buildings/forge_academy.png"
+      img: "images/buildings/alchemist_laboratory.png"
     },
     {
       id: "hunterLodge",
@@ -115,7 +115,7 @@
       bonusPerLevel: BUILDING_BONUS_PER_LEVEL,
       bonusText: "Hunting XP",
       desc: "Bonus applies only to hunting XP.",
-      img: "images/buildings/miner_hut.png"
+      img: "images/buildings/hunter_lodge.png"
     },
     {
       id: "anglerPier",
@@ -125,7 +125,7 @@
       bonusPerLevel: BUILDING_BONUS_PER_LEVEL,
       bonusText: "Fishing XP",
       desc: "Bonus applies only to fishing XP.",
-      img: "images/buildings/miner_hut.png"
+      img: "images/buildings/angler_pier.png"
     },
     {
       id: "cookhouse",
@@ -135,7 +135,7 @@
       bonusPerLevel: BUILDING_BONUS_PER_LEVEL,
       bonusText: "Cooking XP",
       desc: "Bonus applies only to cooking XP.",
-      img: "images/buildings/forge_academy.png"
+      img: "images/buildings/cookhouse.png"
     },
     {
       id: "enchanterSanctum",
@@ -145,7 +145,7 @@
       bonusPerLevel: BUILDING_BONUS_PER_LEVEL,
       bonusText: "Enchanting XP",
       desc: "Bonus applies only to enchanting XP.",
-      img: "images/buildings/forge_academy.png"
+      img: "images/buildings/enchanter_sanctum.png"
     },
     {
       id: "jewelcrafterAtelier",
@@ -155,7 +155,7 @@
       bonusPerLevel: BUILDING_BONUS_PER_LEVEL,
       bonusText: "Jewelcrafting XP",
       desc: "Bonus applies only to jewelcrafting XP.",
-      img: "images/buildings/forge_academy.png"
+      img: "images/buildings/jewelcrafter_atelier.png"
     }
   ];
 
@@ -322,44 +322,47 @@
       if (!Number.isFinite(Number(save[b.levelKey]))) save[b.levelKey] = 0;
     });
 
-    grid.innerHTML = "";
-
-    for (const b of BUILDINGS){
-      const lvl = Math.max(0, num(save[b.levelKey], 0));
-      const isSelected = selectedBuildingId === b.id;
-      const card = document.createElement("button");
-      card.type = "button";
-      card.style.width = "100%";
-      card.style.maxWidth = "160px";
-      card.style.padding = "0";
-      card.style.border = "0";
-      card.style.background = "transparent";
-      card.style.color = "#fff";
-      card.style.display = "flex";
-      card.style.flexDirection = "column";
-      card.style.alignItems = "center";
-      card.style.gap = "10px";
-      card.style.cursor = "pointer";
-      card.innerHTML = `
-        <span style="width:84px;height:84px;padding:4px;border-radius:10px;border:1px solid ${isSelected ? "rgba(166,124,64,.98)" : "rgba(126,94,50,.88)"};background:linear-gradient(180deg, rgba(46,35,23,.96) 0%, rgba(24,20,19,.98) 100%);box-shadow:${isSelected ? "0 0 0 1px rgba(60,40,16,.82), inset 0 1px 0 rgba(255,232,184,.12), inset 0 -10px 18px rgba(0,0,0,.22), 0 12px 20px rgba(0,0,0,.2)" : "0 0 0 1px rgba(28,20,12,.84), inset 0 1px 0 rgba(255,228,178,.08), inset 0 -10px 16px rgba(0,0,0,.14), 0 10px 18px rgba(0,0,0,.18)"};">
-          <img src="${b.img}" alt="${b.name}" style="width:100%;height:100%;display:block;object-fit:cover;border-radius:6px;">
-        </span>
-        <span style="min-width:138px;padding:8px 10px;border-radius:10px;border:1px solid ${isSelected ? "rgba(166,124,64,.98)" : "rgba(126,94,50,.88)"};background:linear-gradient(180deg, rgba(86,64,38,.34), rgba(26,23,26,.16) 42%, rgba(0,0,0,.10) 100%), linear-gradient(180deg, #34281d 0%, #1d1a1d 100%);text-align:center;line-height:1.2;box-shadow:${isSelected ? "0 0 0 1px rgba(60,40,16,.82), inset 0 1px 0 rgba(255,232,184,.12), inset 0 -10px 18px rgba(0,0,0,.22), 0 12px 20px rgba(0,0,0,.2)" : "0 0 0 1px rgba(28,20,12,.9), inset 0 1px 0 rgba(255,228,178,.08), inset 0 0 0 1px rgba(255,214,143,.04), inset 0 -8px 14px rgba(0,0,0,.16), 0 8px 16px rgba(0,0,0,.18)"};">
-          <span style="display:block;font-size:14px;font-weight:900;color:#f3ead6;text-shadow:0 1px 0 rgba(74,47,14,.95),0 0 8px rgba(0,0,0,.3),0 2px 6px rgba(0,0,0,.58);">${b.name}</span>
-          <span style="display:block;margin-top:4px;font-size:12px;opacity:.9;color:#e7d7b6;">Level ${lvl}/${MAX_LEVEL}</span>
-        </span>
-      `;
-      card.addEventListener("click", () => {
-        selectedBuildingId = (selectedBuildingId === b.id) ? null : b.id;
-        renderBuildings();
-      });
-      grid.appendChild(card);
-    }
-
     const b = BUILDINGS.find((x) => x.id === selectedBuildingId);
+    if (selectedBuildingId && !b) selectedBuildingId = null;
+
     if (!b){
+      grid.style.display = "grid";
       detail.style.display = "none";
       detail.innerHTML = "";
+
+      grid.innerHTML = "";
+      for (const building of BUILDINGS){
+        const lvl = Math.max(0, num(save[building.levelKey], 0));
+        const card = document.createElement("button");
+        card.type = "button";
+        card.style.width = "100%";
+        card.style.maxWidth = "160px";
+        card.style.padding = "0";
+        card.style.border = "0";
+        card.style.background = "transparent";
+        card.style.color = "#fff";
+        card.style.display = "flex";
+        card.style.flexDirection = "column";
+        card.style.alignItems = "center";
+        card.style.gap = "10px";
+        card.style.cursor = "pointer";
+        card.innerHTML = `
+          <span style="width:84px;height:84px;padding:4px;border-radius:10px;border:1px solid rgba(126,94,50,.88);background:linear-gradient(180deg, rgba(46,35,23,.96) 0%, rgba(24,20,19,.98) 100%);box-shadow:0 0 0 1px rgba(28,20,12,.84), inset 0 1px 0 rgba(255,228,178,.08), inset 0 -10px 16px rgba(0,0,0,.14), 0 10px 18px rgba(0,0,0,.18);">
+            <img src="${building.img}" alt="${building.name}" style="width:100%;height:100%;display:block;object-fit:cover;border-radius:6px;">
+          </span>
+          <span style="width:150px;min-height:86px;box-sizing:border-box;padding:8px 8px;border-radius:10px;border:1px solid rgba(126,94,50,.88);background:linear-gradient(180deg, rgba(86,64,38,.34), rgba(26,23,26,.16) 42%, rgba(0,0,0,.10) 100%), linear-gradient(180deg, #34281d 0%, #1d1a1d 100%);text-align:center;line-height:1.2;display:flex;flex-direction:column;justify-content:center;box-shadow:0 0 0 1px rgba(28,20,12,.9), inset 0 1px 0 rgba(255,228,178,.08), inset 0 0 0 1px rgba(255,214,143,.04), inset 0 -8px 14px rgba(0,0,0,.16), 0 8px 16px rgba(0,0,0,.18);">
+            <span style="display:flex;align-items:center;justify-content:center;min-height:31px;font-size:12.5px;font-weight:900;line-height:1.15;color:#f3ead6;text-shadow:0 1px 0 rgba(74,47,14,.95),0 0 8px rgba(0,0,0,.3),0 2px 6px rgba(0,0,0,.58);overflow-wrap:anywhere;">${building.name}</span>
+            <span style="display:block;margin-top:4px;font-size:12px;line-height:1.1;opacity:.9;color:#e7d7b6;">Level ${lvl}</span>
+            <span style="display:flex;align-items:center;justify-content:center;min-height:27px;margin-top:4px;font-size:11px;line-height:1.2;opacity:.92;color:#d8c08f;overflow-wrap:anywhere;">+${formatBonusPct(bonusPct(lvl, building.bonusPerLevel))}% ${building.bonusText}</span>
+          </span>
+        `;
+        card.addEventListener("click", () => {
+          selectedBuildingId = building.id;
+          setMsg("");
+          renderBuildings();
+        });
+        grid.appendChild(card);
+      }
       return;
     }
 
@@ -369,8 +372,12 @@
     const maxed = lvl >= MAX_LEVEL;
     const costLines = cost ? cost.map((c) => `${c.qty} ${c.name}`).join(" | ") : "Max level reached";
 
+    grid.style.display = "none";
     detail.style.display = "block";
     detail.innerHTML = `
+      <div style="margin-bottom:14px;">
+        <button id="backToBuildingsBtn" type="button">Back</button>
+      </div>
       <div style="display:flex;gap:14px;align-items:flex-start;flex-wrap:wrap;">
         <img src="${b.img}" alt="${b.name}" style="width:96px;height:96px;border-radius:12px;border:1px solid rgba(126,94,50,.88);object-fit:cover;background:linear-gradient(180deg, rgba(46,35,23,.96) 0%, rgba(24,20,19,.98) 100%);box-shadow:0 0 0 1px rgba(28,20,12,.84), inset 0 1px 0 rgba(255,228,178,.08), inset 0 -10px 16px rgba(0,0,0,.14), 0 10px 18px rgba(0,0,0,.18);">
         <div style="flex:1;min-width:240px;">
@@ -392,6 +399,11 @@
       </div>
     `;
 
+    detail.querySelector("#backToBuildingsBtn")?.addEventListener("click", () => {
+      selectedBuildingId = null;
+      setMsg("");
+      renderBuildings();
+    });
     detail.querySelector("#upgradeSelectedBtn")?.addEventListener("click", () => doUpgrade(b.id));
   }
 

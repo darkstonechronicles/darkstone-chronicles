@@ -203,6 +203,8 @@ function getMobCombatStats(mob){
 // =========================
 const ENCOUNTER_COST = 2;
 const ENCOUNTER_CD_MS = 6000;
+const ACTION_ID = "fight";
+const ACTION_LOCK_KEY = "ds_action_lock_v1";
 const MAX_ROUNDS = 15;
 const STAT_POINTS_PER_LEVEL = 5;
 
@@ -2268,6 +2270,63 @@ let autoTimer = null;
 let cdAnimId = null;
 let cdStart = 0;
 
+function loadActionLock(){
+  try { return JSON.parse(localStorage.getItem(ACTION_LOCK_KEY) || "null"); }
+  catch { return null; }
+}
+function saveActionLock(lock){
+  localStorage.setItem(ACTION_LOCK_KEY, JSON.stringify(lock || null));
+}
+function isLockExpired(lock, now){
+  if (!lock || !lock.active) return true;
+  const last = Number(lock.lastPing || 0);
+  return (now - last) > ENCOUNTER_CD_MS * 2;
+}
+function acquireActionLock(){
+  const now = Date.now();
+  const lock = loadActionLock();
+  if (lock && !isLockExpired(lock, now)) {
+    if (lock.actionId && lock.actionId !== ACTION_ID) {
+      return { ok:false, msg:"You are tired. Another action is running." };
+    }
+    if (now < Number(lock.nextAllowedTs || 0)) {
+      const wait = Math.max(0, Number(lock.nextAllowedTs || 0) - now);
+      return { ok:false, msg:`You are tired. Wait ${(wait / 1000).toFixed(1)}s.` };
+    }
+  }
+  saveActionLock({
+    actionId: ACTION_ID,
+    active: true,
+    nextAllowedTs: now + ENCOUNTER_CD_MS,
+    lastPing: now
+  });
+  return { ok:true };
+}
+function getActionWaitMs(){
+  const now = Date.now();
+  const lock = loadActionLock();
+  if (lock && lock.actionId === ACTION_ID && Number.isFinite(Number(lock.nextAllowedTs))) {
+    return Math.max(0, Number(lock.nextAllowedTs) - now);
+  }
+  return ENCOUNTER_CD_MS;
+}
+function touchActionLock(){
+  const now = Date.now();
+  const lock = loadActionLock();
+  if (!lock || lock.actionId !== ACTION_ID) return;
+  lock.active = true;
+  lock.lastPing = now;
+  lock.nextAllowedTs = now + ENCOUNTER_CD_MS;
+  saveActionLock(lock);
+}
+function releaseActionLock(){
+  const lock = loadActionLock();
+  if (lock && lock.actionId === ACTION_ID) {
+    lock.active = false;
+    saveActionLock(lock);
+  }
+}
+
 function openLootPanelFor(lootPanel, currentOpenPanelRef, anchorEl = null) {
   if (!lootPanel) return currentOpenPanelRef || null;
   if (currentOpenPanelRef && currentOpenPanelRef !== lootPanel) {
@@ -2513,10 +2572,11 @@ function stopCooldownUI(){
   if(cooldownText) cooldownText.textContent = (ENCOUNTER_CD_MS/1000).toFixed(1) + "s";
 }
 
-function startCooldownUI(){
+function startCooldownUI(remainingMs = ENCOUNTER_CD_MS){
   if(!cooldownWrap || !cooldownBar || !cooldownText) return;
   cooldownWrap.style.display = "";
-  cdStart = performance.now();
+  const rem = Math.max(0, Math.min(ENCOUNTER_CD_MS, remainingMs));
+  cdStart = performance.now() - (ENCOUNTER_CD_MS - rem);
 
   const tick = (now) => {
     const elapsed = now - cdStart;
@@ -2547,14 +2607,16 @@ function stopAutoFight(silent=false){
   }
   if(!silent) pushBattleLog("⏹ Stopped.");
   stopCooldownUI();
+  releaseActionLock();
 }
 
 function scheduleNextEncounter(){
   if(!autoFighting) return;
   if (window.DS?.isPaused) return;
 
-  startCooldownUI();
-  autoTimer = setTimeout(() => runEncounter(), ENCOUNTER_CD_MS);
+  const waitMs = getActionWaitMs();
+  startCooldownUI(waitMs);
+  autoTimer = setTimeout(() => runEncounter(), waitMs);
 }
 
 // Pause integration
@@ -2794,6 +2856,12 @@ function startBattle(mobData, autoStart=true){
   setEncounterDamage(0, 0);
 
   if(autoStart !== false){
+    const lock = acquireActionLock();
+    if (!lock.ok) {
+      pushBattleLog(lock.msg);
+      autoFighting = false;
+      return;
+    }
     autoFighting = true;
     pushBattleLog(`▶ Auto-Resolve started. Encounter every ${ENCOUNTER_CD_MS/1000}s.`);
     runEncounter();
@@ -2873,6 +2941,7 @@ window.DS?.stats?.inc("fightsLost", 1);
 
   if(currentMob.hp > 0 && rounds >= MAX_ROUNDS){
     pushBattleLog(`🏃 ${currentMob.name} fled after ${MAX_ROUNDS} rounds. (No rewards)`);
+    touchActionLock();
     scheduleNextEncounter();
     return;
   }
@@ -2946,6 +3015,7 @@ pushBattleLog(`✅ Won vs ${currentMob.name} in ${rounds} rounds. 🏆 XP +${pla
   hero = getHeroState();
   setHeroHPToSave(hero.hp, hero.hpMax);
 
+  touchActionLock();
   scheduleNextEncounter();
 }
 
@@ -3001,6 +3071,11 @@ function handleFightAttackClick() {
     return;
   }
   if(!autoFighting){
+    const lock = acquireActionLock();
+    if (!lock.ok) {
+      pushBattleLog(lock.msg);
+      return;
+    }
     autoFighting = true;
     pushBattleLog(`▶ Auto-Resolve started. Encounter every ${ENCOUNTER_CD_MS/1000}s.`);
     runEncounter();

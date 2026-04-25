@@ -15,6 +15,13 @@ const PARTY_MONSTER_ORDER = [
   "stormglass-seraph",
   "cryptwarden-revenant",
 ];
+const PARTY_MONSTER_ID_ALIASES: Record<string, string> = {
+  "mirehook-ravager": "gravefang-hydra",
+  "gloomtail-stalker": "embermaw-colossus",
+  "ashhide-brute": "thornveil-broodmother",
+  "frostvein-harrier": "stormglass-seraph",
+  "ironroot-mauler": "cryptwarden-revenant",
+};
 
 const PARTY_FIGHT_ENCOUNTER_MS = 6000;
 const PARTY_FIGHT_MAX_ROUNDS = 15;
@@ -28,48 +35,48 @@ const POTION_ACTIONS = 100;
 const PARTY_FIGHT_MONSTERS: Record<string, JsonRecord> = {
   "gravefang-hydra": {
     id: "gravefang-hydra",
-    name: "Gravefang Hydra",
-    img: "images/mobs/fighting/zone10/void_devourer.png",
-    level: 18,
-    attack: 58,
-    defense: 46,
-    hp: 420,
+    name: "Mirehook Ravager",
+    img: "images/mobs/party/mirehook_ravager.png",
+    level: 14,
+    attack: 42,
+    defense: 34,
+    hp: 340,
   },
   "embermaw-colossus": {
     id: "embermaw-colossus",
-    name: "Embermaw Colossus",
-    img: "images/mobs/fighting/zone9/inferno_titan.png",
-    level: 22,
-    attack: 64,
-    defense: 60,
-    hp: 520,
+    name: "Gloomtail Stalker",
+    img: "images/mobs/party/gloomtail_stalker.png",
+    level: 16,
+    attack: 49,
+    defense: 31,
+    hp: 360,
   },
   "thornveil-broodmother": {
     id: "thornveil-broodmother",
-    name: "Thornveil Broodmother",
-    img: "images/mobs/fighting/zone7/heart_of_the_thicket.png",
-    level: 16,
-    attack: 49,
-    defense: 38,
-    hp: 360,
+    name: "Ashhide Brute",
+    img: "images/mobs/party/ashhide_brute.png",
+    level: 18,
+    attack: 54,
+    defense: 43,
+    hp: 420,
   },
   "stormglass-seraph": {
     id: "stormglass-seraph",
-    name: "Stormglass Seraph",
-    img: "images/mobs/fighting/zone8/ancient_storm_avatar.png",
+    name: "Frostvein Harrier",
+    img: "images/mobs/party/frostvein_harrier.png",
     level: 20,
     attack: 61,
-    defense: 41,
+    defense: 39,
     hp: 450,
   },
   "cryptwarden-revenant": {
     id: "cryptwarden-revenant",
-    name: "Cryptwarden Revenant",
-    img: "images/mobs/fighting/zone2/lord_of_the_broken_keep.png",
-    level: 14,
-    attack: 44,
-    defense: 52,
-    hp: 400,
+    name: "Ironroot Mauler",
+    img: "images/mobs/party/ironroot_mauler.png",
+    level: 22,
+    attack: 66,
+    defense: 58,
+    hp: 540,
   },
 };
 
@@ -185,7 +192,8 @@ function normalizeActivity(value: unknown) {
 }
 
 function normalizeMonsterId(value: unknown) {
-  return str(value).toLowerCase().replace(/[^a-z0-9-]/g, "").slice(0, 80);
+  const id = str(value).toLowerCase().replace(/[^a-z0-9-]/g, "").slice(0, 80);
+  return PARTY_MONSTER_ID_ALIASES[id] || id;
 }
 
 function asRecord(value: unknown) {
@@ -215,11 +223,11 @@ function ensurePartyMonsterKills(saveData: unknown) {
 
 function getMonsterKillCount(saveData: unknown, monsterId: string) {
   const { monsterKills } = ensurePartyMonsterKills(saveData);
-  return Math.max(0, int(monsterKills[monsterId], 0));
+  return Math.max(0, int(monsterKills[normalizeMonsterId(monsterId)], 0));
 }
 
 function isMonsterUnlocked(saveData: unknown, monsterId: string) {
-  const index = PARTY_MONSTER_ORDER.indexOf(monsterId);
+  const index = PARTY_MONSTER_ORDER.indexOf(normalizeMonsterId(monsterId));
   if (index <= 0) return true;
   if (index === -1) return false;
   const previousMonsterId = PARTY_MONSTER_ORDER[index - 1];
@@ -363,7 +371,7 @@ function addStackableInventoryItem(saveData: unknown, itemData: unknown, quantit
 }
 
 function getPartyFightMonster(monsterId: string) {
-  return PARTY_FIGHT_MONSTERS[monsterId] || null;
+  return PARTY_FIGHT_MONSTERS[normalizeMonsterId(monsterId)] || null;
 }
 
 function normalizePartyFightPayload(value: unknown, monster: JsonRecord | null) {
@@ -1810,48 +1818,31 @@ async function requestJoin(admin: ReturnType<typeof createClient>, userId: strin
   const members = await getPartyMembers(admin, partyId);
   if (members.length >= party.max_members) throw new Error("Party is already full.");
 
-  if (party.auto_accept_requests) {
-    const memberInsert = await admin.from("party_members").insert({
-      party_id: partyId,
-      user_id: userId,
-      role: "member",
-      ready: false,
-    });
-    if (memberInsert.error) throw memberInsert.error;
+  const memberInsert = await admin.from("party_members").insert({
+    party_id: partyId,
+    user_id: userId,
+    role: "member",
+    ready: false,
+  });
+  if (memberInsert.error) throw memberInsert.error;
 
-    const requestInsert = await admin.from("party_join_requests").insert({
-      party_id: partyId,
-      user_id: userId,
-      status: "approved",
-      responded_at: formatIsoNow(),
-      message: str(payload.message).slice(0, 240),
-    });
-    if (requestInsert.error) throw requestInsert.error;
-
-    await logPartyEvent(admin, partyId, userId, "party_join_auto_approved", {});
-    return;
-  }
-
-  const existingRequest = await admin
+  const now = formatIsoNow();
+  await admin
     .from("party_join_requests")
-    .select("id")
-    .eq("party_id", partyId)
+    .update({ status: "cancelled", responded_at: now })
     .eq("user_id", userId)
-    .eq("status", "pending")
-    .gt("expires_at", formatIsoNow())
-    .maybeSingle();
-  if (existingRequest.error) throw existingRequest.error;
-  if (existingRequest.data?.id) throw new Error("You already have a pending join request for this party.");
+    .eq("status", "pending");
 
   const requestInsert = await admin.from("party_join_requests").insert({
     party_id: partyId,
     user_id: userId,
-    status: "pending",
+    status: "approved",
+    responded_at: now,
     message: str(payload.message).slice(0, 240),
   });
   if (requestInsert.error) throw requestInsert.error;
 
-  await logPartyEvent(admin, partyId, userId, "party_join_requested", {});
+  await logPartyEvent(admin, partyId, userId, "party_join_auto_approved", {});
 }
 
 async function respondJoinRequest(admin: ReturnType<typeof createClient>, userId: string, payload: JsonRecord) {
@@ -2205,7 +2196,7 @@ Deno.serve(async (req) => {
     }
     if (action === "request_join") {
       await requestJoin(admin, user.id, payload);
-      return json({ ...(await getBootstrapState(admin, user.id)), message: "Join request sent." });
+      return json({ ...(await getBootstrapState(admin, user.id)), message: "Joined party." });
     }
     if (action === "respond_join_request") {
       await respondJoinRequest(admin, user.id, payload);

@@ -3,55 +3,62 @@
   const PARTY_FIGHT_MONSTERS = [
     {
       id: "gravefang-hydra",
-      name: "Gravefang Hydra",
-      img: "images/mobs/fighting/zone10/void_devourer.png",
-      attack: 58,
-      defense: 46,
-      role: "Multi-Target Bruiser",
-      levelText: "Recommended Party Lv 18+",
-      description: "A many-headed void beast that rewards coordinated focus fire and punishes weak target priority."
+      name: "Mirehook Ravager",
+      img: "images/mobs/party/mirehook_ravager.png",
+      attack: 42,
+      defense: 34,
+      role: "Swamp Skirmisher",
+      levelText: "Recommended Party Lv 14+",
+      description: "A marsh predator with hooked claws that tests party coordination without overwhelming newer groups."
     },
     {
       id: "embermaw-colossus",
-      name: "Embermaw Colossus",
-      img: "images/mobs/fighting/zone9/inferno_titan.png",
-      attack: 64,
-      defense: 60,
-      role: "Frontline Tank",
-      levelText: "Recommended Party Lv 22+",
-      description: "A molten giant with crushing melee phases and dangerous burst windows."
+      name: "Gloomtail Stalker",
+      img: "images/mobs/party/gloomtail_stalker.png",
+      attack: 49,
+      defense: 31,
+      role: "Agile Predator",
+      levelText: "Recommended Party Lv 16+",
+      description: "A fast shadow beast that pressures weaker members and rewards steady damage pacing."
     },
     {
       id: "thornveil-broodmother",
-      name: "Thornveil Broodmother",
-      img: "images/mobs/fighting/zone7/heart_of_the_thicket.png",
-      attack: 49,
-      defense: 38,
-      role: "Summoner",
-      levelText: "Recommended Party Lv 16+",
-      description: "A corrupted forest matriarch that overwhelms slow parties with constant reinforcements."
+      name: "Ashhide Brute",
+      img: "images/mobs/party/ashhide_brute.png",
+      attack: 54,
+      defense: 43,
+      role: "Frontline Bruiser",
+      levelText: "Recommended Party Lv 18+",
+      description: "A heavy ash-covered fighter with reliable pressure and enough armor to punish scattered attacks."
     },
     {
       id: "stormglass-seraph",
-      name: "Stormglass Seraph",
-      img: "images/mobs/fighting/zone8/ancient_storm_avatar.png",
+      name: "Frostvein Harrier",
+      img: "images/mobs/party/frostvein_harrier.png",
       attack: 61,
-      defense: 41,
-      role: "Ranged Caster",
+      defense: 39,
+      role: "Winged Striker",
       levelText: "Recommended Party Lv 20+",
-      description: "An aerial caster that chains pressure across the whole party with storm magic."
+      description: "A sharp ice-winged hunter that hits hard and forces the party to survive sudden burst windows."
     },
     {
       id: "cryptwarden-revenant",
-      name: "Cryptwarden Revenant",
-      img: "images/mobs/fighting/zone2/lord_of_the_broken_keep.png",
-      attack: 44,
-      defense: 52,
-      role: "Control Boss",
-      levelText: "Recommended Party Lv 14+",
-      description: "An armored undead commander built around control effects and punishing mispositioning."
+      name: "Ironroot Mauler",
+      img: "images/mobs/party/ironroot_mauler.png",
+      attack: 66,
+      defense: 58,
+      role: "Heavy Mauler",
+      levelText: "Recommended Party Lv 22+",
+      description: "A slow but brutal tree-and-stone monster that demands sustained damage from a prepared party."
     }
   ];
+  const PARTY_MONSTER_ID_ALIASES = {
+    "mirehook-ravager": "gravefang-hydra",
+    "gloomtail-stalker": "embermaw-colossus",
+    "ashhide-brute": "thornveil-broodmother",
+    "frostvein-harrier": "stormglass-seraph",
+    "ironroot-mauler": "cryptwarden-revenant",
+  };
 
   const state = {
     tab: "my_party",
@@ -78,6 +85,7 @@
   const esc = (v) => String(v ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
   const num = (v, f = 0) => (Number.isFinite(Number(v)) ? Number(v) : f);
   const hasPartyPage = () => !!document.getElementById("partyHallCard");
+  const partyMonsterId = (v) => PARTY_MONSTER_ID_ALIASES[String(v || "").trim()] || String(v || "").trim();
 
   function setNotice(message = "", isError = false) {
     state.lastMessage = isError ? "" : String(message || "");
@@ -191,7 +199,19 @@
   }
 
   function monsterProgressEntry(monsterId) {
-    return partyMonsterProgress().find((entry) => String(entry?.monsterId || "") === String(monsterId || "")) || null;
+    const id = partyMonsterId(monsterId);
+    const existing = partyMonsterProgress().find((entry) => partyMonsterId(entry?.monsterId) === id);
+    if (existing) return existing;
+    const index = PARTY_FIGHT_MONSTERS.findIndex((entry) => entry.id === id);
+    const previousMonster = index > 0 ? PARTY_FIGHT_MONSTERS[index - 1] : null;
+    return {
+      monsterId: id,
+      kills: 0,
+      unlocked: index === 0,
+      unlockRequirementMonsterId: previousMonster?.id || "",
+      unlockRequirementKills: index === 0 ? 0 : 1000,
+      unlockProgress: index === 0 ? 1000 : 0,
+    };
   }
 
   function selectedPartyFightMonster() {
@@ -199,7 +219,7 @@
   }
 
   function selectedPartyMonsterFromParty(party) {
-    return PARTY_FIGHT_MONSTERS.find((entry) => entry.id === String(party?.selectedMonsterId || "").trim()) || null;
+    return PARTY_FIGHT_MONSTERS.find((entry) => entry.id === partyMonsterId(party?.selectedMonsterId)) || null;
   }
 
   function activeSessionPayload(party) {
@@ -209,7 +229,7 @@
 
   function activePartyFightMonster(party) {
     const payload = activeSessionPayload(party);
-    const payloadMonsterId = String(payload.selectedMonsterId || "").trim();
+    const payloadMonsterId = partyMonsterId(payload.selectedMonsterId);
     return PARTY_FIGHT_MONSTERS.find((entry) => entry.id === payloadMonsterId) || selectedPartyMonsterFromParty(party);
   }
 
@@ -395,7 +415,7 @@
         </div>
         <div style="padding:14px;border:1px solid rgba(255,255,255,.10);border-radius:12px;background:rgba(255,255,255,.02);display:grid;gap:4px;opacity:.9;">
           <div>- Private means only invited players can join.</div>
-          <div>- Open means players can find your party and send a join request.</div>
+          <div>- Open means players can find your party and join this lobby.</div>
           <div>- Every party has 4 slots: 1 leader and 3 member slots.</div>
           <div>- More settings can be changed after the party is created.</div>
         </div>
@@ -482,7 +502,7 @@
           ${PARTY_FIGHT_MONSTERS.map((monster) => {
             const progress = monsterProgressEntry(monster.id);
             const unlocked = !!progress?.unlocked;
-            const selected = String(party?.selectedMonsterId || "") === monster.id;
+            const selected = partyMonsterId(party?.selectedMonsterId) === monster.id;
             const requirementMonster = PARTY_FIGHT_MONSTERS.find((entry) => entry.id === String(progress?.unlockRequirementMonsterId || "")) || null;
             return `
               <button
@@ -494,8 +514,16 @@
                 <img src="${esc(monster.img)}" alt="${esc(monster.name)}" style="display:block;width:100%;aspect-ratio:1 / 1;object-fit:cover;background:#0f121a;filter:${unlocked ? "none" : "grayscale(1)"};">
                 <div style="padding:12px;">
                   <div style="font-size:15px;font-weight:900;color:#f3ead6;">${esc(monster.name)}</div>
-                  <div style="opacity:.78;font-size:12px;margin-top:4px;">${esc(monster.role)}</div>
-                  <div style="opacity:.74;font-size:12px;margin-top:6px;">ATK ${num(monster.attack, 0)}  DEF ${num(monster.defense, 0)}</div>
+                  <div class="dungeonStats" style="grid-template-columns:repeat(2,minmax(0,54px));justify-content:start;margin-top:8px;padding-top:0;border-top:0;">
+                    <div class="dungeonStatBox">
+                      <div class="dungeonStatIcon" aria-hidden="true">&#9876;&#65039;</div>
+                      <div class="dungeonStatValue">${num(monster.attack, 0)}</div>
+                    </div>
+                    <div class="dungeonStatBox">
+                      <div class="dungeonStatIcon" aria-hidden="true">&#128737;&#65039;</div>
+                      <div class="dungeonStatValue">${num(monster.defense, 0)}</div>
+                    </div>
+                  </div>
                   ${unlocked
                     ? `<div style="opacity:.82;font-size:12px;margin-top:8px;">Kills: ${num(progress?.kills, 0)}</div>`
                     : `<div style="opacity:.82;font-size:12px;margin-top:8px;">Unlock: 1000 kills of ${esc(requirementMonster?.name || "previous monster")} (${num(progress?.unlockProgress, 0)}/1000)</div>`}
@@ -567,13 +595,15 @@
                   ` : ``}
                 </div>
                 <div style="display:grid;gap:10px;justify-items:start;text-align:left;">
-                  <div style="display:flex;align-items:center;gap:8px;">
-                    <span style="display:inline-flex;align-items:center;justify-content:center;min-width:42px;height:26px;padding:0 8px;border-radius:999px;background:rgba(179,72,92,.16);border:1px solid rgba(179,72,92,.24);color:#ffb7c1;font-size:11px;font-weight:900;">ATK</span>
-                    <span style="font-weight:800;">${num(selectedMonster.attack, 0)}</span>
-                  </div>
-                  <div style="display:flex;align-items:center;gap:8px;">
-                    <span style="display:inline-flex;align-items:center;justify-content:center;min-width:42px;height:26px;padding:0 8px;border-radius:999px;background:rgba(79,121,194,.16);border:1px solid rgba(79,121,194,.24);color:#c3d8ff;font-size:11px;font-weight:900;">DEF</span>
-                    <span style="font-weight:800;">${num(selectedMonster.defense, 0)}</span>
+                  <div class="dungeonStats" style="grid-template-columns:minmax(0,66px);justify-content:start;margin-top:0;padding-top:0;border-top:0;width:66px;">
+                    <div class="dungeonStatBox">
+                      <div class="dungeonStatIcon" aria-hidden="true">&#9876;&#65039;</div>
+                      <div class="dungeonStatValue">${num(selectedMonster.attack, 0)}</div>
+                    </div>
+                    <div class="dungeonStatBox">
+                      <div class="dungeonStatIcon" aria-hidden="true">&#128737;&#65039;</div>
+                      <div class="dungeonStatValue">${num(selectedMonster.defense, 0)}</div>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -643,7 +673,7 @@
         <div><strong>Requirement:</strong> Level ${num(entry.minLevel, 1)}+</div>
         <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:8px;">
           <button type="button" data-party-view="${esc(entry.id)}">View</button>
-          <button type="button" data-party-request="${esc(entry.id)}" ${myParty() ? "disabled" : ""}>Request Join</button>
+          <button type="button" data-party-request="${esc(entry.id)}" ${myParty() ? "disabled" : ""}>Join</button>
         </div>
       </div>
     `).join("");
@@ -674,7 +704,7 @@
           `).join("")}
         </div>
         <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:16px;">
-          <button type="button" data-party-request="${esc(detail.id)}" ${myParty() ? "disabled" : ""}>Request Join</button>
+          <button type="button" data-party-request="${esc(detail.id)}" ${myParty() ? "disabled" : ""}>Join</button>
           <button type="button" id="partyBackToListBtn">Back</button>
         </div>
       </section>
@@ -1070,7 +1100,13 @@
     document.querySelectorAll("[data-party-request]").forEach((btn) => btn.addEventListener("click", async () => {
       const partyId = btn.dataset.partyRequest || "";
       if (!partyId) return;
-      await runAction({ action: "request_join", partyId }, "Join request sent.");
+      const data = await runAction({ action: "request_join", partyId }, "Joined party.");
+      if (!data) return;
+      state.tab = "my_party";
+      state.selectedPartyId = null;
+      state.monsterSelectionOpen = false;
+      state.monsterInfoOpen = false;
+      renderPartyHall();
     }));
 
     document.querySelectorAll("[data-party-accept-invite]").forEach((btn) => btn.addEventListener("click", async () => {

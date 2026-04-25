@@ -1,6 +1,8 @@
 (() => {
   const SAVE_KEY = "darkstone_save_v1";
   const ACTION_MS = 6000;
+  const ACTION_ID = "jewelcrafting";
+  const ACTION_LOCK_KEY = "ds_action_lock_v1";
 
   const TEMPLATE = `
     <div class="profXpShell">
@@ -85,25 +87,25 @@
   `;
 
   const RECIPES = [
-    { id: "rough_ruby", name: "Rough Ruby", refinedName: "Refined Ruby", reqLevel: 1, img: "images/gems/rough_ruby.png", refinedImg: "images/gems/refined_ruby.png", xp: 12, inputQty: 1, outputId: "refined_ruby", outputName: "Refined Ruby", outputImg: "images/gems/refined_ruby.png", verb: "Refined" },
-    { id: "rough_sapphire", name: "Rough Sapphire", refinedName: "Refined Sapphire", reqLevel: 1, img: "images/gems/rough_sapphire.png", refinedImg: "images/gems/refined_sapphire.png", xp: 18, inputQty: 1, outputId: "refined_sapphire", outputName: "Refined Sapphire", outputImg: "images/gems/refined_sapphire.png", verb: "Refined" },
-    { id: "rough_emerald", name: "Rough Emerald", refinedName: "Refined Emerald", reqLevel: 1, img: "images/gems/rough_emerald.png", refinedImg: "images/gems/refined_emerald.png", xp: 24, inputQty: 1, outputId: "refined_emerald", outputName: "Refined Emerald", outputImg: "images/gems/refined_emerald.png", verb: "Refined" },
-    { id: "rough_topaz", name: "Rough Topaz", refinedName: "Refined Topaz", reqLevel: 1, img: "images/gems/rough_topaz.png", refinedImg: "images/gems/refined_topaz.png", xp: 32, inputQty: 1, outputId: "refined_topaz", outputName: "Refined Topaz", outputImg: "images/gems/refined_topaz.png", verb: "Refined" },
-    { id: "rough_amethyst", name: "Rough Amethyst", refinedName: "Refined Amethyst", reqLevel: 1, img: "images/gems/rough_amethyst.png", refinedImg: "images/gems/refined_amethyst.png", xp: 42, inputQty: 1, outputId: "refined_amethyst", outputName: "Refined Amethyst", outputImg: "images/gems/refined_amethyst.png", verb: "Refined" },
-    { id: "refined_ruby", name: "Refined Ruby", refinedName: "Flawless Ruby", reqLevel: 5, img: "images/gems/refined_ruby.png", refinedImg: "images/gems/flawless_ruby.png", xp: 20, inputQty: 3, outputId: "flawless_ruby", outputName: "Flawless Ruby", outputImg: "images/gems/flawless_ruby.png", verb: "Crafted" },
-    { id: "refined_sapphire", name: "Refined Sapphire", refinedName: "Flawless Sapphire", reqLevel: 5, img: "images/gems/refined_sapphire.png", refinedImg: "images/gems/flawless_sapphire.png", xp: 26, inputQty: 3, outputId: "flawless_sapphire", outputName: "Flawless Sapphire", outputImg: "images/gems/flawless_sapphire.png", verb: "Crafted" },
-    { id: "refined_emerald", name: "Refined Emerald", refinedName: "Flawless Emerald", reqLevel: 5, img: "images/gems/refined_emerald.png", refinedImg: "images/gems/flawless_emerald.png", xp: 32, inputQty: 3, outputId: "flawless_emerald", outputName: "Flawless Emerald", outputImg: "images/gems/flawless_emerald.png", verb: "Crafted" },
-    { id: "refined_topaz", name: "Refined Topaz", refinedName: "Flawless Topaz", reqLevel: 5, img: "images/gems/refined_topaz.png", refinedImg: "images/gems/flawless_topaz.png", xp: 38, inputQty: 3, outputId: "flawless_topaz", outputName: "Flawless Topaz", outputImg: "images/gems/flawless_topaz.png", verb: "Crafted" },
-    { id: "refined_amethyst", name: "Refined Amethyst", refinedName: "Flawless Amethyst", reqLevel: 5, img: "images/gems/refined_amethyst.png", refinedImg: "images/gems/flawless_amethyst.png", xp: 44, inputQty: 3, outputId: "flawless_amethyst", outputName: "Flawless Amethyst", outputImg: "images/gems/flawless_amethyst.png", verb: "Crafted" },
-    { id: "flawless_ruby", name: "Flawless Ruby", refinedName: "Masterwork Ruby", reqLevel: 10, img: "images/gems/flawless_ruby.png", refinedImg: "images/gems/masterwork_ruby.png", xp: 28, inputQty: 3, outputId: "masterwork_ruby", outputName: "Masterwork Ruby", outputImg: "images/gems/masterwork_ruby.png", verb: "Crafted" },
-    { id: "flawless_sapphire", name: "Flawless Sapphire", refinedName: "Masterwork Sapphire", reqLevel: 10, img: "images/gems/flawless_sapphire.png", refinedImg: "images/gems/masterwork_sapphire.png", xp: 34, inputQty: 3, outputId: "masterwork_sapphire", outputName: "Masterwork Sapphire", outputImg: "images/gems/masterwork_sapphire.png", verb: "Crafted" },
-    { id: "flawless_emerald", name: "Flawless Emerald", refinedName: "Masterwork Emerald", reqLevel: 10, img: "images/gems/flawless_emerald.png", refinedImg: "images/gems/masterwork_emerald.png", xp: 40, inputQty: 3, outputId: "masterwork_emerald", outputName: "Masterwork Emerald", outputImg: "images/gems/masterwork_emerald.png", verb: "Crafted" },
-    { id: "flawless_topaz", name: "Flawless Topaz", refinedName: "Masterwork Topaz", reqLevel: 10, img: "images/gems/flawless_topaz.png", refinedImg: "images/gems/masterwork_topaz.png", xp: 46, inputQty: 3, outputId: "masterwork_topaz", outputName: "Masterwork Topaz", outputImg: "images/gems/masterwork_topaz.png", verb: "Crafted" },
-    { id: "flawless_amethyst", name: "Flawless Amethyst", refinedName: "Masterwork Amethyst", reqLevel: 10, img: "images/gems/flawless_amethyst.png", refinedImg: "images/gems/masterwork_amethyst.png", xp: 52, inputQty: 3, outputId: "masterwork_amethyst", outputName: "Masterwork Amethyst", outputImg: "images/gems/masterwork_amethyst.png", verb: "Crafted" },
-    { id: "masterwork_ruby", name: "Masterwork Ruby", refinedName: "Exquisite Ruby", reqLevel: 15, img: "images/gems/masterwork_ruby.png", refinedImg: "images/gems/exquisite_ruby.png", xp: 36, inputQty: 3, outputId: "exquisite_ruby", outputName: "Exquisite Ruby", outputImg: "images/gems/exquisite_ruby.png", verb: "Crafted" },
-    { id: "masterwork_sapphire", name: "Masterwork Sapphire", refinedName: "Exquisite Sapphire", reqLevel: 15, img: "images/gems/masterwork_sapphire.png", refinedImg: "images/gems/exquisite_sapphire.png", xp: 42, inputQty: 3, outputId: "exquisite_sapphire", outputName: "Exquisite Sapphire", outputImg: "images/gems/exquisite_sapphire.png", verb: "Crafted" },
-    { id: "masterwork_emerald", name: "Masterwork Emerald", refinedName: "Exquisite Emerald", reqLevel: 15, img: "images/gems/masterwork_emerald.png", refinedImg: "images/gems/exquisite_emerald.png", xp: 48, inputQty: 3, outputId: "exquisite_emerald", outputName: "Exquisite Emerald", outputImg: "images/gems/exquisite_emerald.png", verb: "Crafted" },
-    { id: "masterwork_topaz", name: "Masterwork Topaz", refinedName: "Exquisite Topaz", reqLevel: 15, img: "images/gems/masterwork_topaz.png", refinedImg: "images/gems/exquisite_topaz.png", xp: 54, inputQty: 3, outputId: "exquisite_topaz", outputName: "Exquisite Topaz", outputImg: "images/gems/exquisite_topaz.png", verb: "Crafted" },
+    { id: "rough_ruby", name: "Rough Ruby", refinedName: "Refined Ruby", reqLevel: 1, img: "images/gems/rough_ruby.png", refinedImg: "images/gems/refined_ruby.png", xp: 15, inputQty: 1, outputId: "refined_ruby", outputName: "Refined Ruby", outputImg: "images/gems/refined_ruby.png", verb: "Refined" },
+    { id: "rough_sapphire", name: "Rough Sapphire", refinedName: "Refined Sapphire", reqLevel: 1, img: "images/gems/rough_sapphire.png", refinedImg: "images/gems/refined_sapphire.png", xp: 15, inputQty: 1, outputId: "refined_sapphire", outputName: "Refined Sapphire", outputImg: "images/gems/refined_sapphire.png", verb: "Refined" },
+    { id: "rough_emerald", name: "Rough Emerald", refinedName: "Refined Emerald", reqLevel: 1, img: "images/gems/rough_emerald.png", refinedImg: "images/gems/refined_emerald.png", xp: 15, inputQty: 1, outputId: "refined_emerald", outputName: "Refined Emerald", outputImg: "images/gems/refined_emerald.png", verb: "Refined" },
+    { id: "rough_topaz", name: "Rough Topaz", refinedName: "Refined Topaz", reqLevel: 1, img: "images/gems/rough_topaz.png", refinedImg: "images/gems/refined_topaz.png", xp: 15, inputQty: 1, outputId: "refined_topaz", outputName: "Refined Topaz", outputImg: "images/gems/refined_topaz.png", verb: "Refined" },
+    { id: "rough_amethyst", name: "Rough Amethyst", refinedName: "Refined Amethyst", reqLevel: 1, img: "images/gems/rough_amethyst.png", refinedImg: "images/gems/refined_amethyst.png", xp: 15, inputQty: 1, outputId: "refined_amethyst", outputName: "Refined Amethyst", outputImg: "images/gems/refined_amethyst.png", verb: "Refined" },
+    { id: "refined_ruby", name: "Refined Ruby", refinedName: "Flawless Ruby", reqLevel: 5, img: "images/gems/refined_ruby.png", refinedImg: "images/gems/flawless_ruby.png", xp: 30, inputQty: 3, outputId: "flawless_ruby", outputName: "Flawless Ruby", outputImg: "images/gems/flawless_ruby.png", verb: "Crafted" },
+    { id: "refined_sapphire", name: "Refined Sapphire", refinedName: "Flawless Sapphire", reqLevel: 5, img: "images/gems/refined_sapphire.png", refinedImg: "images/gems/flawless_sapphire.png", xp: 30, inputQty: 3, outputId: "flawless_sapphire", outputName: "Flawless Sapphire", outputImg: "images/gems/flawless_sapphire.png", verb: "Crafted" },
+    { id: "refined_emerald", name: "Refined Emerald", refinedName: "Flawless Emerald", reqLevel: 5, img: "images/gems/refined_emerald.png", refinedImg: "images/gems/flawless_emerald.png", xp: 30, inputQty: 3, outputId: "flawless_emerald", outputName: "Flawless Emerald", outputImg: "images/gems/flawless_emerald.png", verb: "Crafted" },
+    { id: "refined_topaz", name: "Refined Topaz", refinedName: "Flawless Topaz", reqLevel: 5, img: "images/gems/refined_topaz.png", refinedImg: "images/gems/flawless_topaz.png", xp: 30, inputQty: 3, outputId: "flawless_topaz", outputName: "Flawless Topaz", outputImg: "images/gems/flawless_topaz.png", verb: "Crafted" },
+    { id: "refined_amethyst", name: "Refined Amethyst", refinedName: "Flawless Amethyst", reqLevel: 5, img: "images/gems/refined_amethyst.png", refinedImg: "images/gems/flawless_amethyst.png", xp: 30, inputQty: 3, outputId: "flawless_amethyst", outputName: "Flawless Amethyst", outputImg: "images/gems/flawless_amethyst.png", verb: "Crafted" },
+    { id: "flawless_ruby", name: "Flawless Ruby", refinedName: "Masterwork Ruby", reqLevel: 10, img: "images/gems/flawless_ruby.png", refinedImg: "images/gems/masterwork_ruby.png", xp: 45, inputQty: 3, outputId: "masterwork_ruby", outputName: "Masterwork Ruby", outputImg: "images/gems/masterwork_ruby.png", verb: "Crafted" },
+    { id: "flawless_sapphire", name: "Flawless Sapphire", refinedName: "Masterwork Sapphire", reqLevel: 10, img: "images/gems/flawless_sapphire.png", refinedImg: "images/gems/masterwork_sapphire.png", xp: 45, inputQty: 3, outputId: "masterwork_sapphire", outputName: "Masterwork Sapphire", outputImg: "images/gems/masterwork_sapphire.png", verb: "Crafted" },
+    { id: "flawless_emerald", name: "Flawless Emerald", refinedName: "Masterwork Emerald", reqLevel: 10, img: "images/gems/flawless_emerald.png", refinedImg: "images/gems/masterwork_emerald.png", xp: 45, inputQty: 3, outputId: "masterwork_emerald", outputName: "Masterwork Emerald", outputImg: "images/gems/masterwork_emerald.png", verb: "Crafted" },
+    { id: "flawless_topaz", name: "Flawless Topaz", refinedName: "Masterwork Topaz", reqLevel: 10, img: "images/gems/flawless_topaz.png", refinedImg: "images/gems/masterwork_topaz.png", xp: 45, inputQty: 3, outputId: "masterwork_topaz", outputName: "Masterwork Topaz", outputImg: "images/gems/masterwork_topaz.png", verb: "Crafted" },
+    { id: "flawless_amethyst", name: "Flawless Amethyst", refinedName: "Masterwork Amethyst", reqLevel: 10, img: "images/gems/flawless_amethyst.png", refinedImg: "images/gems/masterwork_amethyst.png", xp: 45, inputQty: 3, outputId: "masterwork_amethyst", outputName: "Masterwork Amethyst", outputImg: "images/gems/masterwork_amethyst.png", verb: "Crafted" },
+    { id: "masterwork_ruby", name: "Masterwork Ruby", refinedName: "Exquisite Ruby", reqLevel: 15, img: "images/gems/masterwork_ruby.png", refinedImg: "images/gems/exquisite_ruby.png", xp: 60, inputQty: 3, outputId: "exquisite_ruby", outputName: "Exquisite Ruby", outputImg: "images/gems/exquisite_ruby.png", verb: "Crafted" },
+    { id: "masterwork_sapphire", name: "Masterwork Sapphire", refinedName: "Exquisite Sapphire", reqLevel: 15, img: "images/gems/masterwork_sapphire.png", refinedImg: "images/gems/exquisite_sapphire.png", xp: 60, inputQty: 3, outputId: "exquisite_sapphire", outputName: "Exquisite Sapphire", outputImg: "images/gems/exquisite_sapphire.png", verb: "Crafted" },
+    { id: "masterwork_emerald", name: "Masterwork Emerald", refinedName: "Exquisite Emerald", reqLevel: 15, img: "images/gems/masterwork_emerald.png", refinedImg: "images/gems/exquisite_emerald.png", xp: 60, inputQty: 3, outputId: "exquisite_emerald", outputName: "Exquisite Emerald", outputImg: "images/gems/exquisite_emerald.png", verb: "Crafted" },
+    { id: "masterwork_topaz", name: "Masterwork Topaz", refinedName: "Exquisite Topaz", reqLevel: 15, img: "images/gems/masterwork_topaz.png", refinedImg: "images/gems/exquisite_topaz.png", xp: 60, inputQty: 3, outputId: "exquisite_topaz", outputName: "Exquisite Topaz", outputImg: "images/gems/exquisite_topaz.png", verb: "Crafted" },
     { id: "masterwork_amethyst", name: "Masterwork Amethyst", refinedName: "Exquisite Amethyst", reqLevel: 15, img: "images/gems/masterwork_amethyst.png", refinedImg: "images/gems/exquisite_amethyst.png", xp: 60, inputQty: 3, outputId: "exquisite_amethyst", outputName: "Exquisite Amethyst", outputImg: "images/gems/exquisite_amethyst.png", verb: "Crafted" },
     {
       recipeId: "refined_orb_of_attack",
@@ -112,7 +114,7 @@
       reqLevel: 1,
       img: "images/orbs/Refined_Orb_of_Attack.png",
       refinedImg: "images/orbs/Refined_Orb_of_Attack.png",
-      xp: 12,
+      xp: 30,
       outputId: "refined_orb_of_attack",
       outputName: "Refined Orb of Attack",
       outputImg: "images/orbs/Refined_Orb_of_Attack.png",
@@ -130,7 +132,7 @@
       reqLevel: 1,
       img: "images/orbs/Refined_orb_of_defense.png",
       refinedImg: "images/orbs/Refined_orb_of_defense.png",
-      xp: 18,
+      xp: 30,
       outputId: "refined_orb_of_defense",
       outputName: "Refined Orb of Defense",
       outputImg: "images/orbs/Refined_orb_of_defense.png",
@@ -148,7 +150,7 @@
       reqLevel: 1,
       img: "images/orbs/refined_orb_of_xp.png",
       refinedImg: "images/orbs/refined_orb_of_xp.png",
-      xp: 24,
+      xp: 30,
       outputId: "refined_orb_of_xp",
       outputName: "Refined Orb of XP",
       outputImg: "images/orbs/refined_orb_of_xp.png",
@@ -166,7 +168,7 @@
       reqLevel: 1,
       img: "images/orbs/Refined_orb_of_gold.png",
       refinedImg: "images/orbs/Refined_orb_of_gold.png",
-      xp: 32,
+      xp: 30,
       outputId: "refined_orb_of_gold",
       outputName: "Refined Orb of Gold",
       outputImg: "images/orbs/Refined_orb_of_gold.png",
@@ -184,7 +186,7 @@
       reqLevel: 1,
       img: "images/orbs/refined_orb_of_luck.png",
       refinedImg: "images/orbs/refined_orb_of_luck.png",
-      xp: 42,
+      xp: 30,
       outputId: "refined_orb_of_luck",
       outputName: "Refined Orb of Luck",
       outputImg: "images/orbs/refined_orb_of_luck.png",
@@ -202,7 +204,7 @@
       reqLevel: 5,
       img: "images/orbs/flawless_orb_of_attack.png",
       refinedImg: "images/orbs/flawless_orb_of_attack.png",
-      xp: 20,
+      xp: 45,
       outputId: "flawless_orb_of_attack",
       outputName: "Flawless Orb of Attack",
       outputImg: "images/orbs/flawless_orb_of_attack.png",
@@ -220,7 +222,7 @@
       reqLevel: 5,
       img: "images/orbs/flawless_orb_of_defense.png",
       refinedImg: "images/orbs/flawless_orb_of_defense.png",
-      xp: 26,
+      xp: 45,
       outputId: "flawless_orb_of_defense",
       outputName: "Flawless Orb of Defense",
       outputImg: "images/orbs/flawless_orb_of_defense.png",
@@ -238,7 +240,7 @@
       reqLevel: 5,
       img: "images/orbs/flawless_orb_of_xp.png",
       refinedImg: "images/orbs/flawless_orb_of_xp.png",
-      xp: 32,
+      xp: 45,
       outputId: "flawless_orb_of_xp",
       outputName: "Flawless Orb of XP",
       outputImg: "images/orbs/flawless_orb_of_xp.png",
@@ -256,7 +258,7 @@
       reqLevel: 5,
       img: "images/orbs/flawless_orb_of_gold.png",
       refinedImg: "images/orbs/flawless_orb_of_gold.png",
-      xp: 38,
+      xp: 45,
       outputId: "flawless_orb_of_gold",
       outputName: "Flawless Orb of Gold",
       outputImg: "images/orbs/flawless_orb_of_gold.png",
@@ -274,7 +276,7 @@
       reqLevel: 5,
       img: "images/orbs/flawless_orb_of_luck.png",
       refinedImg: "images/orbs/flawless_orb_of_luck.png",
-      xp: 44,
+      xp: 45,
       outputId: "flawless_orb_of_luck",
       outputName: "Flawless Orb of Luck",
       outputImg: "images/orbs/flawless_orb_of_luck.png",
@@ -292,7 +294,7 @@
       reqLevel: 10,
       img: "images/orbs/masterwork_orb_of_attack.png",
       refinedImg: "images/orbs/masterwork_orb_of_attack.png",
-      xp: 28,
+      xp: 60,
       outputId: "masterwork_orb_of_attack",
       outputName: "Masterwork Orb of Attack",
       outputImg: "images/orbs/masterwork_orb_of_attack.png",
@@ -310,7 +312,7 @@
       reqLevel: 10,
       img: "images/orbs/masterwork_orb_of_defense.png",
       refinedImg: "images/orbs/masterwork_orb_of_defense.png",
-      xp: 34,
+      xp: 60,
       outputId: "masterwork_orb_of_defense",
       outputName: "Masterwork Orb of Defense",
       outputImg: "images/orbs/masterwork_orb_of_defense.png",
@@ -328,7 +330,7 @@
       reqLevel: 10,
       img: "images/orbs/masterwork_orb_of_xp.png",
       refinedImg: "images/orbs/masterwork_orb_of_xp.png",
-      xp: 40,
+      xp: 60,
       outputId: "masterwork_orb_of_xp",
       outputName: "Masterwork Orb of XP",
       outputImg: "images/orbs/masterwork_orb_of_xp.png",
@@ -346,7 +348,7 @@
       reqLevel: 10,
       img: "images/orbs/masterwork_orb_of_gold.png",
       refinedImg: "images/orbs/masterwork_orb_of_gold.png",
-      xp: 46,
+      xp: 60,
       outputId: "masterwork_orb_of_gold",
       outputName: "Masterwork Orb of Gold",
       outputImg: "images/orbs/masterwork_orb_of_gold.png",
@@ -364,7 +366,7 @@
       reqLevel: 10,
       img: "images/orbs/masterwork_orb_of_luck.png",
       refinedImg: "images/orbs/masterwork_orb_of_luck.png",
-      xp: 52,
+      xp: 60,
       outputId: "masterwork_orb_of_luck",
       outputName: "Masterwork Orb of Luck",
       outputImg: "images/orbs/masterwork_orb_of_luck.png",
@@ -382,7 +384,7 @@
       reqLevel: 15,
       img: "images/orbs/exquisite_orb_of_attack.png",
       refinedImg: "images/orbs/exquisite_orb_of_attack.png",
-      xp: 36,
+      xp: 75,
       outputId: "exquisite_orb_of_attack",
       outputName: "Exquisite Orb of Attack",
       outputImg: "images/orbs/exquisite_orb_of_attack.png",
@@ -400,7 +402,7 @@
       reqLevel: 15,
       img: "images/orbs/exquisite_orb_of_defense.png",
       refinedImg: "images/orbs/exquisite_orb_of_defense.png",
-      xp: 42,
+      xp: 75,
       outputId: "exquisite_orb_of_defense",
       outputName: "Exquisite Orb of Defense",
       outputImg: "images/orbs/exquisite_orb_of_defense.png",
@@ -418,7 +420,7 @@
       reqLevel: 15,
       img: "images/orbs/exquisite_orb_of_xp.png",
       refinedImg: "images/orbs/exquisite_orb_of_xp.png",
-      xp: 48,
+      xp: 75,
       outputId: "exquisite_orb_of_xp",
       outputName: "Exquisite Orb of XP",
       outputImg: "images/orbs/exquisite_orb_of_xp.png",
@@ -436,7 +438,7 @@
       reqLevel: 15,
       img: "images/orbs/exquisite_orb_of_gold.png",
       refinedImg: "images/orbs/exquisite_orb_of_gold.png",
-      xp: 54,
+      xp: 75,
       outputId: "exquisite_orb_of_gold",
       outputName: "Exquisite Orb of Gold",
       outputImg: "images/orbs/exquisite_orb_of_gold.png",
@@ -454,7 +456,7 @@
       reqLevel: 15,
       img: "images/orbs/exquisite_orb_of_luck.png",
       refinedImg: "images/orbs/exquisite_orb_of_luck.png",
-      xp: 60,
+      xp: 75,
       outputId: "exquisite_orb_of_luck",
       outputName: "Exquisite Orb of Luck",
       outputImg: "images/orbs/exquisite_orb_of_luck.png",
@@ -477,6 +479,69 @@
   let completed = 0;
   let targetAmount = null;
   let recipe = null;
+
+  function loadActionLock() {
+    try { return JSON.parse(localStorage.getItem(ACTION_LOCK_KEY) || "null"); }
+    catch { return null; }
+  }
+
+  function saveActionLock(lock) {
+    localStorage.setItem(ACTION_LOCK_KEY, JSON.stringify(lock || null));
+  }
+
+  function isLockExpired(lock, now) {
+    if (!lock || !lock.active) return true;
+    const last = Number(lock.lastPing || 0);
+    return (now - last) > ACTION_MS * 2;
+  }
+
+  function acquireActionLock() {
+    const now = Date.now();
+    const lock = loadActionLock();
+    if (lock && !isLockExpired(lock, now)) {
+      if (lock.actionId && lock.actionId !== ACTION_ID) {
+        return { ok: false, msg: "You are tired. Another action is running." };
+      }
+      if (now < Number(lock.nextAllowedTs || 0)) {
+        const wait = Math.max(0, Number(lock.nextAllowedTs || 0) - now);
+        return { ok: false, msg: `You are tired. Wait ${(wait / 1000).toFixed(1)}s.` };
+      }
+    }
+    saveActionLock({
+      actionId: ACTION_ID,
+      active: true,
+      nextAllowedTs: now + ACTION_MS,
+      lastPing: now
+    });
+    return { ok: true };
+  }
+
+  function getActionWaitMs() {
+    const now = Date.now();
+    const lock = loadActionLock();
+    if (lock && lock.actionId === ACTION_ID && Number.isFinite(Number(lock.nextAllowedTs))) {
+      return Math.max(0, Number(lock.nextAllowedTs) - now);
+    }
+    return ACTION_MS;
+  }
+
+  function touchActionLock() {
+    const now = Date.now();
+    const lock = loadActionLock();
+    if (!lock || lock.actionId !== ACTION_ID) return;
+    lock.active = true;
+    lock.lastPing = now;
+    lock.nextAllowedTs = now + ACTION_MS;
+    saveActionLock(lock);
+  }
+
+  function releaseActionLock() {
+    const lock = loadActionLock();
+    if (lock && lock.actionId === ACTION_ID) {
+      lock.active = false;
+      saveActionLock(lock);
+    }
+  }
 
   function loadSave() {
     try { return JSON.parse(localStorage.getItem(SAVE_KEY) || "{}") || {}; }
@@ -764,6 +829,7 @@
     timerAnim = null;
     running = false;
     actionStartAt = 0;
+    releaseActionLock();
     const timerWrap = document.getElementById("timerWrap");
     const startBtn = document.getElementById("startBtn");
     const stopBtn = document.getElementById("stopBtn");
@@ -861,6 +927,23 @@
       return;
     }
     setMessage(buildCraftMessage(recipe, outputQty, xpGain, false));
+    touchActionLock();
+  }
+
+  function scheduleNextCraft(runImmediately = false) {
+    if (!running) return;
+    if (runImmediately) {
+      runSingleAction();
+      return;
+    }
+    const waitMs = getActionWaitMs();
+    startCooldownUI(waitMs);
+    timer = window.setTimeout(function loop() {
+      if (!running) return;
+      runSingleAction();
+      if (!running) return;
+      scheduleNextCraft(false);
+    }, waitMs);
   }
 
   function startRun() {
@@ -876,21 +959,20 @@
       setMessage(`You need ${missingIngredient.qty} ${missingIngredient.name}.`, true);
       return;
     }
+    const lock = acquireActionLock();
+    if (!lock.ok) {
+      setMessage(lock.msg, true);
+      return;
+    }
     running = true;
     completed = 0;
     document.getElementById("startBtn")?.setAttribute("disabled", "disabled");
     const stopBtn = document.getElementById("stopBtn");
     if (stopBtn) stopBtn.disabled = false;
-    runSingleAction();
+    setMessage("Refining started.");
+    scheduleNextCraft(true);
     if (!running) return;
-    startCooldownUI(ACTION_MS);
-    timer = window.setTimeout(function loop() {
-      if (!running) return;
-      runSingleAction();
-      if (!running) return;
-      startCooldownUI(ACTION_MS);
-      timer = window.setTimeout(loop, ACTION_MS);
-    }, ACTION_MS);
+    scheduleNextCraft(false);
   }
 
   function bindEvents() {

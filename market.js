@@ -24,18 +24,20 @@
   ];
   const GENERAL_SHOP_ITEMS = [
     {
-      id: "arrows_100",
+      id: "arrows",
       kind: "item",
-      name: "Arrows x100",
+      shopTab: "misc",
+      name: "Arrows",
       img: "images/items/arrows.png",
-      price: 10,
-      quantity: 100,
+      price: 50,
+      quantity: 1,
       item: { type: "consumable", id: "arrows", name: "Arrows", img: "images/items/arrows.png" },
       meta: "Used for hunting."
     },
     {
       id: "empty_vial",
       kind: "item",
+      shopTab: "misc",
       name: "Empty Vial",
       img: "images/alchemy/items/empty_vial.png",
       price: 10,
@@ -46,6 +48,7 @@
     {
       id: "pet_combat",
       kind: "pet",
+      shopTab: "pets",
       slot: "combat",
       name: "Wolf Cub",
       img: "images/pets/combat_wolf_cub.png",
@@ -56,6 +59,7 @@
     {
       id: "pet_gathering",
       kind: "pet",
+      shopTab: "pets",
       slot: "gathering",
       name: "Burrower Pup",
       img: "images/pets/gathering_burrower_pup.png",
@@ -66,6 +70,7 @@
     {
       id: "pet_artisan",
       kind: "pet",
+      shopTab: "pets",
       slot: "artisan",
       name: "Workshop Mouse",
       img: "images/pets/artisan_workshop_mouse.png",
@@ -76,6 +81,7 @@
     {
       id: "pet_fortune",
       kind: "pet",
+      shopTab: "pets",
       slot: "fortune",
       name: "Coin Ferret",
       img: "images/pets/fortune_coin_ferret.png",
@@ -86,7 +92,9 @@
   ];
 
   const state = {
-    view: "latest",
+    view: "market",
+    marketView: "gear",
+    shopTab: "misc",
     gearSlot: "all",
     page: 1,
     inspectListingId: "",
@@ -97,6 +105,7 @@
     inspectAnchor: null,
     saleHistory: loadSaleHistory(),
     activeSaleNotice: null,
+    purchaseSuccess: null,
     selectedInvIndex: -1,
     loading: false,
     status: "",
@@ -281,6 +290,9 @@
         .marketHeroBtn{min-height:46px;display:flex;justify-content:center;align-items:center;gap:8px;padding:8px 12px;border-radius:6px;border:1px solid rgba(126,94,50,.7);background:linear-gradient(180deg,rgba(28,65,61,.88),rgba(13,35,34,.92));box-shadow:inset 0 1px 0 rgba(255,232,184,.06);color:#f3ead6;cursor:pointer;}
         .marketHeroBtn.is-active{border-color:#d0a14f;background:linear-gradient(180deg,rgba(54,88,76,.95),rgba(24,51,45,.98));}
         .marketHeroBtn img{width:26px;height:26px;object-fit:contain;filter:drop-shadow(0 4px 6px rgba(0,0,0,.4));}
+        .marketShopTabs{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-bottom:12px;}
+        .marketShopTabBtn{min-height:38px!important;border-radius:6px!important;padding:7px 12px!important;font-size:13px!important;}
+        .marketShopTabBtn.is-active{border-color:#d0a14f!important;color:#fff1cf!important;background:linear-gradient(180deg,rgba(82,58,28,.96),rgba(35,24,14,.98))!important;}
         .marketPanel{background:linear-gradient(180deg,rgba(13,14,18,.9),rgba(8,9,12,.96));border:1px solid rgba(87,87,94,.86);border-radius:8px;padding:12px;box-shadow:inset 0 1px 0 rgba(255,255,255,.04),0 16px 30px rgba(0,0,0,.22);}
         .marketSearchTitle{max-width:560px;margin:0 auto 10px;padding:6px 12px;border:1px solid rgba(96,96,104,.72);border-radius:8px;text-align:center;color:#aeb0b8;background:rgba(0,0,0,.18);}
         .marketSlotBar{display:grid;grid-template-columns:repeat(7,minmax(56px,1fr));gap:4px;margin-bottom:12px;}
@@ -327,22 +339,25 @@
         .marketHistoryName{font-weight:900;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
         .marketHistoryMeta{font-size:12px;color:#aeb0b8;margin-top:2px;}
         .marketShopGrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;}
-        .marketShopCard{display:grid;grid-template-columns:64px minmax(0,1fr) auto;gap:12px;align-items:center;border:1px solid rgba(83,83,90,.72);border-radius:8px;background:rgba(0,0,0,.16);padding:10px;text-align:left;}
+        .marketShopCard{display:grid;grid-template-columns:72px minmax(128px,1fr);grid-template-areas:"icon info" "actions actions";gap:10px 14px;align-items:center;border:1px solid rgba(83,83,90,.72);border-radius:8px;background:rgba(0,0,0,.16);padding:12px;text-align:left;}
         .marketShopCard.is-owned{border-color:rgba(55,190,104,.56);background:rgba(22,75,42,.14);}
-        .marketShopCard img{width:64px;height:64px;border-radius:8px;border:1px solid rgba(92,92,102,.8);object-fit:cover;background:#101219;}
-        .marketShopName{font-size:17px;font-weight:900;color:#f3ead6;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-        .marketShopMeta{margin-top:4px;font-size:12px;color:#aeb0b8;line-height:1.35;}
-        .marketShopActions{display:grid;grid-template-columns:74px auto;gap:6px;align-items:center;}
-        .marketShopQty{width:74px;min-height:38px;border-radius:6px;border:1px solid rgba(126,94,50,.86);background:#090a0e;color:#fff;text-align:center;padding:6px;}
+        .marketShopCard img{grid-area:icon;width:72px;height:72px;border-radius:8px;border:1px solid rgba(92,92,102,.8);object-fit:cover;background:#101219;}
+        .marketShopInfo{grid-area:info;min-width:0;align-self:center;}
+        .marketShopName{font-size:17px;font-weight:900;color:#f3ead6;line-height:1.15;overflow-wrap:anywhere;text-shadow:0 1px 0 rgba(74,47,14,.95),0 0 8px rgba(0,0,0,.3);}
+        .marketShopMeta{margin-top:5px;font-size:12px;color:#aeb0b8;line-height:1.35;}
+        .marketShopPrice{display:block;margin-top:5px;color:#f0d326;font-weight:900;}
+        .marketShopActions{grid-area:actions;display:grid;grid-template-columns:minmax(74px,92px) minmax(92px,1fr);gap:8px;align-items:center;}
+        .marketShopCard.is-owned .marketShopActions{grid-template-columns:1fr;}
+        .marketShopQty{width:100%;min-height:38px;border-radius:6px;border:1px solid rgba(126,94,50,.86);background:#090a0e;color:#fff;text-align:center;padding:6px;}
         .marketOwnedText{color:#9dffb4;font-weight:900;}
         @media(max-width:760px){
           .marketHeader{align-items:flex-start;}
           .marketHeaderActions{justify-content:flex-end;}
           .marketTop{grid-template-columns:1fr 1fr;}
           .marketShopGrid{grid-template-columns:1fr;}
-          .marketShopCard{grid-template-columns:54px minmax(0,1fr);}
-          .marketShopCard img{width:54px;height:54px;}
-          .marketShopActions{grid-column:1 / -1;grid-template-columns:1fr 1fr;}
+          .marketShopCard{grid-template-columns:58px minmax(0,1fr);}
+          .marketShopCard img{width:58px;height:58px;}
+          .marketShopActions{grid-template-columns:1fr 1fr;}
           .marketShopQty{width:100%;}
           .marketSlotBar{grid-template-columns:repeat(3,minmax(0,1fr));}
           .marketSellGrid{grid-template-columns:1fr 1fr;}
@@ -361,24 +376,27 @@
         <div class="marketHeader">
           <h1>Market</h1>
           <div class="marketHeaderActions">
+            <button type="button" class="marketMyBtn ${state.view === "market" ? "is-active" : ""}" data-market-view="market">Market</button>
             <button type="button" class="marketMyBtn ${state.view === "generalShop" ? "is-active" : ""}" data-market-view="generalShop">General Shop</button>
             <button type="button" class="marketMyBtn ${state.view === "myListings" ? "is-active" : ""}" data-market-view="myListings">My Listings</button>
           </div>
         </div>
-        <div class="marketTop">
-          <button type="button" class="marketHeroBtn ${state.view === "gear" ? "is-active" : ""}" data-market-view="gear">
-            <img src="${marketIcon("gear")}" alt="">
-            <span>Combat Gear</span>
-          </button>
-          <button type="button" class="marketHeroBtn ${state.view === "materials" ? "is-active" : ""}" data-market-view="materials">
-            <img src="${marketIcon("materials")}" alt="">
-            <span>Materials</span>
-          </button>
-        </div>
+        ${state.view === "market" ? `
+          <div class="marketTop">
+            <button type="button" class="marketHeroBtn ${state.marketView === "gear" ? "is-active" : ""}" data-market-category="gear">
+              <img src="${marketIcon("gear")}" alt="">
+              <span>Combat Gear</span>
+            </button>
+            <button type="button" class="marketHeroBtn ${state.marketView === "materials" ? "is-active" : ""}" data-market-category="materials">
+              <img src="${marketIcon("materials")}" alt="">
+              <span>Materials</span>
+            </button>
+          </div>
+        ` : ""}
 
         <div class="marketPanel">
           <div class="marketSearchTitle">${viewTitle()}</div>
-          ${state.view === "gear" ? renderGearSlots() : ""}
+          ${state.view === "market" && state.marketView === "gear" ? renderGearSlots() : ""}
           ${state.view === "generalShop" ? renderGeneralShop() : `
             <div id="marketListings">${renderListings()}</div>
             ${renderSellBox()}
@@ -391,30 +409,69 @@
     `;
   }
 
+  function purchaseSuccessTemplate(){
+    const purchase = state.purchaseSuccess || {};
+    const itemName = String(purchase.name || "Item");
+    const qty = Math.max(1, Math.floor(num(purchase.quantity, 1)));
+    const label = qty > 1 ? `${itemName} x${fmt.format(qty)}` : itemName;
+    const img = String(purchase.img || marketIcon("market"));
+    return `
+      <style>
+        .marketSuccessShell{max-width:720px;margin:0 auto;color:#f3ead6;}
+        .marketSuccessPanel{min-height:360px;display:flex;align-items:center;justify-content:center;padding:0;}
+        .marketSuccessCard{width:min(520px,100%);text-align:center;border:1px solid rgba(55,190,104,.54);border-radius:10px;background:linear-gradient(180deg,rgba(14,44,30,.78),rgba(10,16,14,.92));padding:26px 22px;box-shadow:inset 0 1px 0 rgba(204,255,220,.1),0 16px 36px rgba(0,0,0,.24);}
+        .marketSuccessBadge{width:78px;height:78px;margin:0 auto 14px;border-radius:12px;display:flex;align-items:center;justify-content:center;border:1px solid rgba(157,255,180,.54);background:rgba(10,14,18,.72);box-shadow:0 10px 24px rgba(0,0,0,.28),inset 0 1px 0 rgba(255,255,255,.08);padding:5px;}
+        .marketSuccessBadge img{width:100%;height:100%;border-radius:8px;display:block;object-fit:cover;background:#101219;}
+        .marketSuccessTitle{display:flex;align-items:center;justify-content:center;gap:9px;font-size:25px;font-weight:900;line-height:1.15;color:#f3ead6;text-shadow:0 2px 8px rgba(0,0,0,.42);}
+        .marketSuccessCheck{width:24px;height:24px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;border:1px solid rgba(157,255,180,.7);background:rgba(55,190,104,.18);color:#9dffb4;font-size:15px;line-height:1;text-shadow:none;}
+        .marketSuccessItem{margin-top:10px;font-size:19px;font-weight:900;color:#f0d326;line-height:1.25;overflow-wrap:anywhere;}
+        .marketSuccessActions{display:flex;justify-content:center;margin-top:20px;}
+        .marketSuccessBack{width:auto!important;min-height:40px!important;padding:9px 16px!important;border-radius:7px!important;}
+      </style>
+      <div class="marketSuccessShell">
+        <div class="marketSuccessPanel">
+          <div class="marketSuccessCard">
+            <div class="marketSuccessBadge"><img src="${esc(img)}" alt=""></div>
+            <div class="marketSuccessTitle">You successfully bought <span class="marketSuccessCheck" aria-hidden="true">&#10003;</span></div>
+            <div class="marketSuccessItem">${esc(label)}</div>
+            <div class="marketSuccessActions">
+              <button type="button" class="marketSuccessBack" data-back-to-market="1">Back to Market</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
   function viewTitle(){
-    if (state.view === "gear") return state.gearSlot === "all" ? "Combat Items" : `Combat Items • ${slotLabel(state.gearSlot)}`;
-    if (state.view === "materials") return "Materials";
+    if (state.view === "market" && state.marketView === "gear") return state.gearSlot === "all" ? "Combat Items" : `Combat Items - ${slotLabel(state.gearSlot)}`;
+    if (state.view === "market" && state.marketView === "materials") return "Materials";
     if (state.view === "generalShop") return "General Shop";
     if (state.view === "myListings") return `My Active Listings ${state.myListings.length}/10`;
-    return "Items Recently Added To The Market";
+    return "Market";
   }
 
   function renderGeneralShop(){
     const save = loadSave();
+    const visibleItems = GENERAL_SHOP_ITEMS.filter((item) => String(item.shopTab || "misc") === state.shopTab);
     return `
+      <div class="marketShopTabs">
+        <button type="button" class="marketShopTabBtn ${state.shopTab === "misc" ? "is-active" : ""}" data-shop-tab="misc">Misc</button>
+        <button type="button" class="marketShopTabBtn ${state.shopTab === "pets" ? "is-active" : ""}" data-shop-tab="pets">Pets</button>
+      </div>
       <div class="marketShopGrid">
-        ${GENERAL_SHOP_ITEMS.map((item) => {
+        ${visibleItems.map((item) => {
           const owned = item.kind === "pet" && !!save?.pets?.[item.slot];
           return `
             <div class="marketShopCard ${owned ? "is-owned" : ""}">
               <img src="${esc(item.img)}" alt="">
-              <div style="min-width:0;">
-              <div class="marketShopName">${esc(item.name)}</div>
-              <div class="marketShopMeta">
-                ${esc(item.meta || "")}<br>
-                  ${owned ? `<span class="marketOwnedText">Owned</span>` : `Price EA: <span class="marketGold">${fmt.format(num(item.price, 0))} gold</span>`}
+              <div class="marketShopInfo">
+                <div class="marketShopName">${esc(item.name)}</div>
+                <div class="marketShopMeta">
+                  ${esc(item.meta || "")}
+                  ${owned ? `<span class="marketShopPrice marketOwnedText">Owned</span>` : `<span class="marketShopPrice">${fmt.format(num(item.price, 0))} gold EA</span>`}
+                </div>
               </div>
-            </div>
               <div class="marketShopActions">
                 ${item.kind === "item" && !owned ? `<input class="marketShopQty" type="number" min="1" max="999" value="1" data-shop-qty="${esc(item.id)}" aria-label="Quantity for ${esc(item.name)}">` : ""}
                 <button type="button" data-buy-shop-item="${esc(item.id)}" ${owned ? "disabled" : ""}>${owned ? "Owned" : "Buy"}</button>
@@ -439,9 +496,9 @@
   function filteredListings(){
     const userId = getUserId();
     const rows = state.view === "myListings" ? state.myListings : state.listings.filter((listing) => {
-      if (state.view === "latest") return true;
-      if (state.view === "materials") return listing.category === "materials";
-      if (state.view === "gear") {
+      if (state.view !== "market") return true;
+      if (state.marketView === "materials") return listing.category === "materials";
+      if (state.marketView === "gear") {
         if (listing.category !== "gear") return false;
         return state.gearSlot === "all" || listing.gear_slot === state.gearSlot;
       }
@@ -484,7 +541,7 @@
     const rows = filteredListings();
     if (!rows.length) return `<div class="marketEmpty">No active listings here yet.</div>`;
     const userId = getUserId();
-    const latestView = state.view === "latest";
+    const latestView = false;
     const totalPages = latestView ? 1 : Math.max(1, Math.ceil(rows.length / LISTINGS_PER_PAGE));
     state.page = Math.max(1, Math.min(Math.floor(num(state.page, 1)), totalPages));
     const start = latestView ? 0 : (state.page - 1) * LISTINGS_PER_PAGE;
@@ -960,8 +1017,7 @@
       save.pets[shopItem.slot] = window.DS?.pets?.normalizePet ? window.DS.pets.normalizePet(shopItem.slot, pet) : pet;
       setSave(save);
       window.DSAuth?.syncCloudSaveNow?.();
-      setStatus(`Bought ${shopItem.name}.`);
-      render();
+      showPurchaseSuccess(shopItem.name, 1, shopItem.img);
       return;
     }
 
@@ -974,8 +1030,7 @@
     save.gold -= totalPrice;
     setSave(save);
     window.DSAuth?.syncCloudSaveNow?.();
-    setStatus(`Bought ${shopItem.name} x${fmt.format(multiplier)}.`);
-    render();
+    showPurchaseSuccess(shopItem.name, totalQuantity, shopItem.img);
   }
 
   async function listSelectedItem(){
@@ -1030,7 +1085,11 @@
       await window.DSAuth.invokeBuyMarketListing({ listingId: id, quantity: qty });
       state.inspectListingId = "";
       await loadListings();
-      setStatus(`Bought ${listing.item_name || "Item"} x${qty}.`);
+      showPurchaseSuccess(
+        listing.item_name || listing.item?.name || "Item",
+        qty,
+        listing.item_img || listing.item?.img || marketIcon(listing.category)
+      );
     } catch (error) {
       setStatus(error?.message || "Could not buy item.");
     }
@@ -1054,10 +1113,53 @@
     if (el) el.textContent = state.status;
   }
 
+  function showPurchaseSuccess(name, quantity = 1, img = ""){
+    state.purchaseSuccess = {
+      name: String(name || "Item"),
+      quantity: Math.max(1, Math.floor(num(quantity, 1))),
+      img: String(img || "")
+    };
+    state.status = "";
+    state.inspectListingId = "";
+    state.inspectAnchor = null;
+    render();
+  }
+
   function bind(){
+    document.querySelector("[data-back-to-market]")?.addEventListener("click", () => {
+      state.purchaseSuccess = null;
+      state.view = "market";
+      state.marketView = "gear";
+      state.page = 1;
+      state.inspectListingId = "";
+      state.inspectAnchor = null;
+      state.status = "";
+      render();
+    });
     document.querySelectorAll("[data-market-view]").forEach((btn) => {
       btn.addEventListener("click", () => {
-        state.view = String(btn.dataset.marketView || "latest");
+        state.purchaseSuccess = null;
+        state.view = String(btn.dataset.marketView || "market");
+        state.page = 1;
+        state.inspectListingId = "";
+        state.inspectAnchor = null;
+        render();
+      });
+    });
+    document.querySelectorAll("[data-market-category]").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        state.purchaseSuccess = null;
+        state.marketView = String(btn.dataset.marketCategory || "gear");
+        state.page = 1;
+        state.inspectListingId = "";
+        state.inspectAnchor = null;
+        render();
+      });
+    });
+    document.querySelectorAll("[data-shop-tab]").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        state.purchaseSuccess = null;
+        state.shopTab = String(btn.dataset.shopTab || "misc");
         state.page = 1;
         state.inspectListingId = "";
         state.inspectAnchor = null;
@@ -1135,7 +1237,7 @@
   function render(){
     const left = document.getElementById("leftPanel");
     if (!left) return false;
-    left.innerHTML = template();
+    left.innerHTML = state.purchaseSuccess ? purchaseSuccessTemplate() : template();
     document.title = "Darkstone Chronicles - Market";
     bind();
     return true;
@@ -1148,12 +1250,14 @@
     }
     const left = root || document.getElementById("leftPanel");
     if (!left) return false;
-    state.view = "latest";
+    state.view = "market";
+    state.marketView = "gear";
     state.sortKey = "";
     state.sortDir = "asc";
     state.page = 1;
     state.inspectListingId = "";
     state.inspectAnchor = null;
+    state.purchaseSuccess = null;
     if (String(window.location.hash || "").toLowerCase() === "#pets") {
       state.view = "generalShop";
     }
