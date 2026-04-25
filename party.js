@@ -169,8 +169,14 @@
     return !!modal && !!document.activeElement && modal.contains(document.activeElement);
   }
 
+  function isInlineInviteFormActive() {
+    const inlineInput = document.getElementById("partyInlineInviteName")
+      || document.getElementById("partyInlineInviteNamePending");
+    return !!inlineInput && document.activeElement === inlineInput;
+  }
+
   function isPartyInputActive() {
-    return isCreatePartyFormActive() || isInviteFormActive();
+    return isCreatePartyFormActive() || isInviteFormActive() || isInlineInviteFormActive();
   }
 
   function preservePartyInputsFromDom() {
@@ -181,6 +187,7 @@
   function shouldSkipSilentRender() {
     return !!document.getElementById("partyCreateForm")
       || !!document.getElementById("partyInviteModalBackdrop")
+      || isInlineInviteFormActive()
       || isPartyInputActive();
   }
 
