@@ -158,7 +158,9 @@
   }
 
   function syncInviteDraftFromDom() {
-    const input = document.getElementById("partyInviteName");
+    const input = document.getElementById("partyInviteName")
+      || document.getElementById("partyInlineInviteName")
+      || document.getElementById("partyInlineInviteNamePending");
     if (input) state.inviteDraft = input.value;
   }
 
@@ -454,6 +456,29 @@
     `).join("");
   }
 
+  function pendingInvitesPageMarkup(party) {
+    const canInvite = isLeader();
+    return `
+      <section style="display:grid;gap:14px;">
+        <div style="padding:14px;border:1px solid rgba(255,255,255,.10);border-radius:12px;background:rgba(255,255,255,.02);">
+          <div style="display:grid;gap:12px;margin-bottom:12px;">
+            <div>
+              <div style="font-size:16px;font-weight:800;">Pending Invites</div>
+              <div style="opacity:.76;font-size:12px;margin-top:4px;">Invites sent by the party leader.</div>
+            </div>
+            ${canInvite ? `
+              <div style="display:grid;grid-template-columns:auto minmax(180px,320px);gap:10px;align-items:center;justify-content:start;">
+                <button id="partySendInlineInviteBtn" type="button">Invite Player</button>
+                <input id="partyInlineInviteNamePending" type="text" value="${esc(state.inviteDraft)}" placeholder="Hero Name" style="width:100%;padding:10px 12px;border-radius:10px;border:2px solid #333;background:#101019;color:#fff;">
+              </div>
+            ` : ``}
+          </div>
+          <div style="display:grid;gap:10px;">${pendingInvitesMarkup(party)}</div>
+        </div>
+      </section>
+    `;
+  }
+
   function pendingJoinRequestsMarkup(party) {
     const requests = Array.isArray(party.pendingJoinRequests) ? party.pendingJoinRequests : [];
     if (!requests.length) return `<div style="opacity:.72;">No pending join requests.</div>`;
@@ -548,13 +573,22 @@
     `;
   }
 
-  function partyEmptySlotMarkup(party) {
-    const isPrivate = String(party.visibility || "").toLowerCase() === "private";
+  function partyEmptySlotMarkup() {
     return `
       <div style="display:grid;justify-items:center;align-content:start;gap:10px;text-align:center;">
         <div style="padding:4px 10px;border-radius:999px;background:transparent;border:1px solid transparent;color:transparent;font-weight:800;font-size:12px;">Empty</div>
         <div style="width:110px;height:110px;border-radius:18px;border:2px dashed rgba(255,255,255,.18);display:flex;align-items:center;justify-content:center;font-size:34px;opacity:.55;">+</div>
-        ${isPrivate ? `<button type="button" data-party-open-invite-modal="1">Invite</button>` : `<div style="height:36px;"></div>`}
+        <div style="height:36px;"></div>
+      </div>
+    `;
+  }
+
+  function inlineInviteFormMarkup() {
+    if (!isLeader()) return "";
+    return `
+      <div style="display:grid;grid-template-columns:auto minmax(180px,320px);gap:10px;align-items:center;justify-content:start;margin-bottom:14px;">
+        <button id="partySendInlineInviteBtn" type="button">Invite Player</button>
+        <input id="partyInlineInviteName" type="text" value="${esc(state.inviteDraft)}" placeholder="Hero Name" style="width:100%;padding:10px 12px;border-radius:10px;border:2px solid #333;background:#101019;color:#fff;">
       </div>
     `;
   }
@@ -571,11 +605,12 @@
       if (member) {
         slots.push(partySlotCardMarkup(member, member.isLeader ? "Leader" : (member.ready ? "Ready" : "Not Ready")));
       } else {
-        slots.push(partyEmptySlotMarkup(party));
+        slots.push(partyEmptySlotMarkup());
       }
     }
     return `
       <section style="padding:14px;border:1px solid rgba(255,255,255,.10);border-radius:16px;background:rgba(255,255,255,.02);">
+        ${inlineInviteFormMarkup()}
         <div style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:18px;align-items:start;">
           ${slots.join("")}
         </div>
@@ -622,7 +657,6 @@
   function leaderPartyMarkup(party) {
     const canStart = !!party.canStartActivity;
     const active = party.state === "active";
-    const isPrivate = String(party.visibility || "").toLowerCase() === "private";
     const hasSelectedMonster = !!String(party.selectedMonsterId || "").trim();
     return `
       <div style="display:grid;gap:14px;">
@@ -633,14 +667,6 @@
           <button id="partyDisbandBtn" type="button">Disband Party</button>
           <button id="partyLeaveBtn" type="button">Leave Party</button>
         </div>
-
-        ${isPrivate ? `` : `
-          <section style="padding:14px;border:1px solid rgba(255,255,255,.10);border-radius:12px;background:rgba(255,255,255,.02);">
-            <div style="font-size:15px;font-weight:800;margin-bottom:10px;">Open Party Status</div>
-            <div style="opacity:.8;margin-bottom:10px;">Players can find your party from the Find Party tab and join this lobby.</div>
-            <div style="display:grid;gap:10px;">${pendingJoinRequestsMarkup(party)}</div>
-          </section>
-        `}
         ${inviteModalMarkup()}
       </div>
     `;
@@ -895,13 +921,19 @@
   }
 
   function tabsMarkup() {
-    const tabs = [
-      ["my_party", myParty() ? "My Party" : "Create Party"],
-      ["find_party", "Find Party"],
-      ["invites", "Invites"]
-    ];
+    const party = myParty();
+    const tabs = party
+      ? [
+          ["my_party", "My Party"],
+          ["pending_invites", "Pending Invites"]
+        ]
+      : [
+          ["my_party", "Create Party"],
+          ["find_party", "Find Party"],
+          ["invites", "Invites"]
+        ];
     return `
-      <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-bottom:16px;">
+      <div style="display:grid;grid-template-columns:repeat(${tabs.length},minmax(0,1fr));gap:10px;margin-bottom:16px;">
         ${tabs.map(([id, label]) => `
           <button
             type="button"
@@ -931,8 +963,22 @@
       if (!party) return createPartyMarkup();
       return isLeader() ? leaderPartyMarkup(party) : memberPartyMarkup(party);
     }
+    if (party && state.tab === "pending_invites") return pendingInvitesPageMarkup(party);
     if (state.tab === "find_party") return findPartyMarkup();
     return invitesMarkup();
+  }
+
+  function normalizePartyTab() {
+    const party = myParty();
+    if (!party) {
+      if (!["my_party", "find_party", "invites"].includes(String(state.tab || ""))) {
+        state.tab = "my_party";
+      }
+      return;
+    }
+    if (state.tab === "pending_invites") return;
+    state.tab = "my_party";
+    state.selectedPartyId = null;
   }
 
   function bindActions() {
@@ -940,6 +986,8 @@
     document.getElementById("partyCreateVisibility")?.addEventListener("change", syncCreateDraftFromDom);
     document.getElementById("partyCreateMinLevel")?.addEventListener("input", syncCreateDraftFromDom);
     document.getElementById("partyInviteName")?.addEventListener("input", syncInviteDraftFromDom);
+    document.getElementById("partyInlineInviteName")?.addEventListener("input", syncInviteDraftFromDom);
+    document.getElementById("partyInlineInviteNamePending")?.addEventListener("input", syncInviteDraftFromDom);
 
     document.querySelectorAll("[data-party-tab]").forEach((btn) => btn.addEventListener("click", () => {
       state.tab = btn.dataset.partyTab || "my_party";
@@ -1033,6 +1081,34 @@
       state.inviteDraft = "";
       const input = document.getElementById("partyInviteName");
       if (input) input.value = "";
+    });
+
+    document.getElementById("partySendInlineInviteBtn")?.addEventListener("click", async () => {
+      const party = myParty();
+      if (!party) return;
+      syncInviteDraftFromDom();
+      const input = document.getElementById("partyInlineInviteName") || document.getElementById("partyInlineInviteNamePending");
+      const targetHeroName = String(input?.value || "").trim();
+      if (!targetHeroName) {
+        setNotice("Write a hero name first.", true);
+        input?.focus();
+        return;
+      }
+      await runAction({
+        action: "invite_player",
+        partyId: party.id,
+        targetHeroName
+      }, "Invite sent.");
+      state.inviteDraft = "";
+      if (input) input.value = "";
+    });
+
+    ["partyInlineInviteName", "partyInlineInviteNamePending"].forEach((id) => {
+      document.getElementById(id)?.addEventListener("keydown", (event) => {
+        if (event.key !== "Enter") return;
+        event.preventDefault();
+        document.getElementById("partySendInlineInviteBtn")?.click();
+      });
     });
 
     document.getElementById("partyReadyBtn")?.addEventListener("click", async () => {
@@ -1160,6 +1236,7 @@
     const shell = document.getElementById("partyHallCard");
     if (!shell) return;
     preservePartyInputsFromDom();
+    normalizePartyTab();
     shell.innerHTML = `
       ${tabsMarkup()}
       ${bodyMarkup()}

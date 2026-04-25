@@ -1567,7 +1567,7 @@ async function resolveHeroTarget(admin: ReturnType<typeof createClient>, heroNam
     .eq("normalized_name", normalized)
     .maybeSingle();
   if (error) throw error;
-  if (!data?.user_id) throw new Error(`Hero '${heroName}' not found.`);
+  if (!data?.user_id) throw new Error("Invalid hero name.");
   return {
     userId: str(data.user_id),
     heroName: str(data.hero_name, heroName),
@@ -1683,7 +1683,7 @@ async function invitePlayer(admin: ReturnType<typeof createClient>, userId: stri
 
   const target = await resolveHeroTarget(admin, str(payload.targetHeroName));
   if (target.userId === userId) throw new Error("You cannot invite yourself.");
-  if (await getCurrentPartyId(admin, target.userId)) throw new Error(`${target.heroName} is already in a party.`);
+  if (await getCurrentPartyId(admin, target.userId)) throw new Error("Already in party.");
 
   const members = await getPartyMembers(admin, partyId);
   if (members.length >= party.max_members) throw new Error("Party is already full.");
