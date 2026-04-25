@@ -982,6 +982,62 @@ async function getActiveSessionForParty(admin: ReturnType<typeof createClient>, 
   return (data as ActivitySessionRow | null) || null;
 }
 
+async function claimPartyFightAdvance(
+  admin: ReturnType<typeof createClient>,
+  activeSession: ActivitySessionRow,
+  payload: JsonRecord,
+  viewerUserId: string,
+  pendingTicks: number,
+) {
+  let rawPayload = asRecord(activeSession.result_payload);
+  const resolving = asRecord(rawPayload.resolving);
+  const resolvingAtMs = Date.parse(str(resolving.at));
+  const resolvingIsFresh = Number.isFinite(resolvingAtMs) && Date.now() - resolvingAtMs < 10000;
+  if (resolvingIsFresh && str(resolving.by) !== viewerUserId) {
+    return null;
+  }
+
+  const expectedResolvedCount = Math.max(0, int(payload.resolvedCount, 0));
+  if (rawPayload.resolving && !resolvingIsFresh) {
+    const unlockedPayload = { ...rawPayload };
+    delete unlockedPayload.resolving;
+    const { data, error } = await admin
+      .from("party_activity_sessions")
+      .update({ result_payload: unlockedPayload })
+      .eq("id", activeSession.id)
+      .eq("status", "active")
+      .eq("result_payload->>resolvedCount", String(expectedResolvedCount))
+      .select("id, party_id, activity, status, started_by_user_id, member_snapshot, result_payload, created_at, started_at, ended_at")
+      .maybeSingle();
+    if (error) throw error;
+    if (!data) return null;
+    activeSession = data as ActivitySessionRow;
+    rawPayload = unlockedPayload;
+  }
+
+  const claimPayload = {
+    ...rawPayload,
+    ...payload,
+    resolving: {
+      by: viewerUserId,
+      at: formatIsoNow(),
+      from: expectedResolvedCount,
+      to: expectedResolvedCount + Math.max(1, pendingTicks),
+    },
+  };
+  const { data, error } = await admin
+    .from("party_activity_sessions")
+    .update({ result_payload: claimPayload })
+    .eq("id", activeSession.id)
+    .eq("status", "active")
+    .eq("result_payload->>resolvedCount", String(expectedResolvedCount))
+    .is("result_payload->resolving", null)
+    .select("id, party_id, activity, status, started_by_user_id, member_snapshot, result_payload, created_at, started_at, ended_at")
+    .maybeSingle();
+  if (error) throw error;
+  return (data as ActivitySessionRow | null) || null;
+}
+
 async function getLatestPartyNotice(admin: ReturnType<typeof createClient>, partyId: string, sinceIso = "") {
   let query = admin
     .from("party_events")
@@ -1006,7 +1062,6 @@ async function advancePartyFightSession(
   activeSession: ActivitySessionRow,
   viewerUserId: string,
 ) {
-  if (party.leader_user_id !== viewerUserId) return activeSession;
   if (!activeSession.activity.toLowerCase().includes("party fight")) return activeSession;
 
   const monsterId = str(party.selected_monster_id);
@@ -1028,6 +1083,12 @@ async function advancePartyFightSession(
 
   const members = await getPartyMembers(admin, party.id);
   if (!members.length) return activeSession;
+  if (!members.some((entry) => entry.user_id === viewerUserId)) return activeSession;
+  const claimedSession = await claimPartyFightAdvance(admin, activeSession, payload, viewerUserId, pendingTicks);
+  if (!claimedSession) {
+    return await getActiveSessionForParty(admin, party.id);
+  }
+  activeSession = claimedSession;
 
   const memberIds = members.map((entry) => entry.user_id);
   const [summaries, saveRowsRes] = await Promise.all([
@@ -1984,6 +2045,34 @@ async function leaveParty(admin: ReturnType<typeof createClient>, userId: string
   await logPartyEvent(admin, partyId, userId, "party_member_left", {});
 }
 
+async function kickPartyMember(admin: ReturnType<typeof createClient>, userId: string, payload: JsonRecord) {
+  const partyId = str(payload.partyId) || await getCurrentPartyId(admin, userId);
+  const targetUserId = str(payload.targetUserId);
+  if (!partyId) throw new Error("Party not found.");
+  if (!targetUserId) throw new Error("Player is required.");
+
+  const party = await getPartyRow(admin, partyId);
+  if (!party || party.disbanded_at) throw new Error("Party not found.");
+  if (party.leader_user_id !== userId) throw new Error("Leader access required.");
+  if (party.state === "active" || party.locked) throw new Error("You cannot kick while the party is in an active activity.");
+  if (targetUserId === userId) throw new Error("Leader cannot kick themselves.");
+
+  const members = await getPartyMembers(admin, partyId);
+  const targetMember = members.find((entry) => entry.user_id === targetUserId);
+  if (!targetMember) throw new Error("Player is not in your party.");
+  if (targetMember.role === "leader") throw new Error("Leader cannot be kicked.");
+
+  const deleteRes = await admin
+    .from("party_members")
+    .delete()
+    .eq("party_id", partyId)
+    .eq("user_id", targetUserId)
+    .neq("role", "leader");
+  if (deleteRes.error) throw deleteRes.error;
+
+  await logPartyEvent(admin, partyId, userId, "party_member_kicked", { targetUserId });
+}
+
 async function disbandParty(admin: ReturnType<typeof createClient>, userId: string, payload: JsonRecord) {
   const partyId = str(payload.partyId) || await getCurrentPartyId(admin, userId);
   if (!partyId) throw new Error("Party not found.");
@@ -2086,17 +2175,22 @@ async function endActivity(admin: ReturnType<typeof createClient>, userId: strin
   if (!partyId) throw new Error("Party not found.");
   const party = await getPartyRow(admin, partyId);
   if (!party || party.disbanded_at) throw new Error("Party not found.");
-  if (party.leader_user_id !== userId) throw new Error("Leader access required.");
   if (party.state !== "active") throw new Error("Party is not in an active activity.");
+  const activeSession = await getActiveSessionForParty(admin, partyId);
+  const isPartyFight = String(activeSession?.activity || party.activity || "").toLowerCase().includes("party fight");
+  if (party.leader_user_id !== userId) {
+    if (!isPartyFight) throw new Error("Leader access required.");
+    const members = await getPartyMembers(admin, partyId);
+    if (!members.some((member) => member.user_id === userId)) throw new Error("Party member access required.");
+  }
 
   const now = formatIsoNow();
   const result = str(payload.result, "completed").toLowerCase();
-  const activeSession = await getActiveSessionForParty(admin, partyId);
   if (activeSession) {
     const sessionUpdate = await admin
       .from("party_activity_sessions")
       .update({
-        status: result === "failed" ? "failed" : "completed",
+        status: result === "failed" ? "failed" : result === "cancelled" ? "cancelled" : "completed",
         ended_at: now,
         result_payload: payload.resultPayload && typeof payload.resultPayload === "object"
           ? payload.resultPayload
@@ -2213,6 +2307,10 @@ Deno.serve(async (req) => {
     if (action === "leave_party") {
       await leaveParty(admin, user.id);
       return json({ ...(await getBootstrapState(admin, user.id)), message: "Party updated." });
+    }
+    if (action === "kick_member") {
+      await kickPartyMember(admin, user.id, payload);
+      return json({ ...(await getBootstrapState(admin, user.id)), message: "Player kicked from party." });
     }
     if (action === "disband_party") {
       await disbandParty(admin, user.id, payload);

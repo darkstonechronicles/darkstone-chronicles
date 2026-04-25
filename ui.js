@@ -5114,6 +5114,12 @@ function mountShellView(targetPage, targetHref = targetPage) {
   return false;
 }
 
+function confirmPartyFightRouteChange(targetPage) {
+  if (targetPage === "party_hall.html") return true;
+  const guard = window.DSPartyHall?.confirmStopPartyFightForNavigation;
+  return typeof guard === "function" ? guard() !== false : true;
+}
+
 function ensureShellRouteScript(targetPage) {
   if (targetPage === "market.html" && !window.DSMarket) {
     return ensureOptionalScript("market.js");
@@ -5128,6 +5134,7 @@ function navigateWithinShell(targetHref, options = {}) {
   const targetPage = normalizePagePath(targetHref);
   const currentPage = normalizePagePath(window.location.pathname || "index.html");
   if (!canUseShellRouting(currentPage, targetPage)) return false;
+  if (!confirmPartyFightRouteChange(targetPage)) return true;
   if (targetPage === currentPage && !options.force) {
     const didMountSameRoute = mountShellView(targetPage, targetHref);
     if (!didMountSameRoute) {
@@ -5181,6 +5188,8 @@ function navigateWithinShell(targetHref, options = {}) {
 function navigateWithFade(targetHref) {
   const targetPage = normalizePagePath(targetHref);
   if (!targetPage) return;
+  const currentPage = normalizePagePath(window.location.pathname || "index.html");
+  if (!canUseShellRouting(currentPage, targetPage) && !confirmPartyFightRouteChange(targetPage)) return;
 
   restoreLeftPanelNodes();
   window.DS?.resume?.();

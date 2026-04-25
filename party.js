@@ -1,5 +1,6 @@
 (() => {
   const POLL_MS = 1500;
+  const ACTIVE_PARTY_FIGHT_POLL_MS = 350;
   const PARTY_FIGHT_MONSTERS = [
     {
       id: "gravefang-hydra",
@@ -72,10 +73,15 @@
     actionBusy: false,
     initialized: false,
     pollTimer: 0,
+    pollIntervalMs: 0,
+    realtimeChannel: null,
+    realtimePartyId: "",
+    realtimeRefreshTimer: 0,
     uiTimer: 0,
     uiRaf: 0,
     boundaryFetchAt: 0,
     boundaryResolvedCount: -1,
+    boundaryFetchTimer: 0,
     lastMessage: "",
     lastError: "",
     createDraft: null,
@@ -125,6 +131,10 @@
 
   function isLeader() {
     return myRole() === "leader";
+  }
+
+  function isActivePartyFight(party = myParty()) {
+    return !!party && party.state === "active" && String(party.activity || "").toLowerCase().includes("party fight");
   }
 
   function defaultCreateDraft() {
@@ -294,14 +304,74 @@
     return [safeMembers.slice(0, 2), safeMembers.slice(2, 4)];
   }
 
+  function queuePartyFightBoundaryFetch(expectedResolvedCount, delayMs = 0) {
+    if (state.boundaryFetchTimer) window.clearTimeout(state.boundaryFetchTimer);
+    state.boundaryFetchTimer = window.setTimeout(() => {
+      state.boundaryFetchTimer = 0;
+      if (document.hidden || !isActivePartyFight() || state.actionBusy) return;
+      const currentResolvedCount = Math.max(0, num(activeSessionPayload(myParty()).resolvedCount, 0));
+      if (currentResolvedCount >= expectedResolvedCount) return;
+      Promise.resolve(loadPartyState({ silent: true, forceRender: true })).catch(() => {});
+      window.setTimeout(() => {
+        if (!document.hidden && isActivePartyFight() && !state.loading && !state.actionBusy) {
+          const nextResolvedCount = Math.max(0, num(activeSessionPayload(myParty()).resolvedCount, 0));
+          if (nextResolvedCount < expectedResolvedCount) {
+            Promise.resolve(loadPartyState({ silent: true, forceRender: true })).catch(() => {});
+          }
+        }
+      }, 160);
+      window.setTimeout(() => {
+        if (!document.hidden && isActivePartyFight() && !state.loading && !state.actionBusy) {
+          const nextResolvedCount = Math.max(0, num(activeSessionPayload(myParty()).resolvedCount, 0));
+          if (nextResolvedCount < expectedResolvedCount) {
+            Promise.resolve(loadPartyState({ silent: true, forceRender: true })).catch(() => {});
+          }
+        }
+      }, 420);
+    }, Math.max(0, delayMs));
+  }
+
+  function queueRealtimeRefresh(delayMs = 80) {
+    if (state.realtimeRefreshTimer) window.clearTimeout(state.realtimeRefreshTimer);
+    state.realtimeRefreshTimer = window.setTimeout(() => {
+      state.realtimeRefreshTimer = 0;
+      if (document.hidden || state.loading || state.actionBusy) return;
+      Promise.resolve(loadPartyState({ silent: true, forceRender: isActivePartyFight() })).catch(() => {});
+    }, Math.max(0, delayMs));
+  }
+
+  function syncPartyRealtimeSubscription() {
+    const client = window.DSAuth?.getClient?.();
+    if (!client?.channel) return;
+    const partyId = String(myParty()?.id || "");
+    if (state.realtimePartyId === partyId) return;
+    if (state.realtimeChannel) {
+      Promise.resolve(client.removeChannel?.(state.realtimeChannel)).catch(() => {});
+      state.realtimeChannel = null;
+      state.realtimePartyId = "";
+    }
+    if (!partyId) return;
+    const refresh = () => queueRealtimeRefresh(50);
+    const channel = client
+      .channel(`party-hall-${partyId}`)
+      .on("postgres_changes", { event: "*", schema: "public", table: "parties", filter: `id=eq.${partyId}` }, refresh)
+      .on("postgres_changes", { event: "*", schema: "public", table: "party_members", filter: `party_id=eq.${partyId}` }, refresh)
+      .on("postgres_changes", { event: "*", schema: "public", table: "party_activity_sessions", filter: `party_id=eq.${partyId}` }, refresh)
+      .on("postgres_changes", { event: "*", schema: "public", table: "party_invites", filter: `party_id=eq.${partyId}` }, refresh)
+      .on("postgres_changes", { event: "*", schema: "public", table: "party_join_requests", filter: `party_id=eq.${partyId}` }, refresh)
+      .on("postgres_changes", { event: "*", schema: "public", table: "party_events", filter: `party_id=eq.${partyId}` }, refresh);
+    channel.subscribe();
+    state.realtimeChannel = channel;
+    state.realtimePartyId = partyId;
+  }
+
   function updatePartyFightTimerUI() {
     const wrap = document.getElementById("partyFightCooldownWrap");
     const text = document.getElementById("partyFightCooldownText");
     const bar = document.getElementById("partyFightCooldownBar");
     if (!wrap || !text || !bar) return;
     const party = myParty();
-    const isActivePartyFight = party && party.state === "active" && String(party.activity || "").toLowerCase().includes("party fight");
-    if (!isActivePartyFight) {
+    if (!isActivePartyFight(party)) {
       wrap.style.display = "none";
       bar.style.width = "0%";
       text.textContent = "6.0s";
@@ -321,34 +391,33 @@
     if (visualResolvedCount > resolvedCount && !state.loading && !state.actionBusy) {
       const now = Date.now();
       const sameRound = state.boundaryResolvedCount === visualResolvedCount;
-      if (!sameRound || (now - state.boundaryFetchAt) >= 250) {
+      if (!sameRound || (now - state.boundaryFetchAt) >= 120) {
         state.boundaryResolvedCount = visualResolvedCount;
         state.boundaryFetchAt = now;
-        Promise.resolve(loadPartyState({ silent: true })).catch(() => {});
+        queuePartyFightBoundaryFetch(visualResolvedCount);
       }
     }
   }
 
-  async function loadPartyState({ silent = false } = {}) {
+  async function loadPartyState({ silent = false, forceRender = false } = {}) {
     if (!window.DSAuth?.invokePartyAction) return null;
     if (state.loading && silent) return state.data;
     state.loading = true;
     try {
       const previousParty = state.data?.myParty || null;
       const previousResolvedCount = num(activeSessionPayload(previousParty).resolvedCount, -1);
-      const previousActive = previousParty && previousParty.state === "active" && String(previousParty.activity || "").toLowerCase().includes("party fight");
+      const previousActive = isActivePartyFight(previousParty);
       const data = await window.DSAuth.invokePartyAction({ action: "bootstrap" });
       state.data = data || null;
       const nextResolvedCount = num(activeSessionPayload(state.data?.myParty || null).resolvedCount, -1);
       const nextParty = state.data?.myParty || null;
-      const nextActive = nextParty && nextParty.state === "active" && String(nextParty.activity || "").toLowerCase().includes("party fight");
+      const nextActive = isActivePartyFight(nextParty);
       if (nextResolvedCount > previousResolvedCount) {
         state.boundaryResolvedCount = nextResolvedCount;
         window.DSAuth?.syncCloudSaveNow?.();
       }
       const activeParty = state.data?.myParty || null;
-      const isActivePartyFight = activeParty && activeParty.state === "active" && String(activeParty.activity || "").toLowerCase().includes("party fight");
-      const noticeMessage = isActivePartyFight ? "" : String(activeParty?.noticeMessage || "").trim();
+      const noticeMessage = isActivePartyFight(activeParty) ? "" : String(activeParty?.noticeMessage || "").trim();
       if (noticeMessage) {
         setNotice(noticeMessage);
       } else if (!silent && !state.lastError) {
@@ -361,7 +430,9 @@
         && previousResolvedCount === nextResolvedCount
         && String(previousParty?.id || "") === String(nextParty?.id || "")
         && String(previousParty?.noticeMessage || "") === String(nextParty?.noticeMessage || "");
-      if (hasPartyPage() && !(silent && (shouldSkipSilentRender() || sameActivePartyFrame))) renderPartyHall();
+      if (hasPartyPage() && !(silent && !forceRender && (shouldSkipSilentRender() || sameActivePartyFrame))) renderPartyHall();
+      restartPollingIfNeeded();
+      syncPartyRealtimeSubscription();
       return data;
     } catch (error) {
       if (!silent) {
@@ -383,9 +454,13 @@
       const data = await window.DSAuth?.invokePartyAction?.(payload || {});
       state.data = data || state.data;
       state.lastError = "";
-      setNotice(data?.message || successMessage || "Party updated.");
+      const nextMessage = successMessage !== undefined ? successMessage : data?.message;
+      setNotice(nextMessage || "");
       renderInvitePopups();
       if (hasPartyPage()) renderPartyHall();
+      window.setTimeout(() => {
+        if (!document.hidden) Promise.resolve(loadPartyState({ silent: true })).catch(() => {});
+      }, 250);
       return data;
     } catch (error) {
       setNotice(error?.message || "Party action failed.", true);
@@ -394,6 +469,36 @@
     } finally {
       state.actionBusy = false;
     }
+  }
+
+  function openMyPartyScreen() {
+    state.tab = "my_party";
+    state.selectedPartyId = null;
+    state.monsterSelectionOpen = false;
+    state.monsterInfoOpen = false;
+    state.inviteModalOpen = false;
+    const onPartyPage = /(^|\/)party_hall\.html$/i.test(String(window.location.pathname || ""));
+    if (onPartyPage && hasPartyPage()) {
+      renderPartyHall();
+      return;
+    }
+    if (window.DSUI?.navigateWithinShell?.("party_hall.html")) return;
+    window.location.href = "party_hall.html";
+  }
+
+  function activePartyFightForNavigation() {
+    const party = myParty();
+    if (!party) return null;
+    return isActivePartyFight(party) ? party : null;
+  }
+
+  function confirmStopPartyFightForNavigation() {
+    const party = activePartyFightForNavigation();
+    if (!party) return true;
+    const ok = window.confirm("Party Fight is active. If you press OK, the Party Fight will stop. Continue?");
+    if (!ok) return false;
+    runAction({ action: "end_activity", partyId: party.id, result: "cancelled", nextActivity: "Party Fight" }, "Party Fight stopped.");
+    return true;
   }
 
   function createPartyMarkup() {
@@ -568,11 +673,18 @@
     `;
   }
 
-  function partySlotCardMarkup(member, label) {
+  function partySlotCardMarkup(member) {
     const frameColor = member.isLeader || member.ready ? "#43c26b" : "#c45151";
+    const statusText = member.isLeader || member.ready ? "Ready" : "Not Ready";
+    const canKick = isLeader() && !member.isSelf && !member.isLeader;
     return `
       <div style="display:grid;justify-items:center;align-content:start;gap:10px;text-align:center;">
-        <div style="padding:4px 10px;border-radius:999px;background:rgba(231,192,110,.14);border:1px solid rgba(231,192,110,.18);color:#f0d38d;font-weight:800;font-size:12px;">${esc(label)}</div>
+        <div style="min-height:38px;display:flex;align-items:center;justify-content:center;">
+          ${canKick ? `<button type="button" data-party-kick-member="${esc(member.userId)}" style="padding:7px 14px;border-radius:10px;">Kick</button>` : ``}
+        </div>
+        <div style="min-height:28px;display:flex;align-items:center;justify-content:center;">
+          <div style="padding:4px 10px;border-radius:999px;background:${member.isLeader || member.ready ? "rgba(67,194,107,.16)" : "rgba(196,81,81,.16)"};border:1px solid ${member.isLeader || member.ready ? "rgba(67,194,107,.32)" : "rgba(196,81,81,.32)"};color:${member.isLeader || member.ready ? "#bff0ca" : "#ffd3d3"};font-weight:900;font-size:12px;">${statusText}</div>
+        </div>
         <img src="${esc(member.avatarUrl)}" alt="${esc(member.heroName)}" style="width:110px;height:110px;border-radius:18px;border:3px solid ${frameColor};object-fit:cover;box-shadow:0 0 0 1px rgba(0,0,0,.28);">
         <div style="font-weight:900;font-size:18px;line-height:1.1;">${esc(member.heroName)}</div>
         <div style="font-size:12px;opacity:.82;letter-spacing:.02em;">ATT ${num(member.heroAttack, 0)}  DEF ${num(member.heroDefense, 0)}</div>
@@ -583,7 +695,8 @@
   function partyEmptySlotMarkup() {
     return `
       <div style="display:grid;justify-items:center;align-content:start;gap:10px;text-align:center;">
-        <div style="padding:4px 10px;border-radius:999px;background:transparent;border:1px solid transparent;color:transparent;font-weight:800;font-size:12px;">Empty</div>
+        <div style="min-height:38px;"></div>
+        <div style="min-height:28px;"></div>
         <div style="width:110px;height:110px;border-radius:18px;border:2px dashed rgba(255,255,255,.18);display:flex;align-items:center;justify-content:center;font-size:34px;opacity:.55;">+</div>
         <div style="height:36px;"></div>
       </div>
@@ -610,7 +723,7 @@
     for (let index = 0; index < 4; index += 1) {
       const member = members[index] || null;
       if (member) {
-        slots.push(partySlotCardMarkup(member, member.isLeader ? "Leader" : (member.ready ? "Ready" : "Not Ready")));
+        slots.push(partySlotCardMarkup(member));
       } else {
         slots.push(partyEmptySlotMarkup());
       }
@@ -913,15 +1026,8 @@
           </div>
         </div>
 
-        <div style="display:flex;gap:12px;flex-wrap:wrap;justify-content:flex-start;">
-          ${isLeader()
-            ? `
-              <button id="partyFightEndBtn" type="button">End Party Fight</button>
-              <button id="partyDisbandBtn" type="button">Disband Party</button>
-              <button id="partyLeaveBtn" type="button">Leave Party</button>
-            `
-            : `<button id="partyLeaveBtn" type="button" disabled>Leave Party</button>`
-          }
+        <div style="display:flex;gap:12px;flex-wrap:wrap;justify-content:center;">
+          <button id="partyFightEndBtn" type="button">Stop Party Fight</button>
         </div>
       </section>
     `;
@@ -986,6 +1092,17 @@
     if (state.tab === "pending_invites") return;
     state.tab = "my_party";
     state.selectedPartyId = null;
+  }
+
+  function noticeMarkup() {
+    const message = state.lastError || state.lastMessage || "";
+    const isError = !!state.lastError;
+    return `
+      <div
+        id="partyHallMsg"
+        style="min-height:22px;margin:-4px 0 12px;text-align:center;font-weight:900;color:${isError ? "#ffd8de" : "#ead39b"};"
+      >${esc(message)}</div>
+    `;
   }
 
   function bindActions() {
@@ -1083,7 +1200,7 @@
         action: "invite_player",
         partyId: party.id,
         targetHeroName
-      }, "Invite sent.");
+      }, `Invite sent to ${targetHeroName}.`);
       state.inviteModalOpen = false;
       state.inviteDraft = "";
       const input = document.getElementById("partyInviteName");
@@ -1105,7 +1222,7 @@
         action: "invite_player",
         partyId: party.id,
         targetHeroName
-      }, "Invite sent.");
+      }, `Invite sent to ${targetHeroName}.`);
       state.inviteDraft = "";
       if (input) input.value = "";
     });
@@ -1119,12 +1236,22 @@
     });
 
     document.getElementById("partyReadyBtn")?.addEventListener("click", async () => {
-      await runAction({ action: "set_ready" }, "Ready state updated.");
+      await runAction({ action: "set_ready" }, "");
     });
 
     document.getElementById("partyLeaveBtn")?.addEventListener("click", async () => {
-      await runAction({ action: "leave_party" }, "Party updated.");
+      await runAction({ action: "leave_party" }, "");
     });
+
+    document.querySelectorAll("[data-party-kick-member]").forEach((btn) => btn.addEventListener("click", async () => {
+      const targetUserId = String(btn.dataset.partyKickMember || "");
+      const party = myParty();
+      const member = Array.isArray(party?.members) ? party.members.find((entry) => String(entry?.userId || "") === targetUserId) : null;
+      const name = String(member?.heroName || "this player");
+      if (!targetUserId || !party) return;
+      if (!window.confirm(`Kick ${name} from the party?`)) return;
+      await runAction({ action: "kick_member", partyId: party.id, targetUserId }, `${name} was kicked from the party.`);
+    }));
 
     document.getElementById("partyDisbandBtn")?.addEventListener("click", async () => {
       const party = myParty();
@@ -1142,11 +1269,11 @@
     document.getElementById("partyFightEndBtn")?.addEventListener("click", async () => {
       const party = myParty();
       if (!party) return;
-      await runAction({ action: "end_activity", partyId: party.id, result: "completed", nextActivity: "Party Fight" }, "Party Fight ended.");
+      await runAction({ action: "end_activity", partyId: party.id, result: "cancelled", nextActivity: "Party Fight" }, "Party Fight stopped.");
     });
 
     document.getElementById("partyFightReadyBtn")?.addEventListener("click", async () => {
-      await runAction({ action: "set_ready" }, "Ready state updated.");
+      await runAction({ action: "set_ready" }, "");
     });
 
     document.getElementById("partyFightBackBtn")?.addEventListener("click", () => {
@@ -1162,7 +1289,7 @@
         action: "start_activity",
         partyId: party.id,
         activity: `Party Fight - ${monster.name}`
-      }, `${monster.name} fight started.`);
+      }, "");
     });
 
     document.querySelectorAll("[data-party-fight-monster]").forEach((btn) => btn.addEventListener("click", () => {
@@ -1193,23 +1320,24 @@
     }));
 
     document.querySelectorAll("[data-party-accept-invite]").forEach((btn) => btn.addEventListener("click", async () => {
-      await runAction({ action: "respond_invite", inviteId: btn.dataset.partyAcceptInvite || "", response: "accept" }, "Invite accepted.");
+      const data = await runAction({ action: "respond_invite", inviteId: btn.dataset.partyAcceptInvite || "", response: "accept" }, "Joined party.");
+      if (data) openMyPartyScreen();
     }));
 
     document.querySelectorAll("[data-party-decline-invite]").forEach((btn) => btn.addEventListener("click", async () => {
-      await runAction({ action: "respond_invite", inviteId: btn.dataset.partyDeclineInvite || "", response: "decline" }, "Invite declined.");
+      await runAction({ action: "respond_invite", inviteId: btn.dataset.partyDeclineInvite || "", response: "decline" }, "");
     }));
 
     document.querySelectorAll("[data-party-approve-request]").forEach((btn) => btn.addEventListener("click", async () => {
-      await runAction({ action: "respond_join_request", requestId: btn.dataset.partyApproveRequest || "", response: "approve" }, "Join request approved.");
+      await runAction({ action: "respond_join_request", requestId: btn.dataset.partyApproveRequest || "", response: "approve" }, "");
     }));
 
     document.querySelectorAll("[data-party-reject-request]").forEach((btn) => btn.addEventListener("click", async () => {
-      await runAction({ action: "respond_join_request", requestId: btn.dataset.partyRejectRequest || "", response: "reject" }, "Join request rejected.");
+      await runAction({ action: "respond_join_request", requestId: btn.dataset.partyRejectRequest || "", response: "reject" }, "");
     }));
 
     document.querySelectorAll("[data-party-cancel-request]").forEach((btn) => btn.addEventListener("click", async () => {
-      await runAction({ action: "cancel_join_request", requestId: btn.dataset.partyCancelRequest || "" }, "Join request cancelled.");
+      await runAction({ action: "cancel_join_request", requestId: btn.dataset.partyCancelRequest || "" }, "");
     }));
   }
 
@@ -1232,10 +1360,11 @@
       </div>
     `).join("");
     host.querySelectorAll("[data-popup-accept]").forEach((btn) => btn.addEventListener("click", async () => {
-      await runAction({ action: "respond_invite", inviteId: btn.dataset.popupAccept || "", response: "accept" }, "Invite accepted.");
+      const data = await runAction({ action: "respond_invite", inviteId: btn.dataset.popupAccept || "", response: "accept" }, "Joined party.");
+      if (data) openMyPartyScreen();
     }));
     host.querySelectorAll("[data-popup-decline]").forEach((btn) => btn.addEventListener("click", async () => {
-      await runAction({ action: "respond_invite", inviteId: btn.dataset.popupDecline || "", response: "decline" }, "Invite declined.");
+      await runAction({ action: "respond_invite", inviteId: btn.dataset.popupDecline || "", response: "decline" }, "");
     }));
   }
 
@@ -1246,6 +1375,7 @@
     normalizePartyTab();
     shell.innerHTML = `
       ${tabsMarkup()}
+      ${noticeMarkup()}
       ${bodyMarkup()}
     `;
     bindActions();
@@ -1276,11 +1406,20 @@
   }
 
   function startPolling() {
-    if (state.pollTimer) return;
+    const intervalMs = isActivePartyFight() ? ACTIVE_PARTY_FIGHT_POLL_MS : POLL_MS;
+    if (state.pollTimer && state.pollIntervalMs === intervalMs) return;
+    if (state.pollTimer) window.clearInterval(state.pollTimer);
+    state.pollIntervalMs = intervalMs;
     state.pollTimer = window.setInterval(() => {
       if (document.hidden) return;
       loadPartyState({ silent: true });
-    }, POLL_MS);
+    }, intervalMs);
+  }
+
+  function restartPollingIfNeeded() {
+    if (!state.initialized) return;
+    const intervalMs = isActivePartyFight() ? ACTIVE_PARTY_FIGHT_POLL_MS : POLL_MS;
+    if (!state.pollTimer || state.pollIntervalMs !== intervalMs) startPolling();
   }
 
   function startUiTimer() {
@@ -1319,7 +1458,7 @@
     await loadPartyState({ silent: true });
   }
 
-  window.DSPartyHall = { mount: mountPartyHall, initRealtime };
+  window.DSPartyHall = { mount: mountPartyHall, initRealtime, confirmStopPartyFightForNavigation };
   window.addEventListener("DOMContentLoaded", () => {
     initStandalonePartyHall();
     initRealtime();
