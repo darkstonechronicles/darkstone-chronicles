@@ -148,7 +148,7 @@
       setName: "Frostveil",
       reqLevel: 10,
       entryCost: 10,
-      rewards: { goldMin: 800, goldMax: 1200, xpMin: 650, xpMax: 900 },
+      rewards: { goldMin: 400, goldMax: 800, xpMin: 450, xpMax: 700 },
       waves: [
         ["frost_wisp", "Frost Wisp"],
         ["glacier_mite", "Glacier Mite"],
@@ -165,7 +165,7 @@
       setName: "Ashen Guard",
       reqLevel: 20,
       entryCost: 14,
-      rewards: { goldMin: 1200, goldMax: 1700, xpMin: 900, xpMax: 1250 },
+      rewards: { goldMin: 800, goldMax: 1300, xpMin: 700, xpMax: 1050 },
       waves: [
         ["cinder_rat", "Cinder Rat"],
         ["smoke_imp", "Smoke Imp"],
@@ -182,7 +182,7 @@
       setName: "Mirewake",
       reqLevel: 30,
       entryCost: 18,
-      rewards: { goldMin: 1700, goldMax: 2300, xpMin: 1250, xpMax: 1700 },
+      rewards: { goldMin: 1300, goldMax: 1900, xpMin: 1050, xpMax: 1500 },
       waves: [
         ["fen_larva", "Fen Larva"],
         ["bog_shambler", "Bog Shambler"],
@@ -199,7 +199,7 @@
       setName: "Thornbound",
       reqLevel: 40,
       entryCost: 22,
-      rewards: { goldMin: 2300, goldMax: 3000, xpMin: 1700, xpMax: 2200 },
+      rewards: { goldMin: 1900, goldMax: 2600, xpMin: 1500, xpMax: 2000 },
       waves: [
         ["briar_sprite", "Briar Sprite"],
         ["razor_vine", "Razor Vine"],
@@ -216,7 +216,7 @@
       setName: "Stormwatch",
       reqLevel: 50,
       entryCost: 26,
-      rewards: { goldMin: 3000, goldMax: 3800, xpMin: 2200, xpMax: 2800 },
+      rewards: { goldMin: 2600, goldMax: 3400, xpMin: 2000, xpMax: 2600 },
       waves: [
         ["gust_watcher", "Gust Watcher"],
         ["hail_hunter", "Hail Hunter"],
@@ -233,7 +233,7 @@
       setName: "Duskwall",
       reqLevel: 60,
       entryCost: 30,
-      rewards: { goldMin: 3800, goldMax: 4700, xpMin: 2800, xpMax: 3500 },
+      rewards: { goldMin: 3400, goldMax: 4300, xpMin: 2600, xpMax: 3300 },
       waves: [
         ["shade_mote", "Shade Mote"],
         ["gloom_knight", "Gloom Knight"],
@@ -250,7 +250,7 @@
       setName: "Sunscar",
       reqLevel: 70,
       entryCost: 34,
-      rewards: { goldMin: 4700, goldMax: 5700, xpMin: 3500, xpMax: 4300 },
+      rewards: { goldMin: 4300, goldMax: 5300, xpMin: 3300, xpMax: 4100 },
       waves: [
         ["sand_wisp", "Sand Wisp"],
         ["scarab_sworn", "Scarab Sworn"],
@@ -267,7 +267,7 @@
       setName: "Voidscar",
       reqLevel: 80,
       entryCost: 38,
-      rewards: { goldMin: 5700, goldMax: 6800, xpMin: 4300, xpMax: 5200 },
+      rewards: { goldMin: 5300, goldMax: 6400, xpMin: 4100, xpMax: 5000 },
       waves: [
         ["rift_mote", "Rift Mote"],
         ["void_drone", "Void Drone"],
@@ -284,7 +284,7 @@
       setName: "Bloodforge",
       reqLevel: 90,
       entryCost: 42,
-      rewards: { goldMin: 6800, goldMax: 8000, xpMin: 5200, xpMax: 6200 },
+      rewards: { goldMin: 6400, goldMax: 7600, xpMin: 5000, xpMax: 6000 },
       waves: [
         ["iron_thrall", "Iron Thrall"],
         ["blood_smith", "Blood Smith"],
@@ -301,7 +301,7 @@
       setName: "Celestial Apex",
       reqLevel: 100,
       entryCost: 48,
-      rewards: { goldMin: 8000, goldMax: 9500, xpMin: 6200, xpMax: 7400 },
+      rewards: { goldMin: 7600, goldMax: 9100, xpMin: 6000, xpMax: 7200 },
       waves: [
         ["starling_echo", "Starling Echo"],
         ["astral_keeper", "Astral Keeper"],
