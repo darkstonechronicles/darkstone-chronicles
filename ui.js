@@ -18,13 +18,12 @@
   const EQUIP_STATS_MODE_KEY = "darkstone_equip_stats_mode_v1";
   const CHAT_KEY = "darkstone_chat_v1";
   const CHAT_TAB_KEY = "darkstone_chat_tab_v1";
-  const PETS_PANEL_COLLAPSED_KEY = "darkstone_pets_panel_collapsed_v1";
   const TAB_SYNC_CHANNEL = "darkstone_tab_sync_v1";
   const REFRESH_MS = 800;
   const GLOBAL_CHAT_FETCH_LIMIT = 80;
   const GLOBAL_CHAT_COOLDOWN_MS = 2000;
   const GLOBAL_CHAT_DUPLICATE_WINDOW_MS = 6000;
-  const CHAT_CHANNELS = ["global", "market", "clan", "friends"];
+  const CHAT_CHANNELS = ["global", "market", "clan", "party", "whispers"];
   const PET_SLOT_DEFS = [
     { key: "combat", label: "Combat Pet", shortLabel: "Combat", emoji: "⚔️" },
     { key: "artisan", label: "Artisan Pet", shortLabel: "Artisan", emoji: "🛠️" },
@@ -382,14 +381,6 @@
   function getEmptyPetsState(){
     return Object.fromEntries(PET_SLOT_DEFS.map((slot) => [slot.key, null]));
   }
-  function isPetsPanelCollapsed(){
-    try { return localStorage.getItem(PETS_PANEL_COLLAPSED_KEY) === "1"; }
-    catch { return false; }
-  }
-  function setPetsPanelCollapsed(next){
-    try { localStorage.setItem(PETS_PANEL_COLLAPSED_KEY, next ? "1" : "0"); }
-    catch {}
-  }
   window.DS.pets = {
     slots: PET_SLOT_DEFS,
     combatFamilies: COMBAT_PET_FAMILIES,
@@ -491,9 +482,22 @@
 
   const __liveChatState = {
     global: createLiveChatChannelState(),
-    market: createLiveChatChannelState()
+    market: createLiveChatChannelState(),
+    party: createLiveChatChannelState()
   };
   const __chatDrafts = Object.fromEntries(CHAT_CHANNELS.map((channel) => [channel, ""]));
+  const __chatUnread = Object.fromEntries(CHAT_CHANNELS.map((channel) => [channel, 0]));
+  const __whisperState = {
+    conversations: [],
+    messages: [],
+    activeUser: null,
+    loaded: false,
+    loading: false,
+    sending: false,
+    channel: null,
+    subscribed: false,
+    pollTimer: 0
+  };
   const MARKET_SALE_HISTORY_KEY = "darkstone_market_sale_history_v1";
   const __marketSaleState = {
     channel: null,
@@ -663,11 +667,357 @@
   }
 
   function isLiveChatTab(tab) {
-    return tab === "global" || tab === "market";
+    return tab === "global" || tab === "market" || tab === "party";
   }
 
   function getLiveChatState(tab) {
     return isLiveChatTab(tab) ? __liveChatState[tab] : null;
+  }
+
+  function getCurrentPartyChatId() {
+    return String(window.DSPartyHall?.getCurrentPartyId?.() || "").trim();
+  }
+
+  function resetLiveChatState(state) {
+    if (!state) return;
+    state.messages = [];
+    state.loaded = false;
+    state.loading = false;
+    state.signature = "";
+    state.pendingMap = {};
+  }
+
+  function bumpChatUnread(tab, count = 1) {
+    if (!CHAT_CHANNELS.includes(tab) || __chatTab === tab) return;
+    __chatUnread[tab] = Math.min(99, Math.max(0, num(__chatUnread[tab], 0)) + Math.max(1, Math.floor(num(count, 1))));
+    renderChatPanel(ensureSave(loadSave()));
+  }
+
+  function clearChatUnread(tab) {
+    if (!CHAT_CHANNELS.includes(tab) || !__chatUnread[tab]) return;
+    __chatUnread[tab] = 0;
+  }
+
+  function currentUserId() {
+    return String(window.DSAuth?.getUser?.()?.id || "").trim();
+  }
+
+  function normalizePrivateMessage(row) {
+    if (!row || typeof row !== "object") return null;
+    const me = currentUserId();
+    const senderId = String(row.sender_user_id || "");
+    const recipientId = String(row.recipient_user_id || "");
+    const otherId = senderId === me ? recipientId : senderId;
+    return {
+      id: Number(row.id || 0) || Date.now(),
+      senderId,
+      recipientId,
+      otherId,
+      author: String(row.sender_name || "Player").trim() || "Player",
+      recipientName: String(row.recipient_name || "Player").trim() || "Player",
+      text: String(row.body || "").trim(),
+      ts: Date.parse(row.created_at || "") || Date.now(),
+      readAt: row.read_at || null,
+      avatarUrl: senderId === me ? String(row.recipient_avatar || "") : String(row.sender_avatar || ""),
+      otherName: senderId === me ? String(row.recipient_name || "Player") : String(row.sender_name || "Player"),
+      isMine: senderId === me
+    };
+  }
+
+  function rebuildWhisperConversations() {
+    const byUser = new Map();
+    (__whisperState.messages || []).forEach((msg) => {
+      if (!msg?.otherId) return;
+      const prev = byUser.get(msg.otherId);
+      if (!prev || Number(msg.ts || 0) > Number(prev.ts || 0)) {
+        byUser.set(msg.otherId, {
+          userId: msg.otherId,
+          name: msg.otherName || "Player",
+          avatarUrl: msg.avatarUrl || "",
+          preview: msg.text || "",
+          ts: msg.ts || 0,
+          unread: (__whisperState.messages || []).filter((m) => m.otherId === msg.otherId && !m.isMine && !m.readAt).length
+        });
+      }
+    });
+    __whisperState.conversations = Array.from(byUser.values()).sort((a, b) => Number(b.ts || 0) - Number(a.ts || 0));
+  }
+
+  async function loadWhispers(force = false) {
+    if ((__whisperState.loaded && !force) || __whisperState.loading) return;
+    const client = getSupabaseClient();
+    const me = currentUserId();
+    if (!client || !me) return;
+    __whisperState.loading = true;
+    try {
+      const { data, error } = await client
+        .from("private_messages")
+        .select("id,sender_user_id,recipient_user_id,sender_name,recipient_name,sender_avatar,recipient_avatar,body,read_at,created_at")
+        .or(`sender_user_id.eq.${me},recipient_user_id.eq.${me}`)
+        .order("created_at", { ascending: false })
+        .limit(GLOBAL_CHAT_FETCH_LIMIT);
+      if (error) throw error;
+      __whisperState.messages = (Array.isArray(data) ? data : []).map(normalizePrivateMessage).filter(Boolean).reverse();
+      rebuildWhisperConversations();
+      __whisperState.loaded = true;
+      if (__chatTab === "whispers") renderChatPanel(ensureSave(loadSave()));
+    } catch (error) {
+      console.error("[whispers] failed to load", error);
+    } finally {
+      __whisperState.loading = false;
+    }
+  }
+
+  async function markActiveWhispersRead() {
+    const client = getSupabaseClient();
+    const me = currentUserId();
+    const otherId = String(__whisperState.activeUser?.id || "");
+    if (!client || !me || !otherId) return;
+    const unreadIds = (__whisperState.messages || [])
+      .filter((msg) => msg.otherId === otherId && !msg.isMine && !msg.readAt)
+      .map((msg) => msg.id);
+    if (!unreadIds.length) return;
+    __whisperState.messages.forEach((msg) => {
+      if (unreadIds.includes(msg.id)) msg.readAt = new Date().toISOString();
+    });
+    rebuildWhisperConversations();
+    try {
+      await client.from("private_messages").update({ read_at: new Date().toISOString() }).in("id", unreadIds);
+    } catch (error) {
+      console.error("[whispers] mark read failed", error);
+    }
+  }
+
+  async function ensureWhisperSubscription() {
+    if (__whisperState.subscribed || __whisperState.channel) return;
+    const client = getSupabaseClient();
+    const me = currentUserId();
+    if (!client || !me) return;
+    const channel = client.channel(`darkstone-whispers-${me}`);
+    __whisperState.channel = channel;
+    channel.on("postgres_changes", { event: "INSERT", schema: "public", table: "private_messages", filter: `recipient_user_id=eq.${me}` }, (payload) => {
+      const msg = normalizePrivateMessage(payload?.new);
+      if (!msg || (msg.senderId !== me && msg.recipientId !== me)) return;
+      if (__whisperState.messages.some((m) => Number(m.id) === Number(msg.id))) return;
+      __whisperState.messages = [...__whisperState.messages, msg].slice(-GLOBAL_CHAT_FETCH_LIMIT);
+      rebuildWhisperConversations();
+      if (__chatTab === "whispers") {
+        if (__whisperState.activeUser?.id === msg.otherId) markActiveWhispersRead();
+        renderChatPanel(ensureSave(loadSave()));
+      } else if (!msg.isMine) {
+        bumpChatUnread("whispers");
+      }
+    });
+    channel.subscribe((status) => {
+      if (status === "SUBSCRIBED") __whisperState.subscribed = true;
+      if (status === "CHANNEL_ERROR" || status === "TIMED_OUT" || status === "CLOSED") {
+        __whisperState.subscribed = false;
+        __whisperState.channel = null;
+      }
+    });
+  }
+
+  function ensureWhisperPolling() {
+    if (__whisperState.pollTimer) return;
+    __whisperState.pollTimer = window.setInterval(() => {
+      if (document.hidden) return;
+      loadWhispers(true);
+    }, 3000);
+  }
+
+  async function sendWhisper(save, text) {
+    const client = getSupabaseClient();
+    const me = currentUserId();
+    const target = __whisperState.activeUser || {};
+    const trimmedText = String(text || "").trim();
+    if (!client || !me || !target.id || !trimmedText || __whisperState.sending) return { ok: false };
+    __whisperState.sending = true;
+    try {
+      const { error } = await client.from("private_messages").insert({
+        sender_user_id: me,
+        recipient_user_id: target.id,
+        sender_name: getChatAuthorName(save),
+        recipient_name: target.name || "Player",
+        sender_avatar: save?.heroPortrait || "",
+        recipient_avatar: target.avatarUrl || "",
+        body: trimmedText
+      });
+      if (error) throw error;
+      await loadWhispers(true);
+      return { ok: true };
+    } catch (error) {
+      console.error("[whispers] send failed", error);
+      return { ok: false, error: error?.message || "Failed to send whisper." };
+    } finally {
+      __whisperState.sending = false;
+    }
+  }
+
+  function openWhisperWithPlayer(player) {
+    if (!player?.id || player.id === currentUserId()) return;
+    __whisperState.activeUser = {
+      id: String(player.id),
+      name: String(player.name || "Player"),
+      avatarUrl: String(player.avatarUrl || "")
+    };
+    __chatTab = "whispers";
+    clearChatUnread("whispers");
+    saveChatTabPreference("whispers");
+    loadWhispers(true).then(() => {
+      markActiveWhispersRead();
+      renderChatPanel(ensureSave(loadSave()));
+    });
+    renderChatPanel(ensureSave(loadSave()));
+  }
+
+  async function openExistingPlayerProfile(player) {
+    if (!player?.id || player.id === currentUserId()) return;
+    restoreLeftPanelNodes();
+    window.DS?.resume?.();
+    if (!window.DSHome?.openPlayerProfile) {
+      await ensureOptionalScript("index.js");
+    }
+    window.DSHome?.openPlayerProfile?.(player);
+  }
+
+  function cleanPresenceActivityLabel(value) {
+    const raw = String(value || "").trim();
+    if (!raw) return "Unknown";
+    const cleaned = raw.replace(/\s+action$/i, "").replace(/\s+/g, " ").trim();
+    return cleaned || "Unknown";
+  }
+
+  function openPlayerActionPanel(player) {
+    if (!player?.id || player.id === currentUserId()) return;
+    const box = ensureInspectorBoxReplace();
+    if (!box) return;
+    const name = String(player.name || "Player");
+    const img = String(player.avatarUrl || "images/hero.png");
+    const level = Math.max(1, Math.floor(num(player.heroLevel ?? player.level, 1)));
+    const onlineText = player.isOnline ? "Online" : "Offline";
+    const currentText = cleanPresenceActivityLabel(player.lastSeenPage || "Unknown");
+    window.DS?.pause?.();
+    box.className = "dsInspector";
+    box.innerHTML = `
+      <div style="min-height:360px;padding:22px;box-sizing:border-box;color:#f3ead6;">
+        <div style="display:flex;align-items:flex-start;gap:18px;flex-wrap:wrap;">
+          <div style="display:flex;align-items:center;gap:12px;min-width:250px;max-width:100%;padding:12px;border:1px solid rgba(122,91,49,.8);border-radius:12px;background:linear-gradient(180deg,rgba(52,39,27,.70),rgba(20,18,20,.82));box-shadow:inset 0 1px 0 rgba(255,228,178,.06);">
+            <img src="${escapeHtml(img)}" alt="${escapeHtml(name)}" style="width:82px;height:82px;border-radius:13px;border:1px solid rgba(255,255,255,.16);object-fit:cover;background:#10131d;display:block;flex:0 0 auto;">
+            <div style="font-size:22px;font-weight:900;line-height:1.2;overflow-wrap:anywhere;min-width:0;">${escapeHtml(name)}</div>
+          </div>
+          <div style="padding-top:6px;font-size:15px;font-weight:800;line-height:1.8;min-width:220px;">
+            <div>Level : <span style="color:#f0d326;">${level}</span></div>
+            <div>Status : <span style="color:${player.isOnline ? "#7dffad" : "#cfc6b5"};">${escapeHtml(onlineText)}</span></div>
+            <div>Currently : <span style="color:#eef2ff;">${escapeHtml(currentText || "Unknown")}</span></div>
+          </div>
+        </div>
+        <div style="display:flex;justify-content:center;gap:10px;flex-wrap:wrap;margin-top:28px;">
+            <button type="button" id="dsPlayerWhisperBtn" style="min-height:40px;padding:9px 18px;border-radius:8px;border:1px solid rgba(126,190,255,.55);background:#1e355a;color:#eef6ff;font-weight:900;cursor:pointer;">Whisper</button>
+            <button type="button" id="dsPlayerEquipmentBtn" style="min-height:40px;padding:9px 18px;border-radius:8px;border:1px solid var(--btn-premium-primary-border);background:var(--btn-premium-primary-bg);color:#f4f1e8;font-weight:900;cursor:pointer;">Equipment</button>
+        </div>
+      </div>
+    `;
+    box.querySelector("#dsPlayerWhisperBtn")?.addEventListener("click", (event) => {
+      const btn = event.currentTarget;
+      if (btn) {
+        btn.textContent = "Chat Opened";
+        btn.disabled = true;
+        btn.style.borderColor = "rgba(157,255,180,.7)";
+        btn.style.background = "linear-gradient(180deg,rgba(28,104,58,.95),rgba(17,68,39,.95))";
+        btn.style.color = "#effff4";
+        btn.style.cursor = "default";
+      }
+      openWhisperWithPlayer(player);
+    });
+    box.querySelector("#dsPlayerEquipmentBtn")?.addEventListener("click", () => {
+      openPlayerEquipmentPanel(player);
+    });
+  }
+
+  async function openPlayerEquipmentPanel(player) {
+    const box = ensureInspectorBoxReplace();
+    if (!box || !player?.id) return;
+    const name = String(player.name || "Player");
+    const img = String(player.avatarUrl || "images/hero.png");
+    box.className = "dsInspector";
+    box.innerHTML = `
+      <div style="min-height:360px;display:flex;align-items:center;justify-content:center;padding:12px;box-sizing:border-box;color:#f3ead6;">
+        <div style="width:min(560px,100%);text-align:center;border:1px solid rgba(122,91,49,.8);border-radius:10px;background:linear-gradient(180deg,rgba(52,39,27,.78),rgba(20,18,20,.86));padding:22px 18px;">
+          <img src="${escapeHtml(img)}" alt="${escapeHtml(name)}" style="width:72px;height:72px;border-radius:12px;border:1px solid rgba(255,255,255,.16);object-fit:cover;background:#10131d;display:block;margin:0 auto 10px;">
+          <div style="font-size:21px;font-weight:900;">${escapeHtml(name)}</div>
+          <div style="margin-top:16px;font-size:13px;color:#cfc6b5;">Loading equipment...</div>
+        </div>
+      </div>
+    `;
+    try {
+      const data = await window.DSAuth?.invokePlayerProfile?.({ targetUserId: player.id });
+      const equipment = data?.equipment && typeof data.equipment === "object" ? data.equipment : {};
+      renderPlayerEquipmentPanel(player, equipment);
+    } catch (error) {
+      box.innerHTML = `<div style="padding:24px;text-align:center;color:#ffd8de;font-weight:900;">${escapeHtml(error?.message || "Could not load equipment.")}</div>`;
+    }
+  }
+
+  function renderPlayerEquipmentPanel(player, equipment) {
+    const box = ensureInspectorBoxReplace();
+    if (!box) return;
+    const name = String(player.name || "Player");
+    const img = String(player.avatarUrl || "images/hero.png");
+    const slots = [
+      { key:"helmet", label:"Helmet", x:"46%", y:"6px" },
+      { key:"chest", label:"Chest", x:"46%", y:"88px" },
+      { key:"belt", label:"Belt", x:"46%", y:"152px" },
+      { key:"pants", label:"Pants", x:"46%", y:"218px" },
+      { key:"bracers", label:"Bracers", x:"18%", y:"78px" },
+      { key:"mainHand", label:"Main Hand", x:"18%", y:"142px" },
+      { key:"gloves", label:"Gloves", x:"18%", y:"206px" },
+      { key:"ring", label:"Ring", x:"18%", y:"270px" },
+      { key:"shoulders", label:"Shoulders", x:"76%", y:"78px" },
+      { key:"offHand", label:"Off Hand", x:"76%", y:"142px" },
+      { key:"boots", label:"Boots", x:"76%", y:"206px" },
+      { key:"amulet", label:"Amulet", x:"76%", y:"270px" }
+    ];
+    const renderSlot = ({ key, label, x, y }) => {
+      const item = equipment?.[key] || null;
+      const rarityKey = String(item?.rarity || "").toLowerCase();
+      const bg = item?.setId ? "var(--rarity-set)" : item?.crafted ? "var(--rarity-crafted)" : rarityKey ? `var(--rarity-${rarityKey})` : "linear-gradient(180deg, rgba(20,20,31,.98), rgba(16,16,24,.98))";
+      const atk = num(item?.atk, 0);
+      const def = num(item?.def, 0);
+      const upg = Math.max(0, num(item?.upg, 0));
+      const statHtml = atk && def
+        ? `<span style="color:#ff6b6b;">ATK ${atk}</span><span style="color:rgba(255,255,255,.6);padding:0 3px;">/</span><span style="color:#6bff9e;">DEF ${def}</span>`
+        : atk ? `<span style="color:#ff6b6b;">ATK ${atk}</span>`
+        : def ? `<span style="color:#6bff9e;">DEF ${def}</span>`
+        : "";
+      return `
+        <div title="${escapeHtml(item?.name || `${label}: Empty`)}" style="position:absolute;left:${x};top:${y};width:62px;height:62px;transform:translateX(-50%);border-radius:14px;border:2px solid rgba(93,94,132,.9);background:${bg};display:flex;align-items:center;justify-content:center;box-shadow:0 10px 18px rgba(0,0,0,.24),inset 0 1px 0 rgba(255,255,255,.08);">
+          ${item?.img ? `<img src="${escapeHtml(item.img)}" alt="${escapeHtml(item.name || label)}" style="width:54px;height:54px;border-radius:11px;object-fit:cover;display:block;">` : `<div style="font-size:12px;color:#f1e3be;text-align:center;line-height:1.1;padding:0 4px;">${escapeHtml(label)}</div>`}
+          ${upg > 0 ? `<div style="position:absolute;right:-8px;top:-8px;min-width:22px;height:22px;border-radius:999px;background:#d18a1f;color:#111;font-size:11px;font-weight:900;display:flex;align-items:center;justify-content:center;border:2px solid #f6d58d;">+${upg}</div>` : ""}
+          ${statHtml ? `<div style="position:absolute;left:50%;top:54px;transform:translateX(-50%);font-size:10px;font-weight:900;white-space:nowrap;text-shadow:0 1px 6px rgba(0,0,0,.75);">${statHtml}</div>` : ""}
+        </div>
+      `;
+    };
+    box.className = "dsInspector";
+    box.innerHTML = `
+      <div style="min-height:360px;display:flex;align-items:center;justify-content:center;padding:12px;box-sizing:border-box;color:#f3ead6;">
+        <div style="width:min(620px,100%);border:1px solid rgba(122,91,49,.8);border-radius:14px;background:linear-gradient(180deg,rgba(52,39,27,.78),rgba(20,18,20,.86));padding:14px;box-shadow:inset 0 1px 0 rgba(255,228,178,.06),0 16px 36px rgba(0,0,0,.24);">
+          <div style="display:flex;align-items:center;justify-content:center;gap:12px;text-align:left;margin-bottom:16px;">
+            <img src="${escapeHtml(img)}" alt="${escapeHtml(name)}" style="width:58px;height:58px;border-radius:11px;border:1px solid rgba(255,255,255,.16);object-fit:cover;background:#10131d;">
+            <div>
+              <div style="font-size:20px;font-weight:900;">${escapeHtml(name)}</div>
+              <div style="font-size:12px;color:#cfc6b5;font-weight:800;">Equipment</div>
+            </div>
+          </div>
+          <div style="position:relative;height:350px;border:1px solid rgba(122,91,49,.8);border-radius:14px;overflow:hidden;background:linear-gradient(180deg,rgba(20,20,31,.96),rgba(16,16,24,.98));box-shadow:inset 0 1px 0 rgba(255,228,178,.06),0 10px 18px rgba(0,0,0,.16);">
+            ${slots.map(renderSlot).join("")}
+          </div>
+          <div style="display:flex;justify-content:center;margin-top:16px;">
+            <button type="button" id="dsPlayerBackBtn" style="min-height:38px;padding:8px 14px;border-radius:8px;border:1px solid var(--btn-premium-primary-border);background:var(--btn-premium-primary-bg);color:#f4f1e8;font-weight:900;cursor:pointer;">Back</button>
+          </div>
+        </div>
+      </div>
+    `;
+    box.querySelector("#dsPlayerBackBtn")?.addEventListener("click", () => openPlayerActionPanel(player));
   }
 
   function normalizeRemoteChatMessage(row) {
@@ -675,6 +1025,7 @@
     const metadata = row.metadata && typeof row.metadata === "object" ? row.metadata : {};
     return {
       id: Number(row.id || 0) || Date.now(),
+      userId: String(row.user_id || "").trim(),
       author: String(row.author_name || "Player").trim() || "Player",
       text: String(row.body || "").trim(),
       kind: String(metadata.kind || "").trim(),
@@ -692,6 +1043,20 @@
 
   async function loadLiveChatMessages(tab, force = false) {
     const state = getLiveChatState(tab);
+    const partyId = tab === "party" ? getCurrentPartyChatId() : "";
+    if (tab === "party") {
+      if (!partyId) {
+        resetLiveChatState(state);
+        state.partyId = "";
+        clearChatUnread("party");
+        return;
+      }
+      if (state.partyId !== partyId) {
+        resetLiveChatState(state);
+        state.partyId = partyId;
+        clearChatUnread("party");
+      }
+    }
     if ((state.loaded && !force) || state.loading) return;
 
     const client = getSupabaseClient();
@@ -699,12 +1064,18 @@
 
     state.loading = true;
     try {
-      const { data, error } = await client
+      const wasLoaded = !!state.loaded;
+      const previousIds = new Set((Array.isArray(state.messages) ? state.messages : [])
+        .filter((msg) => !String(msg?.id || "").startsWith("pending:"))
+        .map((msg) => String(msg.id)));
+      let query = client
         .from("chat_messages")
-        .select("id, author_name, body, metadata, created_at")
+        .select("id, user_id, author_name, body, metadata, created_at")
         .eq("channel_kind", tab)
         .order("created_at", { ascending: false })
         .limit(GLOBAL_CHAT_FETCH_LIMIT);
+      if (tab === "party") query = query.eq("party_id", partyId);
+      const { data, error } = await query;
       if (error) throw error;
 
       const rows = Array.isArray(data) ? data.map(normalizeRemoteChatMessage).filter(Boolean).reverse() : [];
@@ -724,6 +1095,10 @@
       state.messages = mergedRows.slice(-GLOBAL_CHAT_FETCH_LIMIT);
       state.signature = nextSignature;
       state.loaded = true;
+      if (changed && wasLoaded && __chatTab !== tab) {
+        const newCount = rows.filter((msg) => !previousIds.has(String(msg.id))).length;
+        if (newCount > 0) bumpChatUnread(tab, newCount);
+      }
       if (__chatTab === tab && (changed || !force)) renderChatPanel(ensureSave(loadSave()));
     } catch (error) {
       console.error(`[chat] failed to load ${tab} messages`, error);
@@ -734,19 +1109,43 @@
 
   async function ensureLiveChatSubscription(tab) {
     const state = getLiveChatState(tab);
-    if (state.subscribed) return;
 
     const client = getSupabaseClient();
     if (!client) return;
 
-    const channel = client.channel(`darkstone-${tab}-chat`);
+    const partyId = tab === "party" ? getCurrentPartyChatId() : "";
+    if (tab === "party") {
+      if (!partyId) {
+        if (state.channel) {
+          Promise.resolve(client.removeChannel?.(state.channel)).catch(() => {});
+          state.channel = null;
+        }
+        state.subscribed = false;
+        state.partyId = "";
+        resetLiveChatState(state);
+        clearChatUnread("party");
+        return;
+      }
+      if (state.subscribed && state.partyId === partyId) return;
+      if (state.channel) {
+        Promise.resolve(client.removeChannel?.(state.channel)).catch(() => {});
+        state.channel = null;
+      }
+      state.subscribed = false;
+      resetLiveChatState(state);
+      state.partyId = partyId;
+    } else if (state.subscribed) {
+      return;
+    }
+
+    const channel = client.channel(tab === "party" ? `darkstone-party-chat-${partyId}` : `darkstone-${tab}-chat`);
     channel.on(
       "postgres_changes",
       {
         event: "INSERT",
         schema: "public",
         table: "chat_messages",
-        filter: `channel_kind=eq.${tab}`
+        filter: tab === "party" ? `party_id=eq.${partyId}` : `channel_kind=eq.${tab}`
       },
       (payload) => {
         const nextMessage = normalizeRemoteChatMessage(payload?.new);
@@ -767,7 +1166,12 @@
         state.messages = [...state.messages, nextMessage].slice(-GLOBAL_CHAT_FETCH_LIMIT);
         state.signature = getChatMessageSignature(state.messages);
         state.loaded = true;
-        if (__chatTab === tab) renderChatPanel(ensureSave(loadSave()));
+        if (__chatTab === tab) {
+          clearChatUnread(tab);
+          renderChatPanel(ensureSave(loadSave()));
+        } else {
+          bumpChatUnread(tab);
+        }
       }
     );
     channel.subscribe((status) => {
@@ -786,6 +1190,11 @@
     const user = window.DSAuth?.getUser?.();
     if (!client || !user?.id) {
       return { ok: false, error: "Chat is not ready yet." };
+    }
+
+    const partyId = tab === "party" ? getCurrentPartyChatId() : "";
+    if (tab === "party" && !partyId) {
+      return { ok: false, error: "Join a party to use Party Chat." };
     }
 
     const now = Date.now();
@@ -813,6 +1222,7 @@
     const optimisticId = `pending:${Date.now()}:${Math.random().toString(36).slice(2, 8)}`;
     const optimisticMessage = {
       id: optimisticId,
+      userId: user.id,
       author: getChatAuthorName(save),
       text: trimmedText,
       ts: now,
@@ -825,12 +1235,14 @@
     state.signature = getChatMessageSignature(state.messages);
     if (__chatTab === tab) renderChatPanel(ensureSave(loadSave()));
     try {
-      const { error } = await client.from("chat_messages").insert({
+      const insertRow = {
         channel_kind: tab,
         user_id: user.id,
         author_name: getChatAuthorName(save),
         body: trimmedText
-      });
+      };
+      if (tab === "party") insertRow.party_id = partyId;
+      const { error } = await client.from("chat_messages").insert(insertRow);
       if (error) throw error;
       return { ok: true };
     } catch (error) {
@@ -1381,7 +1793,6 @@
       }
       #chatPlaceholderPanel,
       #quickConsumablesPanel,
-      #petsPanel,
       .dsHeroPanel{
         background:
           radial-gradient(circle at top, rgba(255,220,150,.06), transparent 28%),
@@ -1419,34 +1830,8 @@
         width:100%;
         min-width:0;
         margin-left:0;
-        padding:10px;
+        padding:6px 0 0;
         box-sizing:border-box;
-      }
-      .petsHeader{
-        display:flex;
-        align-items:center;
-        justify-content:space-between;
-        gap:8px;
-        margin-bottom:8px;
-        color:#eef2ff;
-        font-size:13px;
-        font-weight:800;
-      }
-      .petsToggleBtn{
-        width:26px;
-        height:26px;
-        border-radius:8px;
-        border:1px solid rgba(255,255,255,.12);
-        background:#1b2233;
-        color:#eef2ff;
-        cursor:pointer;
-        display:flex;
-        align-items:center;
-        justify-content:center;
-        font-size:13px;
-        font-weight:900;
-        line-height:1;
-        padding:0;
       }
       .petsGrid{
         display:grid;
@@ -1661,10 +2046,11 @@
       }
       .chatTabs{
         display:grid;
-        grid-template-columns:repeat(4, minmax(0, 1fr));
+        grid-template-columns:repeat(5, minmax(0, 1fr));
         gap:4px;
       }
       .chatTab{
+        position:relative;
         padding:4px 3px;
         border-radius:7px;
         border:2px solid #333;
@@ -1675,11 +2061,36 @@
         font-weight:800;
         text-transform:capitalize;
       }
+      .chatUnreadBadge{
+        position:absolute;
+        top:-7px;
+        right:-6px;
+        min-width:16px;
+        height:16px;
+        padding:0 4px;
+        border-radius:999px;
+        border:1px solid rgba(255,230,160,.95);
+        background:#b83232;
+        color:#fff7e8;
+        font-size:9px;
+        font-weight:900;
+        line-height:15px;
+        box-sizing:border-box;
+        box-shadow:0 4px 10px rgba(0,0,0,.38);
+        pointer-events:none;
+      }
       .chatTab.chatTabActive{
         background:#2b4f8f;
         border-color:#4f7fd1;
         color:#eef4ff;
       }
+      .whisperList{display:flex;flex-direction:column;gap:6px;}
+      .whisperRow{display:flex;align-items:center;gap:9px;padding:7px;border-radius:9px;border:1px solid rgba(255,255,255,.08);background:rgba(10,12,18,.38);cursor:pointer;color:#eef2ff;text-align:left;}
+      .whisperRow img{width:34px;height:34px;border-radius:9px;object-fit:cover;background:#10131d;border:1px solid rgba(255,255,255,.12);}
+      .whisperName{font-size:12px;font-weight:900;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+      .whisperPreview{font-size:11px;opacity:.75;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+      .whisperHeader{display:flex;align-items:center;gap:8px;margin-bottom:6px;}
+      .whisperBack{min-width:0!important;padding:6px 10px!important;border-radius:8px!important;border:1px solid var(--btn-premium-primary-border)!important;background:var(--btn-premium-primary-bg)!important;color:#f4f1e8!important;font-weight:900!important;text-shadow:0 1px 0 rgba(0,0,0,.75)!important;box-shadow:0 8px 18px rgba(0,0,0,.24),0 0 0 1px rgba(0,0,0,.45),0 0 14px var(--btn-premium-primary-glow),inset 0 1px 0 rgba(255,255,255,.10),inset 0 -1px 0 rgba(0,0,0,.28)!important;cursor:pointer!important;}
       .chatMessages{
           min-height:220px;
           max-height:220px;
@@ -1712,6 +2123,7 @@
           font-size:11px;
         }
       .chatMsgAuthor{font-weight:800;color:#f3e2a2;}
+      .chatMsgAuthor[role="button"]{cursor:pointer;text-decoration:underline;text-decoration-thickness:1px;text-underline-offset:2px;}
       .chatMsgTime{opacity:.62;white-space:nowrap;}
       .chatMsgText{
         font-size:12px;
@@ -2734,8 +3146,8 @@
       }
 
       #dsInspector{
-        background:#151520;border:2px solid #333;border-radius:12px;padding:12px;
-        max-width:900px;margin:12px auto 0;box-sizing:border-box;
+        background:transparent;border:0;border-radius:0;padding:0;
+        max-width:none;margin:0;box-sizing:border-box;
       }
       .dsBtnRow{margin-top:12px;display:flex;gap:10px;flex-wrap:wrap;justify-content:center;}
       .dsBtnRow button{padding:10px 12px;border-radius:10px;border:2px solid #333;background:#1b1b24;color:#fff;cursor:pointer;}
@@ -3063,13 +3475,8 @@
       petsPanel = document.createElement("div");
       petsPanel.id = "petsPanel";
     }
-    const petsCollapsed = isPetsPanelCollapsed();
     petsPanel.innerHTML = `
-        <div class="petsHeader">
-          <span>Pets</span>
-          <button type="button" class="petsToggleBtn" id="petsToggleBtn" title="${petsCollapsed ? "Show Pets" : "Hide Pets"}">${petsCollapsed ? "▾" : "▴"}</button>
-        </div>
-        <div class="petsGrid" id="petsGrid" style="display:${petsCollapsed ? "none" : "grid"};">
+        <div class="petsGrid" id="petsGrid">
           ${PET_SLOT_DEFS.map((slot) => {
             const pet = save?.pets?.[slot.key];
             if (!pet) {
@@ -3116,17 +3523,6 @@
           }).join("")}
         </div>
     `;
-    petsPanel.querySelector("#petsToggleBtn")?.addEventListener("click", () => {
-      const next = !isPetsPanelCollapsed();
-      setPetsPanelCollapsed(next);
-      const grid = petsPanel.querySelector("#petsGrid");
-      const btn = petsPanel.querySelector("#petsToggleBtn");
-      if (grid) grid.style.display = next ? "none" : "grid";
-      if (btn) {
-        btn.textContent = next ? "▾" : "▴";
-        btn.title = next ? "Show Pets" : "Hide Pets";
-      }
-    });
     petsPanel.querySelectorAll("[data-pet-inspect]").forEach((btn) => {
       btn.addEventListener("click", () => {
         const slotKey = String(btn.getAttribute("data-pet-inspect") || "").toLowerCase();
@@ -3190,15 +3586,10 @@
     if (quickPanel.parentElement !== right) {
       right.insertBefore(quickPanel, chatPanel);
     }
-    if (petsPanel.parentElement !== right) {
-      right.insertBefore(petsPanel, quickPanel);
-    }
     if (invPanel.parentElement !== right) {
-      right.insertBefore(invPanel, petsPanel);
-    } else if (chatPanel.parentElement === right && invPanel.nextElementSibling !== chatPanel) {
-      right.insertBefore(invPanel, petsPanel);
-    } else if (petsPanel.parentElement === right && invPanel.nextElementSibling !== petsPanel) {
-      right.insertBefore(invPanel, petsPanel);
+      right.insertBefore(invPanel, quickPanel);
+    } else if (quickPanel.parentElement === right && invPanel.nextElementSibling !== quickPanel) {
+      right.insertBefore(invPanel, quickPanel);
     } else if (right.firstElementChild !== invPanel) {
       right.prepend(invPanel);
     }
@@ -3311,6 +3702,7 @@
               <button id="invTabInv" class="invTab invTabActive" type="button" title="Inventory">Inventory</button>
               <button id="invTabQuest" class="invTab" type="button" title="Challenges">Challenges</button>
               <button id="invTabEquip" class="invTab" type="button" title="Equipment">Equipment</button>
+              <button id="invTabPets" class="invTab" type="button" title="Pets">Pets</button>
             </div>
         </div>
         <div class="invBodyFrame">
@@ -3354,10 +3746,14 @@
     ep.style.display = "none";
     invPanel.querySelector(".invBodyFrame")?.appendChild(ep);
   }
+  if (!invPanel.querySelector("#petsPanel")) {
+    petsPanel.style.display = "none";
+    invPanel.querySelector(".invBodyFrame")?.appendChild(petsPanel);
+  }
 }
 
 // -------------------------
-// Inventory tabs (Inventory / Quests)
+// Inventory tabs (Inventory / Challenges / Equipment / Pets)
 // -------------------------
   let __invTab = "inventory";
   let __equipStatsMode = "fight";
@@ -3397,7 +3793,7 @@ function saveEquipStatsModePreference(mode){
 function loadInvTabPreference(){
   try {
     const stored = localStorage.getItem(INV_TAB_KEY);
-    return ["inventory", "quest", "equipment"].includes(stored) ? stored : "inventory";
+    return ["inventory", "quest", "equipment", "pets"].includes(stored) ? stored : "inventory";
   } catch {
     return "inventory";
   }
@@ -3405,29 +3801,33 @@ function loadInvTabPreference(){
 
   function saveInvTabPreference(tab){
     try {
-      localStorage.setItem(INV_TAB_KEY, ["inventory", "quest", "equipment"].includes(tab) ? tab : "inventory");
+      localStorage.setItem(INV_TAB_KEY, ["inventory", "quest", "equipment", "pets"].includes(tab) ? tab : "inventory");
     } catch {}
   }
 
 function setInvTab(tab){
-  __invTab = ["inventory", "quest", "equipment"].includes(tab) ? tab : "inventory";
+  __invTab = ["inventory", "quest", "equipment", "pets"].includes(tab) ? tab : "inventory";
   saveInvTabPreference(__invTab);
   const invPanel = document.getElementById("inventoryPanel");
   const invBtn = document.getElementById("invTabInv");
   const questBtn = document.getElementById("invTabQuest");
   const equipBtn = document.getElementById("invTabEquip");
+  const petsBtn = document.getElementById("invTabPets");
   const grid = document.getElementById("inventoryGrid");
   const quest = document.getElementById("questPanel");
   const equipment = document.getElementById("equipmentPanel");
+  const pets = document.getElementById("petsPanel");
   const footer = document.querySelector("#inventoryPanel .invFooter");
 
   invBtn?.classList.toggle("invTabActive", __invTab === "inventory");
   questBtn?.classList.toggle("invTabActive", __invTab === "quest");
   equipBtn?.classList.toggle("invTabActive", __invTab === "equipment");
+  petsBtn?.classList.toggle("invTabActive", __invTab === "pets");
 
   if (grid) grid.style.display = (__invTab === "inventory") ? "" : "none";
   if (quest) quest.style.display = (__invTab === "quest") ? "" : "none";
   if (equipment) equipment.style.display = (__invTab === "equipment") ? "" : "none";
+  if (pets) pets.style.display = (__invTab === "pets") ? "" : "none";
   if (footer) {
     footer.style.visibility = (__invTab === "inventory") ? "visible" : "hidden";
     footer.style.pointerEvents = (__invTab === "inventory") ? "" : "none";
@@ -3454,6 +3854,7 @@ function hookInvTabs(){
   document.getElementById("invTabInv")?.addEventListener("click", () => setInvTab("inventory"));
   document.getElementById("invTabQuest")?.addEventListener("click", () => setInvTab("quest"));
   document.getElementById("invTabEquip")?.addEventListener("click", () => setInvTab("equipment"));
+  document.getElementById("invTabPets")?.addEventListener("click", () => setInvTab("pets"));
   setInvTab(__invTab);
 }
 
@@ -3478,6 +3879,17 @@ function getChatMessagesForTab(tab){
   if (isLiveChatTab(tab)) return getLiveChatState(tab)?.messages || [];
   const chatState = loadChatState();
   return Array.isArray(chatState[tab]) ? chatState[tab] : [];
+}
+
+function getChatMessagePlayer(msg) {
+  const userId = String(msg?.userId || "").trim();
+  if (!userId || userId === currentUserId()) return null;
+  const known = __presenceState.players.find((player) => player.id === userId);
+  return {
+    id: userId,
+    name: String(known?.name || msg?.author || "Player"),
+    avatarUrl: String(known?.avatarUrl || "")
+  };
 }
 
 function getChatDraft(tab){
@@ -3510,10 +3922,29 @@ function getChatInputSelectionSnapshot() {
     } : null;
   
     __chatTab = loadChatTabPreference();
+    clearChatUnread(__chatTab);
+    if (__chatTab === "whispers") {
+      ensureWhisperSubscription();
+      loadWhispers(true);
+      markActiveWhispersRead();
+    }
     const activeMessages = getChatMessagesForTab(__chatTab);
-    const visibleMessages = [...activeMessages].reverse();
+    const whisperMessages = __chatTab === "whispers" && __whisperState.activeUser
+      ? (__whisperState.messages || []).filter((msg) => msg.otherId === __whisperState.activeUser.id)
+      : [];
+    const visibleMessages = __chatTab === "whispers" ? [...whisperMessages].reverse() : [...activeMessages].reverse();
     const liveState = getLiveChatState(__chatTab);
+    const partyChatId = getCurrentPartyChatId();
+    const partyChatAvailable = __chatTab !== "party" || !!partyChatId;
+    const whisperAvailable = __chatTab !== "whispers" || !!__whisperState.activeUser;
+    const composerAvailable = partyChatAvailable && whisperAvailable;
+    const chatPlaceholder = __chatTab === "party" && !partyChatId
+      ? "Join a party to use Party Chat."
+      : __chatTab === "whispers" && !__whisperState.activeUser
+      ? "Choose a player to whisper."
+      : "Write a message...";
     if (isLiveChatTab(__chatTab) && liveState && !liveState.loaded && !liveState.loading) {
+      ensureLiveChatSubscription(__chatTab);
       loadLiveChatMessages(__chatTab);
     }
   
@@ -3521,26 +3952,48 @@ function getChatInputSelectionSnapshot() {
       <div class="chatPanelInner">
         <div class="chatTabs">
           ${CHAT_CHANNELS.map((channel) => `
-            <button type="button" class="chatTab ${channel === __chatTab ? "chatTabActive" : ""}" data-chat-tab="${channel}">${channel}</button>
+            <button type="button" class="chatTab ${channel === __chatTab ? "chatTabActive" : ""}" data-chat-tab="${channel}">
+              ${channel}
+              ${__chatUnread[channel] > 0 ? `<span class="chatUnreadBadge">${Math.min(99, Math.floor(num(__chatUnread[channel], 0)))}</span>` : ""}
+            </button>
           `).join("")}
         </div>
         <div class="chatComposer">
-          <input id="chatInput" type="text" maxlength="180" placeholder="Write a message..." value="${escapeHtml(getChatDraft(__chatTab))}" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
-          <button id="chatSendBtn" type="button">Send</button>
+          <input id="chatInput" type="text" maxlength="180" placeholder="${escapeHtml(chatPlaceholder)}" value="${escapeHtml(getChatDraft(__chatTab))}" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" ${composerAvailable ? "" : "disabled"}>
+          <button id="chatSendBtn" type="button" ${composerAvailable ? "" : "disabled"}>Send</button>
         </div>
         <div id="chatMessages" class="chatMessages">
+          ${__chatTab === "whispers" && !__whisperState.activeUser ? `
+            ${__whisperState.loading && !__whisperState.loaded ? `<div class="chatEmpty">Loading whispers...</div>` : ""}
+            ${__whisperState.conversations.length ? `<div class="whisperList">
+              ${__whisperState.conversations.map((conv) => `
+                <button type="button" class="whisperRow" data-whisper-open="${escapeHtml(conv.userId)}">
+                  <img src="${escapeHtml(conv.avatarUrl || "images/hero.png")}" alt="">
+                  <div style="min-width:0;flex:1;">
+                    <div class="whisperName">${escapeHtml(conv.name)}</div>
+                    <div class="whisperPreview">${escapeHtml(conv.preview)}</div>
+                  </div>
+                  ${conv.unread > 0 ? `<span class="chatUnreadBadge" style="position:static;flex:0 0 auto;">${Math.min(99, conv.unread)}</span>` : ""}
+                </button>
+              `).join("")}
+            </div>` : `${!__whisperState.loading ? `<div class="chatEmpty">Click an online player and choose Whisper.</div>` : ""}`}
+          ` : `
+          ${__chatTab === "whispers" && __whisperState.activeUser ? `<div class="whisperHeader"><button type="button" class="whisperBack" data-whisper-back="1">Back</button><b>Whisper: ${escapeHtml(__whisperState.activeUser.name || "Player")}</b></div>` : ""}
           ${isLiveChatTab(__chatTab) && liveState?.loading && !visibleMessages.length ? `<div class="chatEmpty">Loading ${escapeHtml(__chatTab)} chat...</div>` : ""}
-          ${visibleMessages.length ? visibleMessages.map((msg) => `
+          ${visibleMessages.length ? visibleMessages.map((msg) => {
+            const chatPlayer = getChatMessagePlayer(msg);
+            return `
             <div class="chatMsg ${msg.kind === "announcement" ? "chatMsgAnnouncement" : ""}">
               <div class="chatMsgHead">
                 <div style="display:flex;align-items:center;gap:4px;min-width:0;flex:1;">
-                  <span class="chatMsgAuthor">${escapeHtml(msg.author || "Player")}:</span>
+                  <span class="chatMsgAuthor"${chatPlayer ? ` role="button" tabindex="0" data-chat-player="${escapeHtml(chatPlayer.id)}" title="Open player"` : ""}>${escapeHtml(msg.author || "Player")}:</span>
                   <span class="chatMsgText">${escapeHtml(String(msg.text || ""))}</span>
                 </div>
                 <span class="chatMsgTime">${fmtChatTime(msg.ts)}</span>
               </div>
             </div>
-          `).join("") : `${!(isLiveChatTab(__chatTab) && liveState?.loading) ? `<div class="chatEmpty">No messages yet in ${escapeHtml(__chatTab)} chat.</div>` : ""}`}
+          `}).join("") : `${!(isLiveChatTab(__chatTab) && liveState?.loading) ? `<div class="chatEmpty">${escapeHtml(__chatTab === "party" && !partyChatId ? "Join a party to use Party Chat." : `No messages yet in ${__chatTab} chat.`)}</div>` : ""}`}
+          `}
         </div>
       </div>
     `;
@@ -3549,10 +4002,40 @@ function getChatInputSelectionSnapshot() {
     btn.addEventListener("click", () => {
       const nextTab = String(btn.dataset.chatTab || "global").toLowerCase();
       __chatTab = CHAT_CHANNELS.includes(nextTab) ? nextTab : "global";
+      clearChatUnread(__chatTab);
       saveChatTabPreference(__chatTab);
       renderChatPanel(save);
     });
     });
+
+  panel.querySelectorAll("[data-whisper-open]").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const id = String(btn.getAttribute("data-whisper-open") || "");
+      const conv = __whisperState.conversations.find((c) => c.userId === id);
+      if (!conv) return;
+      __whisperState.activeUser = { id: conv.userId, name: conv.name, avatarUrl: conv.avatarUrl };
+      markActiveWhispersRead();
+      renderChatPanel(save);
+    });
+  });
+  panel.querySelector("[data-whisper-back]")?.addEventListener("click", () => {
+    __whisperState.activeUser = null;
+    renderChatPanel(save);
+  });
+  panel.querySelectorAll("[data-chat-player]").forEach((el) => {
+    const openPlayer = () => {
+      const id = String(el.getAttribute("data-chat-player") || "");
+      const msg = visibleMessages.find((entry) => String(entry?.userId || "") === id);
+      const player = getChatMessagePlayer(msg);
+      if (player) openExistingPlayerProfile(player);
+    };
+    el.addEventListener("click", openPlayer);
+    el.addEventListener("keydown", (event) => {
+      if (event.key !== "Enter" && event.key !== " ") return;
+      event.preventDefault();
+      openPlayer();
+    });
+  });
   
     const messagesEl = panel.querySelector("#chatMessages");
     if (messagesEl) {
@@ -3584,6 +4067,16 @@ function getChatInputSelectionSnapshot() {
   const sendMessage = async () => {
     const text = String(input?.value || "").trim();
     if (!text) return;
+    if (__chatTab === "party" && !getCurrentPartyChatId()) return;
+    if (__chatTab === "whispers") {
+      const result = await sendWhisper(save, text);
+      if (result.ok) {
+        if (input) input.value = "";
+        setChatDraft(__chatTab, "");
+      }
+      renderChatPanel(ensureSave(loadSave()));
+      return;
+    }
     if (isLiveChatTab(__chatTab)) {
       const result = await sendLiveChatMessage(__chatTab, save, text);
       if (!result.ok) {
@@ -4172,8 +4665,12 @@ function getPresenceMenuMarkup() {
     return `<div style="font-size:12px;opacity:.82;">No players online right now.</div>`;
   }
 
-  return onlinePlayers.slice(0, 24).map((player) => `
-    <div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-top:1px solid rgba(255,255,255,.06);">
+  const me = currentUserId();
+  return onlinePlayers.slice(0, 24).map((player) => {
+    const isSelf = player.id === me;
+    return `
+    <div style="padding:8px 0;border-top:1px solid rgba(255,255,255,.06);">
+      <button type="button" data-presence-player="${escapeHtml(player.id)}" style="width:100%;display:flex;align-items:center;gap:10px;padding:0;border:0;background:transparent;color:inherit;text-align:left;cursor:${isSelf ? "default" : "pointer"};">
       <div style="position:relative;flex:0 0 auto;">
         <img src="${player.avatarUrl || "images/hero.png"}" alt="${player.name}" style="width:38px;height:38px;border-radius:10px;border:1px solid rgba(255,255,255,.12);object-fit:cover;background:#10131d;">
         <span style="position:absolute;right:-2px;bottom:-2px;width:11px;height:11px;border-radius:999px;border:2px solid #111723;background:#31d07f;"></span>
@@ -4181,8 +4678,10 @@ function getPresenceMenuMarkup() {
       <div style="min-width:0;flex:1;">
         <div style="font-size:13px;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${player.name}</div>
       </div>
+      </button>
     </div>
-  `).join("");
+  `;
+  }).join("");
 }
 
 function bindPresenceMenu() {
@@ -4211,6 +4710,17 @@ function bindPresenceMenu() {
     else openMenu();
   });
   menu.addEventListener("click", (e) => e.stopPropagation());
+  menu.querySelectorAll("[data-presence-player]").forEach((el) => {
+    el.addEventListener("click", () => {
+      const id = String(el.getAttribute("data-presence-player") || "");
+      if (!id || id === currentUserId()) return;
+      const player = __presenceState.players.find((p) => p.id === id);
+      if (player) {
+        closeMenu();
+        openExistingPlayerProfile(player);
+      }
+    });
+  });
   document.addEventListener("click", closeMenu);
   document.addEventListener("keydown", (e) => {
     if (e.key === "Escape") closeMenu();
@@ -5207,7 +5717,9 @@ function navigateWithFade(targetHref) {
 }
 
 window.DSUI = Object.assign(window.DSUI || {}, {
-  navigateWithinShell
+  navigateWithinShell,
+  openWhisperWithPlayer,
+  openPlayerProfile: openExistingPlayerProfile
 });
 
 // -------------------------
@@ -6220,6 +6732,7 @@ function openPetInspector(slotKey) {
   const level = Math.max(1, Math.round(num(pet.level, 1)));
   const xp = Math.max(0, Math.round(num(pet.xp, 0)));
   const xpNext = Math.max(1, Math.round(num(pet.xpNext, petXpNextForLevel(level))));
+  const xpPct = clamp((xp / xpNext) * 100, 0, 100);
   const slotDef = PET_SLOT_DEFS.find((x) => x.key === slotKey);
   const isActive = pet.active !== false;
   const nextTier = getPetTierData(slotKey, pet.family, num(pet.tier, 1) + 1);
@@ -6282,6 +6795,14 @@ function openPetInspector(slotKey) {
       <div style="display:flex;flex-direction:column;align-items:center;gap:6px;flex:0 0 auto;min-width:84px;">
         ${imgHtml}
         <div style="opacity:.88;font-size:12px;">Level ${level}</div>
+        <div class="petXpWrap" style="width:112px;">
+          <div class="petXpFill" style="width:${xpPct}%"></div>
+          <div class="petXpText">
+            <span class="petXpLvl">XP</span>
+            <span class="petXpValue">${xp}/${xpNext}</span>
+          </div>
+        </div>
+        <button id="dsPetToggle" type="button" style="margin-top:4px;padding:8px 12px;border-radius:10px;border:2px solid #333;background:#1b1b24;color:#fff;font-weight:800;cursor:pointer;">${isActive ? "Unequip" : "Equip"}</button>
       </div>
       <div style="flex:1;display:flex;flex-direction:column;align-items:flex-start;min-height:108px;">
         <div style="font-weight:900;font-size:20px;line-height:1.15;margin-top:0;">${pet.name || slotDef?.label || "Pet"}</div>
@@ -6290,7 +6811,6 @@ function openPetInspector(slotKey) {
       ${nextTierHtml}
     </div>
     <div class="dsBtnRow">
-      <button id="dsPetToggle">${isActive ? "Unequip" : "Equip"}</button>
       ${nextTier && awaitingEvolution ? `<button id="dsPetEvolve">Evolve (${new Intl.NumberFormat("el-GR").format(num(pet.nextUpgradeCost, 0))} Gold)</button>` : ``}
     </div>
     <div id="dsMsg" style="margin-top:10px;opacity:.9;text-align:center;"></div>
@@ -6464,6 +6984,49 @@ function openInspector(invIndex, item) {
       if (m) m.textContent = t;
     };
 
+    const showActionSuccess = (actionText, actionItem, quantity = 1, detailText = "") => {
+      const successItem = actionItem || item || {};
+      const qty = Math.max(1, Math.floor(num(quantity, 1)));
+      const label = `${successItem.name || "Item"}${qty > 1 ? ` x${qty}` : ""}`;
+      const img = String(successItem.img || "images/ui/treasure_chest.svg");
+      const successBox = ensureInspectorBoxReplace();
+      if (!successBox) return;
+      successBox.className = "dsInspector";
+      successBox.innerHTML = `
+        <style>
+          .dsItemActionSuccess{min-height:360px;display:flex;align-items:center;justify-content:center;color:#f3ead6;padding:12px;box-sizing:border-box;}
+          .dsItemActionCard{width:min(520px,100%);text-align:center;border:1px solid rgba(55,190,104,.54);border-radius:10px;background:linear-gradient(180deg,rgba(14,44,30,.78),rgba(10,16,14,.92));padding:26px 22px;box-shadow:inset 0 1px 0 rgba(204,255,220,.1),0 16px 36px rgba(0,0,0,.24);}
+          .dsItemActionBody{margin-top:16px;display:flex;align-items:center;justify-content:center;gap:14px;min-width:0;}
+          .dsItemActionBadge{width:78px;height:78px;flex:0 0 78px;border-radius:12px;display:flex;align-items:center;justify-content:center;border:1px solid rgba(157,255,180,.54);background:rgba(10,14,18,.72);box-shadow:0 10px 24px rgba(0,0,0,.28),inset 0 1px 0 rgba(255,255,255,.08);padding:5px;}
+          .dsItemActionBadge img{width:100%;height:100%;border-radius:8px;display:block;object-fit:cover;background:#101219;}
+          .dsItemActionTitle{display:flex;align-items:center;justify-content:center;gap:9px;font-size:25px;font-weight:900;line-height:1.15;color:#f3ead6;text-shadow:0 2px 8px rgba(0,0,0,.42);}
+          .dsItemActionCheck{width:24px;height:24px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;border:1px solid rgba(157,255,180,.7);background:rgba(55,190,104,.18);color:#9dffb4;font-size:15px;line-height:1;text-shadow:none;}
+          .dsItemActionText{text-align:left;min-width:0;}
+          .dsItemActionItem{font-size:19px;font-weight:900;color:#f0d326;line-height:1.25;overflow-wrap:anywhere;}
+          .dsItemActionDetail{margin-top:6px;font-size:14px;font-weight:800;color:#cfc6b5;}
+          @media(max-width:560px){.dsItemActionBody{flex-direction:column;text-align:center;}.dsItemActionText{text-align:center;}}
+          .dsItemActionBack{margin-top:20px;width:auto!important;min-height:40px!important;padding:9px 16px!important;border-radius:7px!important;}
+        </style>
+        <div class="dsItemActionSuccess">
+          <div class="dsItemActionCard">
+            <div class="dsItemActionTitle">${esc(actionText)} <span class="dsItemActionCheck" aria-hidden="true">&#10003;</span></div>
+            <div class="dsItemActionBody">
+              <div class="dsItemActionBadge"><img src="${esc(img)}" alt=""></div>
+              <div class="dsItemActionText">
+                <div class="dsItemActionItem">${esc(label)}</div>
+                ${detailText ? `<div class="dsItemActionDetail">${esc(detailText)}</div>` : ""}
+              </div>
+            </div>
+            <button type="button" class="dsItemActionBack" data-ds-action-back="1">Back</button>
+          </div>
+        </div>
+      `;
+      successBox.querySelector("[data-ds-action-back]")?.addEventListener("click", () => {
+        restoreLeftPanelNodes();
+        window.DS?.resume?.();
+      });
+    };
+
       document.getElementById("dsEquip")?.addEventListener("click", () => {
         const s = ensureSave(loadSave());
         const invIt = s.inventory[invIndex];
@@ -6479,9 +7042,9 @@ function openInspector(invIndex, item) {
       s.equipment[slotKey] = picked;
       if (prev) addToStack(s.inventory, prev, 1);
 
-      recomputeTotals(s);
+        recomputeTotals(s);
         setSave(s);
-        msg("✅ Equipped.");
+        showActionSuccess("Equipped", picked);
       });
 
       document.getElementById("dsEquipPotion")?.addEventListener("click", () => {
@@ -6513,7 +7076,7 @@ function openInspector(invIndex, item) {
           s.consumables[slotKey] = picked;
         }
         setSave(s);
-        msg(`✅ Equipped to ${slotKey === "quick_potion1" ? "Potion 1" : "Potion 2"}.`);
+        showActionSuccess("Potion Equipped", picked, 1, slotKey === "quick_potion1" ? "Slot: Potion 1" : "Slot: Potion 2");
       });
 
     const eatQtyInput = document.getElementById("dsEatQty");
@@ -6575,12 +7138,7 @@ function openInspector(invIndex, item) {
       const parts = [];
       if (hp > 0) parts.push(`+${hp * eatQty} HP`);
       if (st > 0) parts.push(`+${st * eatQty} ST`);
-      msg(`✅ Ate ${eatQty} ${removed.name || "Food"} (${parts.join(", ")}).`);
-
-      if (!s.inventory[invIndex]) {
-        restoreLeftPanelNodes();
-        window.DS?.resume?.();
-      }
+      showActionSuccess("Consumed", removed, eatQty, parts.join(", "));
     };
 
     eatQtyBtn?.addEventListener("click", handleEat);
@@ -6622,16 +7180,9 @@ function openInspector(invIndex, item) {
 
       const total = sellPrice(invIt) * sellQty;
       s.gold = num(s.gold, 0) + total;
+      const soldItem = { ...invIt };
       setSave(s);
-      msg(`Sold x${sellQty} for +${total} gold.`);
-      const cur = s.inventory[invIndex];
-      const newQty = cur ? num(cur.quantity ?? cur.qty, 1) : 0;
-      if (newQty <= 0){
-        restoreLeftPanelNodes();
-        window.DS?.resume?.();
-        return;
-      }
-      openInspector(invIndex);
+      showActionSuccess("Sold", soldItem, sellQty, `+${total} Gold`);
     });
 
     const marketQtyInput = document.getElementById("dsMarketQty");
@@ -6684,14 +7235,7 @@ function openInspector(invIndex, item) {
       msg("Listing on market...");
       try {
         await auth.invokeCreateMarketListing({ item: invIt, quantity: listQty, priceEach });
-        msg(`✅ Listed ${invIt.name || "Item"} x${listQty} for ${priceEach} gold EA.`);
-        const latest = ensureSave(loadSave());
-        if (!latest.inventory?.[invIndex]) {
-          restoreLeftPanelNodes();
-          window.DS?.resume?.();
-          return;
-        }
-        openInspector(invIndex);
+        showActionSuccess("Listed on Market", invIt, listQty, `${priceEach} Gold each`);
       } catch (error) {
         marketBtn.disabled = false;
         msg(`❌ ${error?.message || "Could not list on market."}`);
@@ -6729,7 +7273,7 @@ function openInspector(invIndex, item) {
       addToStack(s.bank, stack, num(stack.quantity ?? stack.qty, 1));
       setSave(s);
       const sentName = stack.name || invIt.name || "Item";
-      showBankSentPopup(sentName, sendQty);
+      showActionSuccess("Sent to Bank", { ...stack, name: sentName }, sendQty);
     });
   }
 
@@ -6874,10 +7418,16 @@ function renderAll() {
       hookInvTabs();
       await loadLiveChatMessages("global");
       await loadLiveChatMessages("market");
+      await loadLiveChatMessages("party");
+      await loadWhispers();
       await ensureLiveChatSubscription("global");
       await ensureLiveChatSubscription("market");
+      await ensureLiveChatSubscription("party");
+      await ensureWhisperSubscription();
+      ensureWhisperPolling();
       ensureLiveChatPolling("global");
       ensureLiveChatPolling("market");
+      ensureLiveChatPolling("party");
 
       const _s = ensureSave(loadSave());
       setSave(_s);
@@ -6906,6 +7456,11 @@ function renderAll() {
       });
       window.addEventListener("ds:save", () => {
         scheduleSaveRerender();
+      });
+      window.addEventListener("ds:party", async () => {
+        await ensureLiveChatSubscription("party");
+        await loadLiveChatMessages("party", true);
+        if (__chatTab === "party") renderChatPanel(ensureSave(loadSave()));
       });
       window.addEventListener("resize", syncRightColumnToNav);
       window.addEventListener("popstate", (event) => {

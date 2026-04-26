@@ -107,16 +107,10 @@
   `;
   const PLAYER_PROFILE_VIEW_TEMPLATE = `
     <div id="playerProfileViewRoot" style="max-width:980px;margin:0 auto;">
-      <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:14px;">
-        <div>
-          <h1 id="playerProfileTitle" style="margin-bottom:6px;">Player Profile</h1>
-          <div id="playerProfileSubtitle" style="opacity:.86;">Loading profile...</div>
-        </div>
-        <button id="playerProfileBackBtn" type="button" style="min-width:0;padding:8px 12px;border-radius:10px;border:1px solid rgba(166,124,64,.82);background:linear-gradient(180deg,#4e3a22,#2b2015);color:#fff3d7;font-weight:800;cursor:pointer;">Back To Players</button>
-      </div>
       <div id="playerProfileStatus" style="display:none;margin-bottom:12px;padding:10px 12px;border-radius:12px;border:1px solid rgba(255,255,255,.08);background:rgba(255,255,255,.03);font-size:13px;color:#eef2ff;"></div>
       <div style="display:grid;gap:14px;">
-        <div style="padding:18px 16px;border-radius:16px;border:1px solid rgba(166,124,64,.72);background:linear-gradient(180deg, rgba(56,42,24,.52), rgba(22,18,20,.94));box-shadow:0 18px 38px rgba(0,0,0,.24);">
+        <div style="position:relative;padding:18px 16px;border-radius:16px;border:1px solid rgba(166,124,64,.72);background:linear-gradient(180deg, rgba(56,42,24,.52), rgba(22,18,20,.94));box-shadow:0 18px 38px rgba(0,0,0,.24);">
+          <button id="playerProfileBackBtn" type="button" style="position:absolute;right:14px;top:14px;min-width:0;padding:8px 12px;border-radius:10px;border:1px solid rgba(166,124,64,.82);background:linear-gradient(180deg,#4e3a22,#2b2015);color:#fff3d7;font-weight:800;cursor:pointer;">Back</button>
           <div style="display:grid;justify-items:center;gap:10px;text-align:center;">
             <div id="playerProfileAvatarWrap" style="width:124px;height:124px;border-radius:24px;border:1px solid rgba(166,124,64,.72);background:#0f1219;overflow:hidden;box-shadow:0 12px 28px rgba(0,0,0,.28);"></div>
             <div id="playerProfileName" style="font-size:28px;font-weight:900;color:#f3ead6;line-height:1.1;">Hero</div>
@@ -124,6 +118,7 @@
             <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:center;">
               <button id="playerTabOverview" type="button" style="min-width:160px;height:42px;border-radius:12px;border:1px solid rgba(166,124,64,.86);background:linear-gradient(180deg,#6c4a24,#3b2814);color:#fff2d6;font-size:13px;font-weight:900;cursor:pointer;">Overview</button>
               <button id="playerTabEquipment" type="button" style="min-width:160px;height:42px;border-radius:12px;border:1px solid rgba(166,124,64,.56);background:linear-gradient(180deg,#3d3220,#241b14);color:#eadcbc;font-size:13px;font-weight:900;cursor:pointer;">Equipment</button>
+              <button id="playerWhisperBtn" type="button" style="min-width:160px;height:42px;border-radius:12px;border:1px solid rgba(126,190,255,.55);background:#1e355a;color:#eef6ff;font-size:13px;font-weight:900;cursor:pointer;">Whisper</button>
             </div>
           </div>
         </div>
@@ -253,8 +248,6 @@
   function getPlayerProfileElements() {
     return {
       root: document.getElementById("playerProfileViewRoot"),
-      title: document.getElementById("playerProfileTitle"),
-      subtitle: document.getElementById("playerProfileSubtitle"),
       status: document.getElementById("playerProfileStatus"),
       avatarWrap: document.getElementById("playerProfileAvatarWrap"),
       name: document.getElementById("playerProfileName"),
@@ -864,12 +857,6 @@
     const equipment = profilePayload.equipment || {};
     const summary = buildOverviewSummary(overview);
 
-    if (els.title) els.title.textContent = profile.name || currentPlayer?.name || "Player Profile";
-    if (els.subtitle) {
-      els.subtitle.textContent = currentPlayer
-        ? `${currentPlayer.isOnline ? "Online" : "Offline"} - ${formatPresenceLabel(currentPlayer)}`
-        : "Public player profile";
-    }
     if (els.name) els.name.textContent = profile.name || currentPlayer?.name || "Hero";
     if (els.meta) {
       els.meta.textContent = currentPlayer
@@ -1043,6 +1030,42 @@
     }
   }
 
+  function selectedProfilePlayer() {
+    const currentPlayer = playersPanelState.players.find((player) => player.id === playersPanelState.selectedUserId) || null;
+    const profile = playersPanelState.selectedProfile?.profile || {};
+    const id = String(profile.id || currentPlayer?.id || playersPanelState.selectedUserId || "");
+    if (!id || id === currentUserId()) return null;
+    return {
+      id,
+      name: String(profile.name || currentPlayer?.name || "Player"),
+      avatarUrl: String(profile.avatarUrl || currentPlayer?.avatarUrl || ""),
+      isOnline: Boolean(currentPlayer?.isOnline),
+      lastSeenPage: String(profile.lastSeenPage || currentPlayer?.lastSeenPage || ""),
+      heroLevel: Math.max(1, num(playersPanelState.selectedProfile?.overview?.heroLevel ?? currentPlayer?.heroLevel, 1))
+    };
+  }
+
+  function openExternalPlayerProfile(player = {}) {
+    const id = String(player.id || "").trim();
+    if (!id) return false;
+    const existing = playersPanelState.players.find((entry) => entry.id === id);
+    if (!existing) {
+      playersPanelState.players.push({
+        id,
+        name: String(player.name || "Player"),
+        avatarUrl: String(player.avatarUrl || "images/hero.png"),
+        isOnline: Boolean(player.isOnline),
+        lastSeenAt: player.lastSeenAt || null,
+        lastSeenPage: String(player.lastSeenPage || ""),
+        heroLevel: Math.max(1, num(player.heroLevel, 1)),
+        heroXP: Math.max(0, num(player.heroXP, 0)),
+        isSelf: id === currentUserId()
+      });
+    }
+    openPlayersPanelProfile(id, { mountView: true });
+    return true;
+  }
+
   function bindPlayersPanel() {
     document.getElementById("playersBackHome")?.addEventListener("click", () => mountHome());
     document.getElementById("playersRefreshBtn")?.addEventListener("click", () => loadPlayersPanel(true));
@@ -1062,6 +1085,20 @@
     document.getElementById("playerTabEquipment")?.addEventListener("click", () => {
       playersPanelState.profileTab = "equipment";
       renderPlayerProfileView();
+    });
+    document.getElementById("playerWhisperBtn")?.addEventListener("click", (event) => {
+      const player = selectedProfilePlayer();
+      if (!player) return;
+      window.DSUI?.openWhisperWithPlayer?.(player);
+      const btn = event.currentTarget;
+      if (btn) {
+        btn.textContent = "Chat Opened";
+        btn.disabled = true;
+        btn.style.borderColor = "rgba(157,255,180,.7)";
+        btn.style.background = "linear-gradient(180deg,rgba(28,104,58,.95),rgba(17,68,39,.95))";
+        btn.style.color = "#effff4";
+        btn.style.cursor = "default";
+      }
     });
   }
 
@@ -1149,7 +1186,8 @@
   window.DSHome = {
     mount: mountHome,
     openSendItemModal,
-    openPlayersModal: mountPlayersView
+    openPlayersModal: mountPlayersView,
+    openPlayerProfile: openExternalPlayerProfile
   };
 
   window.addEventListener("DOMContentLoaded", () => {

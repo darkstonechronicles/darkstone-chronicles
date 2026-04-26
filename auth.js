@@ -189,9 +189,10 @@
   }
 
   function getPresencePageLabel(page = currentPage()) {
+    const normalized = String(page || "").toLowerCase().split(/[?#]/)[0].trim();
     const labels = {
       "index.html": "Home",
-      "fight.html": "Fight",
+      "fight.html": "Fighting",
       "dungeons.html": "Dungeons",
       "dungeon_run.html": "Dungeon Run",
       "professions.html": "Professions",
@@ -205,31 +206,34 @@
       "stats.html": "Stats",
       "stats_alloc.html": "Stat Allocation",
       "mining.html": "Mining",
-      "mining_action.html": "Mining Action",
+      "mining_action.html": "Mining",
       "forge.html": "Forge",
-      "forge_action.html": "Forge Action",
+      "forge_action.html": "Forge",
       "woodcutting.html": "Woodcutting",
       "carpentry.html": "Carpentry",
-      "wood_gather.html": "Wood Gather",
-      "wood_gather_action.html": "Wood Gather Action",
+      "wood_gather.html": "Woodcutting",
+      "wood_gather_action.html": "Woodcutting",
       "wood_sawmill.html": "Sawmill",
-      "wood_sawmill_action.html": "Sawmill Action",
+      "wood_sawmill_action.html": "Sawmill",
       "hunting.html": "Hunting",
-      "hunting_action.html": "Hunting Action",
+      "hunting_action.html": "Hunting",
       "fishing.html": "Fishing",
-      "fishing_action.html": "Fishing Action",
+      "fishing_action.html": "Fishing",
       "cooking.html": "Cooking",
-      "cooking_action.html": "Cooking Action",
+      "cooking_action.html": "Cooking",
       "herbalism.html": "Herbalism",
-      "herbalism_action.html": "Herbalism Action",
+      "herbalism_action.html": "Herbalism",
       "alchemy.html": "Alchemy",
-      "alchemy_action.html": "Alchemy Action",
+      "alchemy_action.html": "Alchemy",
       "alchemy_tier.html": "Alchemy Tier",
       "enchanting.html": "Enchanting",
+      "jewelcrafting.html": "Jewelcrafting",
+      "jewelcrafting_action.html": "Jewelcrafting",
+      "party_hall.html": "Party Hall",
       "create_character.html": "Character Creation",
       "login.html": "Login"
     };
-    return labels[String(page || "").toLowerCase()] || "In Game";
+    return labels[normalized] || "In Game";
   }
 
   function getReturnTo() {
@@ -916,7 +920,7 @@
 
     const { data, error } = await state.client
       .from("profiles")
-      .select("id, display_name, avatar_url, last_seen_at, last_seen_page")
+      .select("id, display_name, avatar_url, last_seen_at, last_seen_page, player_public_stats(hero_level)")
       .order("last_seen_at", { ascending: false, nullsFirst: false });
 
     if (error) throw error;
@@ -929,6 +933,7 @@
         id: String(row?.id || ""),
         name: String(row?.display_name || "Hero").trim() || "Hero",
         avatarUrl: String(row?.avatar_url || "").trim(),
+        heroLevel: Math.max(1, Number(row?.player_public_stats?.hero_level || 1) || 1),
         lastSeenAt: row?.last_seen_at || null,
         lastSeenPage: String(row?.last_seen_page || "").trim(),
         isOnline

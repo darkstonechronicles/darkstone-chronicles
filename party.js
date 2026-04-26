@@ -125,6 +125,12 @@
     return state.data?.myParty || null;
   }
 
+  function dispatchPartyStateChanged() {
+    window.dispatchEvent(new CustomEvent("ds:party", {
+      detail: { partyId: String(myParty()?.id || "") }
+    }));
+  }
+
   function myRole() {
     return String(myParty()?.role || "none");
   }
@@ -409,6 +415,7 @@
       const previousActive = isActivePartyFight(previousParty);
       const data = await window.DSAuth.invokePartyAction({ action: "bootstrap" });
       state.data = data || null;
+      dispatchPartyStateChanged();
       const nextResolvedCount = num(activeSessionPayload(state.data?.myParty || null).resolvedCount, -1);
       const nextParty = state.data?.myParty || null;
       const nextActive = isActivePartyFight(nextParty);
@@ -453,6 +460,7 @@
     try {
       const data = await window.DSAuth?.invokePartyAction?.(payload || {});
       state.data = data || state.data;
+      dispatchPartyStateChanged();
       state.lastError = "";
       const nextMessage = successMessage !== undefined ? successMessage : data?.message;
       setNotice(nextMessage || "");
@@ -1458,7 +1466,12 @@
     await loadPartyState({ silent: true });
   }
 
-  window.DSPartyHall = { mount: mountPartyHall, initRealtime, confirmStopPartyFightForNavigation };
+  window.DSPartyHall = {
+    mount: mountPartyHall,
+    initRealtime,
+    confirmStopPartyFightForNavigation,
+    getCurrentPartyId: () => String(myParty()?.id || "")
+  };
   window.addEventListener("DOMContentLoaded", () => {
     initStandalonePartyHall();
     initRealtime();
