@@ -14,7 +14,7 @@
   const MAX_WAVE_ROUNDS = 15;
   const CRYPT_SIGIL_ITEM = { type:"material", name:"Crypt Sigil", img:"images/items/sigils/crypt_sigil.png" };
   const ROUGH_GEM_DROP_CHANCE = 1 / 100;
-  const ORB_OF_CREATION_DROP_CHANCE = 1 / 100;
+  const ORB_OF_CREATION_DROP_CHANCE = 1 / 30;
   const ORB_OF_CREATION_ITEM = { type:"material", id:"orb_of_creation", name:"Orb of Creation", img:"images/ui/orb_of_creation.png" };
   const ROUGH_GEM_POOL = [
     { type:"material", id:"rough_ruby", name:"Rough Ruby", img:"images/gems/rough_ruby.png" },
@@ -434,7 +434,7 @@
         rewards: def.rewards,
         description: `${def.waves.length} waves -> Boss. ${def.setName} 6-piece legendary set: chance for 1 item per completion.`,
         dropMode: "setChance",
-        setChance: 1 / 250,
+        setChance: 1 / 25,
         setItems: makeSetItems(def.setId, def.setName, def.reqLevel),
         waves: makeWaves(def.id, def.waves, def.reqLevel, tier),
         boss: makeBoss(def.id, def.boss, def.reqLevel, tier)

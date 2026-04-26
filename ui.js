@@ -420,6 +420,29 @@
   function isGearItem(it){
     return (it?.type === "gear") || (it?.slot && GEAR_SLOTS.has(it.slot));
   }
+  function isBattleCharmItem(it){
+    if (!it) return false;
+    if (String(it.type || "").toLowerCase() === "battle_charm") return true;
+    if (String(it.subType || "").toLowerCase() === "battle_charm") return true;
+    return /battle charm/i.test(String(it.name || ""));
+  }
+  function battleCharmQty(item){
+    return Math.max(0, Math.floor(num(item?.quantity ?? item?.qty, 0)));
+  }
+  function getBattleCharmAttackBonus(save){
+    const charm = save?.battleCharm;
+    if (!isBattleCharmItem(charm) || battleCharmQty(charm) <= 0) return 0;
+    return Math.max(0, num(charm.attackBonus, charm.atkBonus ?? charm.atk ?? 0));
+  }
+  function normalizeBattleCharm(item){
+    if (!isBattleCharmItem(item)) return null;
+    const next = { ...item };
+    next.type = "battle_charm";
+    next.subType = "battle_charm";
+    next.quantity = battleCharmQty(next) || 1;
+    next.attackBonus = Math.max(0, num(next.attackBonus, next.atkBonus ?? next.atk ?? 0));
+    return next;
+  }
 
   // ✅ Round XPNext to "nice" numbers (persisted)
   function roundXPNext(v){

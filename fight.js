@@ -213,7 +213,7 @@ const VAR_MAX = 1.10;
 const WAR_SIGIL_CHANCE = 1 / 250;
 const WAR_SIGIL_ITEM = { type:"material", name:"War Sigil", img:"images/items/sigils/war_sigil.png" };
 const ROUGH_GEM_DROP_CHANCE = 1 / 100;
-const ORB_OF_CREATION_DROP_CHANCE = 1 / 200;
+const ORB_OF_CREATION_DROP_CHANCE = 1 / 80;
 const ORB_OF_CREATION_ITEM = { type:"material", id:"orb_of_creation", name:"Orb of Creation", img:"images/ui/orb_of_creation.png" };
 const ROUGH_GEM_POOL = [
   { type:"material", id:"rough_ruby", name:"Rough Ruby", img:"images/gems/rough_ruby.png" },

@@ -245,6 +245,7 @@ function tickArtisanPotionActions(save, actions = 1){
 // ------------------------------------
 const BAR_IMG = "images/bars";
 const CRAFT_IMG = "images/items/forge_crafted";
+const CHARM_IMG = "images/charms";
 const CRAFT_ICON_BG = "#14361d";
 const MATERIALS = [
   { id:"copper",      name:"Copper",      reqLevel: 1 },
@@ -311,6 +312,14 @@ function craftXpForReq(req){
   return 10 + Math.floor(lvl / 10) * 4;
 }
 
+function forgeRewardMultiplier(req, mode = "smelt"){
+  const lvl = Math.max(1, Number(req) || 1);
+  // Crafted gear was scaling too aggressively at high tiers.
+  // Keep smelting on the original curve and soften only crafted-item rewards.
+  if (mode === "craft") return 1 + (lvl / 44);
+  return 1 + (lvl / 20);
+}
+
 function titleFromMaterialId(id){
   return MATERIALS.find(m => m.id === id)?.name || String(id || "");
 }
@@ -350,9 +359,43 @@ function mkCraftRecipe(material, slotDef){
   };
 }
 
+function battleCharmAttackBonus(material){
+  const index = MATERIALS.findIndex((entry) => entry.id === material.id);
+  return (Math.max(0, index) + 1) * 10;
+}
+
+function mkBattleCharmRecipe(material){
+  const req = material.reqLevel;
+  const id = `${material.id}_battle_charm`;
+  const baseXP = Math.round(gatherXpForReq(req) * 6 * 0.6);
+  return {
+    id,
+    mode: "craft",
+    name: `${material.name} Battle Charm`,
+    req,
+    img: `${CHARM_IMG}/${id}.svg`,
+    input: [
+      { name: `${material.name} Bar`, qty: 3 }
+    ],
+    output: {
+      type: "battle_charm",
+      subType: "battle_charm",
+      id,
+      name: `${material.name} Battle Charm`,
+      img: `${CHARM_IMG}/${id}.svg`,
+      rarity: "crafted",
+      reqLevel: req,
+      attackBonus: battleCharmAttackBonus(material),
+      qty: 1
+    },
+    baseXP
+  };
+}
+
 const RECIPES = [
   ...MATERIALS.map(m => mkRecipe(`${m.id}_bar`, `${m.name} Bar`, m.reqLevel, `${m.name} Ore`)),
-  ...MATERIALS.flatMap(m => CRAFT_SLOTS.map(slot => mkCraftRecipe(m, slot)))
+  ...MATERIALS.flatMap(m => CRAFT_SLOTS.map(slot => mkCraftRecipe(m, slot))),
+  ...MATERIALS.map(m => mkBattleCharmRecipe(m))
 ];
 
 function getRecipeFromUrl(){
@@ -413,12 +456,14 @@ function removeByName(save, name, qtyNeeded){
 function itemStackKey(it){
   return [
     it.type || "",
+    it.id || "",
     it.crafted ? "crafted" : "",
     it.name || "",
     it.slot || "",
     it.reqLevel ?? 1,
     it.atk ?? 0,
     it.def ?? 0,
+    it.attackBonus ?? 0,
     it.rarity || "",
     it.img || ""
   ].join("::");
@@ -493,7 +538,7 @@ function xpNextForLevel(lvl){
   return roundLevelXP(xp);
 }
 function gainBlacksmithXP(save, baseXP, reqLevel, artisanXpPct = 0){
-  const mult = 1 + (Number(reqLevel || 1) / 20);
+  const mult = forgeRewardMultiplier(reqLevel, "smelt");
   const buildingPct = (Number(save.forgeAcademyLevel) || 0) * 0.0005;
   const gained = Math.round(Number(baseXP || 0) * mult * (1 + num(artisanXpPct, 0) + buildingPct));
   save.blacksmithXP += gained;
@@ -843,7 +888,9 @@ function forgeTick(){
 
   // add output
   addToInventoryStack(save, {
+    id:r.output.id,
     type:r.output.type,
+    subType:r.output.subType,
     crafted: !!r.output.crafted,
     slot:r.output.slot,
     name:r.output.name,
@@ -851,12 +898,15 @@ function forgeTick(){
     rarity:r.output.rarity,
     reqLevel:r.output.reqLevel,
     atk:r.output.atk,
-    def:r.output.def
+    def:r.output.def,
+    attackBonus:r.output.attackBonus
   }, r.output.qty);
   const doubled = Math.random() < petBonus.doublePct;
   if (doubled) {
     addToInventoryStack(save, {
+      id:r.output.id,
       type:r.output.type,
+      subType:r.output.subType,
       crafted: !!r.output.crafted,
       slot:r.output.slot,
       name:r.output.name,
@@ -864,7 +914,8 @@ function forgeTick(){
       rarity:r.output.rarity,
       reqLevel:r.output.reqLevel,
       atk:r.output.atk,
-      def:r.output.def
+      def:r.output.def,
+      attackBonus:r.output.attackBonus
     }, r.output.qty);
   }
 
@@ -880,7 +931,7 @@ function forgeTick(){
 
   // xp
   save.blacksmithXPNext = xpNextForLevel(save.blacksmithLevel);
-  const xpMult = 1 + (Number(r.req || 1) / 20);
+  const xpMult = forgeRewardMultiplier(r.req, r.mode);
   const buildingPct = (Number(save.forgeAcademyLevel) || 0) * 0.0005;
   const totalXpGain = Math.max(1, Math.round(Number(r.baseXP || 0) * xpMult * (1 + num(petBonus.xpPct, 0) + buildingPct)));
   const petSplit = window.DS?.pets?.splitXpWithPet
@@ -1021,10 +1072,25 @@ window.DSForgeAction = {
         quantity: 1
       };
     }));
+    const charmItems = MATERIALS.map((material) => {
+      const id = `${material.id}_battle_charm`;
+      return {
+        type: "battle_charm",
+        subType: "battle_charm",
+        id,
+        name: `${material.name} Battle Charm`,
+        attackBonus: battleCharmAttackBonus(material),
+        reqLevel: material.reqLevel,
+        rarity: "crafted",
+        img: `${CHARM_IMG}/${id}.svg`,
+        quantity: 1
+      };
+    });
     return [
       { ...ORE_SIGIL_ITEM, quantity: 1 },
       ...barItems,
-      ...craftedItems
+      ...craftedItems,
+      ...charmItems
     ];
   }
 };

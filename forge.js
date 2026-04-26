@@ -21,6 +21,7 @@
       <div id="forgeTabs">
         <button id="tabSmelt" class="forgeTabBtn is-active" type="button">Smelt Bars</button>
         <button id="tabCraft" class="forgeTabBtn" type="button">Craft Items</button>
+        <button id="tabCharms" class="forgeTabBtn" type="button">Battle Charms</button>
       </div>
 
       <div id="forgeSmeltPanel">
@@ -41,6 +42,11 @@
           <div id="craftGrid" style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;"></div>
         </div>
       </div>
+
+      <div id="forgeCharmPanel" style="display:none;">
+        <h2 class="profSectionTitle">Battle Charms</h2>
+        <div id="charmGrid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px;"></div>
+      </div>
     </div>
   `;
 
@@ -52,14 +58,17 @@
   let bsXPBar = null;
   let tabSmelt = null;
   let tabCraft = null;
+  let tabCharms = null;
   let forgeSmeltPanel = null;
   let forgeCraftPanel = null;
+  let forgeCharmPanel = null;
   let barGrid = null;
   let craftMaterialTabs = null;
   let craftCategoryView = null;
   let craftItemsView = null;
   let craftItemsTitle = null;
   let craftGrid = null;
+  let charmGrid = null;
   let craftBackBtn = null;
 
   let activeTab = "smelt";
@@ -156,6 +165,7 @@
 
   function smeltRecipeId(material){ return `${material.id}_bar`; }
   function craftRecipeId(material, slotDef){ return `${material.id}_${slotDef.id}`; }
+  function charmRecipeId(material){ return `${material.id}_battle_charm`; }
   function craftItemName(material, slotDef){
     const suffix = slotDef.id === "main_hand" ? (MAIN_HAND_NAMES[material.id] || slotDef.label) : slotDef.label;
     return `${material.name} ${suffix}`;
@@ -215,14 +225,17 @@
     bsXPBar = document.getElementById("bsXPBar");
     tabSmelt = document.getElementById("tabSmelt");
     tabCraft = document.getElementById("tabCraft");
+    tabCharms = document.getElementById("tabCharms");
     forgeSmeltPanel = document.getElementById("forgeSmeltPanel");
     forgeCraftPanel = document.getElementById("forgeCraftPanel");
+    forgeCharmPanel = document.getElementById("forgeCharmPanel");
     barGrid = document.getElementById("barGrid");
     craftMaterialTabs = document.getElementById("craftMaterialTabs");
     craftCategoryView = document.getElementById("craftCategoryView");
     craftItemsView = document.getElementById("craftItemsView");
     craftItemsTitle = document.getElementById("craftItemsTitle");
     craftGrid = document.getElementById("craftGrid");
+    charmGrid = document.getElementById("charmGrid");
     craftBackBtn = document.getElementById("craftBackBtn");
     eventsBound = false;
   }
@@ -412,14 +425,59 @@
     });
   }
 
+  function renderCharmCards(){
+    if (!charmGrid) return;
+    const save = ensureForge(loadSave());
+    charmGrid.innerHTML = "";
+    MATERIALS.forEach((material, index) => {
+      const locked = save.blacksmithLevel < material.reqLevel;
+      const recipeId = charmRecipeId(material);
+      const attackBonus = (index + 1) * 10;
+      const card = makeCard();
+      card.style.minHeight = "210px";
+      card.style.cursor = locked ? "not-allowed" : "pointer";
+      card.style.opacity = locked ? ".55" : "1";
+      if (!locked) card.dataset.openTabHref = `forge_action.html?recipe=${encodeURIComponent(recipeId)}`;
+
+      const title = document.createElement("div");
+      title.style.fontWeight = "900";
+      title.style.fontSize = "18px";
+      title.style.textAlign = "center";
+      title.style.lineHeight = "1.1";
+      title.textContent = `${material.name} Battle Charm`;
+
+      const cost = document.createElement("div");
+      cost.style.textAlign = "center";
+      cost.style.color = "#b8b9c9";
+      cost.style.fontSize = "12px";
+      cost.style.lineHeight = "1.25";
+      cost.innerHTML = `Needs 3 ${material.name} Bar<br>Equipped: +${attackBonus} Attack`;
+
+      card.append(
+        makeImage(`images/charms/${recipeId}.svg`, "#14361d"),
+        title,
+        cost,
+        button(locked ? "Locked" : "Craft", locked, () => openRecipe(recipeId))
+      );
+      charmGrid.appendChild(card);
+    });
+  }
+
   function renderActiveTab(){
     tabSmelt?.classList.toggle("is-active", activeTab === "smelt");
     tabCraft?.classList.toggle("is-active", activeTab === "craft");
+    tabCharms?.classList.toggle("is-active", activeTab === "charms");
     if (forgeSmeltPanel) forgeSmeltPanel.style.display = activeTab === "smelt" ? "" : "none";
     if (forgeCraftPanel) forgeCraftPanel.style.display = activeTab === "craft" ? "" : "none";
+    if (forgeCharmPanel) forgeCharmPanel.style.display = activeTab === "charms" ? "" : "none";
 
     if (activeTab === "smelt") {
       renderSmeltCards();
+      return;
+    }
+
+    if (activeTab === "charms") {
+      renderCharmCards();
       return;
     }
 
@@ -440,6 +498,10 @@
     });
     tabCraft?.addEventListener("click", () => {
       activeTab = "craft";
+      renderActiveTab();
+    });
+    tabCharms?.addEventListener("click", () => {
+      activeTab = "charms";
       renderActiveTab();
     });
     craftBackBtn?.addEventListener("click", () => {
