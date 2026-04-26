@@ -596,6 +596,12 @@ out:{type:"food", id:"cooked_leviathan_marlin", name:"Cooked Leviathan Marlin", 
 },
 
 ];
+  function cookingXpForRecipe(recipe){
+    const r = recipe && typeof recipe === "object" ? recipe : {};
+    const req = Math.max(1, num(r.req, 1));
+    const effectValue = Math.max(0, num(r.out?.healHp, 0), num(r.out?.healStamina, 0));
+    return Math.max(4, 4 + effectValue + Math.floor(req / 10) * 4);
+  }
   function getRecipeFromUrl() {
     const p = new URLSearchParams(location.search);
     return p.get("recipe") || "cooked_shadow_hare_meat";
@@ -965,7 +971,7 @@ function releaseActionLock(){
 
     // XP gain
     const buildingPct = Math.max(0, num(s.cookhouseLevel, 0)) * 0.0005;
-    const totalXpGain = Math.max(1, Math.round(6 * (1 + petBonus.xpPct + buildingPct)));
+    const totalXpGain = Math.max(1, Math.round(cookingXpForRecipe(r) * (1 + petBonus.xpPct + buildingPct)));
     const petSplit = window.DS?.pets?.splitXpWithPet
       ? window.DS.pets.splitXpWithPet(s, "artisan", totalXpGain)
       : { playerXpGain: totalXpGain, petXpGain: 0, petLevelUps: 0, petLevel: 0, petName: "" };

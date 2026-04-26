@@ -290,6 +290,13 @@ function gatherXpForReq(req){
   return 10 + Math.floor(lvl / 10) * 20;
 }
 
+function fishingXpForCatch(spot, fish){
+  const base = gatherXpForReq(spot?.req);
+  const catchChance = Math.max(0, Math.min(1, num(fish?.chance, 1)));
+  const rarityBonus = catchChance <= 0.3 ? Math.max(2, Math.round(base * 0.25)) : 0;
+  return base + rarityBonus;
+}
+
 const SPOTS = [
 
 {
@@ -775,7 +782,7 @@ function fishTick(){
 
   // XP gain (simple core)
   const buildingPct = Math.max(0, num(s.anglerPierLevel, 0)) * 0.0005;
-  const totalXpGain = Math.max(1, Math.round(gatherXpForReq(spot.req) * (1 + petBonus.xpPct + buildingPct)));
+  const totalXpGain = Math.max(1, Math.round(fishingXpForCatch(spot, f) * (1 + petBonus.xpPct + buildingPct)));
   const petSplit = window.DS?.pets?.splitXpWithPet
     ? window.DS.pets.splitXpWithPet(s, "gathering", totalXpGain)
     : { playerXpGain: totalXpGain, petXpGain: 0, petLevelUps: 0, petLevel: 0, petName: "" };
