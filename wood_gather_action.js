@@ -111,6 +111,50 @@ function loadSave(){
 function setSave(next){
   localStorage.setItem(SAVE_KEY, JSON.stringify(next));
 }
+function appendWoodGatherReceipt(save, receipt){
+  if (!save || typeof save !== "object") return;
+  const current = Array.isArray(save.recentGatherRewards) ? save.recentGatherRewards : [];
+  current.unshift(receipt && typeof receipt === "object" ? receipt : {});
+  save.recentGatherRewards = current.slice(0, 20);
+}
+function commitWoodGatherTick(save, payload = {}){
+  const next = save && typeof save === "object" ? save : {};
+  const receipt = {
+    id: `wood:${Date.now()}:${Math.random().toString(36).slice(2, 10)}`,
+    at: new Date().toISOString(),
+    profession: "woodcutting",
+    itemName: String(payload.itemName || ""),
+    itemId: String(payload.itemId || ""),
+    xp: Math.max(0, num(payload.xp, 0)),
+    doubled: payload.doubled === true,
+    sigilDrop: payload.sigilDrop === true,
+    roughGem: payload.roughGem ? String(payload.roughGem.name || "") : "",
+    petXp: Math.max(0, num(payload.petXp, 0))
+  };
+  appendWoodGatherReceipt(next, receipt);
+  next.lastGatherRewardAt = Date.now();
+  setSave(next);
+  window.dispatchEvent(new Event("ds:save"));
+  window.DSAuth?.prioritizeCloudSaveSync?.();
+  void window.DSAuth?.invokeActionJournal?.({
+    actionId: receipt.id,
+    actionKind: "gathering-tick",
+    sourcePage: "wood_gather_action.html",
+    payload: {
+      profession: receipt.profession,
+      itemId: receipt.itemId,
+      itemName: receipt.itemName,
+      xp: receipt.xp,
+      doubled: receipt.doubled,
+      sigilDrop: receipt.sigilDrop,
+      roughGem: receipt.roughGem,
+      petXp: receipt.petXp,
+      completedAt: receipt.at
+    }
+  }).catch((error) => {
+    console.warn("[woodcutting] action journal failed", error);
+  });
+}
 function roundLevelXP(v){
   v = Math.max(1, Math.round(Number(v) || 1));
   if (v >= 10000000) return Math.ceil(v / 50000) * 50000;
@@ -524,8 +568,15 @@ function gatherTick(){
   }
   const roughGemDrop = rollRoughGemDrop();
   if (roughGemDrop) addToInventoryStack(save, roughGemDrop, 1);
-  setSave(save);
-  window.dispatchEvent(new Event("ds:save"));
+  commitWoodGatherTick(save, {
+    itemName: logName,
+    itemId: wood.id,
+    xp: xpGain,
+    doubled,
+    sigilDrop,
+    roughGem: roughGemDrop,
+    petXp: petSplit.petXpGain
+  });
   renderHeader();
   renderBonusBox(save);
   if (targetRemaining > 0){

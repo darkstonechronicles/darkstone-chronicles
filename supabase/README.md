@@ -15,6 +15,8 @@ This folder keeps the backend for `Darkstone Chronicles` in the same repo as the
 2. `supabase link --project-ref ibpwrvtsnuhbylexuoil`
 3. `supabase db push`
 4. `supabase functions deploy bootstrap-player`
+5. `supabase functions deploy save-backup`
+6. `supabase functions deploy action-journal`
 
 ## Local workflow
 
@@ -26,11 +28,15 @@ This folder keeps the backend for `Darkstone Chronicles` in the same repo as the
 
 - `profiles`: player identity/profile row per auth user
 - `player_saves`: cloud save payload per player
+- `player_save_backups`: versioned recovery snapshots for synced saves
+- `player_action_journal`: append-only action receipts for server-side recovery/dedupe
 - `player_public_stats`: public-facing summary for leaderboards
 - `admin_users`: allowlist of accounts that may use admin-only server tools
 - `clans` + `clan_members`: first social data model
 - `chat_messages`: shared/global/clan chat stream
 - `bootstrap-player` Edge Function: secure profile/save bootstrap and sync entrypoint
+- `save-backup` Edge Function: authenticated self-backup endpoint for throttled recovery snapshots
+- `action-journal` Edge Function: authenticated action receipt journal with per-user dedupe
 - `admin-grant` Edge Function: admin-only self-grants for safe testing
 
 ## Important note

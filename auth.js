@@ -6,9 +6,14 @@
   const SAVE_BACKUP_KEY = "darkstone_save_backup_latest_v1";
   const ACTIVE_SESSION_KEY = "darkstone_active_client_session_v1";
   const ACTIVE_SESSION_PENDING_KEY = "ds:claim-active-session";
-  const ACTIVE_SESSION_HANDOFF_GRACE_MS = 1500;
+  const ACTIVE_SESSION_HANDOFF_GRACE_MS = 2500;
   const CLOUD_SAVE_DEBOUNCE_MS = 250;
   const LOCAL_SAVE_SYNC_DELAY_MS = 120;
+  const CLOUD_SAVE_HEARTBEAT_MS = 15000;
+  const CLOUD_BACKUP_MIN_INTERVAL_MS = 5 * 60 * 1000;
+  const CLOUD_BACKUP_MIN_REVISION_DELTA = 15;
+  const IMPORTANT_SYNC_MIN_INTERVAL_MS = 3000;
+  const LOCAL_BACKUP_HISTORY_LIMIT = 6;
   const SUPABASE_SCRIPT_SRC = "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js";
   const APP_VERSION_URL = "version.json";
   const APP_VERSION_RELOAD_PREFIX = "ds:app-version-reload:";
@@ -41,12 +46,17 @@
       pendingSync: false,
       syncTimer: 0,
       revision: 0,
-      suppressSync: false
+      suppressSync: false,
+      backupInFlight: false,
+      lastPrioritySyncAt: 0
     },
     presence: {
       timer: 0,
       lastSentAt: 0,
       sending: null
+    },
+    timers: {
+      cloudHeartbeat: 0
     },
     sessionGuard: {
       clientSessionId: "",
@@ -397,13 +407,26 @@
     const save = readLocalSave();
     if (!hasMeaningfulSave(save)) return false;
     try {
-      localStorage.setItem(SAVE_BACKUP_KEY, JSON.stringify({
+      const entry = {
         reason: String(reason || "unknown"),
         backedUpAt: Date.now(),
         ownerId: getLocalOwnerId(),
         meta: readLocalSaveMeta(),
         save
-      }));
+      };
+      localStorage.setItem(SAVE_BACKUP_KEY, JSON.stringify(entry));
+      let history = [];
+      try {
+        const parsed = JSON.parse(localStorage.getItem(`${SAVE_BACKUP_KEY}:history`) || "[]");
+        history = Array.isArray(parsed) ? parsed : [];
+      } catch {
+        history = [];
+      }
+      history.unshift(entry);
+      localStorage.setItem(
+        `${SAVE_BACKUP_KEY}:history`,
+        JSON.stringify(history.slice(0, LOCAL_BACKUP_HISTORY_LIMIT))
+      );
       return true;
     } catch {
       return false;
@@ -442,6 +465,65 @@
       score += Math.max(0, Number(value || 0) || 0);
     });
     return score;
+  }
+
+  function shouldCreateCloudBackup(save, revision = state.cloud.revision) {
+    if (!hasMeaningfulSave(save) || !state.user?.id) return false;
+    const nextRevision = Math.max(0, Number(revision || 0) || 0);
+    if (nextRevision <= 0) return false;
+    const meta = readLocalSaveMeta();
+    const lastBackupRevision = Math.max(0, Number(meta.lastCloudBackupRevision || 0) || 0);
+    const lastBackupAt = Math.max(0, Number(meta.lastCloudBackupAt || 0) || 0);
+    if (nextRevision <= lastBackupRevision) return false;
+    if (!lastBackupAt || !lastBackupRevision) return true;
+    if (nextRevision - lastBackupRevision >= CLOUD_BACKUP_MIN_REVISION_DELTA) return true;
+    return Date.now() - lastBackupAt >= CLOUD_BACKUP_MIN_INTERVAL_MS;
+  }
+
+  async function maybeCreateCloudBackup(save, reason = "sync", revision = state.cloud.revision) {
+    if (state.cloud.backupInFlight) return false;
+    if (typeof fetch !== "function") return false;
+    if (!shouldCreateCloudBackup(save, revision)) return false;
+
+    const session = await getSession().catch(() => null);
+    const token = session?.access_token;
+    if (!token) return false;
+
+    state.cloud.backupInFlight = true;
+    try {
+      const nextRevision = Math.max(0, Number(revision || 0) || 0);
+      const res = await fetch(`${CONFIG.url}/functions/v1/save-backup`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`,
+          "apikey": CONFIG.anonKey
+        },
+        body: JSON.stringify({
+          reason: String(reason || "sync").slice(0, 80),
+          revision: nextRevision,
+          saveData: save && typeof save === "object" ? save : {}
+        })
+      });
+
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok || body?.ok === false) {
+        console.warn("[auth] cloud backup skipped", body?.error || `HTTP ${res.status}`);
+        return false;
+      }
+
+      writeLocalSaveMeta({
+        lastCloudBackupAt: Date.now(),
+        lastCloudBackupRevision: Math.max(0, Number(body?.revision || nextRevision) || nextRevision),
+        lastCloudBackupReason: String(body?.reason || reason || "sync").slice(0, 80)
+      });
+      return true;
+    } catch (error) {
+      console.warn("[auth] cloud backup failed", error);
+      return false;
+    } finally {
+      state.cloud.backupInFlight = false;
+    }
   }
 
   function buildPublicStats(save, user) {
@@ -688,6 +770,7 @@
       await upsertProfileAndStats(localSave);
       localStorage.setItem(SAVE_OWNER_KEY, state.user.id);
       markLocalSaveSynced();
+      void maybeCreateCloudBackup(localSave, "sync", state.cloud.revision);
       window.dispatchEvent(new CustomEvent("ds:cloud-save", {
         detail: { status: "synced", revision: state.cloud.revision }
       }));
@@ -716,6 +799,33 @@
       state.cloud.syncTimer = 0;
       syncCloudSaveNow();
     }, Math.max(0, Number(delayMs) || 0));
+  }
+
+  function startCloudSyncHeartbeat() {
+    if (state.timers.cloudHeartbeat) return;
+    state.timers.cloudHeartbeat = window.setInterval(() => {
+      if (!state.user?.id || !state.cloud.ready || state.cloud.syncing) return;
+      if (!hasUnsyncedLocalSave()) return;
+      syncCloudSaveNow();
+    }, CLOUD_SAVE_HEARTBEAT_MS);
+  }
+
+  function stopCloudSyncHeartbeat() {
+    if (!state.timers.cloudHeartbeat) return;
+    window.clearInterval(state.timers.cloudHeartbeat);
+    state.timers.cloudHeartbeat = 0;
+  }
+
+  function prioritizeCloudSaveSync() {
+    if (!state.user?.id || !state.cloud.ready) return false;
+    const now = Date.now();
+    if (now - Number(state.cloud.lastPrioritySyncAt || 0) < IMPORTANT_SYNC_MIN_INTERVAL_MS) {
+      scheduleCloudSaveSync(0);
+      return false;
+    }
+    state.cloud.lastPrioritySyncAt = now;
+    scheduleCloudSaveSync(0);
+    return true;
   }
 
   async function preparePlayerState() {
@@ -769,6 +879,7 @@
           await upsertProfileAndStats(localSave);
           localStorage.setItem(SAVE_OWNER_KEY, state.user.id);
           markLocalSaveSynced();
+          void maybeCreateCloudBackup(localSave, "prepare-local-save", state.cloud.revision);
         }
       } else if (remoteHasSave) {
         applyRemoteSaveSnapshot(remote);
@@ -778,6 +889,7 @@
         await upsertProfileAndStats(localSave);
         localStorage.setItem(SAVE_OWNER_KEY, state.user.id);
         markLocalSaveSynced();
+        void maybeCreateCloudBackup(localSave, "prepare-create-save", state.cloud.revision);
       } else {
         if (!ownerMatches) {
           backupLocalSave("owner-mismatch-cleared");
@@ -797,6 +909,8 @@
       state.cloud.userId = state.user.id;
       state.cloud.ready = true;
       state.sessionGuard.justClaimedActiveSession = false;
+      startCloudSyncHeartbeat();
+      if (hasUnsyncedLocalSave()) scheduleCloudSaveSync(0);
       window.dispatchEvent(new CustomEvent("ds:cloud-save", {
         detail: { status: "ready", revision: state.cloud.revision }
       }));
@@ -1031,6 +1145,7 @@
       state.cloud.userId = state.user.id;
       state.cloud.ready = true;
       markLocalSaveSynced(Date.now(), nextRevision);
+      void maybeCreateCloudBackup(nextSave, "send-item", nextRevision);
       window.dispatchEvent(new Event("ds:save"));
       window.dispatchEvent(new CustomEvent("ds:cloud-save", {
         detail: { status: "synced", revision: nextRevision, source: "send-item" }
@@ -1074,6 +1189,7 @@
       state.cloud.userId = state.user.id;
       state.cloud.ready = true;
       markLocalSaveSynced(Date.now(), nextRevision);
+      void maybeCreateCloudBackup(nextSave, "market-listing", nextRevision);
       window.dispatchEvent(new Event("ds:save"));
       window.dispatchEvent(new CustomEvent("ds:cloud-save", {
         detail: { status: "synced", revision: nextRevision, source: "market-listing" }
@@ -1115,6 +1231,7 @@
       state.cloud.userId = state.user.id;
       state.cloud.ready = true;
       markLocalSaveSynced(Date.now(), nextRevision);
+      void maybeCreateCloudBackup(nextSave, "market-buy", nextRevision);
       window.dispatchEvent(new Event("ds:save"));
       window.dispatchEvent(new CustomEvent("ds:cloud-save", {
         detail: { status: "synced", revision: nextRevision, source: "market-buy" }
@@ -1154,6 +1271,7 @@
       state.cloud.userId = state.user.id;
       state.cloud.ready = true;
       markLocalSaveSynced(Date.now(), nextRevision);
+      void maybeCreateCloudBackup(nextSave, "market-cancel", nextRevision);
       window.dispatchEvent(new Event("ds:save"));
       window.dispatchEvent(new CustomEvent("ds:cloud-save", {
         detail: { status: "synced", revision: nextRevision, source: "market-cancel" }
@@ -1211,6 +1329,44 @@
     const body = await res.json().catch(() => ({}));
     if (!res.ok || body?.ok === false) {
       throw new Error(body?.error || body?.message || `Party action failed (${res.status})`);
+    }
+
+    return body;
+  }
+
+  async function invokeActionJournal(payload = {}) {
+    await ready;
+    if (!state.client || !state.user?.id) {
+      throw new Error("No active session.");
+    }
+
+    const activeOk = await validateActiveSession({ claimIfMissing: true });
+    if (!activeOk) {
+      throw new Error("Session replaced on another device.");
+    }
+
+    const session = await getSession();
+    const token = session?.access_token;
+    if (!token) throw new Error("Missing access token.");
+
+    const meta = readLocalSaveMeta();
+    const bodyPayload = payload && typeof payload === "object" ? payload : {};
+    const res = await fetch(`${CONFIG.url}/functions/v1/action-journal`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${token}`,
+        "apikey": CONFIG.anonKey
+      },
+      body: JSON.stringify({
+        ...bodyPayload,
+        baseRevision: Math.max(0, Number(bodyPayload.baseRevision ?? meta.cloudRevision ?? state.cloud.revision ?? 0) || 0)
+      })
+    });
+
+    const body = await res.json().catch(() => ({}));
+    if (!res.ok || body?.ok === false) {
+      throw new Error(body?.error || body?.message || `Action journal failed (${res.status})`);
     }
 
     return body;
@@ -1276,6 +1432,7 @@
     state.cloud.userId = state.user.id;
     state.cloud.ready = true;
     markLocalSaveSynced();
+    void maybeCreateCloudBackup(nextSave, "premium-wallet-refresh", state.cloud.revision);
     window.dispatchEvent(new Event("ds:save"));
     window.dispatchEvent(new CustomEvent("ds:cloud-save", {
       detail: { status: "synced", revision: state.cloud.revision, source: "premium-wallet-refresh" }
@@ -1326,6 +1483,7 @@
       }
     }
     if (state.user?.id) startPresenceHeartbeat();
+    if (state.user?.id) startCloudSyncHeartbeat();
     startAppVersionPolling();
 
     state.client.auth.onAuthStateChange((event, session) => {
@@ -1340,11 +1498,14 @@
       state.sessionGuard.justClaimedActiveSession = false;
       if (!state.user?.id) {
         stopPresenceHeartbeat();
+        stopCloudSyncHeartbeat();
         state.cloud.userId = "";
         state.cloud.ready = false;
         state.cloud.revision = 0;
       } else {
         startPresenceHeartbeat();
+        startCloudSyncHeartbeat();
+        if (state.cloud.ready && hasUnsyncedLocalSave()) scheduleCloudSaveSync(0);
       }
       startAppVersionPolling();
       window.dispatchEvent(new CustomEvent("ds:auth", {
@@ -1405,6 +1566,7 @@
     await ready;
     if (!state.client) return;
     stopPresenceHeartbeat();
+    stopCloudSyncHeartbeat();
     if (state.cloud.syncTimer) {
       window.clearTimeout(state.cloud.syncTimer);
       state.cloud.syncTimer = 0;
@@ -1454,12 +1616,15 @@
 
   window.addEventListener("pagehide", flushCloudSaveSoon);
   window.addEventListener("pageshow", () => {
+    flushCloudSaveSoon();
     checkForAppUpdateOnBoot({ force: true });
   });
   window.addEventListener("focus", () => {
+    flushCloudSaveSoon();
     checkForAppUpdateOnBoot({ force: true });
   });
   window.addEventListener("online", () => {
+    flushCloudSaveSoon();
     checkForAppUpdateOnBoot({ force: true });
   });
   window.addEventListener("storage", (event) => {
@@ -1495,6 +1660,7 @@
     signInWithGoogle,
     signOut,
     syncCloudSaveNow,
+    prioritizeCloudSaveSync,
     isAdmin,
     invokeAdminGrant,
     invokeSendItem,
@@ -1503,6 +1669,7 @@
     invokeCancelMarketListing,
     invokePlayerProfile,
     invokePartyAction,
+    invokeActionJournal,
     invokeCreateDarkStoneCheckout,
     refreshPremiumWallet
   };

@@ -151,6 +151,50 @@ function xpBarGradient(pct){
   function setSave(next) {
     localStorage.setItem(SAVE_KEY, JSON.stringify(next));
   }
+  function appendCookingReceipt(save, receipt){
+    if (!save || typeof save !== "object") return;
+    const current = Array.isArray(save.recentCraftRewards) ? save.recentCraftRewards : [];
+    current.unshift(receipt && typeof receipt === "object" ? receipt : {});
+    save.recentCraftRewards = current.slice(0, 20);
+  }
+  function commitCookingTick(save, payload = {}){
+    const next = save && typeof save === "object" ? save : {};
+    const receipt = {
+      id: `cooking:${Date.now()}:${Math.random().toString(36).slice(2, 10)}`,
+      at: new Date().toISOString(),
+      profession: "cooking",
+      itemName: String(payload.itemName || ""),
+      itemId: String(payload.itemId || ""),
+      outputQty: Math.max(1, num(payload.outputQty, 1)),
+      xp: Math.max(0, num(payload.xp, 0)),
+      doubled: payload.doubled === true,
+      sigilDrop: payload.sigilDrop === true,
+      petXp: Math.max(0, num(payload.petXp, 0))
+    };
+    appendCookingReceipt(next, receipt);
+    next.lastCraftRewardAt = Date.now();
+    setSave(next);
+    window.dispatchEvent(new Event("ds:save"));
+    window.DSAuth?.prioritizeCloudSaveSync?.();
+    void window.DSAuth?.invokeActionJournal?.({
+      actionId: receipt.id,
+      actionKind: "crafting-tick",
+      sourcePage: "cooking_action.html",
+      payload: {
+        profession: receipt.profession,
+        itemId: receipt.itemId,
+        itemName: receipt.itemName,
+        outputQty: receipt.outputQty,
+        xp: receipt.xp,
+        doubled: receipt.doubled,
+        sigilDrop: receipt.sigilDrop,
+        petXp: receipt.petXp,
+        completedAt: receipt.at
+      }
+    }).catch((error) => {
+      console.warn("[cooking] action journal failed", error);
+    });
+  }
 
   function ensureCooking(save) {
     save = save && typeof save === "object" ? save : {};
@@ -934,8 +978,15 @@ function releaseActionLock(){
       window.DS?.announcements?.professionLevel?.(s, "Cooking", s.cookingLevel);
     }
 
-    setSave(s);
-    window.dispatchEvent(new Event("ds:save"));
+    commitCookingTick(s, {
+      itemName: r.out.name,
+      itemId: r.out.id,
+      outputQty: 1 + (doubled ? 1 : 0),
+      xp: xpGain,
+      doubled,
+      sigilDrop,
+      petXp: petSplit.petXpGain
+    });
     renderCookingHeader();
     renderBonusBox(s);
 

@@ -104,6 +104,50 @@ function loadSave(){
 function setSave(next){
   localStorage.setItem(SAVE_KEY, JSON.stringify(next));
 }
+function appendHerbalismReceipt(save, receipt){
+  if (!save || typeof save !== "object") return;
+  const current = Array.isArray(save.recentGatherRewards) ? save.recentGatherRewards : [];
+  current.unshift(receipt && typeof receipt === "object" ? receipt : {});
+  save.recentGatherRewards = current.slice(0, 20);
+}
+function commitHerbalismTick(save, payload = {}){
+  const next = save && typeof save === "object" ? save : {};
+  const receipt = {
+    id: `herbalism:${Date.now()}:${Math.random().toString(36).slice(2, 10)}`,
+    at: new Date().toISOString(),
+    profession: "herbalism",
+    itemName: String(payload.itemName || ""),
+    itemId: String(payload.itemId || ""),
+    xp: Math.max(0, num(payload.xp, 0)),
+    doubled: payload.doubled === true,
+    sigilDrop: payload.sigilDrop === true,
+    roughGem: payload.roughGem ? String(payload.roughGem.name || "") : "",
+    petXp: Math.max(0, num(payload.petXp, 0))
+  };
+  appendHerbalismReceipt(next, receipt);
+  next.lastGatherRewardAt = Date.now();
+  setSave(next);
+  window.dispatchEvent(new Event("ds:save"));
+  window.DSAuth?.prioritizeCloudSaveSync?.();
+  void window.DSAuth?.invokeActionJournal?.({
+    actionId: receipt.id,
+    actionKind: "gathering-tick",
+    sourcePage: "herbalism_action.html",
+    payload: {
+      profession: receipt.profession,
+      itemId: receipt.itemId,
+      itemName: receipt.itemName,
+      xp: receipt.xp,
+      doubled: receipt.doubled,
+      sigilDrop: receipt.sigilDrop,
+      roughGem: receipt.roughGem,
+      petXp: receipt.petXp,
+      completedAt: receipt.at
+    }
+  }).catch((error) => {
+    console.warn("[herbalism] action journal failed", error);
+  });
+}
 const num = (v, f = 0) => (Number.isFinite(Number(v)) ? Number(v) : f);
 function xpBarGradient(pct){
   if (pct < 25) return "linear-gradient(90deg,#b84a4a,#e06a6a)";
@@ -547,8 +591,15 @@ function gatherTick(){
     window.DS?.announcements?.professionLevel?.(save, "Herbalism", save.herbalismLevel);
   }
 
-  setSave(save);
-  window.dispatchEvent(new Event("ds:save"));
+  commitHerbalismTick(save, {
+    itemName: zone.herbName,
+    itemId: zone.herbId,
+    xp: herbXp,
+    doubled,
+    sigilDrop,
+    roughGem: roughGemDrop,
+    petXp: petSplit.petXpGain
+  });
   renderHerbalismHeader();
   renderBonusBox(save);
 

@@ -1944,41 +1944,20 @@ function getEquipmentEnchantBonuses(equipment){
 
 function recomputeTotalsAndSave(){
   const cur = getCurrentSave();
-
   const baseAtk = cur.heroAttack ?? 10;
   const baseDef = cur.heroDefense ?? 10;
-
-  const { atkB, defB } = getEquipBonuses(cur);
-  const bonuses = getSetBonusPcts(cur.equipment);
-  const petBonuses = getCombatPetBonuses(cur);
-
-  const rawAtk = baseAtk + atkB + petBonuses.atkFlat;
-  const rawDef = baseDef + defB + petBonuses.defFlat;
-
-  const totalAtk = Math.floor(rawAtk * (1 + bonuses.atkPct + petBonuses.atkPct));
-  const totalDef = Math.floor(rawDef * (1 + bonuses.defPct + petBonuses.defPct));
-
-  savePatch({
-    attackTotal: totalAtk,
-    defenseTotal: totalDef,
-    setBonusAtkPct: bonuses.atkPct + petBonuses.atkPct,
-    setBonusDefPct: bonuses.defPct + petBonuses.defPct,
-    setBonusGoldPct: bonuses.goldPct,
-    _atkFromPet: petBonuses.atkFlat,
-    _defFromPet: petBonuses.defFlat,
-    _petBonusAtkPct: petBonuses.atkPct,
-    _petBonusDefPct: petBonuses.defPct
-  });
+  const totals = recomputeTotalsOnSave(cur);
+  localStorage.setItem(SAVE_KEY, JSON.stringify(cur));
 
   return {
     baseAtk,
     baseDef,
-    rawAtk,
-    rawDef,
-    atkPct: bonuses.atkPct + petBonuses.atkPct,
-    defPct: bonuses.defPct + petBonuses.defPct,
-    totalAtk,
-    totalDef
+    rawAtk: totals.rawAtk,
+    rawDef: totals.rawDef,
+    atkPct: totals.atkPct + num(cur._petBonusAtkPct, 0),
+    defPct: totals.defPct + num(cur._petBonusDefPct, 0),
+    totalAtk: num(cur.attackTotal, 0),
+    totalDef: num(cur.defenseTotal, 0)
   };
 }
 
@@ -2469,6 +2448,13 @@ function renderCombatPetBadge(){
   }
 }
 function addCombatPetXP(totalCombatXP){
+  const s = loadSave();
+  const result = applyCombatPetXPToSave(s, totalCombatXP);
+  localStorage.setItem(SAVE_KEY, JSON.stringify(s));
+  return result;
+}
+
+function applyCombatPetXPToSave(saveObj, totalCombatXP){
   const api = window.DS?.pets;
   const total = Math.max(0, Math.floor(num(totalCombatXP, 0)));
   if (!api) {
@@ -2485,7 +2471,7 @@ function addCombatPetXP(totalCombatXP){
     };
   }
 
-  const s = loadSave();
+  const s = saveObj && typeof saveObj === "object" ? saveObj : {};
   if (!s.pets || typeof s.pets !== "object") s.pets = {};
 
   const combatPetXpGain = api?.isPetActive?.("combat", s.pets.combat) ? Math.max(0, Math.floor(total * 0.10)) : 0;
@@ -2512,8 +2498,6 @@ function addCombatPetXP(totalCombatXP){
     fortuneNewLevel = num(result?.petLevel, 0);
   }
 
-  localStorage.setItem(SAVE_KEY, JSON.stringify(s));
-
   return {
     playerXpGain,
     combatPetXpGain,
@@ -2524,6 +2508,144 @@ function addCombatPetXP(totalCombatXP){
     fortunePetName,
     combatNewLevel,
     fortuneNewLevel
+  };
+}
+
+function appendFightRewardReceipt(saveObj, receipt){
+  if (!saveObj || typeof saveObj !== "object") return;
+  const nextReceipt = receipt && typeof receipt === "object" ? receipt : {};
+  const current = Array.isArray(saveObj.recentFightRewards) ? saveObj.recentFightRewards : [];
+  current.unshift(nextReceipt);
+  saveObj.recentFightRewards = current.slice(0, 12);
+}
+
+function applyHeroXpToSave(saveObj, xp, options = {}){
+  const s = saveObj && typeof saveObj === "object" ? saveObj : {};
+  const addXp = Math.max(0, num(xp, 0));
+
+  let heroLevel = Math.max(1, num(s.heroLevel, 1));
+  let heroXP = num(s.heroXP, 0) + addXp;
+  let heroXPNext = xpNextForLevel(heroLevel);
+
+  const baseAtk = num(s.heroAttack, 10);
+  const baseDef = num(s.heroDefense, 10);
+  let statPoints = Math.max(0, num(s.heroStatPoints, 0));
+  let levelsGained = 0;
+
+  while(heroXP >= heroXPNext){
+    heroXP -= heroXPNext;
+    heroLevel++;
+    levelsGained++;
+    heroXPNext = xpNextForLevel(heroLevel);
+    statPoints += STAT_POINTS_PER_LEVEL;
+    if (options.announceLevelUps !== false) {
+      window.DS?.announcements?.combatLevel?.(s, heroLevel);
+    }
+    if (options.logLevelUps !== false) {
+      pushBattleLog(`✨ Level Up! Hero Level ${heroLevel} (+${STAT_POINTS_PER_LEVEL} Stat Points)`);
+    }
+  }
+
+  s.heroLevel = heroLevel;
+  s.heroXP = heroXP;
+  s.heroXPNext = xpNextForLevel(heroLevel);
+  s.heroAttack = baseAtk;
+  s.heroDefense = baseDef;
+  s.heroStatPoints = statPoints;
+
+  return {
+    heroLevel,
+    heroXP,
+    heroXPNext,
+    heroStatPoints: statPoints,
+    levelsGained
+  };
+}
+
+function recomputeTotalsOnSave(saveObj){
+  const cur = saveObj && typeof saveObj === "object" ? saveObj : {};
+
+  const baseAtk = cur.heroAttack ?? 10;
+  const baseDef = cur.heroDefense ?? 10;
+
+  const { atkB, defB } = getEquipBonuses(cur);
+  const bonuses = getSetBonusPcts(cur.equipment);
+  const petBonuses = getCombatPetBonuses(cur);
+
+  const rawAtk = baseAtk + atkB + petBonuses.atkFlat;
+  const rawDef = baseDef + defB + petBonuses.defFlat;
+
+  const totalAtk = Math.floor(rawAtk * (1 + bonuses.atkPct + petBonuses.atkPct));
+  const totalDef = Math.floor(rawDef * (1 + bonuses.defPct + petBonuses.defPct));
+
+  cur.attackTotal = totalAtk;
+  cur.defenseTotal = totalDef;
+  cur.setBonusAtkPct = bonuses.atkPct + petBonuses.atkPct;
+  cur.setBonusDefPct = bonuses.defPct + petBonuses.defPct;
+  cur.setBonusGoldPct = bonuses.goldPct;
+  cur._atkFromPet = petBonuses.atkFlat;
+  cur._defFromPet = petBonuses.defFlat;
+  cur._petBonusAtkPct = petBonuses.atkPct;
+  cur._petBonusDefPct = petBonuses.defPct;
+
+  return { rawAtk, rawDef, atkPct: bonuses.atkPct, defPct: bonuses.defPct };
+}
+
+function applyFightWinRewards(result){
+  const data = result && typeof result === "object" ? result : {};
+  const save = loadSave();
+  if (!Array.isArray(save.inventory)) save.inventory = [];
+
+  save.gold = Math.max(0, num(save.gold, 0)) + Math.max(0, num(data.goldGain, 0));
+
+  const drops = Array.isArray(data.drops) ? data.drops : [];
+  const addedDrops = [];
+  const skippedDrops = [];
+  const invApi = window.DSInventory;
+  for (const rawItem of drops) {
+    if (!rawItem || typeof rawItem !== "object") continue;
+    const item = { ...rawItem };
+    const qty = Math.max(1, num(item.quantity ?? item.qty, 1));
+    let ok = false;
+    if (invApi?.addItem) {
+      ok = Boolean(invApi.addItem(save, item, qty, { stack: true, stackKeyFn: itemStackKey })?.ok);
+    } else {
+      const key = itemStackKey(item);
+      const ex = save.inventory.find(i => i && itemStackKey(i) === key);
+      if (ex) ex.quantity = (ex.quantity ?? 1) + qty;
+      else save.inventory.push({ ...item, quantity: qty });
+      ok = true;
+    }
+    (ok ? addedDrops : skippedDrops).push({ ...item, quantity: qty });
+  }
+
+  const petXpResult = applyCombatPetXPToSave(save, Math.max(0, num(data.totalCombatXp, 0)));
+  applyHeroXpToSave(save, petXpResult.playerXpGain, { announceLevelUps: true, logLevelUps: true });
+  save.lastFightRewardAt = Date.now();
+
+  const actionId = `fight:${Date.now()}:${Math.random().toString(36).slice(2, 10)}`;
+  appendFightRewardReceipt(save, {
+    id: actionId,
+    at: new Date().toISOString(),
+    zoneId: String(data.zoneId || ""),
+    mobId: String(data.mobId || ""),
+    mobName: String(data.mobName || ""),
+    rounds: Math.max(1, num(data.rounds, 1)),
+    xp: Math.max(0, num(petXpResult.playerXpGain, 0)),
+    gold: Math.max(0, num(data.goldGain, 0)),
+    addedDrops: addedDrops.map((it) => ({ name: it.name || "Item", quantity: Math.max(1, num(it.quantity, 1)) })),
+    skippedDrops: skippedDrops.map((it) => ({ name: it.name || "Item", quantity: Math.max(1, num(it.quantity, 1)) }))
+  });
+
+  recomputeTotalsOnSave(save);
+  localStorage.setItem(SAVE_KEY, JSON.stringify(save));
+  window.DSAuth?.prioritizeCloudSaveSync?.();
+
+  return {
+    actionId,
+    addedDrops,
+    skippedDrops,
+    petXpResult
   };
 }
 
@@ -2952,8 +3074,6 @@ const zoneId = currentZone.id;
 const curSave = getCurrentSave();
 const enchantBonuses = getEquipmentEnchantBonuses(curSave.equipment);
 const xpGain = Math.max(0, Math.floor(fightXPForMobLevel(currentMob.lvl) * (1 + Math.max(0, num(enchantBonuses.xpPct, 0)))));
-const petXpResult = addCombatPetXP(xpGain);
-const playerXpGain = Math.max(0, Math.floor(num(petXpResult.playerXpGain, xpGain)));
 const setGoldBonusPct = getSetBonusPcts(curSave.equipment).goldPct ?? 0;
 const fortuneBonuses = getFortunePetBonuses(curSave);
 const potionBonuses = getPotionBonuses(curSave);
@@ -2962,45 +3082,79 @@ const goldBonusPct = setGoldBonusPct + Math.max(0, num(fortuneBonuses.goldPct, 0
 const goldBase = rollGold(zoneId, currentMob.lvl);
 const goldGain = Math.floor(goldBase * (1 + goldBonusPct));
 const goldBonus = Math.max(0, goldGain - goldBase);
-addGold(goldGain);
-
 const mobId = currentMobData.id;
 
 const uniques = rollUniqueDrops(zoneId, mobId);
-for(const it of uniques) addItemToSave(it);
-uniques
-  .filter((it) => String(it?.rarity || "").toLowerCase() === "legendary")
-  .forEach((it) => window.DS?.announcements?.legendaryDrop?.(getCurrentSave(), it));
-
 const mythic = rollZoneMythic(zoneId);
-if(mythic) addItemToSave(mythic);
-
 const warSigil = Math.random() < (WAR_SIGIL_CHANCE * dropLuckMult) ? { ...WAR_SIGIL_ITEM, quantity: 1 } : null;
-if (warSigil) addItemToSave(warSigil);
 const roughGem = Math.random() < (ROUGH_GEM_DROP_CHANCE * dropLuckMult)
   ? { ...ROUGH_GEM_POOL[Math.floor(Math.random() * ROUGH_GEM_POOL.length)], quantity: 1 }
   : null;
-if (roughGem) addItemToSave(roughGem);
 const orbOfCreation = Math.random() < (ORB_OF_CREATION_DROP_CHANCE * dropLuckMult) ? { ...ORB_OF_CREATION_ITEM, quantity: 1 } : null;
-if (orbOfCreation) addItemToSave(orbOfCreation);
+const pendingDrops = [
+  ...uniques,
+  ...(mythic ? [mythic] : []),
+  ...(warSigil ? [warSigil] : []),
+  ...(roughGem ? [roughGem] : []),
+  ...(orbOfCreation ? [orbOfCreation] : [])
+];
+const rewardResult = applyFightWinRewards({
+  zoneId,
+  mobId,
+  mobName: currentMob.name,
+  rounds,
+  totalCombatXp: xpGain,
+  goldGain,
+  drops: pendingDrops
+});
+const petXpResult = rewardResult.petXpResult;
+const playerXpGain = Math.max(0, Math.floor(num(petXpResult.playerXpGain, xpGain)));
+const addedDrops = rewardResult.addedDrops;
+const skippedDrops = rewardResult.skippedDrops;
+void window.DSAuth?.invokeActionJournal?.({
+  actionId: rewardResult.actionId,
+  actionKind: "fight-win",
+  sourcePage: "fight.html",
+  payload: {
+    zoneId: String(zoneId || ""),
+    mobId: String(mobId || ""),
+    mobName: String(currentMob.name || ""),
+    rounds: Math.max(1, num(rounds, 1)),
+    xp: Math.max(0, num(playerXpGain, 0)),
+    gold: Math.max(0, num(goldGain, 0)),
+    addedDrops: addedDrops.map((it) => ({
+      itemId: String(it?.id || ""),
+      itemName: String(it?.name || "Item"),
+      quantity: Math.max(1, num(it?.quantity, 1))
+    })),
+    skippedDrops: skippedDrops.map((it) => ({
+      itemId: String(it?.id || ""),
+      itemName: String(it?.name || "Item"),
+      quantity: Math.max(1, num(it?.quantity, 1))
+    })),
+    completedAt: new Date().toISOString()
+  }
+}).catch((error) => {
+  console.warn("[fight] action journal failed", error);
+});
+addedDrops
+  .filter((it) => String(it?.rarity || "").toLowerCase() === "legendary")
+  .forEach((it) => window.DS?.announcements?.legendaryDrop?.(getCurrentSave(), it));
 
 // ✅ STATS (μόνο στο win)
 window.DS?.stats?.inc("fightsWon", 1);
 window.DS?.stats?.inc("goldEarned", goldGain);
-if (uniques.length) window.DS?.stats?.inc("itemsDropped", uniques.length);
-if (mythic) window.DS?.stats?.inc("mythicsFound", 1);
-if (roughGem) window.DS?.stats?.inc("itemsDropped", 1);
-if (orbOfCreation) window.DS?.stats?.inc("itemsDropped", 1);
+if (addedDrops.length) window.DS?.stats?.inc("itemsDropped", addedDrops.reduce((sum, it) => sum + Math.max(1, num(it.quantity, 1)), 0));
+if (mythic && addedDrops.some((it) => String(it?.id || "") === String(mythic.id || ""))) window.DS?.stats?.inc("mythicsFound", 1);
 
 const obtainedDrops = [];
-if (uniques[0]) obtainedDrops.push(uniques[0]);
-if (mythic) obtainedDrops.push(mythic);
-if (warSigil) obtainedDrops.push(warSigil);
-if (roughGem) obtainedDrops.push(roughGem);
-if (orbOfCreation) obtainedDrops.push(orbOfCreation);
+addedDrops.slice(0, 5).forEach((it) => obtainedDrops.push(it));
 
 const obtainedHtml = obtainedDrops.length
   ? `<div style="margin-top:8px;display:flex;align-items:center;justify-content:center;gap:8px;flex-wrap:wrap;"><span style="display:inline-flex;align-items:center;line-height:1;">You obtained:</span>${obtainedDrops.map(it => `<span style="display:inline-flex;align-items:center;gap:5px;line-height:1;"><img src="${it.img || ""}" alt="${it.name || "Item"}" style="width:16px;height:16px;border-radius:4px;object-fit:cover;">${it.name || "Item"}${(Number(it.quantity) || 1) > 1 ? ` x${Number(it.quantity) || 1}` : ""}</span>`).join("")}</div>`
+  : "";
+const skippedHtml = skippedDrops.length
+  ? `<div style="margin-top:6px;color:#ffb3b3;">Inventory full: ${skippedDrops.map(it => `${it.name || "Item"}${(Number(it.quantity) || 1) > 1 ? ` x${Number(it.quantity) || 1}` : ""}`).join(", ")}</div>`
   : "";
 
 const petXpParts = [];
@@ -3010,8 +3164,7 @@ const petXpHtml = petXpParts.length ? `<span style="opacity:.92;"> | ${petXpPart
 const petLevelHtml = `${petXpResult.combatLevelUps > 0 ? `<div style="margin-top:4px;color:#9ff0b7;font-weight:800;">${petXpResult.combatPetName} reached Lvl ${petXpResult.combatNewLevel}</div>` : ``}${petXpResult.fortuneLevelUps > 0 ? `<div style="margin-top:4px;color:#9ff0b7;font-weight:800;">${petXpResult.fortunePetName} reached Lvl ${petXpResult.fortuneNewLevel}</div>` : ``}`;
 pushBattleLog(`✅ Won vs ${currentMob.name} in ${rounds} rounds. 🏆 XP +${playerXpGain} | 💰 Gold +${goldGain}${goldBonus > 0 ? ` (${goldBonus} bonus)` : ""}${petXpHtml}${petLevelHtml}${obtainedHtml}`);
 
-  addHeroXP(playerXpGain);
-
+  if (skippedDrops.length) pushBattleLog(`Inventory full. Skipped: ${skippedDrops.map(it => `${it.name || "Item"}${(Number(it.quantity) || 1) > 1 ? ` x${Number(it.quantity) || 1}` : ""}`).join(", ")}`);
   hero = getHeroState();
   setHeroHPToSave(hero.hp, hero.hpMax);
 

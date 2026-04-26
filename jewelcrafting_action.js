@@ -551,6 +551,44 @@
   function setSave(next) {
     localStorage.setItem(SAVE_KEY, JSON.stringify(next));
   }
+  function appendJewelcraftingReceipt(save, receipt){
+    if (!save || typeof save !== "object") return;
+    const current = Array.isArray(save.recentCraftRewards) ? save.recentCraftRewards : [];
+    current.unshift(receipt && typeof receipt === "object" ? receipt : {});
+    save.recentCraftRewards = current.slice(0, 20);
+  }
+  function commitJewelcraftingTick(save, payload = {}){
+    const next = save && typeof save === "object" ? save : {};
+    const receipt = {
+      id: `jewelcrafting:${Date.now()}:${Math.random().toString(36).slice(2, 10)}`,
+      at: new Date().toISOString(),
+      profession: "jewelcrafting",
+      itemName: String(payload.itemName || ""),
+      itemId: String(payload.itemId || ""),
+      outputQty: Math.max(1, num(payload.outputQty, 1)),
+      xp: Math.max(0, num(payload.xp, 0))
+    };
+    appendJewelcraftingReceipt(next, receipt);
+    next.lastCraftRewardAt = Date.now();
+    setSave(next);
+    window.dispatchEvent(new Event("ds:save"));
+    window.DSAuth?.prioritizeCloudSaveSync?.();
+    void window.DSAuth?.invokeActionJournal?.({
+      actionId: receipt.id,
+      actionKind: "jewelcrafting-craft",
+      sourcePage: "jewelcrafting_action.html",
+      payload: {
+        recipeId: String(payload.recipeId || ""),
+        itemId: receipt.itemId,
+        itemName: receipt.itemName,
+        outputQty: receipt.outputQty,
+        xp: receipt.xp,
+        completedAt: receipt.at
+      }
+    }).catch((error) => {
+      console.warn("[jewelcrafting] action journal failed", error);
+    });
+  }
 
   function roundLevelXP(v){
     v = Math.max(1, Math.round(Number(v) || 1));
@@ -914,8 +952,13 @@
     const xpGain = gainJewelcraftingXp(save, recipe.xp);
     tickArtisanPotionActions(save, 1);
 
-    setSave(save);
-    window.dispatchEvent(new Event("ds:save"));
+    commitJewelcraftingTick(save, {
+      recipeId: recipe.recipeId || recipe.outputId,
+      itemName: recipe.outputName || recipe.refinedName,
+      itemId: recipe.outputId,
+      outputQty,
+      xp: xpGain
+    });
     completed += 1;
     renderRecipe();
     updateHeader();

@@ -96,6 +96,50 @@ function loadSave(){
 function setSave(next){
   localStorage.setItem(SAVE_KEY, JSON.stringify(next));
 }
+function appendAlchemyReceipt(save, receipt){
+  if (!save || typeof save !== "object") return;
+  const current = Array.isArray(save.recentCraftRewards) ? save.recentCraftRewards : [];
+  current.unshift(receipt && typeof receipt === "object" ? receipt : {});
+  save.recentCraftRewards = current.slice(0, 20);
+}
+function commitAlchemyTick(save, payload = {}){
+  const next = save && typeof save === "object" ? save : {};
+  const receipt = {
+    id: `alchemy:${Date.now()}:${Math.random().toString(36).slice(2, 10)}`,
+    at: new Date().toISOString(),
+    profession: "alchemy",
+    itemName: String(payload.itemName || ""),
+    itemId: String(payload.itemId || ""),
+    outputQty: Math.max(1, num(payload.outputQty, 1)),
+    xp: Math.max(0, num(payload.xp, 0)),
+    doubled: payload.doubled === true,
+    sigilDrop: payload.sigilDrop === true,
+    petXp: Math.max(0, num(payload.petXp, 0))
+  };
+  appendAlchemyReceipt(next, receipt);
+  next.lastCraftRewardAt = Date.now();
+  setSave(next);
+  window.dispatchEvent(new Event("ds:save"));
+  window.DSAuth?.prioritizeCloudSaveSync?.();
+  void window.DSAuth?.invokeActionJournal?.({
+    actionId: receipt.id,
+    actionKind: "crafting-tick",
+    sourcePage: "alchemy_action.html",
+    payload: {
+      profession: receipt.profession,
+      itemId: receipt.itemId,
+      itemName: receipt.itemName,
+      outputQty: receipt.outputQty,
+      xp: receipt.xp,
+      doubled: receipt.doubled,
+      sigilDrop: receipt.sigilDrop,
+      petXp: receipt.petXp,
+      completedAt: receipt.at
+    }
+  }).catch((error) => {
+    console.warn("[alchemy] action journal failed", error);
+  });
+}
 function xpBarGradient(pct){
   if (pct < 25) return "linear-gradient(90deg,#b84a4a,#e06a6a)";
   if (pct < 50) return "linear-gradient(90deg,#c66a2b,#eea043)";
@@ -607,8 +651,15 @@ function actionTick(){
     window.DS?.announcements?.professionLevel?.(save, "Alchemy", save.alchemyLevel);
   }
 
-  setSave(save);
-  window.dispatchEvent(new Event("ds:save"));
+  commitAlchemyTick(save, {
+    itemName: recipe.output.name,
+    itemId: recipe.output.id,
+    outputQty: 1 + (doubled ? 1 : 0),
+    xp: xpGain,
+    doubled,
+    sigilDrop,
+    petXp: petSplit.petXpGain
+  });
   renderAlchemyHeader();
   renderBonusBox(save);
 

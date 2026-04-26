@@ -102,6 +102,52 @@ function loadSave(){
 function setSave(next){
   localStorage.setItem(SAVE_KEY, JSON.stringify(next));
 }
+function appendForgeReceipt(save, receipt){
+  if (!save || typeof save !== "object") return;
+  const current = Array.isArray(save.recentCraftRewards) ? save.recentCraftRewards : [];
+  current.unshift(receipt && typeof receipt === "object" ? receipt : {});
+  save.recentCraftRewards = current.slice(0, 20);
+}
+function commitForgeTick(save, payload = {}){
+  const next = save && typeof save === "object" ? save : {};
+  const receipt = {
+    id: `forge:${Date.now()}:${Math.random().toString(36).slice(2, 10)}`,
+    at: new Date().toISOString(),
+    profession: "forge",
+    mode: String(payload.mode || ""),
+    itemName: String(payload.itemName || ""),
+    itemId: String(payload.itemId || ""),
+    outputQty: Math.max(1, num(payload.outputQty, 1)),
+    xp: Math.max(0, num(payload.xp, 0)),
+    doubled: payload.doubled === true,
+    sigilDrop: payload.sigilDrop === true,
+    petXp: Math.max(0, num(payload.petXp, 0))
+  };
+  appendForgeReceipt(next, receipt);
+  next.lastCraftRewardAt = Date.now();
+  setSave(next);
+  window.dispatchEvent(new Event("ds:save"));
+  window.DSAuth?.prioritizeCloudSaveSync?.();
+  void window.DSAuth?.invokeActionJournal?.({
+    actionId: receipt.id,
+    actionKind: "crafting-tick",
+    sourcePage: "forge_action.html",
+    payload: {
+      profession: receipt.profession,
+      mode: receipt.mode,
+      itemId: receipt.itemId,
+      itemName: receipt.itemName,
+      outputQty: receipt.outputQty,
+      xp: receipt.xp,
+      doubled: receipt.doubled,
+      sigilDrop: receipt.sigilDrop,
+      petXp: receipt.petXp,
+      completedAt: receipt.at
+    }
+  }).catch((error) => {
+    console.warn("[forge] action journal failed", error);
+  });
+}
 function xpBarGradient(pct){
   if (pct < 25) return "linear-gradient(90deg,#b84a4a,#e06a6a)";
   if (pct < 50) return "linear-gradient(90deg,#c66a2b,#eea043)";
@@ -849,8 +895,16 @@ function forgeTick(){
     window.DS?.announcements?.professionLevel?.(save, "Forge", save.blacksmithLevel);
   }
 
-  setSave(save);
-  window.dispatchEvent(new Event("ds:save"));
+  commitForgeTick(save, {
+    mode: r.mode,
+    itemName: r.output.name,
+    itemId: r.id,
+    outputQty: r.output.qty + (doubled ? r.output.qty : 0),
+    xp: xpGain,
+    doubled,
+    sigilDrop,
+    petXp: petSplit.petXpGain
+  });
   renderForgeHeader();
   renderBonusBox(save);
 

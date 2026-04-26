@@ -417,3 +417,15 @@ enabled = true
 verify_jwt = false
 import_map = "./functions/stripe-webhook/deno.json"
 entrypoint = "./functions/stripe-webhook/index.ts"
+
+[functions.save-backup]
+enabled = true
+verify_jwt = false
+import_map = "./functions/save-backup/deno.json"
+entrypoint = "./functions/save-backup/index.ts"
+
+[functions.action-journal]
+enabled = true
+verify_jwt = false
+import_map = "./functions/action-journal/deno.json"
+entrypoint = "./functions/action-journal/index.ts"
