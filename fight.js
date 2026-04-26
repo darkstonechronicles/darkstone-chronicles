@@ -1865,6 +1865,66 @@ function getEquipBonuses(saveObj){
   return { atkB, defB };
 }
 
+function isBattleCharmItem(it){
+  if (!it) return false;
+  if (String(it.type || "").toLowerCase() === "battle_charm") return true;
+  if (String(it.subType || "").toLowerCase() === "battle_charm") return true;
+  return /battle charm/i.test(String(it.name || ""));
+}
+
+function battleCharmQty(it){
+  return Math.max(0, Math.floor(num(it?.quantity ?? it?.qty, 0)));
+}
+
+function getBattleCharmAttackBonus(saveObj){
+  const charm = saveObj?.battleCharm;
+  if (!isBattleCharmItem(charm) || battleCharmQty(charm) <= 0) return 0;
+  return Math.max(0, num(charm.attackBonus, charm.atkBonus ?? charm.atk ?? 0));
+}
+
+function tickBattleCharmBreak(saveObj){
+  const charm = saveObj?.battleCharm;
+  if (!isBattleCharmItem(charm) || battleCharmQty(charm) <= 0) return false;
+  if (Math.random() >= (1 / 15)) return false;
+  const nextQty = battleCharmQty(charm) - 1;
+  if (nextQty > 0) {
+    charm.quantity = nextQty;
+  } else {
+    saveObj.battleCharm = null;
+  }
+  return true;
+}
+
+function isDefenseCharmItem(it){
+  if (!it) return false;
+  if (String(it.type || "").toLowerCase() === "defense_charm") return true;
+  if (String(it.subType || "").toLowerCase() === "defense_charm") return true;
+  return /defense charm/i.test(String(it.name || ""));
+}
+
+function defenseCharmQty(it){
+  return Math.max(0, Math.floor(num(it?.quantity ?? it?.qty, 0)));
+}
+
+function getDefenseCharmDefenseBonus(saveObj){
+  const charm = saveObj?.defenseCharm;
+  if (!isDefenseCharmItem(charm) || defenseCharmQty(charm) <= 0) return 0;
+  return Math.max(0, num(charm.defenseBonus, charm.defBonus ?? charm.def ?? 0));
+}
+
+function tickDefenseCharmBreak(saveObj){
+  const charm = saveObj?.defenseCharm;
+  if (!isDefenseCharmItem(charm) || defenseCharmQty(charm) <= 0) return false;
+  if (Math.random() >= (1 / 15)) return false;
+  const nextQty = defenseCharmQty(charm) - 1;
+  if (nextQty > 0) {
+    charm.quantity = nextQty;
+  } else {
+    saveObj.defenseCharm = null;
+  }
+  return true;
+}
+
 function buildingBonusPct(level){
   const lvl = Math.max(0, num(level, 0));
   return lvl * 0.0005;
@@ -2572,8 +2632,8 @@ function recomputeTotalsOnSave(saveObj){
   const bonuses = getSetBonusPcts(cur.equipment);
   const petBonuses = getCombatPetBonuses(cur);
 
-  const rawAtk = baseAtk + atkB + petBonuses.atkFlat;
-  const rawDef = baseDef + defB + petBonuses.defFlat;
+  const rawAtk = baseAtk + atkB + getBattleCharmAttackBonus(cur) + petBonuses.atkFlat;
+  const rawDef = baseDef + defB + getDefenseCharmDefenseBonus(cur) + petBonuses.defFlat;
 
   const totalAtk = Math.floor(rawAtk * (1 + bonuses.atkPct + petBonuses.atkPct));
   const totalDef = Math.floor(rawDef * (1 + bonuses.defPct + petBonuses.defPct));
@@ -3050,8 +3110,25 @@ function runEncounter(){
     refreshHeroInfo(hero);
     setEncounterDamage(totalHeroDamageTaken, totalDamageDealt);
     const potionTickSave = loadSave();
-    if (tickPotionActions(potionTickSave, 1)) {
-      savePatch({ consumables: potionTickSave.consumables });
+    const potionChanged = tickPotionActions(potionTickSave, 1);
+    const charmChanged = tickBattleCharmBreak(potionTickSave);
+    const defenseCharmChanged = tickDefenseCharmBreak(potionTickSave);
+    if (charmChanged || defenseCharmChanged) recomputeTotalsOnSave(potionTickSave);
+    if (potionChanged || charmChanged || defenseCharmChanged) {
+      savePatch({
+        consumables: potionTickSave.consumables,
+        battleCharm: potionTickSave.battleCharm,
+        defenseCharm: potionTickSave.defenseCharm,
+        attackTotal: potionTickSave.attackTotal,
+        defenseTotal: potionTickSave.defenseTotal,
+        setBonusAtkPct: potionTickSave.setBonusAtkPct,
+        setBonusDefPct: potionTickSave.setBonusDefPct,
+        setBonusGoldPct: potionTickSave.setBonusGoldPct,
+        _atkFromPet: potionTickSave._atkFromPet,
+        _defFromPet: potionTickSave._defFromPet,
+        _petBonusAtkPct: potionTickSave._petBonusAtkPct,
+        _petBonusDefPct: potionTickSave._petBonusDefPct
+      });
     }
 
     if(hero.hp <= 0){

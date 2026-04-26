@@ -27,20 +27,22 @@ const PARTY_FIGHT_ENCOUNTER_MS = 6000;
 const PARTY_FIGHT_MAX_ROUNDS = 15;
 const PARTY_FIGHT_STAT_POINTS_PER_LEVEL = 5;
 const PARTY_FIGHT_STAMINA_COST = 5;
+const PARTY_HALL_MIN_LEVEL = 20;
 const PARTY_FIGHT_AUTO_HP_THRESHOLD = 0.25;
 const PARTY_FIGHT_AUTO_HP_TARGET = 0.50;
 const PARTY_FIGHT_AUTO_STAMINA_THRESHOLD = 0.30;
 const PARTY_FIGHT_AUTO_STAMINA_TARGET = 0.50;
 const POTION_ACTIONS = 100;
+const FIRST_PARTY_MONSTER_ID = "gravefang-hydra";
 const PARTY_FIGHT_MONSTERS: Record<string, JsonRecord> = {
   "gravefang-hydra": {
     id: "gravefang-hydra",
     name: "Mirehook Ravager",
     img: "images/mobs/party/mirehook_ravager.png",
-    level: 14,
-    attack: 42,
-    defense: 34,
-    hp: 340,
+    level: 30,
+    attack: 350,
+    defense: 210,
+    hp: 3500,
   },
   "embermaw-colossus": {
     id: "embermaw-colossus",
@@ -327,6 +329,9 @@ function randomInt(minValue: number, maxValue: number) {
 
 const ROUGH_GEM_DROP_CHANCE = 1 / 100;
 const ORB_OF_CREATION_DROP_CHANCE = 1 / 150;
+const FIRST_MONSTER_ROUGH_GEM_DROP_CHANCE = 1 / 75;
+const FIRST_MONSTER_ORB_OF_CREATION_DROP_CHANCE = 1 / 100;
+const FIRST_MONSTER_MYTHIC_DROP_CHANCE = 1 / 10000;
 const ORB_OF_CREATION_ITEM = { type: "material", id: "orb_of_creation", name: "Orb of Creation", img: "images/ui/orb_of_creation.png" } as const;
 const ROUGH_GEM_POOL = [
   { type: "material", id: "rough_ruby", name: "Rough Ruby", img: "images/gems/rough_ruby.png" },
@@ -334,6 +339,52 @@ const ROUGH_GEM_POOL = [
   { type: "material", id: "rough_emerald", name: "Rough Emerald", img: "images/gems/rough_emerald.png" },
   { type: "material", id: "rough_topaz", name: "Rough Topaz", img: "images/gems/rough_topaz.png" },
   { type: "material", id: "rough_amethyst", name: "Rough Amethyst", img: "images/gems/rough_amethyst.png" },
+] as const;
+const FIRST_MONSTER_MYTHIC_DROPS = [
+  {
+    type: "gear",
+    id: "party_placeholder_mythic_ring",
+    slot: "ring",
+    name: "Party Mythic Ring Placeholder",
+    atk: 8,
+    def: 4,
+    reqLevel: 20,
+    rarity: "mythic",
+    img: "images/items/dropsfromzones/zone3/rh_legendary_ring.png",
+  },
+  {
+    type: "gear",
+    id: "party_placeholder_mythic_amulet",
+    slot: "amulet",
+    name: "Party Mythic Amulet Placeholder",
+    atk: 8,
+    def: 4,
+    reqLevel: 20,
+    rarity: "mythic",
+    img: "images/items/dropsfromzones/zone3/rh_legendary_amulet.png",
+  },
+  {
+    type: "gear",
+    id: "party_placeholder_mythic_bracers",
+    slot: "bracers",
+    name: "Party Mythic Bracers Placeholder",
+    atk: 0,
+    def: 20,
+    reqLevel: 20,
+    rarity: "mythic",
+    img: "images/items/dropsfromzones/zone3/rh_legendary_bracers.png",
+  },
+  {
+    type: "gear",
+    id: "party_placeholder_mythic_shoulders",
+    slot: "shoulders",
+    name: "Party Mythic Shoulders Placeholder",
+    atk: 0,
+    def: 16,
+    reqLevel: 20,
+    rarity: "mythic",
+    img: "images/items/dropsfromzones/zone3/rh_legendary_shoulders.png",
+  },
 ] as const;
 
 function rollRoughGemDrop() {
@@ -343,6 +394,20 @@ function rollRoughGemDrop() {
 
 function rollOrbOfCreationDrop() {
   return Math.random() < ORB_OF_CREATION_DROP_CHANCE ? ORB_OF_CREATION_ITEM : null;
+}
+
+function rollFirstMonsterRoughGemDrop() {
+  if (Math.random() >= FIRST_MONSTER_ROUGH_GEM_DROP_CHANCE) return null;
+  return ROUGH_GEM_POOL[randomInt(0, ROUGH_GEM_POOL.length - 1)] || null;
+}
+
+function rollFirstMonsterOrbDrop() {
+  return Math.random() < FIRST_MONSTER_ORB_OF_CREATION_DROP_CHANCE ? ORB_OF_CREATION_ITEM : null;
+}
+
+function rollFirstMonsterMythicDrops() {
+  return FIRST_MONSTER_MYTHIC_DROPS.filter(() => Math.random() < FIRST_MONSTER_MYTHIC_DROP_CHANCE)
+    .map((item) => ({ ...item }));
 }
 
 function ensureInventory(saveData: unknown) {
@@ -370,8 +435,44 @@ function addStackableInventoryItem(saveData: unknown, itemData: unknown, quantit
   return save;
 }
 
+function addUniqueInventoryItem(saveData: unknown, itemData: unknown) {
+  const save = asRecord(saveData);
+  const item = asRecord(itemData);
+  const inventory = ensureInventory(save);
+  inventory.push({ ...item, quantity: 1 });
+  save.inventory = inventory;
+  return save;
+}
+
 function getPartyFightMonster(monsterId: string) {
   return PARTY_FIGHT_MONSTERS[normalizeMonsterId(monsterId)] || null;
+}
+
+function awardPartyPoints(saveData: unknown, amount: number) {
+  const save = asRecord(saveData);
+  save.partyPoints = Math.max(0, int(save.partyPoints, 0)) + Math.max(0, int(amount, 0));
+  return save;
+}
+
+function rollFirstMonsterPartyPoints() {
+  return randomInt(2, 5);
+}
+
+function partyFightRewardForMonster(monsterId: string) {
+  const normalizedMonsterId = normalizeMonsterId(monsterId);
+  const monster = getPartyFightMonster(normalizedMonsterId);
+  if (normalizedMonsterId === FIRST_PARTY_MONSTER_ID) {
+    return {
+      xp: fightXPForMobLevel(30) * 2,
+      gold: rollPartyFightGold(30) * 2,
+      partyPoints: rollFirstMonsterPartyPoints(),
+    };
+  }
+  return {
+    xp: fightXPForMobLevel(int(monster?.level, 1)),
+    gold: rollPartyFightGold(int(monster?.level, 1)),
+    partyPoints: 0,
+  };
 }
 
 function normalizePartyFightPayload(value: unknown, monster: JsonRecord | null) {
@@ -563,6 +664,97 @@ function getPotionBonuses(saveData: unknown) {
     if (id.includes("luck") || name.includes("luck potion")) luckPct += tier * 0.03;
   }
   return { atkPct, defPct, luckPct };
+}
+
+function isBattleCharmItem(value: unknown) {
+  const item = asRecord(value);
+  const type = str(item.type).toLowerCase();
+  const subType = str(item.subType).toLowerCase();
+  const name = str(item.name).toLowerCase();
+  return type === "battle_charm" || subType === "battle_charm" || name.includes("battle charm");
+}
+
+function battleCharmQuantity(value: unknown) {
+  const item = asRecord(value);
+  return Math.max(0, int(item.quantity ?? item.qty, 0));
+}
+
+function getBattleCharmAttackBonus(saveData: unknown) {
+  const save = asRecord(saveData);
+  const charm = asRecord(save.battleCharm);
+  if (!isBattleCharmItem(charm) || battleCharmQuantity(charm) <= 0) return 0;
+  return Math.max(0, int(charm.attackBonus ?? charm.atkBonus ?? charm.atk, 0));
+}
+
+function isDefenseCharmItem(value: unknown) {
+  const item = asRecord(value);
+  const type = str(item.type).toLowerCase();
+  const subType = str(item.subType).toLowerCase();
+  const name = str(item.name).toLowerCase();
+  return type === "defense_charm" || subType === "defense_charm" || name.includes("defense charm");
+}
+
+function defenseCharmQuantity(value: unknown) {
+  const item = asRecord(value);
+  return Math.max(0, int(item.quantity ?? item.qty, 0));
+}
+
+function getDefenseCharmDefenseBonus(saveData: unknown) {
+  const save = asRecord(saveData);
+  const charm = asRecord(save.defenseCharm);
+  if (!isDefenseCharmItem(charm) || defenseCharmQuantity(charm) <= 0) return 0;
+  return Math.max(0, int(charm.defenseBonus ?? charm.defBonus ?? charm.def, 0));
+}
+
+function recomputeTotalsAfterCharmChange(saveData: unknown) {
+  const save = asRecord(saveData);
+  const equipment = asRecord(save.equipment);
+  let gearAttack = 0;
+  let gearDefense = 0;
+  for (const item of Object.values(equipment)) {
+    const gear = asRecord(item);
+    gearAttack += int(gear.atk, 0);
+    gearDefense += int(gear.def, 0);
+  }
+  const rawAttack = int(save.heroAttack, 10) + gearAttack + getBattleCharmAttackBonus(save) + num(save._atkFromPet, 0);
+  const rawDefense = int(save.heroDefense, 10) + gearDefense + getDefenseCharmDefenseBonus(save) + num(save._defFromPet, 0);
+  const atkPct = Math.max(0, num(save.setBonusAtkPct, 0));
+  const defPct = Math.max(0, num(save.setBonusDefPct, 0));
+  save.attackTotal = Math.max(0, Math.floor(rawAttack * (1 + atkPct)));
+  save.defenseTotal = Math.max(0, Math.floor(rawDefense * (1 + defPct)));
+  return save;
+}
+
+function tickBattleCharmBreak(saveData: unknown) {
+  const save = asRecord(saveData);
+  const charm = asRecord(save.battleCharm);
+  if (!isBattleCharmItem(charm) || battleCharmQuantity(charm) <= 0) return false;
+  if (Math.random() >= (1 / 15)) return false;
+  const nextQty = battleCharmQuantity(charm) - 1;
+  if (nextQty > 0) {
+    charm.quantity = nextQty;
+    save.battleCharm = charm;
+  } else {
+    save.battleCharm = null;
+  }
+  recomputeTotalsAfterCharmChange(save);
+  return true;
+}
+
+function tickDefenseCharmBreak(saveData: unknown) {
+  const save = asRecord(saveData);
+  const charm = asRecord(save.defenseCharm);
+  if (!isDefenseCharmItem(charm) || defenseCharmQuantity(charm) <= 0) return false;
+  if (Math.random() >= (1 / 15)) return false;
+  const nextQty = defenseCharmQuantity(charm) - 1;
+  if (nextQty > 0) {
+    charm.quantity = nextQty;
+    save.defenseCharm = charm;
+  } else {
+    save.defenseCharm = null;
+  }
+  recomputeTotalsAfterCharmChange(save);
+  return true;
 }
 
 function tickPotionActions(saveData: unknown, actions = 1) {
@@ -760,8 +952,9 @@ function simulatePartyFightEncounter(members: JsonRecord[], monster: JsonRecord,
     : playerStates.some((entry) => entry.hp > 0)
       ? "stalemate"
       : "defeat";
-  const xpGain = outcome === "victory" ? fightXPForMobLevel(monster.level) : 0;
-  const goldGain = outcome === "victory" ? rollPartyFightGold(monster.level) : 0;
+  const rewards = outcome === "victory"
+    ? partyFightRewardForMonster(str(monster.id))
+    : { xp: 0, gold: 0, partyPoints: 0 };
   const resolvedAt = formatIsoNow();
 
   return {
@@ -779,8 +972,9 @@ function simulatePartyFightEncounter(members: JsonRecord[], monster: JsonRecord,
       hpRemaining: Math.max(0, monsterHp),
     },
     rewardSummary: {
-      xp: xpGain,
-      gold: goldGain,
+      xp: rewards.xp,
+      gold: rewards.gold,
+      partyPoints: rewards.partyPoints,
     },
     players: playerStates.map((player) => ({
       userId: player.userId,
@@ -791,8 +985,9 @@ function simulatePartyFightEncounter(members: JsonRecord[], monster: JsonRecord,
       damageTaken: player.damageTaken,
       hpMax: player.hpMax,
       hpRemaining: player.hp,
-      xp: xpGain,
-      gold: goldGain,
+      xp: rewards.xp,
+      gold: rewards.gold,
+      partyPoints: rewards.partyPoints,
     })),
   };
 }
@@ -914,6 +1109,7 @@ async function getUserSummaries(admin: ReturnType<typeof createClient>, userIds:
       heroHP: getCurrentHeroHpState(saveData).hp,
       staminaMax: Math.max(1, int(asRecord(saveData).staminaMax, calcStaminaMax(asRecord(saveData).heroLevel))),
       stamina: getCurrentStamina(saveData),
+      partyPoints: Math.max(0, int(asRecord(saveData).partyPoints, 0)),
       partyMonsterProgress: buildMonsterProgress(saveData),
       lastSeenAt: row.last_seen_at || null,
       lastSeenPage: str(row.last_seen_page),
@@ -933,6 +1129,7 @@ async function getUserSummaries(admin: ReturnType<typeof createClient>, userIds:
         heroHP: calcHpMax(1),
         staminaMax: calcStaminaMax(1),
         stamina: calcStaminaMax(1),
+        partyPoints: 0,
         partyMonsterProgress: buildMonsterProgress({}),
         lastSeenAt: null,
         lastSeenPage: "",
@@ -1200,7 +1397,10 @@ async function advancePartyFightSession(
           healed: autoHp.healed,
         };
       }
-      if (tickPotionActions(row.save, 1) || autoHp.used > 0) {
+      const potionChanged = tickPotionActions(row.save, 1);
+      const battleCharmChanged = tickBattleCharmBreak(row.save);
+      const defenseCharmChanged = tickDefenseCharmBreak(row.save);
+      if (potionChanged || battleCharmChanged || defenseCharmChanged || autoHp.used > 0) {
         row.revision += 1;
       }
       touchedUsers.set(player.userId, row);
@@ -1256,15 +1456,19 @@ async function advancePartyFightSession(
     }
 
     if (encounter.outcome === "victory") {
-      const roughGemDrop = rollRoughGemDrop();
-      const orbOfCreationDrop = rollOrbOfCreationDrop();
+      const isFirstMonster = normalizeMonsterId(monsterId) === FIRST_PARTY_MONSTER_ID;
+      const roughGemDrop = isFirstMonster ? rollFirstMonsterRoughGemDrop() : rollRoughGemDrop();
+      const orbOfCreationDrop = isFirstMonster ? rollFirstMonsterOrbDrop() : rollOrbOfCreationDrop();
+      const mythicDrops = isFirstMonster ? rollFirstMonsterMythicDrops() : [];
       for (const player of encounter.players) {
         const row = getTouchedSave(player.userId);
         const rewardResult = applyHeroRewards(row.save, int(player.xp, 0), int(player.gold, 0));
+        awardPartyPoints(rewardResult.save, int(player.partyPoints, 0));
         const staminaResult = spendPartyFightStamina(rewardResult.save, PARTY_FIGHT_STAMINA_COST);
         const autoStamina = autoUseQuickStaminaFood(staminaResult.save);
         if (roughGemDrop) addStackableInventoryItem(staminaResult.save, roughGemDrop, 1);
         if (orbOfCreationDrop) addStackableInventoryItem(staminaResult.save, orbOfCreationDrop, 1);
+        for (const item of mythicDrops) addUniqueInventoryItem(staminaResult.save, item);
         if (isMonsterUnlocked(rewardResult.save, monsterId)) {
           const monsterData = ensurePartyMonsterKills(staminaResult.save);
           monsterData.monsterKills[monsterId] = getMonsterKillCount(monsterData.save, monsterId) + 1;
@@ -1286,14 +1490,17 @@ async function advancePartyFightSession(
           const staminaMax = Math.max(1, int(row.save.staminaMax, calcStaminaMax(row.save.heroLevel)));
           (playerResult as JsonRecord).staminaMax = staminaMax;
           (playerResult as JsonRecord).staminaRemaining = getCurrentStamina(row.save);
+          (playerResult as JsonRecord).partyPoints = Math.max(0, int(player.partyPoints, 0));
           if (roughGemDrop) (playerResult as JsonRecord).roughGemDrop = roughGemDrop;
           if (orbOfCreationDrop) (playerResult as JsonRecord).orbOfCreationDrop = orbOfCreationDrop;
+          if (mythicDrops.length) (playerResult as JsonRecord).mythicDrops = mythicDrops.map((item) => ({ ...item }));
         }
         row.revision += 1;
         touchedUsers.set(player.userId, row);
       }
       if (roughGemDrop) (encounter as JsonRecord).roughGemDrop = roughGemDrop;
       if (orbOfCreationDrop) (encounter as JsonRecord).orbOfCreationDrop = orbOfCreationDrop;
+      if (mythicDrops.length) (encounter as JsonRecord).mythicDrops = mythicDrops.map((item) => ({ ...item }));
     }
 
     currentResolvedCount += 1;
@@ -1459,6 +1666,7 @@ async function getBootstrapState(admin: ReturnType<typeof createClient>, userId:
     heroName: "Hero",
     heroLevel: 1,
     avatarUrl: "images/hero.png",
+    partyPoints: 0,
     lastSeenAt: null,
     lastSeenPage: "",
   };
@@ -1655,7 +1863,10 @@ async function createParty(admin: ReturnType<typeof createClient>, userId: strin
   const visibility = normalizeVisibility(payload.visibility);
   const activity = normalizeActivity(payload.activity);
   const heroLevel = Math.max(1, int(summary.heroLevel, 1));
-  const minLevel = Math.max(1, int(payload.minLevel, heroLevel));
+  if (heroLevel < PARTY_HALL_MIN_LEVEL) {
+    throw new Error(`Party Hall unlocks at hero level ${PARTY_HALL_MIN_LEVEL}+.`);
+  }
+  const minLevel = Math.max(PARTY_HALL_MIN_LEVEL, int(payload.minLevel, Math.max(heroLevel, PARTY_HALL_MIN_LEVEL)));
   const maxMembers = Math.min(4, Math.max(2, int(payload.maxMembers, 4)));
   const autoAcceptRequests = payload.autoAcceptRequests === true;
 
@@ -1713,7 +1924,7 @@ async function updateParty(admin: ReturnType<typeof createClient>, userId: strin
     visibility: payload.visibility != null ? normalizeVisibility(payload.visibility) : party.visibility,
     activity: payload.activity != null ? normalizeActivity(payload.activity) : party.activity,
     selected_monster_id: payload.selectedMonsterId != null ? normalizeMonsterId(payload.selectedMonsterId) : party.selected_monster_id,
-    min_level: payload.minLevel != null ? Math.max(1, int(payload.minLevel, party.min_level)) : party.min_level,
+    min_level: payload.minLevel != null ? Math.max(PARTY_HALL_MIN_LEVEL, int(payload.minLevel, party.min_level)) : party.min_level,
     max_members: nextMaxMembers,
     auto_accept_requests: payload.autoAcceptRequests != null ? payload.autoAcceptRequests === true : party.auto_accept_requests,
   };
@@ -1745,6 +1956,13 @@ async function invitePlayer(admin: ReturnType<typeof createClient>, userId: stri
   const target = await resolveHeroTarget(admin, str(payload.targetHeroName));
   if (target.userId === userId) throw new Error("You cannot invite yourself.");
   if (await getCurrentPartyId(admin, target.userId)) throw new Error("Already in party.");
+  const targetLevel = await getUserHeroLevel(admin, target.userId);
+  if (targetLevel < PARTY_HALL_MIN_LEVEL) {
+    throw new Error(`${target.heroName} must be hero level ${PARTY_HALL_MIN_LEVEL}+ for Party Hall.`);
+  }
+  if (targetLevel < party.min_level) {
+    throw new Error(`${target.heroName} does not meet this party's level requirement.`);
+  }
 
   const members = await getPartyMembers(admin, partyId);
   if (members.length >= party.max_members) throw new Error("Party is already full.");
@@ -1835,6 +2053,10 @@ async function respondInvite(admin: ReturnType<typeof createClient>, userId: str
   const party = await getPartyRow(admin, invite.party_id);
   if (!party || party.disbanded_at) throw new Error("Party no longer exists.");
   if (party.state !== "forming" || party.locked) throw new Error("Party is not accepting new members.");
+  const heroLevel = await getUserHeroLevel(admin, userId);
+  if (heroLevel < Math.max(PARTY_HALL_MIN_LEVEL, party.min_level)) {
+    throw new Error(`This party requires hero level ${Math.max(PARTY_HALL_MIN_LEVEL, party.min_level)}+.`);
+  }
   const members = await getPartyMembers(admin, invite.party_id);
   if (members.length >= party.max_members) throw new Error("Party is already full.");
 
@@ -1874,7 +2096,7 @@ async function requestJoin(admin: ReturnType<typeof createClient>, userId: strin
   if (party.state !== "forming" || party.locked) throw new Error("Party is not accepting new members.");
 
   const myLevel = await getUserHeroLevel(admin, userId);
-  if (myLevel < party.min_level) throw new Error(`This party requires hero level ${party.min_level}+.`);
+  if (myLevel < Math.max(PARTY_HALL_MIN_LEVEL, party.min_level)) throw new Error(`This party requires hero level ${Math.max(PARTY_HALL_MIN_LEVEL, party.min_level)}+.`);
 
   const members = await getPartyMembers(admin, partyId);
   if (members.length >= party.max_members) throw new Error("Party is already full.");
@@ -1939,6 +2161,10 @@ async function respondJoinRequest(admin: ReturnType<typeof createClient>, userId
 
   if (await getCurrentPartyId(admin, request.user_id)) throw new Error("That player is already in a party.");
   if (party.state !== "forming" || party.locked) throw new Error("Party is not accepting new members.");
+  const targetLevel = await getUserHeroLevel(admin, request.user_id);
+  if (targetLevel < Math.max(PARTY_HALL_MIN_LEVEL, party.min_level)) {
+    throw new Error(`That player must be hero level ${Math.max(PARTY_HALL_MIN_LEVEL, party.min_level)}+.`);
+  }
   const members = await getPartyMembers(admin, request.party_id);
   if (members.length >= party.max_members) throw new Error("Party is already full.");
 
@@ -2122,6 +2348,9 @@ async function startActivity(admin: ReturnType<typeof createClient>, userId: str
   }
 
   const summaries = await getUserSummaries(admin, members.map((entry) => entry.user_id));
+  if (members.some((entry) => Math.max(1, int((summaries.get(entry.user_id) || {}).heroLevel, 1)) < PARTY_HALL_MIN_LEVEL)) {
+    throw new Error(`All party members must be hero level ${PARTY_HALL_MIN_LEVEL}+ to start Party Fight.`);
+  }
   const memberSnapshot = members.map((entry) => {
     const summary = summaries.get(entry.user_id) || {};
     return {

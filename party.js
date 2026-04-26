@@ -1,16 +1,17 @@
 (() => {
   const POLL_MS = 1500;
   const ACTIVE_PARTY_FIGHT_POLL_MS = 350;
+  const PARTY_HALL_MIN_LEVEL = 20;
   const PARTY_FIGHT_MONSTERS = [
     {
       id: "gravefang-hydra",
       name: "Mirehook Ravager",
       img: "images/mobs/party/mirehook_ravager.png",
-      attack: 42,
-      defense: 34,
+      attack: 350,
+      defense: 210,
       role: "Swamp Skirmisher",
-      levelText: "Recommended Party Lv 14+",
-      description: "A marsh predator with hooked claws that tests party coordination without overwhelming newer groups."
+      levelText: "Requires Hero Lv 20+",
+      description: "The first Party Hall raid target. Tuned around a level 30-style enemy pushed up for full party play."
     },
     {
       id: "embermaw-colossus",
@@ -148,7 +149,7 @@
     return {
       name: `${me.heroName}'s Party`,
       visibility: "private",
-      minLevel: String(num(me.heroLevel, 1)),
+      minLevel: String(Math.max(PARTY_HALL_MIN_LEVEL, num(me.heroLevel, 1))),
     };
   }
 
@@ -215,8 +216,53 @@
     return Array.isArray(state.data?.invites) ? state.data.invites : [];
   }
 
+  function partyPoints() {
+    return Math.max(0, num(state.data?.profile?.partyPoints, 0));
+  }
+
   function myJoinRequests() {
     return Array.isArray(state.data?.myJoinRequests) ? state.data.myJoinRequests : [];
+  }
+
+  function selectedMonsterRewardPreview(monster) {
+    if (!monster) return null;
+    if (String(monster.id || "") === "gravefang-hydra") {
+      return {
+        partyPoints: "2-5 PP each",
+        xp: "132 XP each",
+        gold: "124-200 Gold each",
+        extras: [
+          "Orb of Creation: 1/100",
+          "Rough Gem: 1/75",
+          "Mythic Ring Placeholder: 1/10000",
+          "Mythic Amulet Placeholder: 1/10000",
+          "Mythic Bracers Placeholder: 1/10000",
+          "Mythic Shoulders Placeholder: 1/10000",
+        ],
+      };
+    }
+    return null;
+  }
+
+  function hallSummaryMarkup() {
+    const me = profile();
+    return `
+      <section style="margin-bottom:14px;padding:14px;border:1px solid rgba(255,255,255,.10);border-radius:12px;background:rgba(255,255,255,.03);display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;align-items:center;">
+        <div>
+          <div style="font-size:12px;opacity:.74;">Party Hall Hero</div>
+          <div style="font-size:18px;font-weight:900;">${esc(me.heroName || "Hero")}</div>
+        </div>
+        <div>
+          <div style="font-size:12px;opacity:.74;">Hero Level</div>
+          <div style="font-size:18px;font-weight:900;">${num(me.heroLevel, 1)}</div>
+        </div>
+        <div>
+          <div style="font-size:12px;opacity:.74;">Party Points</div>
+          <div style="font-size:18px;font-weight:900;color:#f0d58b;">${partyPoints()} PP</div>
+        </div>
+        <div style="font-size:12px;opacity:.82;">Party Hall access and the first monster both require hero level ${PARTY_HALL_MIN_LEVEL}+.</div>
+      </section>
+    `;
   }
 
   function partyMonsterProgress() {
@@ -528,7 +574,7 @@
             </label>
             <label style="display:grid;gap:6px;">
               <span style="font-weight:800;">Minimum Level</span>
-              <input id="partyCreateMinLevel" type="number" min="1" value="${esc(draft.minLevel)}" style="width:100%;padding:10px 12px;border-radius:10px;border:2px solid #333;background:#101019;color:#fff;">
+              <input id="partyCreateMinLevel" type="number" min="${PARTY_HALL_MIN_LEVEL}" value="${esc(draft.minLevel)}" style="width:100%;padding:10px 12px;border-radius:10px;border:2px solid #333;background:#101019;color:#fff;">
             </label>
           </div>
           <div style="margin-top:14px;display:flex;gap:10px;flex-wrap:wrap;">
@@ -538,6 +584,7 @@
         <div style="padding:14px;border:1px solid rgba(255,255,255,.10);border-radius:12px;background:rgba(255,255,255,.02);display:grid;gap:4px;opacity:.9;">
           <div>- Private means only invited players can join.</div>
           <div>- Open means players can find your party and join this lobby.</div>
+          <div>- Party Hall members must be level ${PARTY_HALL_MIN_LEVEL}+.</div>
           <div>- Every party has 4 slots: 1 leader and 3 member slots.</div>
           <div>- More settings can be changed after the party is created.</div>
         </div>
@@ -659,6 +706,7 @@
                 <img src="${esc(monster.img)}" alt="${esc(monster.name)}" style="display:block;width:100%;aspect-ratio:1 / 1;object-fit:cover;background:#0f121a;filter:${unlocked ? "none" : "grayscale(1)"};">
                 <div style="padding:12px;">
                   <div style="font-size:15px;font-weight:900;color:#f3ead6;">${esc(monster.name)}</div>
+                  <div style="opacity:.82;font-size:12px;margin-top:4px;">${esc(monster.levelText || "")}</div>
                   <div class="dungeonStats" style="grid-template-columns:repeat(2,minmax(0,54px));justify-content:start;margin-top:8px;padding-top:0;border-top:0;">
                     <div class="dungeonStatBox">
                       <div class="dungeonStatIcon" aria-hidden="true">&#9876;&#65039;</div>
@@ -727,6 +775,7 @@
     const totalDefense = members.reduce((sum, member) => sum + num(member?.heroDefense, 0), 0);
     const selectedMonster = selectedPartyMonsterFromParty(party);
     const selectedMonsterProgress = selectedMonster ? monsterProgressEntry(selectedMonster.id) : null;
+    const rewardPreview = selectedMonsterRewardPreview(selectedMonster);
     const slots = [];
     for (let index = 0; index < 4; index += 1) {
       const member = members[index] || null;
@@ -768,6 +817,13 @@
                       <div class="dungeonStatValue">${num(selectedMonster.defense, 0)}</div>
                     </div>
                   </div>
+                  ${rewardPreview ? `
+                    <div style="padding:10px 12px;border:1px solid rgba(255,255,255,.10);border-radius:12px;background:rgba(255,255,255,.03);min-width:250px;">
+                      <div style="font-size:12px;font-weight:900;opacity:.84;margin-bottom:6px;">Reward Preview</div>
+                      <div style="font-size:12px;line-height:1.55;">${esc(rewardPreview.partyPoints)} , ${esc(rewardPreview.xp)} , ${esc(rewardPreview.gold)}</div>
+                      <div style="font-size:12px;line-height:1.55;opacity:.86;margin-top:4px;">${rewardPreview.extras.map((entry) => esc(entry)).join(" | ")}</div>
+                    </div>
+                  ` : ``}
                 </div>
               </div>
             `
@@ -1018,15 +1074,18 @@
                 const entryPlayers = Array.isArray(latestRound?.players) ? latestRound.players : [];
                 const entryXp = entryPlayers.length ? num(entryPlayers[0]?.xp, 0) : 0;
                 const entryGold = entryPlayers.length ? num(entryPlayers[0]?.gold, 0) : 0;
+                const entryPartyPoints = entryPlayers.length ? num(entryPlayers[0]?.partyPoints, 0) : 0;
                 const combatRounds = Math.max(0, num(latestRound?.rounds, 0));
                 const wonText = String(latestRound?.outcome || "").toLowerCase() === "victory" ? "Party Won" : "Party Finished";
                 const roughGem = latestRound?.roughGemDrop && typeof latestRound.roughGemDrop === "object" ? latestRound.roughGemDrop : null;
                 const orbOfCreation = latestRound?.orbOfCreationDrop && typeof latestRound.orbOfCreationDrop === "object" ? latestRound.orbOfCreationDrop : null;
+                const mythicDrops = Array.isArray(latestRound?.mythicDrops) ? latestRound.mythicDrops.filter((entry) => entry && typeof entry === "object") : [];
                 return `
                   <div style="font-size:13px;">
-                    ${wonText} in ${combatRounds} rounds : Everyone Got ${entryXp} XP , ${entryGold} Gold
+                    ${wonText} in ${combatRounds} rounds : Everyone Got ${entryXp} XP , ${entryGold} Gold${entryPartyPoints > 0 ? ` , ${entryPartyPoints} PP` : ""}
                     ${roughGem ? ` | Everyone Got ${esc(roughGem.name || "Rough Gem")}` : ""}
                     ${orbOfCreation ? ` | Everyone Got ${esc(orbOfCreation.name || "Orb of Creation")}` : ""}
+                    ${mythicDrops.length ? ` | Mythics: ${mythicDrops.map((entry) => esc(entry.name || "Mythic")).join(", ")}` : ""}
                   </div>
                 `;
               })() : `<div style="font-size:13px;text-align:center;">No rounds yet.</div>`}
@@ -1135,7 +1194,7 @@
       const name = draft.name || "";
       const visibility = draft.visibility || "private";
       const maxMembers = 4;
-      const minLevel = Number(draft.minLevel || 1);
+      const minLevel = Math.max(PARTY_HALL_MIN_LEVEL, Number(draft.minLevel || PARTY_HALL_MIN_LEVEL));
       const activity = "Party Fight";
       const autoAcceptRequests = String(visibility).toLowerCase() === "open";
       await runAction({
@@ -1382,6 +1441,7 @@
     preservePartyInputsFromDom();
     normalizePartyTab();
     shell.innerHTML = `
+      ${hallSummaryMarkup()}
       ${tabsMarkup()}
       ${noticeMarkup()}
       ${bodyMarkup()}

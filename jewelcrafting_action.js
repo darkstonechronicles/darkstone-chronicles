@@ -1059,7 +1059,33 @@
     return String(window.location.pathname || "").split("/").pop().toLowerCase() || "index.html";
   }
 
-  window.DSJewelcraftingAction = { mount };
+  window.DSJewelcraftingAction = {
+    mount,
+    getAdminItems: () => {
+      const byKey = new Map();
+      const add = (item) => {
+        if (!item?.id || !item?.name) return;
+        byKey.set(itemKey(item), { ...item, quantity: 1 });
+      };
+      RECIPES.forEach((entry) => {
+        getRecipeIngredients(entry).forEach((ingredient) => {
+          add({
+            type: "material",
+            id: ingredient.id,
+            name: ingredient.name,
+            img: entry.id === ingredient.id ? entry.img : ""
+          });
+        });
+        add({
+          type: "material",
+          id: entry.outputId,
+          name: entry.outputName || entry.refinedName,
+          img: entry.outputImg || entry.refinedImg || entry.img
+        });
+      });
+      return Array.from(byKey.values());
+    }
+  };
 
   window.addEventListener("DOMContentLoaded", () => {
     if (currentPage() !== "jewelcrafting_action.html") return;

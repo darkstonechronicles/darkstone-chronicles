@@ -264,6 +264,51 @@ const RECIPES = [
   { id:"darkwood_plank",  name:"Darkwood Plank",  req:80,  logName:"Darkwood Log",  img:"images/wood/planks/darkwood_plank.png" },
   { id:"ebony_plank",     name:"Ebony Plank",     req:90,  logName:"Ebony Log",     img:"images/wood/planks/ebony_plank.png" }
 ];
+const CHARM_IMG = "images/charms";
+function defenseCharmDefenseBonus(recipe){
+  const index = RECIPES.findIndex((entry) => entry.id === recipe.id);
+  return (Math.max(0, index) + 1) * 10;
+}
+function mkDefenseCharmRecipe(plankRecipe){
+  const woodId = String(plankRecipe.id || "").replace(/_plank$/, "");
+  const woodName = String(plankRecipe.name || "").replace(/\s+Plank$/i, "");
+  const id = `${woodId}_defense_charm`;
+  return {
+    id,
+    mode: "craft",
+    name: `${woodName} Defense Charm`,
+    req: plankRecipe.req,
+    img: `${CHARM_IMG}/${id}.png`,
+    input: [
+      { name: plankRecipe.name, qty: 3 }
+    ],
+    output: {
+      type: "defense_charm",
+      subType: "defense_charm",
+      id,
+      crafted: true,
+      name: `${woodName} Defense Charm`,
+      img: `${CHARM_IMG}/${id}.png`,
+      rarity: "crafted",
+      reqLevel: plankRecipe.req,
+      defenseBonus: defenseCharmDefenseBonus(plankRecipe),
+      qty: 1
+    },
+    baseXP: Math.round(gatherXpForReq(plankRecipe.req) * 6 * 0.6)
+  };
+}
+const DEFENSE_CHARM_RECIPES = RECIPES.map((recipe) => mkDefenseCharmRecipe(recipe));
+function normalizePlankRecipe(recipe){
+  const mult = carpentryRewardMultiplier(recipe.req, "plank");
+  const targetXp = gatherXpForReq(recipe.req) * 4;
+  return {
+    ...recipe,
+    mode: "plank",
+    input: [{ name: recipe.logName, qty: 5 }],
+    output: { type:"material", name: recipe.name, img: recipe.img, qty: 1 },
+    baseXP: Math.max(1, Math.round(targetXp / mult))
+  };
+}
 function getRecipeFromTarget(targetHref = window.location.href){
   try {
     const url = new URL(targetHref, window.location.href);
@@ -273,7 +318,9 @@ function getRecipeFromTarget(targetHref = window.location.href){
   }
 }
 function getRecipeDef(id){
-  return RECIPES.find(r => r.id === id) || RECIPES[0];
+  const plank = RECIPES.find(r => r.id === id);
+  if (plank) return normalizePlankRecipe(plank);
+  return DEFENSE_CHARM_RECIPES.find(r => r.id === id) || normalizePlankRecipe(RECIPES[0]);
 }
 function incStat(save, key, amount = 1){
   if (!save || typeof save !== "object") return;
@@ -325,11 +372,14 @@ function removeByName(save, name, qtyNeeded){
 function itemStackKey(it){
   return [
     it.type || "",
+    it.id || "",
     it.name || "",
     it.slot || "",
     it.reqLevel ?? 1,
     it.atk ?? 0,
     it.def ?? 0,
+    it.attackBonus ?? 0,
+    it.defenseBonus ?? 0,
     it.rarity || "",
     it.img || ""
   ].join("::");
@@ -405,7 +455,8 @@ window.addEventListener("ds:pause", () => stopCraft(true));
 function setMsg(t){ if (msgEl) msgEl.innerHTML = t || ""; }
 function buildWoodCraftMessage(recipe, xpGain, sigilDrop, isLast = false){
   const lastText = isLast ? " (last)" : "";
-  return `Crafted 1 <img src="${recipe.img}" alt="${recipe.name}" style="width:18px;height:18px;vertical-align:-3px;margin:0 4px 0 6px;border-radius:4px;object-fit:cover;">${recipe.name}${lastText} (+${xpGain} XP)${sigilDrop ? " | Wood Sigil +1" : ""}`;
+  const output = recipe.output || recipe;
+  return `Crafted 1 <img src="${output.img || recipe.img}" alt="${output.name || recipe.name}" style="width:18px;height:18px;vertical-align:-3px;margin:0 4px 0 6px;border-radius:4px;object-fit:cover;">${output.name || recipe.name}${lastText} (+${xpGain} XP)${sigilDrop ? " | Wood Sigil +1" : ""}`;
 }
 function renderHeader(){
   const s = ensureWood(loadSave());
@@ -489,6 +540,11 @@ function gatherXpForReq(req){
   const lvl = Math.max(1, Number(req) || 1);
   return 10 + Math.floor(lvl / 10) * 20;
 }
+function carpentryRewardMultiplier(req, mode = "plank"){
+  const lvl = Math.max(1, Number(req) || 1);
+  if (mode === "craft") return 1 + (lvl / 44);
+  return 1 + (lvl / 20);
+}
 function stopCooldownUI(){
   if (cdAnim) cancelAnimationFrame(cdAnim);
   cdAnim = null;
@@ -558,8 +614,10 @@ function scheduleNext(runImmediately=false){
 function canCraft(save, r){
   const effectiveLevel = save.carpentryLevel + getArtisanPotionBonus(save);
   if (effectiveLevel < r.req) return { ok:false, why:`Requires Carpentry Level ${r.req}.` };
-  const have = getQtyByName(save.inventory, r.logName);
-  if (have < 5) return { ok:false, why:`Need ${r.logName} x5.` };
+  for (const input of r.input || []) {
+    const have = getQtyByName(save.inventory, input.name);
+    if (have < input.qty) return { ok:false, why:`Need ${input.name} x${input.qty}.` };
+  }
   if (!hasSpaceFor(save, 1)) return { ok:false, why:"No more inventory space." };
   return { ok:true, why:"" };
 }
@@ -574,28 +632,30 @@ function craftTick(){
     stopCraft(true);
     return;
   }
-  const ok = removeByName(save, r.logName, 5);
-  if (!ok){
-    setMsg(`Missing ${r.logName}.`);
-    stopCraft(true);
-    setSave(save);
-    return;
+  for (const input of r.input || []) {
+    const ok = removeByName(save, input.name, input.qty);
+    if (!ok){
+      setMsg(`Missing ${input.name}.`);
+      stopCraft(true);
+      setSave(save);
+      return;
+    }
   }
-  addToInventoryStack(save, { type:"material", name:r.name, img:r.img }, 1);
+  const output = r.output || { type:"material", name:r.name, img:r.img, qty: 1 };
+  addToInventoryStack(save, { ...output }, 1);
   const doubled = Math.random() < petBonus.doublePct;
-  if (doubled) addToInventoryStack(save, { type:"material", name:r.name, img:r.img }, 1);
+  if (doubled) addToInventoryStack(save, { ...output }, 1);
   let sigilDrop = false;
   if (Math.random() < (1 / 250)) {
     addToInventoryStack(save, { ...WOOD_SIGIL_ITEM }, 1);
     sigilDrop = true;
   }
-  incStat(save, "planksCrafted", 1);
+  incStat(save, r.mode === "craft" ? "defenseCharmsCrafted" : "planksCrafted", 1);
   tickArtisanPotionActions(save, 1);
-  const targetXp = gatherXpForReq(r.req) * 4;
-  const mult = 1 + (Number(r.req || 1) / 20);
-  const baseXP = Math.max(1, Math.round(targetXp / mult));
+  const mult = carpentryRewardMultiplier(r.req, r.mode);
+  const baseXP = Math.max(1, Number(r.baseXP || 0));
   const buildingPct = num(save.carpenterWorkshopLevel, 0) * BUILDING_BONUS_PER_LEVEL;
-  const totalXpGain = Math.max(1, Math.round(Number(baseXP || 0) * (1 + (Number(r.req || 1) / 20)) * (1 + num(petBonus.xpPct, 0) + buildingPct)));
+  const totalXpGain = Math.max(1, Math.round(baseXP * mult * (1 + num(petBonus.xpPct, 0) + buildingPct)));
   const petSplit = window.DS?.pets?.splitXpWithPet
     ? window.DS.pets.splitXpWithPet(save, "artisan", totalXpGain)
     : { playerXpGain: totalXpGain, petXpGain: 0, petLevelUps: 0, petLevel: 0, petName: "" };
@@ -680,7 +740,27 @@ function initStandaloneWoodSawmill(){
   return true;
 }
 
-window.DSWoodSawmillAction = { mount: mountWoodSawmillAction };
+window.DSWoodSawmillAction = {
+  mount: mountWoodSawmillAction,
+  getAdminItems: () => {
+    const plankItems = RECIPES.map((recipe) => ({
+      type: "material",
+      id: recipe.id,
+      name: recipe.name,
+      img: recipe.img,
+      quantity: 1
+    }));
+    const defenseCharmItems = DEFENSE_CHARM_RECIPES.map((recipe) => ({
+      ...recipe.output,
+      quantity: 1
+    }));
+    return [
+      { ...WOOD_SIGIL_ITEM, quantity: 1 },
+      ...plankItems,
+      ...defenseCharmItems
+    ];
+  }
+};
 window.addEventListener("DOMContentLoaded", () => {
   initStandaloneWoodSawmill();
 });

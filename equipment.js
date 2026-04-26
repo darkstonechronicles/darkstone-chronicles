@@ -241,6 +241,37 @@
     };
   }
 
+  function isBattleCharmItem(it){
+    if (!it) return false;
+    if (String(it.type || "").toLowerCase() === "battle_charm") return true;
+    if (String(it.subType || "").toLowerCase() === "battle_charm") return true;
+    return /battle charm/i.test(String(it.name || ""));
+  }
+
+  function battleCharmQty(it){
+    return Math.max(0, Math.floor(num(it?.quantity ?? it?.qty, 0)));
+  }
+
+  function getBattleCharmAttackBonus(save){
+    const charm = save?.battleCharm;
+    if (!isBattleCharmItem(charm) || battleCharmQty(charm) <= 0) return 0;
+    return Math.max(0, num(charm.attackBonus, charm.atkBonus ?? charm.atk ?? 0));
+  }
+  function isDefenseCharmItem(it){
+    if (!it) return false;
+    if (String(it.type || "").toLowerCase() === "defense_charm") return true;
+    if (String(it.subType || "").toLowerCase() === "defense_charm") return true;
+    return /defense charm/i.test(String(it.name || ""));
+  }
+  function defenseCharmQty(it){
+    return Math.max(0, Math.floor(num(it?.quantity ?? it?.qty, 0)));
+  }
+  function getDefenseCharmDefenseBonus(save){
+    const charm = save?.defenseCharm;
+    if (!isDefenseCharmItem(charm) || defenseCharmQty(charm) <= 0) return 0;
+    return Math.max(0, num(charm.defenseBonus, charm.defBonus ?? charm.def ?? 0));
+  }
+
   function recomputeTotalsLocal(save) {
     const baseAtk = Math.max(10, num(save.heroAttack, 10));
     const baseDef = Math.max(10, num(save.heroDefense, 10));
@@ -254,8 +285,10 @@
     });
 
     const petBonuses = getCombatPetBonuses(save);
-    const rawAtk = baseAtk + atkB + petBonuses.atkFlat;
-    const rawDef = baseDef + defB + petBonuses.defFlat;
+    const charmAtk = getBattleCharmAttackBonus(save);
+    const charmDef = getDefenseCharmDefenseBonus(save);
+    const rawAtk = baseAtk + atkB + charmAtk + petBonuses.atkFlat;
+    const rawDef = baseDef + defB + charmDef + petBonuses.defFlat;
 
     const bonuses = getSetBonusPcts(save.equipment);
     const atkWithSet = Math.floor(rawAtk * (1 + bonuses.atkPct + petBonuses.atkPct));
@@ -268,8 +301,8 @@
     save.setBonusGoldPct = bonuses.goldPct;
     save._atkBase = baseAtk;
     save._defBase = baseDef;
-    save._atkFromGear = atkB;
-    save._defFromGear = defB;
+    save._atkFromGear = atkB + charmAtk;
+    save._defFromGear = defB + charmDef;
     save._atkFromPet = petBonuses.atkFlat;
     save._defFromPet = petBonuses.defFlat;
     save._petBonusAtkPct = petBonuses.atkPct;

@@ -18,9 +18,19 @@
     </div>
 
     <div class="profSection">
+      <div id="carpentryTabs">
+        <button id="tabPlanks" class="forgeTabBtn is-active" type="button">Craft Planks</button>
+        <button id="tabDefenseCharms" class="forgeTabBtn" type="button">Defense Charms</button>
+      </div>
+
       <div id="woodPlanksPanel">
         <h2 class="profSectionTitle">Choose a Plank to Craft</h2>
         <div id="plankGrid" class="profChoiceGrid" style="grid-template-columns:repeat(auto-fit,minmax(220px,1fr));"></div>
+      </div>
+
+      <div id="defenseCharmPanel" style="display:none;">
+        <h2 class="profSectionTitle">Defense Charms</h2>
+        <div id="defenseCharmGrid" class="profChoiceGrid" style="grid-template-columns:repeat(auto-fit,minmax(220px,1fr));"></div>
       </div>
     </div>
   `;
@@ -83,6 +93,21 @@
     { id:"darkwood_plank", name:"Darkwood Plank", req:80, inputText:"5 Darkwood Log", img:"images/wood/planks/darkwood_plank.png" },
     { id:"ebony_plank", name:"Ebony Plank", req:90, inputText:"5 Ebony Log", img:"images/wood/planks/ebony_plank.png" }
   ];
+  const CHARM_IMG = "images/charms";
+  const CHARM_RECIPES = RECIPES.map((r, index) => {
+    const woodId = r.id.replace(/_plank$/, "");
+    const woodName = r.name.replace(/\s+Plank$/i, "");
+    return {
+      id: `${woodId}_defense_charm`,
+      name: `${woodName} Defense Charm`,
+      req: r.req,
+      inputText: `3 ${r.name}`,
+      img: `${CHARM_IMG}/${woodId}_defense_charm.png`,
+      defenseBonus: (index + 1) * 10
+    };
+  });
+
+  let activeTab = "planks";
 
   function renderTop(save){
     document.getElementById("woodLevel").textContent = String(save.carpentryLevel);
@@ -137,11 +162,67 @@
     });
   }
 
+  function renderDefenseCharmGrid(save){
+    const grid = document.getElementById("defenseCharmGrid");
+    if (!grid) return;
+    grid.innerHTML = "";
+    CHARM_RECIPES.forEach((r) => {
+      const effectiveLevel = save.carpentryLevel + getArtisanPotionBonus(save);
+      const locked = effectiveLevel < r.req;
+      const card = document.createElement("div");
+      card.className = "profChoiceCard";
+      card.style.padding = "12px";
+      card.style.cursor = locked ? "not-allowed" : "pointer";
+      card.style.opacity = locked ? "0.55" : "1";
+      card.style.display = "flex";
+      card.style.gap = "12px";
+      card.style.alignItems = "center";
+      if (!locked) card.dataset.openTabHref = `wood_sawmill_action.html?recipe=${encodeURIComponent(r.id)}`;
+
+      const img = document.createElement("img");
+      img.src = r.img;
+      img.alt = r.name;
+      img.style.width = "64px";
+      img.style.height = "64px";
+      img.style.borderRadius = "12px";
+      img.className = "profChoiceThumb";
+      img.style.objectFit = "cover";
+      img.onerror = () => { img.style.display = "none"; };
+
+      const info = document.createElement("div");
+      info.style.flex = "1";
+      info.innerHTML = `<div class="profChoiceTitle" style="font-weight:900;font-size:16px;">${r.name}</div><div class="profChoiceMeta" style="margin-top:4px;">Req Lv ${r.req}</div><div class="profChoiceMeta" style="opacity:.85;margin-top:6px;">${r.inputText}</div><div class="profChoiceMeta" style="opacity:.85;margin-top:4px;">Defense +${r.defenseBonus}</div>`;
+
+      card.appendChild(img);
+      card.appendChild(info);
+      if (!locked) {
+        card.addEventListener("click", () => {
+          const href = String(card.dataset.openTabHref || `wood_sawmill_action.html?recipe=${encodeURIComponent(r.id)}`);
+          if (window.DSUI?.navigateWithinShell?.(href)) return;
+          window.location.href = href;
+        });
+      }
+      grid.appendChild(card);
+    });
+  }
+
+  function setActiveTab(tab){
+    activeTab = tab === "defense_charms" ? "defense_charms" : "planks";
+    document.getElementById("tabPlanks")?.classList.toggle("is-active", activeTab === "planks");
+    document.getElementById("tabDefenseCharms")?.classList.toggle("is-active", activeTab === "defense_charms");
+    const planks = document.getElementById("woodPlanksPanel");
+    const charms = document.getElementById("defenseCharmPanel");
+    if (planks) planks.style.display = activeTab === "planks" ? "" : "none";
+    if (charms) charms.style.display = activeTab === "defense_charms" ? "" : "none";
+  }
+
   function renderCarpentryView() {
     if (!document.getElementById("plankGrid")) return;
     const save = ensureWood(loadSave());
     renderTop(save);
     renderGrid(save);
+    renderDefenseCharmGrid(save);
+    setActiveTab(activeTab);
   }
 
   function mountCarpentry(root = null) {
@@ -150,6 +231,8 @@
     left.innerHTML = CARPENTRY_TEMPLATE;
     document.title = "Darkstone Chronicles - Carpentry";
     renderCarpentryView();
+    document.getElementById("tabPlanks")?.addEventListener("click", () => setActiveTab("planks"));
+    document.getElementById("tabDefenseCharms")?.addEventListener("click", () => setActiveTab("defense_charms"));
     return true;
   }
 
@@ -157,6 +240,8 @@
     if (!document.getElementById("plankGrid")) return false;
     document.title = "Darkstone Chronicles - Carpentry";
     renderCarpentryView();
+    document.getElementById("tabPlanks")?.addEventListener("click", () => setActiveTab("planks"));
+    document.getElementById("tabDefenseCharms")?.addEventListener("click", () => setActiveTab("defense_charms"));
     return true;
   }
 

@@ -373,7 +373,7 @@ function mkBattleCharmRecipe(material){
     mode: "craft",
     name: `${material.name} Battle Charm`,
     req,
-    img: `${CHARM_IMG}/${id}.svg`,
+    img: `${CHARM_IMG}/${id}.png`,
     input: [
       { name: `${material.name} Bar`, qty: 3 }
     ],
@@ -381,8 +381,9 @@ function mkBattleCharmRecipe(material){
       type: "battle_charm",
       subType: "battle_charm",
       id,
+      crafted: true,
       name: `${material.name} Battle Charm`,
-      img: `${CHARM_IMG}/${id}.svg`,
+      img: `${CHARM_IMG}/${id}.png`,
       rarity: "crafted",
       reqLevel: req,
       attackBonus: battleCharmAttackBonus(material),
@@ -1078,11 +1079,12 @@ window.DSForgeAction = {
         type: "battle_charm",
         subType: "battle_charm",
         id,
+        crafted: true,
         name: `${material.name} Battle Charm`,
         attackBonus: battleCharmAttackBonus(material),
         reqLevel: material.reqLevel,
         rarity: "crafted",
-        img: `${CHARM_IMG}/${id}.svg`,
+        img: `${CHARM_IMG}/${id}.png`,
         quantity: 1
       };
     });

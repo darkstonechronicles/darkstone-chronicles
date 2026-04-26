@@ -443,6 +443,29 @@
     next.attackBonus = Math.max(0, num(next.attackBonus, next.atkBonus ?? next.atk ?? 0));
     return next;
   }
+  function isDefenseCharmItem(it){
+    if (!it) return false;
+    if (String(it.type || "").toLowerCase() === "defense_charm") return true;
+    if (String(it.subType || "").toLowerCase() === "defense_charm") return true;
+    return /defense charm/i.test(String(it.name || ""));
+  }
+  function defenseCharmQty(item){
+    return Math.max(0, Math.floor(num(item?.quantity ?? item?.qty, 0)));
+  }
+  function getDefenseCharmDefenseBonus(save){
+    const charm = save?.defenseCharm;
+    if (!isDefenseCharmItem(charm) || defenseCharmQty(charm) <= 0) return 0;
+    return Math.max(0, num(charm.defenseBonus, charm.defBonus ?? charm.def ?? 0));
+  }
+  function normalizeDefenseCharm(item){
+    if (!isDefenseCharmItem(item)) return null;
+    const next = { ...item };
+    next.type = "defense_charm";
+    next.subType = "defense_charm";
+    next.quantity = defenseCharmQty(next) || 1;
+    next.defenseBonus = Math.max(0, num(next.defenseBonus, next.defBonus ?? next.def ?? 0));
+    return next;
+  }
 
   // ✅ Round XPNext to "nice" numbers (persisted)
   function roundXPNext(v){
@@ -1441,6 +1464,8 @@
   if (!("quick_cooked_fish" in s.consumables)) s.consumables.quick_cooked_fish = null;
   if (!("quick_consumable1" in s.consumables)) s.consumables.quick_consumable1 = null;
   if (!("quick_consumable2" in s.consumables)) s.consumables.quick_consumable2 = null;
+  s.battleCharm = normalizeBattleCharm(s.battleCharm);
+  s.defenseCharm = normalizeDefenseCharm(s.defenseCharm);
   if (!s.pets || typeof s.pets !== "object") s.pets = getEmptyPetsState();
   for (const slot of PET_SLOT_DEFS) {
     if (!(slot.key in s.pets)) s.pets[slot.key] = null;
@@ -3004,16 +3029,13 @@
         font-size:7px;
       }
       .invEquipStats{
-        display:grid;
-        grid-template-columns:repeat(2, minmax(0, 1fr));
-        gap:8px;
+        display:flex;
+        flex-direction:column;
         margin-top:6px;
-      }
-      .invEquipStat{
         border:1px solid rgba(122, 91, 49, .8);
         border-radius:10px;
         background:linear-gradient(180deg, rgba(52,39,27,.78), rgba(20,18,20,.86));
-        padding:8px 10px;
+        overflow:hidden;
         box-shadow:
           0 0 0 1px rgba(32,23,14,.82),
           inset 0 1px 0 rgba(255,228,178,.06),
@@ -3021,14 +3043,37 @@
           inset 0 -10px 18px rgba(0,0,0,.14),
           0 10px 18px rgba(0,0,0,.16);
       }
-      .invEquipStatLabel{
-        font-size:11px;
-        opacity:.76;
+      .invEquipStatHead,
+      .invEquipStatRow{
+        display:grid;
+        grid-template-columns:1.05fr .75fr 1.35fr 1.25fr .8fr;
+        align-items:center;
       }
-      .invEquipStatValue{
-        margin-top:4px;
-        font-size:16px;
+      .invEquipStatHead > div,
+      .invEquipStatRow > div{
+        min-width:0;
+        padding:7px 5px;
+        border-bottom:1px solid rgba(166,124,64,.28);
+        color:#f3ead6;
+        font-size:10px;
+        text-align:right;
+        overflow-wrap:anywhere;
+      }
+      .invEquipStatHead > div:first-child,
+      .invEquipStatRow > div:first-child{
+        text-align:left;
+      }
+      .invEquipStatHead > div{
+        border-bottom-color:rgba(166,124,64,.38);
+        font-size:9px;
+        opacity:.82;
+      }
+      .invEquipStatRow:last-child > div{
+        border-bottom:0;
+      }
+      .invEquipStatTotal{
         font-weight:800;
+        color:#fff1cf !important;
       }
       .invFooter{display:flex;justify-content:flex-end;margin-top:10px;}
       .invMeta{display:flex;align-items:center;gap:8px;}
@@ -3566,18 +3611,28 @@
             { key: "quick_potion1", label: "Potion 1", kind: "potion" },
             { key: "quick_potion2", label: "Potion 2", kind: "potion" },
             { key: "quick_meat", label: "Cooked Meat", kind: "meat" },
-            { key: "quick_cooked_fish", label: "Cooked Fish", kind: "cooked_fish" }
+            { key: "quick_cooked_fish", label: "Cooked Fish", kind: "cooked_fish" },
+            { key: "battle_charm", label: "Battle Charm", kind: "battle_charm" },
+            { key: "defense_charm", label: "Defense Charm", kind: "defense_charm" }
           ].map((slot) => {
-            const it = save?.consumables?.[slot.key];
+            const it = slot.kind === "battle_charm"
+              ? save?.battleCharm
+              : slot.kind === "defense_charm"
+                ? save?.defenseCharm
+                : save?.consumables?.[slot.key];
             const cls = `invConsSlot${slot.kind === "potion" ? " invConsPotion" : ""}`;
             const potionBonus = getPotionBonusText(it);
-            const title = it ? `${it.name || slot.label}${potionBonus ? ` — ${potionBonus}` : ""}` : slot.label;
+            const charmBonus = slot.kind === "battle_charm" && it ? `Attack +${getBattleCharmAttackBonus(save)}` : "";
+            const defenseCharmBonus = slot.kind === "defense_charm" && it ? `Defense +${getDefenseCharmDefenseBonus(save)}` : "";
+            const title = it ? `${it.name || slot.label}${potionBonus ? ` — ${potionBonus}` : ""}${charmBonus ? ` — ${charmBonus}` : ""}${defenseCharmBonus ? ` — ${defenseCharmBonus}` : ""}` : slot.label;
             const qty = num(it?.quantity ?? it?.qty, 1);
             const isPotion = isPotionItem(it);
             const emptyPotionImg = slot.kind === "potion" ? "images/alchemy/tiers/tier_1.png" : "";
             const emptyMeatImg = slot.kind === "meat" ? "images/meat/night_wolf_cooked.png" : "";
             const emptyFishImg = slot.kind === "cooked_fish" ? "images/food/cooked_golden_perch.png" : "";
-            const emptySlotImg = emptyPotionImg || emptyMeatImg || emptyFishImg;
+            const emptyCharmImg = slot.kind === "battle_charm" ? "images/charms/copper_battle_charm.png" : "";
+            const emptyDefenseCharmImg = slot.kind === "defense_charm" ? "images/charms/ash_defense_charm.png" : "";
+            const emptySlotImg = emptyPotionImg || emptyMeatImg || emptyFishImg || emptyCharmImg || emptyDefenseCharmImg;
             let actionsText = "";
             if (it && isPotion){
               let left = num(it.actionsLeft, 100);
@@ -3585,7 +3640,7 @@
               const totalActions = Math.max(0, Math.floor(left)) + Math.max(0, (qty - 1) * 100);
               actionsText = `Actions: ${totalActions}`;
             }
-            const tag = (slot.kind === "meat" || slot.kind === "cooked_fish") ? "button" : "div";
+            const tag = (slot.kind === "meat" || slot.kind === "cooked_fish" || slot.kind === "battle_charm" || slot.kind === "defense_charm") ? "button" : "div";
             return `
               <div class="invConsWrap">
                 <${tag} class="${cls}" data-quick-slot="${slot.key}" data-quick-kind="${slot.kind}" title="${title}" ${tag === "button" ? "type=\"button\"" : ""}>
@@ -3702,6 +3757,16 @@
           if (kind === "meat" || kind === "cooked_fish") {
             openQuickConsumablePicker(slotKey);
             if (meatPopup) meatPopup.style.display = "none";
+            return;
+          }
+          if (kind === "battle_charm") {
+            openBattleCharmPicker();
+            if (meatPopup) meatPopup.style.display = "none";
+            return;
+          }
+          if (kind === "defense_charm") {
+            openDefenseCharmPicker();
+            if (meatPopup) meatPopup.style.display = "none";
           }
           return;
         }
@@ -3712,6 +3777,16 @@
         }
         if (kind === "meat" || kind === "cooked_fish") {
           openQuickConsumableInspector(slotKey);
+          if (meatPopup) meatPopup.style.display = "none";
+          return;
+        }
+        if (kind === "battle_charm") {
+          openBattleCharmInspector();
+          if (meatPopup) meatPopup.style.display = "none";
+          return;
+        }
+        if (kind === "defense_charm") {
+          openDefenseCharmInspector();
           if (meatPopup) meatPopup.style.display = "none";
           return;
         }
@@ -4246,8 +4321,14 @@ function renderQuestPanel(save){
 }
 
 function getEquipmentContextStats(save){
-  const fmt = (v) => new Intl.NumberFormat("el-GR").format(num(v, 0));
   const buildingBonusPct = (level) => Math.max(0, num(level, 0)) * 0.0005;
+  const fmtSignedCompact = (value) => {
+    const v = num(value, 0);
+    const abs = Math.abs(v);
+    const hasDecimal = Math.abs(abs - Math.round(abs)) > 0.0001;
+    const txt = hasDecimal ? abs.toFixed(1) : String(Math.round(abs));
+    return `${v >= 0 ? "+" : "-"}${txt}`;
+  };
   const getCombatPetBonusesForUI = (state) => {
     const api = window.DS?.pets;
     const pet = state?.pets?.combat;
@@ -4260,34 +4341,48 @@ function getEquipmentContextStats(save){
       defPct: num(bonuses.defPct, 0)
     };
   };
-  const baseAtk = num(save.heroAttack, 10);
-  const baseDef = num(save.heroDefense, 10);
+  const baseAtk = Math.max(10, num(save.heroAttack, 10));
+  const baseDef = Math.max(10, num(save.heroDefense, 10));
   let gearAtk = 0;
   let gearDef = 0;
   Object.values(save.equipment || {}).forEach((item) => {
     if (!item) return;
-    gearAtk += num(item.atk, 0);
-    gearDef += num(item.def, 0);
+    gearAtk += Math.max(0, num(item.atk, 0));
+    gearDef += Math.max(0, num(item.def, 0));
   });
+  const charmAtk = getBattleCharmAttackBonus(save);
+  const charmDef = getDefenseCharmDefenseBonus(save);
   const petBonuses = getCombatPetBonusesForUI(save);
-  const rawAtk = baseAtk + gearAtk + petBonuses.atkFlat;
-    const rawDef = baseDef + gearDef + petBonuses.defFlat;
-    const setAtk = num(save.setBonusAtkPct, 0);
-    const setDef = num(save.setBonusDefPct, 0);
-    const buildingPct = __equipStatsMode === "dungeon"
-      ? buildingBonusPct(save.cryptHallLevel)
-      : buildingBonusPct(save.barracksLevel);
-    const potionBonuses = getPotionBonusesForUI(save);
-    const totalAtk = Math.floor(rawAtk * (1 + setAtk + buildingPct + potionBonuses.atkPct));
-    const totalDef = Math.floor(rawDef * (1 + setDef + buildingPct + potionBonuses.defPct));
-    const modeLabel = __equipStatsMode === "dungeon" ? "Dungeon" : "Fight";
-    const atkPctTxt = potionBonuses.atkPct > 0 ? ` (+${Math.round(potionBonuses.atkPct * 100)}%)` : "";
-    const defPctTxt = potionBonuses.defPct > 0 ? ` (+${Math.round(potionBonuses.defPct * 100)}%)` : "";
-    return [
-      { label: `${modeLabel} Attack${atkPctTxt}`, value: fmt(totalAtk) },
-      { label: `${modeLabel} Defense${defPctTxt}`, value: fmt(totalDef) }
-    ];
-  }
+  const petAtk = num(petBonuses.atkFlat, 0);
+  const petDef = num(petBonuses.defFlat, 0);
+  const gearAndCharmAtk = gearAtk + charmAtk;
+  const gearAndCharmDef = gearDef + charmDef;
+  const rawAtk = baseAtk + gearAtk + charmAtk + petBonuses.atkFlat;
+  const rawDef = baseDef + gearDef + charmDef + petBonuses.defFlat;
+  const setBonuses = getSetBonusPcts(save.equipment);
+  const petPctAtk = num(petBonuses.atkPct, 0);
+  const petPctDef = num(petBonuses.defPct, 0);
+  const setAtk = num(setBonuses.atkPct, 0) + petPctAtk;
+  const setDef = num(setBonuses.defPct, 0) + petPctDef;
+  const buildingPct = __equipStatsMode === "dungeon"
+    ? buildingBonusPct(save.cryptHallLevel)
+    : buildingBonusPct(save.barracksLevel);
+  const potionBonuses = getPotionBonusesForUI(save);
+  const pctAtk = setAtk + buildingPct + potionBonuses.atkPct;
+  const pctDef = setDef + buildingPct + potionBonuses.defPct;
+  const totalAtk = Math.floor(rawAtk * (1 + pctAtk));
+  const totalDef = Math.floor(rawDef * (1 + pctDef));
+  return {
+    baseAtk,
+    baseDef,
+    equipAtk: `${fmtSignedCompact(gearAndCharmAtk + petAtk)}${petAtk > 0 ? ` (${fmtSignedCompact(petAtk)} pet)` : ""}`,
+    equipDef: `${fmtSignedCompact(gearAndCharmDef + petDef)}${petDef > 0 ? ` (${fmtSignedCompact(petDef)} pet)` : ""}`,
+    bonusAtk: `${(pctAtk * 100).toFixed(2)}%${petPctAtk > 0 ? ` (+${(petPctAtk * 100).toFixed(2)}% pet)` : ""}`,
+    bonusDef: `${(pctDef * 100).toFixed(2)}%${petPctDef > 0 ? ` (+${(petPctDef * 100).toFixed(2)}% pet)` : ""}`,
+    totalAtk,
+    totalDef
+  };
+}
 
 function renderEquipmentPanel(save){
   const panel = document.getElementById("equipmentPanel");
@@ -4337,13 +4432,28 @@ function renderEquipmentPanel(save){
         }).join("")}
         </div>
       </div>
-        <div class="invEquipStats">
-          ${stats.map((stat) => `
-            <div class="invEquipStat">
-              <div class="invEquipStatLabel">${stat.label}</div>
-              <div class="invEquipStatValue">${stat.value}</div>
-            </div>
-          `).join("")}
+        <div class="invEquipStats" role="table" aria-label="Stats Breakdown">
+          <div class="invEquipStatHead" role="row">
+            <div role="columnheader">Stat</div>
+            <div role="columnheader">Base</div>
+            <div role="columnheader">Equip/Pet</div>
+            <div role="columnheader">Bonus</div>
+            <div role="columnheader">Total</div>
+          </div>
+          <div class="invEquipStatRow" role="row">
+            <div role="cell">Attack</div>
+            <div role="cell">${stats.baseAtk}</div>
+            <div role="cell">${escapeHtml(stats.equipAtk)}</div>
+            <div role="cell">${escapeHtml(stats.bonusAtk)}</div>
+            <div role="cell" class="invEquipStatTotal">${stats.totalAtk}</div>
+          </div>
+          <div class="invEquipStatRow" role="row">
+            <div role="cell">Defense</div>
+            <div role="cell">${stats.baseDef}</div>
+            <div role="cell">${escapeHtml(stats.equipDef)}</div>
+            <div role="cell">${escapeHtml(stats.bonusDef)}</div>
+            <div role="cell" class="invEquipStatTotal">${stats.totalDef}</div>
+          </div>
         </div>
       </div>
     `;
@@ -4763,6 +4873,8 @@ function adminItemStackKey(item) {
     item?.reqLevel ?? 1,
     item?.atk ?? 0,
     item?.def ?? 0,
+    item?.attackBonus ?? 0,
+    item?.defenseBonus ?? 0,
     item?.enchantXpPct ?? 0,
     item?.enchantGoldPct ?? 0,
     item?.enchantLuckPct ?? 0,
@@ -4788,6 +4900,8 @@ function normalizeAdminItem(raw) {
   if (item.setId != null) item.setId = String(item.setId);
   if (item.atk != null) item.atk = num(item.atk, 0);
   if (item.def != null) item.def = num(item.def, 0);
+  if (item.attackBonus != null) item.attackBonus = num(item.attackBonus, 0);
+  if (item.defenseBonus != null) item.defenseBonus = num(item.defenseBonus, 0);
   if (item.reqLevel != null) item.reqLevel = Math.max(1, Math.trunc(num(item.reqLevel, 1)));
   if (item.healHp != null) item.healHp = num(item.healHp, 0);
   if (item.healStamina != null) item.healStamina = num(item.healStamina, 0);
@@ -5761,6 +5875,8 @@ function invSignature(save) {
       return [
         it.type||"", it.name||"", it.slot||"", it.reqLevel??1,
         it.atk??0, it.def??0, it.rarity||"", it.img||"",
+        it.attackBonus ?? 0,
+        it.defenseBonus ?? 0,
         it.enchantXpPct??0, it.enchantGoldPct??0, it.enchantLuckPct??0,
         it.crafted ? 1 : 0,
         it.quantity ?? it.qty ?? 1,
@@ -6033,6 +6149,8 @@ function renderInventory(save) {
       const parts = [];
       if (atk) parts.push(`ATK +${atk}`);
       if (def) parts.push(`DEF +${def}`);
+      if (isBattleCharmItem(it)) parts.push(`Equipped ATK +${Math.max(0, num(it.attackBonus, it.atkBonus ?? it.atk ?? 0))}`);
+      if (isDefenseCharmItem(it)) parts.push(`Equipped DEF +${Math.max(0, num(it.defenseBonus, it.defBonus ?? it.def ?? 0))}`);
       if (num(it.enchantXpPct, 0)) parts.push(`XP +${Math.round(num(it.enchantXpPct, 0) * 100)}%`);
       if (num(it.enchantGoldPct, 0)) parts.push(`Gold +${Math.round(num(it.enchantGoldPct, 0) * 100)}%`);
       if (num(it.enchantLuckPct, 0)) parts.push(`Luck +${Math.round(num(it.enchantLuckPct, 0) * 100)}%`);
@@ -6234,6 +6352,7 @@ function rarityMult(r) {
   function itemStackKey(it) {
     return [
       it.type || "",
+      it.id || "",
       it.crafted ? "crafted" : "",
       it.name || "",
       it.baseName || "",
@@ -6242,6 +6361,8 @@ function rarityMult(r) {
       it.reqLevel ?? 1,
       it.atk ?? 0,
       it.def ?? 0,
+      it.attackBonus ?? 0,
+      it.defenseBonus ?? 0,
       it.enchantXpPct ?? 0,
       it.enchantGoldPct ?? 0,
       it.enchantLuckPct ?? 0,
@@ -6506,6 +6627,332 @@ function unequipQuickSlotToInventory(save, slotKey){
   return { ok:true, msg:`Unequipped from ${getQuickFoodSlotLabel(slotKey)}.` };
 }
 
+function unequipBattleCharmToInventory(save, qty){
+  const charm = normalizeBattleCharm(save?.battleCharm);
+  if (!charm) return { ok:false, msg:"No Battle Charm equipped." };
+  const currentQty = battleCharmQty(charm);
+  const amount = clamp(Math.floor(num(qty, currentQty)), 1, currentQty);
+  if (!inventoryHasSpaceFor(save, amount)) return { ok:false, msg:"No inventory space." };
+  addToStack(save.inventory, { ...charm, quantity: amount }, amount);
+  if (currentQty > amount) {
+    charm.quantity = currentQty - amount;
+    save.battleCharm = charm;
+  } else {
+    save.battleCharm = null;
+  }
+  return { ok:true, msg:`Removed ${amount} Battle Charm${amount > 1 ? "s" : ""}.` };
+}
+
+function equipInventoryBattleCharm(save, invIndex, takeQty){
+  if (!save || typeof save !== "object") return { ok:false, msg:"Invalid save." };
+  if (!Array.isArray(save.inventory)) save.inventory = [];
+  const invIt = save.inventory[invIndex];
+  if (!isBattleCharmItem(invIt)) return { ok:false, msg:"Not a Battle Charm." };
+
+  const invQty = battleCharmQty(invIt) || 1;
+  const qty = clamp(Math.floor(num(takeQty, invQty)), 1, invQty);
+  const picked = consumeFromInventoryIndex(save, invIndex, qty);
+  if (!picked) return { ok:false, msg:"Item missing." };
+  const charm = normalizeBattleCharm({ ...picked, quantity: qty });
+  if (!charm) return { ok:false, msg:"Not a Battle Charm." };
+
+  const existing = normalizeBattleCharm(save.battleCharm);
+  if (existing && itemStackKey(existing) === itemStackKey(charm)) {
+    existing.quantity = battleCharmQty(existing) + qty;
+    save.battleCharm = existing;
+  } else {
+    if (existing) addToStack(save.inventory, existing, battleCharmQty(existing) || 1);
+    save.battleCharm = charm;
+  }
+  return { ok:true, item: charm, qty };
+}
+
+function openBattleCharmPicker(){
+  const save = ensureSave(loadSave());
+  const box = ensureInspectorBoxReplace();
+  if (!box) return;
+  window.DS?.pause?.();
+  const inv = Array.isArray(save.inventory) ? save.inventory : [];
+  const items = inv
+    .map((it, idx) => ({ it, idx }))
+    .filter(({ it }) => isBattleCharmItem(it) && battleCharmQty(it) > 0);
+
+  box.className = "dsInspector";
+  if (!items.length) {
+    box.innerHTML = `
+      <div style="font-weight:900;font-size:20px;">Battle Charm</div>
+      <div style="margin-top:10px;opacity:.88;">No Battle Charms in your inventory.</div>
+    `;
+    return;
+  }
+
+  box.innerHTML = `
+    <div style="font-weight:900;font-size:20px;">Battle Charm</div>
+    <div style="opacity:.85;margin-top:6px;">Choose a Battle Charm to equip.</div>
+    <div style="margin-top:10px;display:grid;gap:10px;">
+      ${items.map(({ it, idx }) => {
+        const qty = battleCharmQty(it) || 1;
+        const bonus = Math.max(0, num(it.attackBonus, it.atkBonus ?? it.atk ?? 0));
+        return `
+          <div style="display:flex;align-items:center;gap:10px;padding:10px;border-radius:12px;border:2px solid #333;background:#151520;color:#fff;text-align:left;">
+            <img src="${it.img || ""}" alt="${it.name || "Battle Charm"}" style="width:54px;height:54px;border-radius:10px;border:2px solid #333;object-fit:cover;background:#0f0f16;">
+            <div style="flex:1;min-width:0;">
+              <div style="font-weight:900;">${it.name || "Battle Charm"}</div>
+              <div style="opacity:.82;font-size:12px;margin-top:4px;">Attack +${bonus} • Qty: ${qty}</div>
+            </div>
+            <input type="number" min="1" max="${qty}" value="${qty}" data-battle-charm-qty="${idx}" style="width:64px;padding:8px 6px;border-radius:10px;border:2px solid #333;background:#0f0f16;color:#fff;">
+            <button type="button" data-battle-charm-pick="${idx}" style="padding:8px 12px;border-radius:10px;border:2px solid #333;background:#222638;color:#fff;font-weight:800;cursor:pointer;">Equip</button>
+          </div>
+        `;
+      }).join("")}
+    </div>
+    <div id="dsMsg" style="margin-top:10px;opacity:.9;text-align:center;"></div>
+  `;
+
+  const msg = (t) => {
+    const m = document.getElementById("dsMsg");
+    if (m) m.textContent = t;
+  };
+
+  box.querySelectorAll("[data-battle-charm-pick]").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const idx = Number(btn.getAttribute("data-battle-charm-pick"));
+      const qtyInput = box.querySelector(`[data-battle-charm-qty="${idx}"]`);
+      const s = ensureSave(loadSave());
+      const invIt = s.inventory?.[idx];
+      if (!invIt || !isBattleCharmItem(invIt)) { msg("Battle Charm missing."); return; }
+      const maxQty = battleCharmQty(invIt) || 1;
+      let takeQty = Math.floor(Number(qtyInput?.value));
+      if (!Number.isFinite(takeQty)) takeQty = maxQty;
+      takeQty = clamp(takeQty, 1, maxQty);
+      const res = equipInventoryBattleCharm(s, idx, takeQty);
+      if (!res.ok) { msg(res.msg || "Could not equip charm."); return; }
+      recomputeTotals(s);
+      setSave(s);
+      openBattleCharmInspector();
+    });
+  });
+}
+
+function openBattleCharmInspector(){
+  const save = ensureSave(loadSave());
+  const charm = normalizeBattleCharm(save.battleCharm);
+  if (!charm) {
+    openBattleCharmPicker();
+    return;
+  }
+  const box = ensureInspectorBoxReplace();
+  if (!box) return;
+  window.DS?.pause?.();
+  const qty = battleCharmQty(charm);
+  const bonus = getBattleCharmAttackBonus(save);
+  box.className = "dsInspector";
+  box.innerHTML = `
+    <div style="display:flex;gap:12px;align-items:center;">
+      <img src="${charm.img || ""}" alt="${charm.name || "Battle Charm"}"
+        style="width:84px;height:84px;border-radius:12px;border:2px solid #333;object-fit:cover;background:#0f0f16;">
+      <div style="flex:1;">
+        <div style="font-weight:900;font-size:20px;">${charm.name || "Battle Charm"}</div>
+        <div style="opacity:.85;margin-top:4px;">Equipped in: <b>Battle Charm</b></div>
+        <div style="opacity:.9;margin-top:6px;">Attack +${bonus} • Quantity: ${qty}</div>
+      </div>
+    </div>
+    <div class="dsBtnRow">
+      <button id="dsUnequipQuickBattleCharm">Remove</button>
+      <input id="dsUnequipQuickBattleCharmQty" type="number" min="1" max="${qty}" value="${qty}" style="width:88px;padding:8px 10px;border-radius:10px;border:2px solid #333;background:#0f0f16;color:#fff;">
+      <button id="dsUnequipQuickBattleCharmAll">Remove All</button>
+    </div>
+    <div id="dsMsg" style="margin-top:10px;opacity:.9;text-align:center;"></div>
+  `;
+
+  const msg = (t) => {
+    const m = document.getElementById("dsMsg");
+    if (m) m.textContent = t;
+  };
+  const getRemoveQty = () => {
+    const input = document.getElementById("dsUnequipQuickBattleCharmQty");
+    let v = Math.floor(Number(input?.value));
+    if (!Number.isFinite(v)) v = 1;
+    v = clamp(v, 1, qty);
+    if (input) input.value = String(v);
+    return v;
+  };
+  const removeQty = (amount) => {
+    const s = ensureSave(loadSave());
+    const res = unequipBattleCharmToInventory(s, amount);
+    if (!res.ok) { msg(res.msg || "Could not remove charm."); return; }
+    recomputeTotals(s);
+    setSave(s);
+    if (s.battleCharm) openBattleCharmInspector();
+    else openBattleCharmPicker();
+  };
+  document.getElementById("dsUnequipQuickBattleCharm")?.addEventListener("click", () => removeQty(getRemoveQty()));
+  document.getElementById("dsUnequipQuickBattleCharmAll")?.addEventListener("click", () => removeQty(qty));
+}
+
+function unequipDefenseCharmToInventory(save, qty){
+  const charm = normalizeDefenseCharm(save?.defenseCharm);
+  if (!charm) return { ok:false, msg:"No Defense Charm equipped." };
+  const currentQty = defenseCharmQty(charm);
+  const amount = clamp(Math.floor(num(qty, currentQty)), 1, currentQty);
+  if (!inventoryHasSpaceFor(save, amount)) return { ok:false, msg:"No inventory space." };
+  addToStack(save.inventory, { ...charm, quantity: amount }, amount);
+  if (currentQty > amount) {
+    charm.quantity = currentQty - amount;
+    save.defenseCharm = charm;
+  } else {
+    save.defenseCharm = null;
+  }
+  return { ok:true, msg:`Removed ${amount} Defense Charm${amount > 1 ? "s" : ""}.` };
+}
+
+function equipInventoryDefenseCharm(save, invIndex, takeQty){
+  if (!save || typeof save !== "object") return { ok:false, msg:"Invalid save." };
+  if (!Array.isArray(save.inventory)) save.inventory = [];
+  const invIt = save.inventory[invIndex];
+  if (!isDefenseCharmItem(invIt)) return { ok:false, msg:"Not a Defense Charm." };
+
+  const invQty = defenseCharmQty(invIt) || 1;
+  const qty = clamp(Math.floor(num(takeQty, invQty)), 1, invQty);
+  const picked = consumeFromInventoryIndex(save, invIndex, qty);
+  if (!picked) return { ok:false, msg:"Item missing." };
+  const charm = normalizeDefenseCharm({ ...picked, quantity: qty });
+  if (!charm) return { ok:false, msg:"Not a Defense Charm." };
+
+  const existing = normalizeDefenseCharm(save.defenseCharm);
+  if (existing && itemStackKey(existing) === itemStackKey(charm)) {
+    existing.quantity = defenseCharmQty(existing) + qty;
+    save.defenseCharm = existing;
+  } else {
+    if (existing) addToStack(save.inventory, existing, defenseCharmQty(existing) || 1);
+    save.defenseCharm = charm;
+  }
+  return { ok:true, item: charm, qty };
+}
+
+function openDefenseCharmPicker(){
+  const save = ensureSave(loadSave());
+  const box = ensureInspectorBoxReplace();
+  if (!box) return;
+  window.DS?.pause?.();
+  const inv = Array.isArray(save.inventory) ? save.inventory : [];
+  const items = inv
+    .map((it, idx) => ({ it, idx }))
+    .filter(({ it }) => isDefenseCharmItem(it) && defenseCharmQty(it) > 0);
+
+  box.className = "dsInspector";
+  if (!items.length) {
+    box.innerHTML = `
+      <div style="font-weight:900;font-size:20px;">Defense Charm</div>
+      <div style="margin-top:10px;opacity:.88;">No Defense Charms in your inventory.</div>
+    `;
+    return;
+  }
+
+  box.innerHTML = `
+    <div style="font-weight:900;font-size:20px;">Defense Charm</div>
+    <div style="opacity:.85;margin-top:6px;">Choose a Defense Charm to equip.</div>
+    <div style="margin-top:10px;display:grid;gap:10px;">
+      ${items.map(({ it, idx }) => {
+        const qty = defenseCharmQty(it) || 1;
+        const bonus = Math.max(0, num(it.defenseBonus, it.defBonus ?? it.def ?? 0));
+        return `
+          <div style="display:flex;align-items:center;gap:10px;padding:10px;border-radius:12px;border:2px solid #333;background:#151520;color:#fff;text-align:left;">
+            <img src="${it.img || ""}" alt="${it.name || "Defense Charm"}" style="width:54px;height:54px;border-radius:10px;border:2px solid #333;object-fit:cover;background:#0f0f16;">
+            <div style="flex:1;min-width:0;">
+              <div style="font-weight:900;">${it.name || "Defense Charm"}</div>
+              <div style="opacity:.82;font-size:12px;margin-top:4px;">Defense +${bonus} • Qty: ${qty}</div>
+            </div>
+            <input type="number" min="1" max="${qty}" value="${qty}" data-defense-charm-qty="${idx}" style="width:64px;padding:8px 6px;border-radius:10px;border:2px solid #333;background:#0f0f16;color:#fff;">
+            <button type="button" data-defense-charm-pick="${idx}" style="padding:8px 12px;border-radius:10px;border:2px solid #333;background:#222638;color:#fff;font-weight:800;cursor:pointer;">Equip</button>
+          </div>
+        `;
+      }).join("")}
+    </div>
+    <div id="dsMsg" style="margin-top:10px;opacity:.9;text-align:center;"></div>
+  `;
+
+  const msg = (t) => {
+    const m = document.getElementById("dsMsg");
+    if (m) m.textContent = t;
+  };
+
+  box.querySelectorAll("[data-defense-charm-pick]").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const idx = Number(btn.getAttribute("data-defense-charm-pick"));
+      const qtyInput = box.querySelector(`[data-defense-charm-qty="${idx}"]`);
+      const s = ensureSave(loadSave());
+      const invIt = s.inventory?.[idx];
+      if (!invIt || !isDefenseCharmItem(invIt)) { msg("Defense Charm missing."); return; }
+      const maxQty = defenseCharmQty(invIt) || 1;
+      let takeQty = Math.floor(Number(qtyInput?.value));
+      if (!Number.isFinite(takeQty)) takeQty = maxQty;
+      takeQty = clamp(takeQty, 1, maxQty);
+      const res = equipInventoryDefenseCharm(s, idx, takeQty);
+      if (!res.ok) { msg(res.msg || "Could not equip charm."); return; }
+      recomputeTotals(s);
+      setSave(s);
+      openDefenseCharmInspector();
+    });
+  });
+}
+
+function openDefenseCharmInspector(){
+  const save = ensureSave(loadSave());
+  const charm = normalizeDefenseCharm(save.defenseCharm);
+  if (!charm) {
+    openDefenseCharmPicker();
+    return;
+  }
+  const box = ensureInspectorBoxReplace();
+  if (!box) return;
+  window.DS?.pause?.();
+  const qty = defenseCharmQty(charm);
+  const bonus = getDefenseCharmDefenseBonus(save);
+  box.className = "dsInspector";
+  box.innerHTML = `
+    <div style="display:flex;gap:12px;align-items:center;">
+      <img src="${charm.img || ""}" alt="${charm.name || "Defense Charm"}"
+        style="width:84px;height:84px;border-radius:12px;border:2px solid #333;object-fit:cover;background:#0f0f16;">
+      <div style="flex:1;">
+        <div style="font-weight:900;font-size:20px;">${charm.name || "Defense Charm"}</div>
+        <div style="opacity:.85;margin-top:4px;">Equipped in: <b>Defense Charm</b></div>
+        <div style="opacity:.9;margin-top:6px;">Defense +${bonus} • Quantity: ${qty}</div>
+      </div>
+    </div>
+    <div class="dsBtnRow">
+      <button id="dsUnequipQuickDefenseCharm">Remove</button>
+      <input id="dsUnequipQuickDefenseCharmQty" type="number" min="1" max="${qty}" value="${qty}" style="width:88px;padding:8px 10px;border-radius:10px;border:2px solid #333;background:#0f0f16;color:#fff;">
+      <button id="dsUnequipQuickDefenseCharmAll">Remove All</button>
+    </div>
+    <div id="dsMsg" style="margin-top:10px;opacity:.9;text-align:center;"></div>
+  `;
+
+  const msg = (t) => {
+    const m = document.getElementById("dsMsg");
+    if (m) m.textContent = t;
+  };
+  const getRemoveQty = () => {
+    const input = document.getElementById("dsUnequipQuickDefenseCharmQty");
+    let v = Math.floor(Number(input?.value));
+    if (!Number.isFinite(v)) v = 1;
+    v = clamp(v, 1, qty);
+    if (input) input.value = String(v);
+    return v;
+  };
+  const removeQty = (amount) => {
+    const s = ensureSave(loadSave());
+    const res = unequipDefenseCharmToInventory(s, amount);
+    if (!res.ok) { msg(res.msg || "Could not remove charm."); return; }
+    recomputeTotals(s);
+    setSave(s);
+    if (s.defenseCharm) openDefenseCharmInspector();
+    else openDefenseCharmPicker();
+  };
+  document.getElementById("dsUnequipQuickDefenseCharm")?.addEventListener("click", () => removeQty(getRemoveQty()));
+  document.getElementById("dsUnequipQuickDefenseCharmAll")?.addEventListener("click", () => removeQty(qty));
+}
+
 function openQuickConsumableInspector(slotKey) {
   const save = ensureSave(loadSave());
   const item = save.consumables?.[slotKey];
@@ -6707,9 +7154,11 @@ function recomputeTotals(save) {
     atkB += num(it.atk, 0);
     defB += num(it.def, 0);
   });
+  const charmAtk = getBattleCharmAttackBonus(save);
+  const charmDef = getDefenseCharmDefenseBonus(save);
 
-  const rawAtk = baseAtk + atkB + num(petBonuses.atkFlat, 0);
-  const rawDef = baseDef + defB + num(petBonuses.defFlat, 0);
+  const rawAtk = baseAtk + atkB + charmAtk + num(petBonuses.atkFlat, 0);
+  const rawDef = baseDef + defB + charmDef + num(petBonuses.defFlat, 0);
 
   const bonuses = getSetBonusPcts(save.equipment);
   const atkWithSet = Math.floor(rawAtk * (1 + bonuses.atkPct + num(petBonuses.atkPct, 0)));
@@ -6895,6 +7344,8 @@ function openInspector(invIndex, item) {
 
       const isGear = isGearItem(item);
       const isPotion = isPotionItem(item);
+      const isBattleCharm = isBattleCharmItem(item);
+      const isDefenseCharm = isDefenseCharmItem(item);
       const quickFoodSlot = getQuickFoodTargetSlot(item);
       const showSellQty = true;
 
@@ -6915,6 +7366,8 @@ function openInspector(invIndex, item) {
         if (num(item.enchantLuckPct, 0)) parts.push(`Luck +${Math.round(num(item.enchantLuckPct, 0) * 100)}%`);
         const potionBonus = getPotionBonusText(item);
         if (potionBonus) parts.push(potionBonus);
+        if (isBattleCharm) parts.push(`Equipped Attack +${Math.max(0, num(item.attackBonus, item.atkBonus ?? item.atk ?? 0))}`);
+        if (isDefenseCharm) parts.push(`Equipped Defense +${Math.max(0, num(item.defenseBonus, item.defBonus ?? item.def ?? 0))}`);
         if (showEat) {
           const eatParts = [];
           if (healHp > 0) eatParts.push(`+${healHp} HP`);
@@ -6949,7 +7402,25 @@ function openInspector(invIndex, item) {
         <div class="dsBtnRow">
           ${isGear ? `<button id="dsEquip" ${canEquip(save,item) ? "" : "disabled"}>🛡 Equip</button>` : ``}
           ${isPotion ? `<button id="dsEquipPotion">🧪 Equip Potion</button>` : ``}
+          ${isBattleCharm ? `<button id="dsEquipBattleCharm">Equip Battle Charm</button>` : ``}
+          ${isDefenseCharm ? `<button id="dsEquipDefenseCharm">Equip Defense Charm</button>` : ``}
         </div>
+
+      ${isBattleCharm ? `
+        <div class="dsSellRow">
+          <button id="dsEquipBattleCharmQtyBtn">Equip Amount</button>
+          <input id="dsEquipBattleCharmQty" type="number" min="1" max="${q}" value="${q}">
+          <div class="dsSellInfo">Attack +${Math.max(0, num(item.attackBonus, item.atkBonus ?? item.atk ?? 0))}</div>
+        </div>
+      ` : ``}
+
+      ${isDefenseCharm ? `
+        <div class="dsSellRow">
+          <button id="dsEquipDefenseCharmQtyBtn">Equip Amount</button>
+          <input id="dsEquipDefenseCharmQty" type="number" min="1" max="${q}" value="${q}">
+          <div class="dsSellInfo">Defense +${Math.max(0, num(item.defenseBonus, item.defBonus ?? item.def ?? 0))}</div>
+        </div>
+      ` : ``}
 
       ${showEat ? `
         <div class="dsSellRow">
@@ -7100,6 +7571,40 @@ function openInspector(invIndex, item) {
         }
         setSave(s);
         showActionSuccess("Potion Equipped", picked, 1, slotKey === "quick_potion1" ? "Slot: Potion 1" : "Slot: Potion 2");
+      });
+
+      document.getElementById("dsEquipBattleCharm")?.addEventListener("click", () => {
+        const s = ensureSave(loadSave());
+        const invIt = s.inventory[invIndex];
+        if (!invIt) { msg("Item missing."); return; }
+        if (!isBattleCharmItem(invIt)) { msg("Not a Battle Charm."); return; }
+        const input = document.getElementById("dsEquipBattleCharmQty");
+        let equipQty = Math.floor(Number(input?.value));
+        if (!Number.isFinite(equipQty)) equipQty = battleCharmQty(invIt) || 1;
+        equipQty = clamp(equipQty, 1, battleCharmQty(invIt) || 1);
+        if (input) input.value = String(equipQty);
+        const res = equipInventoryBattleCharm(s, invIndex, equipQty);
+        if (!res.ok) { msg(res.msg || "Could not equip charm."); return; }
+        recomputeTotals(s);
+        setSave(s);
+        showActionSuccess("Battle Charm Equipped", res.item, res.qty, `Attack +${getBattleCharmAttackBonus(s)}`);
+      });
+
+      document.getElementById("dsEquipDefenseCharm")?.addEventListener("click", () => {
+        const s = ensureSave(loadSave());
+        const invIt = s.inventory[invIndex];
+        if (!invIt) { msg("Item missing."); return; }
+        if (!isDefenseCharmItem(invIt)) { msg("Not a Defense Charm."); return; }
+        const input = document.getElementById("dsEquipDefenseCharmQty");
+        let equipQty = Math.floor(Number(input?.value));
+        if (!Number.isFinite(equipQty)) equipQty = defenseCharmQty(invIt) || 1;
+        equipQty = clamp(equipQty, 1, defenseCharmQty(invIt) || 1);
+        if (input) input.value = String(equipQty);
+        const res = equipInventoryDefenseCharm(s, invIndex, equipQty);
+        if (!res.ok) { msg(res.msg || "Could not equip charm."); return; }
+        recomputeTotals(s);
+        setSave(s);
+        showActionSuccess("Defense Charm Equipped", res.item, res.qty, `Defense +${getDefenseCharmDefenseBonus(s)}`);
       });
 
     const eatQtyInput = document.getElementById("dsEatQty");

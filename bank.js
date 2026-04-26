@@ -50,6 +50,7 @@
   function itemStackKey(it){
     return [
       it.type || "",
+      it.id || "",
       it.crafted ? "crafted" : "",
       it.name || "",
       it.baseName || "",
@@ -58,6 +59,8 @@
       it.reqLevel ?? 1,
       it.atk ?? 0,
       it.def ?? 0,
+      it.attackBonus ?? 0,
+      it.defenseBonus ?? 0,
       it.rarity || "",
       it.img || "",
       it.upg ?? 0,

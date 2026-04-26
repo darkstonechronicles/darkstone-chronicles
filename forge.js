@@ -433,32 +433,61 @@
       const locked = save.blacksmithLevel < material.reqLevel;
       const recipeId = charmRecipeId(material);
       const attackBonus = (index + 1) * 10;
-      const card = makeCard();
-      card.style.minHeight = "210px";
+      const card = document.createElement("div");
+      card.className = "profChoiceCard";
+      card.style.borderRadius = "12px";
+      card.style.padding = "12px";
       card.style.cursor = locked ? "not-allowed" : "pointer";
-      card.style.opacity = locked ? ".55" : "1";
+      card.style.opacity = locked ? "0.55" : "1";
+      card.style.display = "flex";
+      card.style.gap = "12px";
+      card.style.alignItems = "center";
       if (!locked) card.dataset.openTabHref = `forge_action.html?recipe=${encodeURIComponent(recipeId)}`;
 
+      const img = document.createElement("img");
+      img.src = `images/charms/${recipeId}.png`;
+      img.alt = `${material.name} Battle Charm`;
+      img.style.width = "64px";
+      img.style.height = "64px";
+      img.style.borderRadius = "12px";
+      img.className = "profChoiceThumb";
+      img.style.objectFit = "cover";
+      img.onerror = () => { img.style.display = "none"; };
+
+      const info = document.createElement("div");
+      info.style.flex = "1";
+
       const title = document.createElement("div");
+      title.className = "profChoiceTitle";
       title.style.fontWeight = "900";
-      title.style.fontSize = "18px";
-      title.style.textAlign = "center";
-      title.style.lineHeight = "1.1";
+      title.style.fontSize = "16px";
       title.textContent = `${material.name} Battle Charm`;
 
-      const cost = document.createElement("div");
-      cost.style.textAlign = "center";
-      cost.style.color = "#b8b9c9";
-      cost.style.fontSize = "12px";
-      cost.style.lineHeight = "1.25";
-      cost.innerHTML = `Needs 3 ${material.name} Bar<br>Equipped: +${attackBonus} Attack`;
+      const req = document.createElement("div");
+      req.className = "profChoiceMeta";
+      req.style.marginTop = "4px";
+      req.style.color = locked ? "#ff9090" : "";
+      req.textContent = `Req Lv ${material.reqLevel}`;
 
-      card.append(
-        makeImage(`images/charms/${recipeId}.svg`, "#14361d"),
-        title,
-        cost,
-        button(locked ? "Locked" : "Craft", locked, () => openRecipe(recipeId))
-      );
+      const cost = document.createElement("div");
+      cost.className = "profChoiceMeta";
+      cost.style.marginTop = "6px";
+      cost.textContent = `Needs 3 ${material.name} Bar`;
+
+      const bonus = document.createElement("div");
+      bonus.className = "profChoiceMeta";
+      bonus.style.marginTop = "6px";
+      bonus.textContent = `Equipped: +${attackBonus} Attack`;
+
+      info.appendChild(title);
+      info.appendChild(req);
+      info.appendChild(cost);
+      info.appendChild(bonus);
+
+      card.appendChild(img);
+      card.appendChild(info);
+
+      if (!locked) card.addEventListener("click", () => openRecipe(recipeId));
       charmGrid.appendChild(card);
     });
   }

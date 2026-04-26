@@ -593,6 +593,60 @@
   }
 
   // ===== Totals from equipment (same pattern as fight.js) =====
+  function isBattleCharmItem(it){
+    if (!it) return false;
+    if (String(it.type || "").toLowerCase() === "battle_charm") return true;
+    if (String(it.subType || "").toLowerCase() === "battle_charm") return true;
+    return /battle charm/i.test(String(it.name || ""));
+  }
+
+  function battleCharmQty(it){
+    return Math.max(0, Math.floor(num(it?.quantity ?? it?.qty, 0)));
+  }
+
+  function getBattleCharmAttackBonus(saveObj){
+    const charm = saveObj?.battleCharm;
+    if (!isBattleCharmItem(charm) || battleCharmQty(charm) <= 0) return 0;
+    return Math.max(0, num(charm.attackBonus, charm.atkBonus ?? charm.atk ?? 0));
+  }
+
+  function tickBattleCharmBreak(saveObj){
+    const charm = saveObj?.battleCharm;
+    if (!isBattleCharmItem(charm) || battleCharmQty(charm) <= 0) return false;
+    if (Math.random() >= (1 / 15)) return false;
+    const nextQty = battleCharmQty(charm) - 1;
+    if (nextQty > 0) charm.quantity = nextQty;
+    else saveObj.battleCharm = null;
+    return true;
+  }
+
+  function isDefenseCharmItem(it){
+    if (!it) return false;
+    if (String(it.type || "").toLowerCase() === "defense_charm") return true;
+    if (String(it.subType || "").toLowerCase() === "defense_charm") return true;
+    return /defense charm/i.test(String(it.name || ""));
+  }
+
+  function defenseCharmQty(it){
+    return Math.max(0, Math.floor(num(it?.quantity ?? it?.qty, 0)));
+  }
+
+  function getDefenseCharmDefenseBonus(saveObj){
+    const charm = saveObj?.defenseCharm;
+    if (!isDefenseCharmItem(charm) || defenseCharmQty(charm) <= 0) return 0;
+    return Math.max(0, num(charm.defenseBonus, charm.defBonus ?? charm.def ?? 0));
+  }
+
+  function tickDefenseCharmBreak(saveObj){
+    const charm = saveObj?.defenseCharm;
+    if (!isDefenseCharmItem(charm) || defenseCharmQty(charm) <= 0) return false;
+    if (Math.random() >= (1 / 15)) return false;
+    const nextQty = defenseCharmQty(charm) - 1;
+    if (nextQty > 0) charm.quantity = nextQty;
+    else saveObj.defenseCharm = null;
+    return true;
+  }
+
   function recomputeTotalsAndSave(){
     const cur = loadSave();
     const baseAtk = num(cur.heroAttack, 10);
@@ -647,8 +701,8 @@
     }
 
     const bonuses = getSetBonusPcts(eq);
-    const rawAtk = baseAtk + atkB;
-    const rawDef = baseDef + defB;
+    const rawAtk = baseAtk + atkB + getBattleCharmAttackBonus(cur);
+    const rawDef = baseDef + defB + getDefenseCharmDefenseBonus(cur);
     const attackTotal = Math.floor(rawAtk * (1 + bonuses.atkPct));
     const defenseTotal = Math.floor(rawDef * (1 + bonuses.defPct));
 
@@ -1578,8 +1632,29 @@
       setEncounterDamage(totalHeroDamageTaken, totalDamageDealt);
       persistRunState();
       const potionSave = loadSave();
-      if (tickPotionActions(potionSave, 1)) {
-        savePatch({ consumables: potionSave.consumables });
+      const potionChanged = tickPotionActions(potionSave, 1);
+      const charmChanged = tickBattleCharmBreak(potionSave);
+      const defenseCharmChanged = tickDefenseCharmBreak(potionSave);
+      if (charmChanged || defenseCharmChanged) {
+        const baseAtk = num(potionSave.heroAttack, 10);
+        const baseDef = num(potionSave.heroDefense, 10);
+        let atkB = 0, defB = 0;
+        Object.values(potionSave.equipment || {}).forEach((it) => {
+          if (!it) return;
+          atkB += num(it.atk, 0);
+          defB += num(it.def, 0);
+        });
+        potionSave.attackTotal = Math.floor((baseAtk + atkB + getBattleCharmAttackBonus(potionSave)) * (1 + num(potionSave.setBonusAtkPct, 0)));
+        potionSave.defenseTotal = Math.floor((baseDef + defB + getDefenseCharmDefenseBonus(potionSave)) * (1 + num(potionSave.setBonusDefPct, 0)));
+      }
+      if (potionChanged || charmChanged || defenseCharmChanged) {
+        savePatch({
+          consumables: potionSave.consumables,
+          battleCharm: potionSave.battleCharm,
+          defenseCharm: potionSave.defenseCharm,
+          attackTotal: potionSave.attackTotal,
+          defenseTotal: potionSave.defenseTotal
+        });
       }
       if(hero.hp <= 0){
         failDungeon(`died on Wave ${state.waveIndex + 1}`);
@@ -1650,8 +1725,29 @@
       setEncounterDamage(bossD, heroD);
       pushLog(`Round ${bossRound}`);
       const potionSave = loadSave();
-      if (tickPotionActions(potionSave, 1)) {
-        savePatch({ consumables: potionSave.consumables });
+      const potionChanged = tickPotionActions(potionSave, 1);
+      const charmChanged = tickBattleCharmBreak(potionSave);
+      const defenseCharmChanged = tickDefenseCharmBreak(potionSave);
+      if (charmChanged || defenseCharmChanged) {
+        const baseAtk = num(potionSave.heroAttack, 10);
+        const baseDef = num(potionSave.heroDefense, 10);
+        let atkB = 0, defB = 0;
+        Object.values(potionSave.equipment || {}).forEach((it) => {
+          if (!it) return;
+          atkB += num(it.atk, 0);
+          defB += num(it.def, 0);
+        });
+        potionSave.attackTotal = Math.floor((baseAtk + atkB + getBattleCharmAttackBonus(potionSave)) * (1 + num(potionSave.setBonusAtkPct, 0)));
+        potionSave.defenseTotal = Math.floor((baseDef + defB + getDefenseCharmDefenseBonus(potionSave)) * (1 + num(potionSave.setBonusDefPct, 0)));
+      }
+      if (potionChanged || charmChanged || defenseCharmChanged) {
+        savePatch({
+          consumables: potionSave.consumables,
+          battleCharm: potionSave.battleCharm,
+          defenseCharm: potionSave.defenseCharm,
+          attackTotal: potionSave.attackTotal,
+          defenseTotal: potionSave.defenseTotal
+        });
       }
 
       if(hero.hp <= 0){
