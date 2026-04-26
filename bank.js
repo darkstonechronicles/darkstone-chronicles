@@ -3,11 +3,11 @@
   const BANK_TEMPLATE = `
     <h1>Bank</h1>
 
-    <div style="display:flex;justify-content:center;padding:12px 10px;border-radius:14px;border:1px solid var(--card-medieval-border);background:var(--card-medieval-bg);box-shadow:var(--card-medieval-shadow);max-width:900px;margin:0 auto 12px;">
-      <div style="width:100%;max-width:700px;display:grid;grid-template-columns:120px max-content 1px 1fr;gap:14px;align-items:start;">
+    <div class="bankShell" style="display:flex;justify-content:center;padding:12px 10px;border-radius:14px;border:1px solid var(--card-medieval-border);background:var(--card-medieval-bg);box-shadow:var(--card-medieval-shadow);max-width:900px;margin:0 auto 12px;">
+      <div class="bankLayout" style="width:100%;max-width:700px;display:grid;grid-template-columns:120px max-content 1px 1fr;gap:14px;align-items:start;">
         <div id="bankFilterList" style="display:flex;flex-direction:column;gap:8px;"></div>
         <div id="bankGrid" style="display:grid;grid-template-columns:repeat(6,40px);gap:4px;justify-content:center;padding:4px;width:max-content;max-width:100%;"></div>
-        <div style="width:1px;align-self:stretch;background:linear-gradient(180deg, rgba(199,155,68,.06), rgba(199,155,68,.42) 18%, rgba(199,155,68,.42) 82%, rgba(199,155,68,.06));"></div>
+        <div class="bankDivider" style="width:1px;align-self:stretch;background:linear-gradient(180deg, rgba(199,155,68,.06), rgba(199,155,68,.42) 18%, rgba(199,155,68,.42) 82%, rgba(199,155,68,.06));"></div>
         <div id="bankPreview" style="min-height:220px;display:flex;align-items:center;justify-content:center;border:1px solid rgba(122, 91, 49, .8);border-radius:12px;background:linear-gradient(180deg, rgba(52,39,27,.78), rgba(20,18,20,.86));box-shadow:0 0 0 1px rgba(32,23,14,.82),inset 0 1px 0 rgba(255,228,178,.06),inset 0 0 0 1px rgba(255,214,143,.04),inset 0 -10px 18px rgba(0,0,0,.14),0 10px 18px rgba(0,0,0,.16);padding:12px;"></div>
       </div>
       <div id="bankEmpty" style="display:none;opacity:.88;text-align:center;padding:18px 10px;color:#d9ccb0;">Your bank is empty.</div>
@@ -198,11 +198,16 @@
     });
   }
 
-  function renderBankInspector(){
+  function renderBankInspector(emptyMessage = ""){
     const bankPreview = document.getElementById("bankPreview");
     if (!bankPreview) return;
     const save = ensureSave(loadSave());
     const item = Number.isFinite(selectedIndex) ? save.bank[selectedIndex] : null;
+
+    if (emptyMessage) {
+      bankPreview.innerHTML = `<div style="opacity:.82;font-size:16px;line-height:1.35;text-align:center;color:#d9ccb0;max-width:220px;">${emptyMessage}</div>`;
+      return;
+    }
 
     if (!item) {
       bankPreview.innerHTML = `<div style="opacity:.72;font-size:12px;text-align:center;color:#d9ccb0;">Select an item</div>`;
@@ -282,12 +287,7 @@
     const visibleBank = bank
       .map((it, idx) => ({ it, idx }))
       .filter(({ it }) => it && matchesFilter(it, activeFilter));
-    if (bankEmpty) {
-      bankEmpty.style.display = visibleBank.length ? "none" : "";
-      bankEmpty.textContent = bank.length
-        ? "No items in this category."
-        : "Your bank is empty.";
-    }
+    if (bankEmpty) bankEmpty.style.display = "none";
 
     visibleBank.forEach(({ it, idx }) => {
       const q = Math.max(1, num(it.quantity ?? it.qty, 1));
@@ -343,7 +343,8 @@
     });
 
     const BANK_COLS = 6;
-    const BANK_MIN_SLOTS = 50;
+    const BANK_MIN_ROWS = 2;
+    const BANK_MIN_SLOTS = BANK_COLS * BANK_MIN_ROWS;
     const totalSlots = Math.max(BANK_MIN_SLOTS, Math.ceil(visibleBank.length / BANK_COLS) * BANK_COLS);
     const placeholders = Math.max(0, totalSlots - visibleBank.length);
     for (let i = 0; i < placeholders; i++) {
@@ -357,7 +358,10 @@
       bankGrid.appendChild(empty);
     }
 
-    renderBankInspector();
+    renderBankInspector(!visibleBank.length
+      ? (bank.length ? "No items in this category." : "Your bank is empty.")
+      : ""
+    );
   }
 
   function mountBank(root = null) {

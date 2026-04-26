@@ -1574,6 +1574,75 @@ a:hover{ text-decoration: underline; }
   justify-content: flex-start !important;
 }
 
+/* Bank page: keep withdraw controls reachable on narrow screens. */
+.bankShell{
+  width: 100%;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.bankLayout{
+  min-width: 0;
+}
+
+#bankFilterList,
+#bankGrid,
+#bankPreview{
+  min-width: 0;
+}
+
+#bankPreview{
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 760px){
+  .bankShell{
+    padding: 10px 8px !important;
+  }
+
+  .bankLayout{
+    max-width: none !important;
+    grid-template-columns: 1fr !important;
+    gap: 10px !important;
+  }
+
+  #bankFilterList{
+    display: grid !important;
+    grid-template-columns: repeat(auto-fit, minmax(72px, 1fr));
+    gap: 6px !important;
+  }
+
+  #bankFilterList .townBtn{
+    min-height: 28px !important;
+    height: 28px !important;
+    padding: 4px 6px !important;
+    border-radius: 8px !important;
+    font-size: 9px !important;
+    letter-spacing: 0 !important;
+    line-height: 1 !important;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  #bankGrid{
+    width: 100% !important;
+    grid-template-columns: repeat(6, 40px) !important;
+    justify-content: center !important;
+  }
+
+  .bankDivider{
+    width: 100% !important;
+    height: 1px !important;
+    align-self: auto !important;
+  }
+
+  #bankPreview{
+    width: 100%;
+    min-height: 176px !important;
+  }
+}
+
 /* Small screens */
 @media (max-width: 980px){
   #leftPanel{ padding: 12px; }
