@@ -7930,15 +7930,16 @@ function renderAll() {
         bindGlobalMarketSaleRealtime();
       }
 
-      if (!window.DSPartyHall) {
+      const page = normalizePagePath(window.location.pathname || "index.html");
+
+      if (page === "party_hall.html" && !window.DSPartyHall) {
         await ensureOptionalScript("party.js");
       }
       if (!window.DSLeaderboards) {
         await ensureOptionalScript("leaderboards.js");
       }
-      await window.DSPartyHall?.initRealtime?.();
+      if (page === "party_hall.html") await window.DSPartyHall?.initRealtime?.();
 
-      const page = normalizePagePath(window.location.pathname || "index.html");
       const rawSave = loadSave();
       if (page !== "create_character.html" && !hasCreatedHero(rawSave)) {
         window.location.href = "create_character.html";
@@ -7949,14 +7950,10 @@ function renderAll() {
       setupTabSyncOnce();
       ensureCoreDOM();
       hookInvTabs();
-      await loadLiveChatMessages("global");
-      await loadLiveChatMessages("market");
-      await loadLiveChatMessages("party");
-      await loadWhispers();
-      await ensureLiveChatSubscription("global");
-      await ensureLiveChatSubscription("market");
-      await ensureLiveChatSubscription("party");
-      await ensureWhisperSubscription();
+      if (isLiveChatTab(__chatTab)) await loadLiveChatMessages(__chatTab);
+      if (__chatTab === "whispers") await loadWhispers();
+      if (isLiveChatTab(__chatTab)) await ensureLiveChatSubscription(__chatTab);
+      if (__chatTab === "whispers") await ensureWhisperSubscription();
       ensureWhisperPolling();
       ensureLiveChatPolling("global");
       ensureLiveChatPolling("market");
@@ -7969,11 +7966,13 @@ function renderAll() {
         try { applyRegenTick(); } catch(e) { console.error("[UI] regen tick failed", e); }
       }, 2000);
       setInterval(() => {
+        if (!__presenceState.menuOpen) return;
         refreshPresenceSnapshot().catch((error) => {
           console.error("[UI] background presence refresh failed", error);
         });
       }, PRESENCE_DIRECTORY_REFRESH_MS);
       window.addEventListener("ds:presence-updated", () => {
+        if (!__presenceState.menuOpen) return;
         refreshPresenceSnapshot(true).catch((error) => {
           console.error("[UI] presence refresh after heartbeat failed", error);
         });
@@ -7981,7 +7980,7 @@ function renderAll() {
       window.addEventListener("ds:auth", async () => {
         try {
           await window.DSAuth?.refreshAdminStatus?.();
-          await refreshPresenceSnapshot(true);
+          if (__presenceState.menuOpen) await refreshPresenceSnapshot(true);
         } catch (error) {
           console.error("[UI] admin refresh failed", error);
         }

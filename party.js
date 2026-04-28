@@ -1512,6 +1512,7 @@
 
   async function initRealtime() {
     if (!window.DSAuth?.invokePartyAction) return;
+    if (!hasPartyPage()) return;
     if (state.initialized) {
       startPolling();
       startUiTimer();
@@ -1534,12 +1535,12 @@
   };
   window.addEventListener("DOMContentLoaded", () => {
     initStandalonePartyHall();
-    initRealtime();
+    if (hasPartyPage()) initRealtime();
   });
   window.addEventListener("ds:auth", () => {
-    initRealtime();
+    if (hasPartyPage()) initRealtime();
   });
   window.addEventListener("visibilitychange", () => {
-    if (!document.hidden) loadPartyState({ silent: true });
+    if (!document.hidden && hasPartyPage()) loadPartyState({ silent: true });
   });
 })();
