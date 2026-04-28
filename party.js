@@ -1,6 +1,7 @@
 (() => {
   const POLL_MS = 15000;
   const ACTIVE_PARTY_FIGHT_POLL_MS = 5000;
+  const INVITE_NOTICE_POLL_MS = 20000;
   const PARTY_HALL_MIN_LEVEL = 20;
   const PARTY_FIGHT_MONSTERS = [
     {
@@ -80,6 +81,7 @@
     inviteChannel: null,
     inviteUserId: "",
     inviteRefreshTimer: 0,
+    inviteNoticePollTimer: 0,
     realtimeRefreshTimer: 0,
     uiTimer: 0,
     uiRaf: 0,
@@ -217,6 +219,20 @@
 
   function invites() {
     return Array.isArray(state.data?.invites) ? state.data.invites : [];
+  }
+
+  function publishInviteNotice(count) {
+    const safeCount = Math.max(0, Math.floor(num(count, 0)));
+    window.dispatchEvent(new CustomEvent("ds:party-invite-notice", {
+      detail: {
+        active: safeCount > 0,
+        count: safeCount
+      }
+    }));
+  }
+
+  function publishInviteNoticeFromState() {
+    publishInviteNotice(invites().length);
   }
 
   function partyPoints() {
@@ -420,13 +436,51 @@
     state.realtimePartyId = partyId;
   }
 
+  async function refreshInviteNotice() {
+    const client = window.DSAuth?.getClient?.();
+    const userId = String(window.DSAuth?.getUser?.()?.id || "").trim();
+    if (!client?.from || !userId) {
+      publishInviteNoticeFromState();
+      return;
+    }
+
+    try {
+      const { data, error } = await client
+        .from("party_invites")
+        .select("id")
+        .eq("to_user_id", userId)
+        .eq("status", "pending")
+        .gt("expires_at", new Date().toISOString())
+        .limit(10);
+      if (error) throw error;
+      publishInviteNotice(Array.isArray(data) ? data.length : 0);
+    } catch (error) {
+      console.warn("[PartyHall] invite notice check failed", error);
+      publishInviteNoticeFromState();
+      if (hasPartyPage() && !state.loading && !state.actionBusy) {
+        Promise.resolve(loadPartyState({ silent: true })).catch(() => {});
+      }
+    }
+  }
+
   function queueInviteRefresh(delayMs = 250) {
     if (state.inviteRefreshTimer) window.clearTimeout(state.inviteRefreshTimer);
     state.inviteRefreshTimer = window.setTimeout(() => {
       state.inviteRefreshTimer = 0;
-      if (document.hidden || state.loading || state.actionBusy) return;
-      Promise.resolve(loadPartyState({ silent: true })).catch(() => {});
+      if (document.hidden) return;
+      Promise.resolve(refreshInviteNotice()).catch(() => {});
+      if (hasPartyPage() && !state.loading && !state.actionBusy) {
+        Promise.resolve(loadPartyState({ silent: true })).catch(() => {});
+      }
     }, Math.max(0, delayMs));
+  }
+
+  function startInviteNoticePolling() {
+    if (state.inviteNoticePollTimer) return;
+    state.inviteNoticePollTimer = window.setInterval(() => {
+      if (document.hidden) return;
+      Promise.resolve(refreshInviteNotice()).catch(() => {});
+    }, INVITE_NOTICE_POLL_MS);
   }
 
   async function initInviteWatcher() {
@@ -450,6 +504,7 @@
     channel.subscribe();
     state.inviteChannel = channel;
     state.inviteUserId = userId;
+    startInviteNoticePolling();
     queueInviteRefresh(1200);
   }
 
@@ -512,6 +567,7 @@
       } else if (!silent && !state.lastError) {
         setNotice(state.lastMessage || "");
       }
+      publishInviteNoticeFromState();
       renderInvitePopups();
       const sameActivePartyFrame = silent
         && previousActive
@@ -528,6 +584,7 @@
         state.lastError = error?.message || "Failed to load Party Hall.";
       }
       if (hasPartyPage() && !silent) renderPartyHall();
+      publishInviteNoticeFromState();
       renderInvitePopups();
       return null;
     } finally {
@@ -546,6 +603,7 @@
       state.lastError = "";
       const nextMessage = successMessage !== undefined ? successMessage : data?.message;
       setNotice(nextMessage || "");
+      publishInviteNoticeFromState();
       renderInvitePopups();
       if (hasPartyPage()) renderPartyHall();
       window.setTimeout(() => {
@@ -1445,30 +1503,9 @@
   }
 
   function renderInvitePopups() {
-    const host = ensurePopupHost();
-    const items = invites();
-    host.innerHTML = items.map((invite) => `
-      <div style="width:min(360px, calc(100vw - 32px));padding:14px;border-radius:14px;border:1px solid rgba(255,255,255,.12);background:linear-gradient(180deg, rgba(20,23,36,.98), rgba(12,14,24,.98));box-shadow:0 18px 42px rgba(0,0,0,.34);pointer-events:auto;">
-        <div style="font-size:15px;font-weight:900;margin-bottom:10px;color:#ead39b;">Party Invite</div>
-        <div style="display:grid;gap:6px;font-size:14px;">
-          <div>${esc(invite.fromHeroName)} invited you to join:</div>
-          <div style="font-size:18px;font-weight:900;color:#ead39b;margin-top:4px;">${esc(invite.partyName)}</div>
-          <div>Members: ${num(invite.memberCount, 0)} / ${num(invite.maxMembers, 4)}</div>
-          <div>Activity: ${esc(invite.activity)}</div>
-        </div>
-        <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:14px;">
-          <button type="button" data-popup-accept="${esc(invite.id)}">Accept</button>
-          <button type="button" data-popup-decline="${esc(invite.id)}">Decline</button>
-        </div>
-      </div>
-    `).join("");
-    host.querySelectorAll("[data-popup-accept]").forEach((btn) => btn.addEventListener("click", async () => {
-      const data = await runAction({ action: "respond_invite", inviteId: btn.dataset.popupAccept || "", response: "accept" }, "Joined party.");
-      if (data) openMyPartyScreen();
-    }));
-    host.querySelectorAll("[data-popup-decline]").forEach((btn) => btn.addEventListener("click", async () => {
-      await runAction({ action: "respond_invite", inviteId: btn.dataset.popupDecline || "", response: "decline" }, "");
-    }));
+    publishInviteNoticeFromState();
+    const host = document.getElementById("partyInvitePopupHost");
+    if (host) host.innerHTML = "";
   }
 
   function renderPartyHall() {

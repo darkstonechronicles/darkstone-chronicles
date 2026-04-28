@@ -2603,6 +2603,43 @@
           inset 0 -6px 10px rgba(0,0,0,.12);
         filter:drop-shadow(0 3px 6px rgba(0,0,0,.18));
       }
+      .dsNavIconWrap{
+        position:relative;
+        display:inline-flex;
+        flex:0 0 auto;
+      }
+      .dsPartyHallBadge{
+        position:absolute;
+        top:-5px;
+        right:-7px;
+        min-width:18px;
+        height:18px;
+        padding:0 4px;
+        border-radius:999px;
+        display:inline-flex;
+        align-items:center;
+        justify-content:center;
+        border:1px solid rgba(255,238,170,.95);
+        background:linear-gradient(180deg, #ffdf68 0%, #d8901e 100%);
+        color:#241606;
+        font-size:10px;
+        font-weight:900;
+        line-height:1;
+        box-shadow:
+          0 0 0 2px rgba(22,16,10,.96),
+          0 0 16px rgba(255,194,64,.55);
+        text-shadow:none;
+        pointer-events:none;
+      }
+      .dsNav button.dsPartyHallNoticeActive{
+        border-color:rgba(238, 190, 82, .98);
+        box-shadow:
+          0 0 0 1px rgba(50,34,12,.94),
+          0 0 20px rgba(238, 177, 59, .24),
+          inset 0 1px 0 rgba(255,236,194,.14),
+          inset 0 -8px 14px rgba(0,0,0,.14),
+          0 10px 18px rgba(0,0,0,.22);
+      }
       .dsNav button.dsNavImageBtn{
         padding:0;
         border:0;
@@ -4577,8 +4614,11 @@ function claimActiveChallengeFromQuest(){
           <img class="dsNavIconImg" src="images/ui/market.webp" alt="" aria-hidden="true">
           Market
         </button>
-        <button id="navPartyHall" aria-label="Party Hall" data-open-tab-href="party_hall.html">
-          <img class="dsNavIconImg" src="images/ui/party.webp" alt="" aria-hidden="true">
+        <button id="navPartyHall" class="${__partyHallNotice.active ? "dsPartyHallNoticeActive" : ""}" aria-label="${__partyHallNotice.active ? "Party Hall - new invite" : "Party Hall"}" data-open-tab-href="party_hall.html">
+          <span class="dsNavIconWrap">
+            <img class="dsNavIconImg" src="images/ui/party.webp" alt="" aria-hidden="true">
+            ${__partyHallNotice.active ? `<span class="dsPartyHallBadge" aria-hidden="true">${__partyHallNotice.count > 9 ? "9+" : (__partyHallNotice.count || "!")}</span>` : ""}
+          </span>
           Party Hall
         </button>
       </div>`;
@@ -4745,6 +4785,24 @@ const __presenceState = {
   lastFetchAt: 0,
   error: ""
 };
+
+const __partyHallNotice = {
+  active: false,
+  count: 0
+};
+
+function setPartyHallNotice(detail = {}) {
+  const count = Math.max(0, Math.floor(num(detail.count, 0)));
+  const active = detail.active !== undefined ? !!detail.active : count > 0;
+  const changed = __partyHallNotice.active !== active || __partyHallNotice.count !== count;
+  __partyHallNotice.active = active;
+  __partyHallNotice.count = count;
+  if (changed) forceRerenderNow();
+}
+
+window.addEventListener("ds:party-invite-notice", (event) => {
+  setPartyHallNotice(event.detail || {});
+});
 
 function formatPresenceAgo(isoString) {
   if (!isoString) return "Never";
