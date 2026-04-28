@@ -7,12 +7,13 @@
   const ACTIVE_SESSION_KEY = "darkstone_active_client_session_v1";
   const ACTIVE_SESSION_PENDING_KEY = "ds:claim-active-session";
   const ACTIVE_SESSION_HANDOFF_GRACE_MS = 2500;
-  const CLOUD_SAVE_DEBOUNCE_MS = 250;
-  const LOCAL_SAVE_SYNC_DELAY_MS = 120;
-  const CLOUD_SAVE_HEARTBEAT_MS = 15000;
+  const CLOUD_SAVE_DEBOUNCE_MS = 5000;
+  const LOCAL_SAVE_SYNC_DELAY_MS = 5000;
+  const CLOUD_SAVE_HEARTBEAT_MS = 60000;
   const CLOUD_BACKUP_MIN_INTERVAL_MS = 5 * 60 * 1000;
   const CLOUD_BACKUP_MIN_REVISION_DELTA = 15;
-  const IMPORTANT_SYNC_MIN_INTERVAL_MS = 3000;
+  const IMPORTANT_SYNC_MIN_INTERVAL_MS = 10000;
+  const ACTION_JOURNAL_REMOTE_ENABLED = false;
   const LOCAL_BACKUP_HISTORY_LIMIT = 6;
   const SUPABASE_SCRIPT_SRC = "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js";
   const APP_VERSION_URL = "version.json";
@@ -819,8 +820,9 @@
   function prioritizeCloudSaveSync() {
     if (!state.user?.id || !state.cloud.ready) return false;
     const now = Date.now();
-    if (now - Number(state.cloud.lastPrioritySyncAt || 0) < IMPORTANT_SYNC_MIN_INTERVAL_MS) {
-      scheduleCloudSaveSync(0);
+    const elapsed = now - Number(state.cloud.lastPrioritySyncAt || 0);
+    if (elapsed < IMPORTANT_SYNC_MIN_INTERVAL_MS) {
+      scheduleCloudSaveSync(IMPORTANT_SYNC_MIN_INTERVAL_MS - elapsed);
       return false;
     }
     state.cloud.lastPrioritySyncAt = now;
@@ -1335,6 +1337,15 @@
   }
 
   async function invokeActionJournal(payload = {}) {
+    if (!ACTION_JOURNAL_REMOTE_ENABLED) {
+      return {
+        ok: true,
+        skipped: true,
+        localOnly: true,
+        actionId: String(payload?.actionId || "")
+      };
+    }
+
     await ready;
     if (!state.client || !state.user?.id) {
       throw new Error("No active session.");

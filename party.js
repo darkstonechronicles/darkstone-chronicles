@@ -1,6 +1,6 @@
 (() => {
-  const POLL_MS = 1500;
-  const ACTIVE_PARTY_FIGHT_POLL_MS = 350;
+  const POLL_MS = 15000;
+  const ACTIVE_PARTY_FIGHT_POLL_MS = 5000;
   const PARTY_HALL_MIN_LEVEL = 20;
   const PARTY_FIGHT_MONSTERS = [
     {
@@ -443,7 +443,7 @@
     if (visualResolvedCount > resolvedCount && !state.loading && !state.actionBusy) {
       const now = Date.now();
       const sameRound = state.boundaryResolvedCount === visualResolvedCount;
-      if (!sameRound || (now - state.boundaryFetchAt) >= 120) {
+      if (!sameRound || (now - state.boundaryFetchAt) >= 2500) {
         state.boundaryResolvedCount = visualResolvedCount;
         state.boundaryFetchAt = now;
         queuePartyFightBoundaryFetch(visualResolvedCount);
