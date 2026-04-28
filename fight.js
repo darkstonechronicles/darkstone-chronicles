@@ -36,6 +36,16 @@ function getCurrentSave(){ return loadSave(); }
 
 const num = (v, f=0) => (Number.isFinite(Number(v)) ? Number(v) : f);
 const clamp = (v,a,b) => Math.max(a, Math.min(b, v));
+function normalizeFightAsset(src){
+  const value = String(src || "").trim();
+  if (!/\.png(?:$|[?#])/i.test(value)) return value;
+  const sibling = window.DSImage?.webpSibling?.(value);
+  if (sibling) return sibling;
+  if (/^images\/mobs\/fighting\//i.test(value) || /^images\/items\/sigils\//i.test(value)) {
+    return value.replace(/\.png(?=$|[?#])/i, ".webp");
+  }
+  return value;
+}
 const POTION_ACTIONS = 100;
 const AUTO_FISH_HP_THRESHOLD = 0.25;
 const AUTO_FISH_HP_TARGET = 0.50;
@@ -188,14 +198,15 @@ function getMobCombatStats(mob){
   const lvl = Math.max(1, num(mob?.lvl, 1));
   const baseAtk = Math.max(1, num(mob?.atk, 1));
   const baseDef = Math.max(0, num(mob?.def, 0));
+  const base = { ...mob, img: normalizeFightAsset(mob?.img) };
 
   if (lvl <= 3) {
-    return { ...mob, atk: baseAtk, def: baseDef };
+    return { ...base, atk: baseAtk, def: baseDef };
   }
 
   const boostedAtk = Math.max(baseAtk, Math.round(8 + lvl * 4));
   const boostedDef = Math.max(baseDef, Math.round(2 + lvl * 2));
-  return { ...mob, atk: boostedAtk, def: boostedDef };
+  return { ...base, atk: boostedAtk, def: boostedDef };
 }
 
 // =========================

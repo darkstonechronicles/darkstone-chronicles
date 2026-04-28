@@ -28,8 +28,10 @@
     "images/charms/",
     "images/dungeons/",
     "images/mobs/dungeons/",
+    "images/mobs/fighting/",
     "images/items/forge_crafted/",
     "images/items/sets/",
+    "images/items/sigils/",
     "images/heroes/",
     "images/wood/logs/",
     "images/gems/",
@@ -590,6 +592,27 @@
     const normalized = value.toLowerCase();
     if (!WEBP_SIBLING_PREFIXES.some((prefix) => normalized.startsWith(prefix))) return "";
     return value.replace(/\.png(?=$|[?#])/i, ".webp");
+  }
+
+  function normalizeAssetPath(src) {
+    const value = String(src || "").trim();
+    if (!value) return value;
+    return getWebpSiblingPath(value) || value;
+  }
+
+  function normalizeItemAsset(item) {
+    if (!item || typeof item !== "object") return;
+    if (item.img != null) item.img = normalizeAssetPath(item.img);
+  }
+
+  function normalizeItemAssetCollection(items) {
+    if (!Array.isArray(items)) return;
+    items.forEach(normalizeItemAsset);
+  }
+
+  function normalizeSlotAssetCollection(slots) {
+    if (!slots || typeof slots !== "object") return;
+    Object.values(slots).forEach(normalizeItemAsset);
   }
 
   function bindAssetImageFallback(img) {
@@ -1507,6 +1530,13 @@
     };
     fixCookedFish(s.inventory);
     fixCookedFish(s.bank);
+
+    normalizeItemAssetCollection(s.inventory);
+    normalizeItemAssetCollection(s.bank);
+    normalizeSlotAssetCollection(s.equipment);
+    normalizeSlotAssetCollection(s.consumables);
+    normalizeItemAsset(s.battleCharm);
+    normalizeItemAsset(s.defenseCharm);
 
     // Merge legacy .png/.webp duplicate stacks after asset path changes.
     mergeDuplicateStacks(s.inventory);
