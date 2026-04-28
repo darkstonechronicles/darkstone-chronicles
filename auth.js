@@ -578,6 +578,17 @@
     return data || null;
   }
 
+  async function fetchRemoteSaveMeta() {
+    if (!state.client || !state.user?.id) return null;
+    const { data, error } = await state.client
+      .from("player_saves")
+      .select("revision, updated_at")
+      .eq("user_id", state.user.id)
+      .maybeSingle();
+    if (error) throw error;
+    return data || null;
+  }
+
   async function upsertProfileAndStats(save) {
     if (!state.client || !state.user?.id) return;
     const userMeta = state.user.user_metadata || {};
@@ -616,12 +627,13 @@
     const allowCreate = options.allowCreate !== false;
     const allowRemoteOverride = options.allowRemoteOverride === true;
     const knownRevision = Math.max(0, Number(state.cloud.revision || 0) || 0);
-    const remote = await fetchRemoteSave();
+    const remote = await fetchRemoteSaveMeta();
     const remoteRevision = Math.max(0, Number(remote?.revision || 0) || 0);
 
     if (remote && remoteRevision > knownRevision && !allowRemoteOverride) {
-      applyRemoteSaveSnapshot(remote);
-      return { ok: false, reason: "stale-remote", remote };
+      const fullRemote = await fetchRemoteSave();
+      if (fullRemote) applyRemoteSaveSnapshot(fullRemote);
+      return { ok: false, reason: "stale-remote", remote: fullRemote || remote };
     }
 
     const nowIso = new Date().toISOString();

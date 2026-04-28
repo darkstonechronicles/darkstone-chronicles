@@ -20,7 +20,10 @@
   const CHAT_TAB_KEY = "darkstone_chat_tab_v1";
   const TAB_SYNC_CHANNEL = "darkstone_tab_sync_v1";
   const REFRESH_MS = 800;
-  const GLOBAL_CHAT_FETCH_LIMIT = 80;
+  const GLOBAL_CHAT_FETCH_LIMIT = 40;
+  const LIVE_CHAT_POLL_MS = 30000;
+  const WHISPER_POLL_MS = 30000;
+  const PRESENCE_DIRECTORY_REFRESH_MS = 120000;
   const GLOBAL_CHAT_COOLDOWN_MS = 2000;
   const GLOBAL_CHAT_DUPLICATE_WINDOW_MS = 6000;
   const CHAT_CHANNELS = ["global", "market", "clan", "party", "whispers"];
@@ -867,8 +870,9 @@
     if (__whisperState.pollTimer) return;
     __whisperState.pollTimer = window.setInterval(() => {
       if (document.hidden) return;
+      if (__chatTab !== "whispers") return;
       loadWhispers(true);
-    }, 3000);
+    }, WHISPER_POLL_MS);
   }
 
   async function sendWhisper(save, text) {
@@ -1391,8 +1395,9 @@
     if (state.pollTimer) return;
     state.pollTimer = window.setInterval(() => {
       if (document.hidden) return;
+      if (__chatTab !== tab) return;
       loadLiveChatMessages(tab, true);
-    }, 3000);
+    }, LIVE_CHAT_POLL_MS);
   }
 
   function calcHpMax(level){
@@ -7967,7 +7972,7 @@ function renderAll() {
         refreshPresenceSnapshot().catch((error) => {
           console.error("[UI] background presence refresh failed", error);
         });
-      }, 60000);
+      }, PRESENCE_DIRECTORY_REFRESH_MS);
       window.addEventListener("ds:presence-updated", () => {
         refreshPresenceSnapshot(true).catch((error) => {
           console.error("[UI] presence refresh after heartbeat failed", error);
