@@ -421,8 +421,7 @@ function usedUnits(inv){
 }
 
 function itemStackKey(it){
-  // stack by type+id/name+img to keep it simple (raw meat stacks)
-  return [it.type||"", it.id||"", it.name||"", it.img||""].join("::");
+  return [it.type||"", it.id||"", it.name||""].join("::");
 }
 function addToInventoryStack(save, item, qty){
   if (window.DSInventory?.addItem) {

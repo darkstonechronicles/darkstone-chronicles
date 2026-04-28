@@ -380,8 +380,7 @@ function itemStackKey(it){
     it.def ?? 0,
     it.attackBonus ?? 0,
     it.defenseBonus ?? 0,
-    it.rarity || "",
-    it.img || ""
+    it.rarity || ""
   ].join("::");
 }
 function addToInventoryStack(save, item, qty){

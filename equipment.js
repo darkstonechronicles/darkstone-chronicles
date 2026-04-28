@@ -93,7 +93,6 @@
       it.enchantGoldPct ?? 0,
       it.enchantLuckPct ?? 0,
       it.rarity || "",
-      it.img || "",
       it.upg ?? 0
     ].join("::");
   }

@@ -299,7 +299,7 @@ function getZoneDef(id){
   return HERB_ZONES.find((zone) => zone.id === id) || HERB_ZONES[0];
 }
 function itemStackKey(it){
-  return [it.type || "", it.name || "", it.img || ""].join("::");
+  return [it.type || "", it.id || "", it.name || ""].join("::");
 }
 function addToInventoryStack(save, item, qty){
   if (window.DSInventory?.addItem) {

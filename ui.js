@@ -1455,6 +1455,10 @@
     fixCookedFish(s.inventory);
     fixCookedFish(s.bank);
 
+    // Merge legacy .png/.webp duplicate stacks after asset path changes.
+    mergeDuplicateStacks(s.inventory);
+    mergeDuplicateStacks(s.bank);
+
     // gear can stack to save space
     unstackGear(s.inventory);
     unstackGear(s.bank);
@@ -6372,17 +6376,52 @@ function rarityMult(r) {
       it.enchantGoldPct ?? 0,
       it.enchantLuckPct ?? 0,
       it.rarity || "",
-      it.img || "",
       it.upg ?? 0,
       it.actionsLeft ?? ""
     ].join("::");
   }
 
+function preferNewerImage(existing, incoming) {
+  const current = String(existing?.img || "");
+  const next = String(incoming?.img || "");
+  if (next && (!current || (/\.png$/i.test(current) && /\.webp$/i.test(next)))) {
+    existing.img = next;
+  }
+}
+
 function addToStack(arr, item, qty = 1) {
   const key = itemStackKey(item);
   const ex = arr.find(i => i && itemStackKey(i) === key);
-  if (ex) ex.quantity = num(ex.quantity, 1) + qty;
+  if (ex) {
+    ex.quantity = num(ex.quantity, 1) + qty;
+    preferNewerImage(ex, item);
+  }
   else arr.push({ ...item, quantity: qty });
+}
+
+function mergeDuplicateStacks(arr) {
+  if (!Array.isArray(arr)) return false;
+  const byKey = new Map();
+  const merged = [];
+  let changed = false;
+  for (const item of arr) {
+    if (!item) continue;
+    const key = itemStackKey(item);
+    const existing = byKey.get(key);
+    if (existing) {
+      existing.quantity = num(existing.quantity ?? existing.qty, 1) + num(item.quantity ?? item.qty, 1);
+      preferNewerImage(existing, item);
+      changed = true;
+    } else {
+      byKey.set(key, item);
+      merged.push(item);
+    }
+  }
+  if (changed) {
+    arr.length = 0;
+    merged.forEach((item) => arr.push(item));
+  }
+  return changed;
 }
 
 function inventoryUsedUnits(inv) {
@@ -6423,7 +6462,10 @@ function addInventoryItem(save, item, qty = 1, options = {}) {
   if (stack) {
     const key = stackKeyFn(item);
     const ex = save.inventory.find(i => i && stackKeyFn(i) === key);
-    if (ex) ex.quantity = num(ex.quantity, 1) + amount;
+    if (ex) {
+      ex.quantity = num(ex.quantity, 1) + amount;
+      preferNewerImage(ex, item);
+    }
     else if (prepend) save.inventory.unshift({ ...item, quantity: amount });
     else save.inventory.push({ ...item, quantity: amount });
     return { ok: true, added: amount };

@@ -62,7 +62,6 @@
       it.attackBonus ?? 0,
       it.defenseBonus ?? 0,
       it.rarity || "",
-      it.img || "",
       it.upg ?? 0,
       it.healHp ?? 0,
       it.healStamina ?? 0

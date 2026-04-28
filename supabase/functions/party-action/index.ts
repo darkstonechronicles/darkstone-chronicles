@@ -421,13 +421,18 @@ function addStackableInventoryItem(saveData: unknown, itemData: unknown, quantit
   const item = asRecord(itemData);
   const qty = Math.max(1, int(quantity, 1));
   const inventory = ensureInventory(save);
-  const key = [str(item.type), str(item.id), str(item.name), str(item.img)].join("::");
+  const key = [str(item.type), str(item.id), str(item.name)].join("::");
   const existing = inventory.find((entry) => {
     const row = asRecord(entry);
-    return [str(row.type), str(row.id), str(row.name), str(row.img)].join("::") === key;
+    return [str(row.type), str(row.id), str(row.name)].join("::") === key;
   });
   if (existing) {
     existing.quantity = Math.max(1, int(existing.quantity ?? existing.qty, 1)) + qty;
+    const currentImg = str(existing.img);
+    const nextImg = str(item.img);
+    if (nextImg && (!currentImg || (currentImg.endsWith(".png") && nextImg.endsWith(".webp")))) {
+      existing.img = nextImg;
+    }
   } else {
     inventory.push({ ...item, quantity: qty });
   }

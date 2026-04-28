@@ -749,7 +749,7 @@
   }
 
   function itemKey(item) {
-    return [item.type || "", item.id || "", item.name || "", item.img || ""].join("::");
+    return [item.type || "", item.id || "", item.name || ""].join("::");
   }
 
   function addItem(save, item, qty = 1) {

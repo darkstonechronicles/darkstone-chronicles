@@ -287,7 +287,7 @@ function hasSpaceFor(save, addUnits){
   return usedUnits(save.inventory) + addUnits <= Number(save.inventoryMaxSlots || 1000);
 }
 function itemStackKey(it){
-  return [it.type || "", it.name || "", it.img || "", it.rarity || ""].join("::");
+  return [it.type || "", it.id || "", it.name || "", it.rarity || ""].join("::");
 }
 function addToInventoryStack(save, item, qty){
   if (window.DSInventory?.addItem) {

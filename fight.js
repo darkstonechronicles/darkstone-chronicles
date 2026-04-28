@@ -878,7 +878,6 @@ function itemStackKey(it){
     it.atk ?? 0,
     it.def ?? 0,
     it.rarity || "",
-    it.img || "",
     it.upg ?? 0
   ].join("::");
 }

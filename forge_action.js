@@ -465,8 +465,7 @@ function itemStackKey(it){
     it.atk ?? 0,
     it.def ?? 0,
     it.attackBonus ?? 0,
-    it.rarity || "",
-    it.img || ""
+    it.rarity || ""
   ].join("::");
 }
 function addToInventoryStack(save, item, qty){

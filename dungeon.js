@@ -790,8 +790,7 @@
       it.reqLevel ?? 1,
       it.atk ?? 0,
       it.def ?? 0,
-      it.rarity || "",
-      it.img || ""
+      it.rarity || ""
     ].join("::");
   }
 
@@ -2355,7 +2354,6 @@
     if(state.running) persistRunState();
   });
 })();
-
 
 
 
