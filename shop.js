@@ -39,7 +39,7 @@
           <div style="display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;margin-bottom:14px;">
             <div style="display:flex;align-items:center;gap:14px;">
               <div style="width:64px;height:64px;border-radius:18px;border:1px solid rgba(214,170,80,.8);background:linear-gradient(180deg,rgba(28,24,18,.96),rgba(10,9,12,.96));display:grid;place-items:center;box-shadow:0 12px 28px rgba(0,0,0,.26);">
-                <img src="images/ui/darkstone_coin.png" alt="" style="width:42px;height:42px;object-fit:contain;display:block;">
+                <img src="images/ui/darkstone_coin.webp" alt="" style="width:42px;height:42px;object-fit:contain;display:block;">
               </div>
               <div>
                 <h1 style="margin:0 0 4px;">Darkstone Coin Shop</h1>
@@ -48,7 +48,7 @@
             </div>
             <div style="display:flex;align-items:center;gap:8px;padding:12px 16px;border-radius:16px;border:1px solid rgba(166,124,64,.5);background:linear-gradient(180deg,rgba(42,34,23,.86),rgba(17,14,18,.92));color:#fff0cf;box-shadow:0 12px 24px rgba(0,0,0,.18);">
               <span style="font-size:13px;font-weight:900;text-transform:uppercase;letter-spacing:.08em;color:#d8c59c;">Balance</span>
-              <img src="images/ui/darkstone_coin.png" alt="" style="width:22px;height:22px;object-fit:contain;display:block;">
+              <img src="images/ui/darkstone_coin.webp" alt="" style="width:22px;height:22px;object-fit:contain;display:block;">
               <span style="font-size:24px;font-weight:900;">
                 ${new Intl.NumberFormat("el-GR").format(Math.max(0, Number(wallet) || 0))}
               </span>
@@ -88,7 +88,7 @@
       <div style="padding:16px 14px;border-radius:20px;border:1px solid rgba(166,124,64,.42);background:linear-gradient(180deg,rgba(58,42,26,.62),rgba(16,14,18,.94));box-shadow:0 18px 38px rgba(0,0,0,.22);text-align:center;">
         <div style="display:flex;align-items:center;justify-content:center;gap:8px;font-size:30px;font-weight:900;line-height:1;color:#fff4dc;margin-bottom:8px;">
           <span>${pack.amount}</span>
-          <img src="images/ui/darkstone_coin.png" alt="" style="width:24px;height:24px;object-fit:contain;display:block;filter:drop-shadow(0 2px 6px rgba(0,0,0,.25));">
+          <img src="images/ui/darkstone_coin.webp" alt="" style="width:24px;height:24px;object-fit:contain;display:block;filter:drop-shadow(0 2px 6px rgba(0,0,0,.25));">
         </div>
         <div style="font-size:15px;font-weight:800;line-height:1.2;color:#d8cab0;white-space:nowrap;margin-bottom:10px;">
           Darkstone Coins

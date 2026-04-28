@@ -70,7 +70,7 @@
       { tier: 1, name: "Workshop Mouse", cost: 100000, professionXpPctPerLevel: 0.0010, img: "images/pets/artisan_workshop_mouse.png", iconText: "WM" },
       { tier: 2, name: "Craft Imp", cost: 1000000, professionXpPctPerLevel: 0.0015, img: "images/pets/artisan_craft_imp.png", iconText: "CI" },
       { tier: 3, name: "Forge Elemental", cost: 10000000, professionXpPctPerLevel: 0.0020, img: "images/pets/artisan_forge_elemental.png", iconText: "FE" },
-      { tier: 4, name: "Ember Servitor", cost: 100000000, professionXpPctPerLevel: 0.0025, img: "images/pets/artisan_ember_servitor.png", iconText: "ES" },
+      { tier: 4, name: "Ember Servitor", cost: 100000000, professionXpPctPerLevel: 0.0025, img: "images/pets/artisan_ember_servitor.webp", iconText: "ES" },
       { tier: 5, name: "Eternal Homunculus", cost: 1000000000, professionXpPctPerLevel: 0.0030, img: "images/pets/artisan_eternal_homunculus.png", iconText: "EH" }
     ]
   };
@@ -610,7 +610,7 @@
     popup.innerHTML = `
       <div class="dsMarketSalePopup" role="dialog" aria-modal="true">
         <div class="dsMarketSalePopupTop">
-          <img src="${escapeHtml(sale.img || "images/ui/market.png")}" alt="">
+          <img src="${escapeHtml(sale.img || "images/ui/market.webp")}" alt="">
           <div style="min-width:0;flex:1;">
             <div class="dsMarketSalePopupTitle">You sold ${escapeHtml(sale.itemName || "an item")}</div>
             <div class="dsMarketSalePopupMeta">
@@ -2375,7 +2375,7 @@
         height:100%;
         display:block;
         position:relative;
-        background-image:url("images/ui/nav_button_frame.png");
+        background-image:url("images/ui/nav_button_frame.webp");
         background-repeat:no-repeat;
         background-position:center;
         background-size:100% 100%;
@@ -2656,28 +2656,28 @@
         transform:scaleY(1.44);
       }
       .dsNavImageArtHome::before{
-        background-image:url("images/ui/nav_button_frame.png");
+        background-image:url("images/ui/nav_button_frame.webp");
       }
       .dsNavImageArtFight::before{
-        background-image:url("images/ui/nav_button_frame.png");
+        background-image:url("images/ui/nav_button_frame.webp");
       }
       .dsNavImageArtDungeons::before{
-        background-image:url("images/ui/nav_button_frame.png");
+        background-image:url("images/ui/nav_button_frame.webp");
       }
       .dsNavImageArtBuildings::before{
-        background-image:url("images/ui/nav_button_frame.png");
+        background-image:url("images/ui/nav_button_frame.webp");
       }
       .dsNavImageArtChallenges::before{
-        background-image:url("images/ui/nav_button_frame.png");
+        background-image:url("images/ui/nav_button_frame.webp");
       }
       .dsNavImageArtProfessions::before{
-        background-image:url("images/ui/nav_button_frame.png");
+        background-image:url("images/ui/nav_button_frame.webp");
       }
       .dsNavImageArtMarket::before{
-        background-image:url("images/ui/nav_button_frame.png");
+        background-image:url("images/ui/nav_button_frame.webp");
       }
       .dsNavImageArtBank::before{
-        background-image:url("images/ui/nav_button_frame.png");
+        background-image:url("images/ui/nav_button_frame.webp");
       }
       .dsNavImageLabel{
         position:absolute;
@@ -3632,11 +3632,11 @@
             const title = it ? `${it.name || slot.label}${potionBonus ? ` — ${potionBonus}` : ""}${charmBonus ? ` — ${charmBonus}` : ""}${defenseCharmBonus ? ` — ${defenseCharmBonus}` : ""}` : slot.label;
             const qty = num(it?.quantity ?? it?.qty, 1);
             const isPotion = isPotionItem(it);
-            const emptyPotionImg = slot.kind === "potion" ? "images/alchemy/tiers/tier_1.png" : "";
-            const emptyMeatImg = slot.kind === "meat" ? "images/meat/night_wolf_cooked.png" : "";
-            const emptyFishImg = slot.kind === "cooked_fish" ? "images/food/cooked_golden_perch.png" : "";
-            const emptyCharmImg = slot.kind === "battle_charm" ? "images/charms/copper_battle_charm.png" : "";
-            const emptyDefenseCharmImg = slot.kind === "defense_charm" ? "images/charms/ash_defense_charm.png" : "";
+            const emptyPotionImg = slot.kind === "potion" ? "images/alchemy/tiers/tier_1.webp" : "";
+            const emptyMeatImg = slot.kind === "meat" ? "images/meat/night_wolf_cooked.webp" : "";
+            const emptyFishImg = slot.kind === "cooked_fish" ? "images/food/cooked_golden_perch.webp" : "";
+            const emptyCharmImg = slot.kind === "battle_charm" ? "images/charms/copper_battle_charm.webp" : "";
+            const emptyDefenseCharmImg = slot.kind === "defense_charm" ? "images/charms/ash_defense_charm.webp" : "";
             const emptySlotImg = emptyPotionImg || emptyMeatImg || emptyFishImg || emptyCharmImg || emptyDefenseCharmImg;
             let actionsText = "";
             if (it && isPotion){
@@ -3816,7 +3816,7 @@
         <div class="invFooter">
           <div class="invMeta">
             <button id="darkStoneWalletBtn" type="button" class="invMetaItem invMetaFooter invPremiumBtn" title="Darkstone Coin: 0">
-              <img class="invCurrencyIcon" src="images/ui/darkstone_coin.png" alt="">
+              <img class="invCurrencyIcon" src="images/ui/darkstone_coin.webp" alt="">
               <span id="darkStoneValue">0</span>
             </button>
             <div class="invMetaItem invMetaFooter invGold">
@@ -4546,35 +4546,35 @@ function claimActiveChallengeFromQuest(){
   const navMarkup = `
       <div class="dsNav">
         <button id="navHome" aria-label="Home" data-open-tab-href="index.html">
-          <img class="dsNavIconImg" src="images/ui/home.png" alt="" aria-hidden="true">
+          <img class="dsNavIconImg" src="images/ui/home.webp" alt="" aria-hidden="true">
           Home
         </button>
         <button id="navFight" aria-label="Fight" data-open-tab-href="fight.html">
-          <img class="dsNavIconImg" src="images/ui/fight.png" alt="" aria-hidden="true">
+          <img class="dsNavIconImg" src="images/ui/fight.webp" alt="" aria-hidden="true">
           Fight
         </button>
         <button id="navDungeons" aria-label="Dungeons" data-open-tab-href="dungeons.html">
-          <img class="dsNavIconImg" src="images/ui/dungeons.png" alt="" aria-hidden="true">
+          <img class="dsNavIconImg" src="images/ui/dungeons.webp" alt="" aria-hidden="true">
           Dungeons
         </button>
         <button id="navBuildings" aria-label="Buildings" data-open-tab-href="buildings.html">
-          <img class="dsNavIconImg" src="images/ui/buildings.png" alt="" aria-hidden="true">
+          <img class="dsNavIconImg" src="images/ui/buildings.webp" alt="" aria-hidden="true">
           Buildings
         </button>
         <button id="navLeaderboards" aria-label="Leaderboards" data-open-tab-href="leaderboards.html">
-          <img class="dsNavIconImg" src="images/ui/stats.png" alt="" aria-hidden="true">
+          <img class="dsNavIconImg" src="images/ui/stats.webp" alt="" aria-hidden="true">
           Leaderboards
         </button>
         <button id="navProfessions" aria-label="Professions" data-open-tab-href="professions.html">
-          <img class="dsNavIconImg" src="images/ui/professions.png" alt="" aria-hidden="true">
+          <img class="dsNavIconImg" src="images/ui/professions.webp" alt="" aria-hidden="true">
           Professions
         </button>
         <button id="navMarket" aria-label="Market" data-open-tab-href="market.html">
-          <img class="dsNavIconImg" src="images/ui/market.png" alt="" aria-hidden="true">
+          <img class="dsNavIconImg" src="images/ui/market.webp" alt="" aria-hidden="true">
           Market
         </button>
         <button id="navPartyHall" aria-label="Party Hall" data-open-tab-href="party_hall.html">
-          <img class="dsNavIconImg" src="images/ui/party.png" alt="" aria-hidden="true">
+          <img class="dsNavIconImg" src="images/ui/party.webp" alt="" aria-hidden="true">
           Party Hall
         </button>
       </div>`;
@@ -4923,8 +4923,8 @@ function adminItemThumbHtml(item) {
 function buildAdminItemCatalog() {
   const manualItems = [
     { type: "consumable", id: "arrows", name: "Arrows", img: "images/items/arrows.png" },
-    { type: "material", id: "empty_vial", name: "Empty Vial", img: "images/alchemy/items/empty_vial.png" },
-    { type: "material", id: "orb_of_creation", name: "Orb of Creation", img: "images/ui/orb_of_creation.png" },
+    { type: "material", id: "empty_vial", name: "Empty Vial", img: "images/alchemy/items/empty_vial.webp" },
+    { type: "material", id: "orb_of_creation", name: "Orb of Creation", img: "images/ui/orb_of_creation.webp" },
     { type: "material", id: "rough_ruby", name: "Rough Ruby", img: "images/gems/rough_ruby.png" },
     { type: "material", id: "rough_sapphire", name: "Rough Sapphire", img: "images/gems/rough_sapphire.png" },
     { type: "material", id: "rough_emerald", name: "Rough Emerald", img: "images/gems/rough_emerald.png" },
@@ -4946,7 +4946,7 @@ function buildAdminItemCatalog() {
     { type: "material", id: "masterwork_topaz", name: "Masterwork Topaz", img: "images/gems/masterwork_topaz.png" },
     { type: "material", id: "masterwork_amethyst", name: "Masterwork Amethyst", img: "images/gems/masterwork_amethyst.png" },
     { type: "material", id: "exquisite_ruby", name: "Exquisite Ruby", img: "images/gems/exquisite_ruby.png" },
-    { type: "material", id: "exquisite_sapphire", name: "Exquisite Sapphire", img: "images/gems/exquisite_sapphire.png" },
+    { type: "material", id: "exquisite_sapphire", name: "Exquisite Sapphire", img: "images/gems/exquisite_sapphire.webp" },
     { type: "material", id: "exquisite_emerald", name: "Exquisite Emerald", img: "images/gems/exquisite_emerald.png" },
     { type: "material", id: "exquisite_topaz", name: "Exquisite Topaz", img: "images/gems/exquisite_topaz.png" },
     { type: "material", id: "exquisite_amethyst", name: "Exquisite Amethyst", img: "images/gems/exquisite_amethyst.png" }

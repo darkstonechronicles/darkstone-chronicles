@@ -15,7 +15,7 @@ const ORE_SIGIL_ITEM = {
   type: "material",
   id: "ore_sigil",
   name: "Ore Sigil",
-  img: "images/items/sigils/ore_sigil.png"
+  img: "images/items/sigils/ore_sigil.webp"
 };
 const ROUGH_GEM_DROP_CHANCE = 1 / 100;
 const ROUGH_GEM_POOL = [
@@ -293,16 +293,16 @@ function renderGatheringPetBonus(save){
 
 // ✅ New ore progression (11 ores, includes coal) — must match mining.js + forge_action.js names
 const ORES = [
-  { id:"copper_ore",      name:"Copper Ore",       req:1,  img:"images/ores/copper_ore.png" },
-  { id:"silver_ore",      name:"Silver Ore",       req:10, img:"images/ores/silver_ore.png" },
-  { id:"iron_ore",        name:"Iron Ore",         req:20, img:"images/ores/iron_ore.png" },
-  { id:"mithril_ore",     name:"Mithril Ore",      req:30, img:"images/ores/mithril_ore.png" },
-  { id:"adamant_ore",     name:"Adamant Ore",      req:40, img:"images/ores/adamant_ore.png" },
-  { id:"obsidian_ore",    name:"Obsidian Ore",     req:50, img:"images/ores/obsidian_ore.png" },
-  { id:"crystal_ore",     name:"Crystal Ore",      req:60, img:"images/ores/crystal_ore.png" },
-  { id:"sulfur_ore",      name:"Sulfur Ore",       req:70, img:"images/ores/sulfur_ore.png" },
-  { id:"rose_quartz_ore", name:"Rose Quartz Ore",  req:80, img:"images/ores/rose_quartz_ore.png" },
-  { id:"darkstone_ore",   name:"Darkstone Ore",    req:90, img:"images/ores/darkstone_ore.png" }
+  { id:"copper_ore",      name:"Copper Ore",       req:1,  img:"images/ores/copper_ore.webp" },
+  { id:"silver_ore",      name:"Silver Ore",       req:10, img:"images/ores/silver_ore.webp" },
+  { id:"iron_ore",        name:"Iron Ore",         req:20, img:"images/ores/iron_ore.webp" },
+  { id:"mithril_ore",     name:"Mithril Ore",      req:30, img:"images/ores/mithril_ore.webp" },
+  { id:"adamant_ore",     name:"Adamant Ore",      req:40, img:"images/ores/adamant_ore.webp" },
+  { id:"obsidian_ore",    name:"Obsidian Ore",     req:50, img:"images/ores/obsidian_ore.webp" },
+  { id:"crystal_ore",     name:"Crystal Ore",      req:60, img:"images/ores/crystal_ore.webp" },
+  { id:"sulfur_ore",      name:"Sulfur Ore",       req:70, img:"images/ores/sulfur_ore.webp" },
+  { id:"rose_quartz_ore", name:"Rose Quartz Ore",  req:80, img:"images/ores/rose_quartz_ore.webp" },
+  { id:"darkstone_ore",   name:"Darkstone Ore",    req:90, img:"images/ores/darkstone_ore.webp" }
 ];
 
 function getOreFromUrl(){

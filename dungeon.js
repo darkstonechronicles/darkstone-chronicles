@@ -12,10 +12,10 @@
   const POST_WAVE_PAUSE_MS = TICK_MS;
   const STAT_POINTS_PER_LEVEL = 5;
   const MAX_WAVE_ROUNDS = 15;
-  const CRYPT_SIGIL_ITEM = { type:"material", name:"Crypt Sigil", img:"images/items/sigils/crypt_sigil.png" };
+  const CRYPT_SIGIL_ITEM = { type:"material", name:"Crypt Sigil", img:"images/items/sigils/crypt_sigil.webp" };
   const ROUGH_GEM_DROP_CHANCE = 1 / 100;
   const ORB_OF_CREATION_DROP_CHANCE = 1 / 30;
-  const ORB_OF_CREATION_ITEM = { type:"material", id:"orb_of_creation", name:"Orb of Creation", img:"images/ui/orb_of_creation.png" };
+  const ORB_OF_CREATION_ITEM = { type:"material", id:"orb_of_creation", name:"Orb of Creation", img:"images/ui/orb_of_creation.webp" };
   const ROUGH_GEM_POOL = [
     { type:"material", id:"rough_ruby", name:"Rough Ruby", img:"images/gems/rough_ruby.png" },
     { type:"material", id:"rough_sapphire", name:"Rough Sapphire", img:"images/gems/rough_sapphire.png" },
@@ -102,7 +102,7 @@
         </div>
         <div style="display:flex;align-items:center;justify-content:center;align-self:center;min-width:126px;">
           <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;">
-            <img src="images/ui/my_vs_icon.png" alt="VS" style="width:126px;height:126px;object-fit:contain;display:block;">
+            <img src="images/ui/my_vs_icon.webp" alt="VS" style="width:126px;height:126px;object-fit:contain;display:block;">
             <div id="encounterStatus" style="min-height:28px;font-size:12px;line-height:1.2;opacity:.92;text-align:center;max-width:160px;"></div>
           </div>
         </div>
@@ -2031,7 +2031,7 @@
       card.className = "dungeonCard";
 
       const lootItems = [...(d.setItems || [])];
-      lootItems.push({ type:"material", name:"Crypt Sigil", rarity:"rare", img:"images/items/sigils/crypt_sigil.png", _label:"Bonus Drop" });
+      lootItems.push({ type:"material", name:"Crypt Sigil", rarity:"rare", img:"images/items/sigils/crypt_sigil.webp", _label:"Bonus Drop" });
       const lootHtml = lootItems.map((it) => {
         const stats = [];
         if (Number.isFinite(Number(it.atk)) && Number(it.atk) !== 0) stats.push(`ATK ${it.atk}`);

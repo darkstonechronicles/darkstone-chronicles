@@ -211,10 +211,10 @@ const STAT_POINTS_PER_LEVEL = 5;
 const VAR_MIN = 0.90;
 const VAR_MAX = 1.10;
 const WAR_SIGIL_CHANCE = 1 / 250;
-const WAR_SIGIL_ITEM = { type:"material", name:"War Sigil", img:"images/items/sigils/war_sigil.png" };
+const WAR_SIGIL_ITEM = { type:"material", name:"War Sigil", img:"images/items/sigils/war_sigil.webp" };
 const ROUGH_GEM_DROP_CHANCE = 1 / 100;
 const ORB_OF_CREATION_DROP_CHANCE = 1 / 80;
-const ORB_OF_CREATION_ITEM = { type:"material", id:"orb_of_creation", name:"Orb of Creation", img:"images/ui/orb_of_creation.png" };
+const ORB_OF_CREATION_ITEM = { type:"material", id:"orb_of_creation", name:"Orb of Creation", img:"images/ui/orb_of_creation.webp" };
 const ROUGH_GEM_POOL = [
   { type:"material", id:"rough_ruby", name:"Rough Ruby", img:"images/gems/rough_ruby.png" },
   { type:"material", id:"rough_sapphire", name:"Rough Sapphire", img:"images/gems/rough_sapphire.png" },
@@ -249,7 +249,7 @@ const ZONES = [
 id: "whispering_woods",
 name: "Whispering Woods",
 reqLevel: 1,
-img: "images/zones/whispering_woods.png",
+img: "images/zones/whispering_woods.webp",
 mobs: [
 
 { 
@@ -259,7 +259,7 @@ lvl:1,
 hp:25,
 atk:6,
 def:2,
-img:"images/mobs/fighting/zone1/mossling.png"
+img:"images/mobs/fighting/zone1/mossling.webp"
 },
 
 { 
@@ -269,7 +269,7 @@ lvl:3,
 hp:35,
 atk:7,
 def:3,
-img:"images/mobs/fighting/zone1/thorn_rabbit.png"
+img:"images/mobs/fighting/zone1/thorn_rabbit.webp"
 },
 
 { 
@@ -279,7 +279,7 @@ lvl:5,
 hp:45,
 atk:9,
 def:4,
-img:"images/mobs/fighting/zone1/rootling_stalker.png"
+img:"images/mobs/fighting/zone1/rootling_stalker.webp"
 },
 
 { 
@@ -289,7 +289,7 @@ lvl:7,
 hp:65,
 atk:12,
 def:6,
-img:"images/mobs/fighting/zone1/briar_wolf.png"
+img:"images/mobs/fighting/zone1/briar_wolf.webp"
 },
 
 { 
@@ -299,7 +299,7 @@ lvl:9,
 hp:110,
 atk:16,
 def:10,
-img:"images/mobs/fighting/zone1/ancient_bark_guardian.png"
+img:"images/mobs/fighting/zone1/ancient_bark_guardian.webp"
 }
 
 ]
@@ -309,7 +309,7 @@ img:"images/mobs/fighting/zone1/ancient_bark_guardian.png"
 id: "fogmoor_marsh",
 name: "Fogmoor Marsh",
 reqLevel: 10,
-img: "images/zones/fogmoor_marsh.png",
+img: "images/zones/fogmoor_marsh.webp",
 mobs: [
 
 {
@@ -319,7 +319,7 @@ lvl:11,
 hp:120,
 atk:22,
 def:10,
-img:"images/mobs/fighting/zone2/bog_slime.png"
+img:"images/mobs/fighting/zone2/bog_slime.webp"
 },
 
 {
@@ -329,7 +329,7 @@ lvl:13,
 hp:140,
 atk:24,
 def:11,
-img:"images/mobs/fighting/zone2/swamp_leech.png"
+img:"images/mobs/fighting/zone2/swamp_leech.webp"
 },
 
 {
@@ -339,7 +339,7 @@ lvl:15,
 hp:165,
 atk:27,
 def:13,
-img:"images/mobs/fighting/zone2/rottoad.png"
+img:"images/mobs/fighting/zone2/rottoad.webp"
 },
 
 {
@@ -349,7 +349,7 @@ lvl:17,
 hp:200,
 atk:30,
 def:15,
-img:"images/mobs/fighting/zone2/marsh_stalker.png"
+img:"images/mobs/fighting/zone2/marsh_stalker.webp"
 },
 
 {
@@ -359,7 +359,7 @@ lvl:19,
 hp:260,
 atk:34,
 def:18,
-img:"images/mobs/fighting/zone2/plague_mirebeast.png"
+img:"images/mobs/fighting/zone2/plague_mirebeast.webp"
 }
 
 ]
@@ -369,7 +369,7 @@ img:"images/mobs/fighting/zone2/plague_mirebeast.png"
 id: "ravenhill_fields",
 name: "Ravenhill Fields",
 reqLevel: 20,
-img: "images/zones/ravenhill_fields.png",
+img: "images/zones/ravenhill_fields.webp",
 mobs: [
 
 {
@@ -379,7 +379,7 @@ lvl:21,
 hp:300,
 atk:45,
 def:22,
-img:"images/mobs/fighting/zone3/grave_crow.png"
+img:"images/mobs/fighting/zone3/grave_crow.webp"
 },
 
 {
@@ -389,7 +389,7 @@ lvl:23,
 hp:340,
 atk:48,
 def:24,
-img:"images/mobs/fighting/zone3/bone_scavenger.png"
+img:"images/mobs/fighting/zone3/bone_scavenger.webp"
 },
 
 {
@@ -399,7 +399,7 @@ lvl:25,
 hp:380,
 atk:52,
 def:27,
-img:"images/mobs/fighting/zone3/rotting_soldier.png"
+img:"images/mobs/fighting/zone3/rotting_soldier.webp"
 },
 
 {
@@ -409,7 +409,7 @@ lvl:27,
 hp:430,
 atk:56,
 def:30,
-img:"images/mobs/fighting/zone3/carrion_hound.png"
+img:"images/mobs/fighting/zone3/carrion_hound.webp"
 },
 
 {
@@ -419,7 +419,7 @@ lvl:29,
 hp:520,
 atk:65,
 def:36,
-img:"images/mobs/fighting/zone3/warlord_revenant.png"
+img:"images/mobs/fighting/zone3/warlord_revenant.webp"
 }
 
 ]
@@ -429,7 +429,7 @@ img:"images/mobs/fighting/zone3/warlord_revenant.png"
 id: "grimroot_forest",
 name: "Grimroot Forest",
 reqLevel: 30,
-img: "images/zones/grimroot_forest.png",
+img: "images/zones/grimroot_forest.webp",
 mobs: [
 
 {
@@ -439,7 +439,7 @@ lvl:31,
 hp:650,
 atk:80,
 def:40,
-img:"images/mobs/fighting/zone4/spore_bat.png"
+img:"images/mobs/fighting/zone4/spore_bat.webp"
 },
 
 {
@@ -449,7 +449,7 @@ lvl:33,
 hp:720,
 atk:85,
 def:42,
-img:"images/mobs/fighting/zone4/root_creeper.png"
+img:"images/mobs/fighting/zone4/root_creeper.webp"
 },
 
 {
@@ -459,7 +459,7 @@ lvl:35,
 hp:820,
 atk:92,
 def:48,
-img:"images/mobs/fighting/zone4/fungus_brute.png"
+img:"images/mobs/fighting/zone4/fungus_brute.webp"
 },
 
 {
@@ -469,7 +469,7 @@ lvl:37,
 hp:950,
 atk:100,
 def:55,
-img:"images/mobs/fighting/zone4/corrupted_treant.png"
+img:"images/mobs/fighting/zone4/corrupted_treant.webp"
 },
 
 {
@@ -479,7 +479,7 @@ lvl:39,
 hp:1200,
 atk:115,
 def:65,
-img:"images/mobs/fighting/zone4/ancient_root_titan.png"
+img:"images/mobs/fighting/zone4/ancient_root_titan.webp"
 }
 
 ]
@@ -489,7 +489,7 @@ img:"images/mobs/fighting/zone4/ancient_root_titan.png"
 id: "ashen_plains",
 name: "Ashen Plains",
 reqLevel: 40,
-img: "images/zones/ashen_plains.png",
+img: "images/zones/ashen_plains.webp",
 mobs: [
 
 {
@@ -499,7 +499,7 @@ lvl:41,
 hp:1500,
 atk:150,
 def:80,
-img:"images/mobs/fighting/zone5/ash_vulture.png"
+img:"images/mobs/fighting/zone5/ash_vulture.webp"
 },
 
 {
@@ -509,7 +509,7 @@ lvl:43,
 hp:1650,
 atk:160,
 def:85,
-img:"images/mobs/fighting/zone5/lava_crawler.png"
+img:"images/mobs/fighting/zone5/lava_crawler.webp"
 },
 
 {
@@ -519,7 +519,7 @@ lvl:45,
 hp:1850,
 atk:170,
 def:92,
-img:"images/mobs/fighting/zone5/cinder_beast.png"
+img:"images/mobs/fighting/zone5/cinder_beast.webp"
 },
 
 {
@@ -529,7 +529,7 @@ lvl:47,
 hp:2100,
 atk:185,
 def:100,
-img:"images/mobs/fighting/zone5/magma_brute.png"
+img:"images/mobs/fighting/zone5/magma_brute.webp"
 },
 
 {
@@ -539,7 +539,7 @@ lvl:49,
 hp:2600,
 atk:210,
 def:115,
-img:"images/mobs/fighting/zone5/infernal_colossus.png"
+img:"images/mobs/fighting/zone5/infernal_colossus.webp"
 }
 
 ]
@@ -549,7 +549,7 @@ img:"images/mobs/fighting/zone5/infernal_colossus.png"
 id: "blackfang_canyon",
 name: "Blackfang Canyon",
 reqLevel: 50,
-img: "images/zones/blackfang_canyon.png",
+img: "images/zones/blackfang_canyon.webp",
 mobs: [
 
 {
@@ -559,7 +559,7 @@ lvl:51,
 hp:3200,
 atk:260,
 def:140,
-img:"images/mobs/fighting/zone6/ridge_hawk.png"
+img:"images/mobs/fighting/zone6/ridge_hawk.webp"
 },
 
 {
@@ -569,7 +569,7 @@ lvl:53,
 hp:3500,
 atk:275,
 def:150,
-img:"images/mobs/fighting/zone6/stone_lurker.png"
+img:"images/mobs/fighting/zone6/stone_lurker.webp"
 },
 
 {
@@ -579,7 +579,7 @@ lvl:55,
 hp:3800,
 atk:290,
 def:160,
-img:"images/mobs/fighting/zone6/fang_stalker.png"
+img:"images/mobs/fighting/zone6/fang_stalker.webp"
 },
 
 {
@@ -589,7 +589,7 @@ lvl:57,
 hp:4200,
 atk:310,
 def:175,
-img:"images/mobs/fighting/zone6/obsidian_ravager.png"
+img:"images/mobs/fighting/zone6/obsidian_ravager.webp"
 },
 
 {
@@ -599,7 +599,7 @@ lvl:59,
 hp:5000,
 atk:340,
 def:190,
-img:"images/mobs/fighting/zone6/blackfang_devourer.png"
+img:"images/mobs/fighting/zone6/blackfang_devourer.webp"
 }
 
 ]
@@ -609,7 +609,7 @@ img:"images/mobs/fighting/zone6/blackfang_devourer.png"
 id: "bloodthorn_thicket",
 name: "Bloodthorn Grove",
 reqLevel: 60,
-img: "images/zones/bloodthorn_thicket.png",
+img: "images/zones/bloodthorn_thicket.webp",
 mobs: [
 
 {
@@ -619,7 +619,7 @@ lvl:61,
 hp:5800,
 atk:360,
 def:200,
-img:"images/mobs/fighting/zone7/thorn_harpy.png"
+img:"images/mobs/fighting/zone7/thorn_harpy.webp"
 },
 
 {
@@ -629,7 +629,7 @@ lvl:63,
 hp:6200,
 atk:380,
 def:210,
-img:"images/mobs/fighting/zone7/bloodroot_parasite.png"
+img:"images/mobs/fighting/zone7/bloodroot_parasite.webp"
 },
 
 {
@@ -639,7 +639,7 @@ lvl:65,
 hp:6600,
 atk:400,
 def:220,
-img:"images/mobs/fighting/zone7/razorback_bramble.png"
+img:"images/mobs/fighting/zone7/razorback_bramble.webp"
 },
 
 {
@@ -649,7 +649,7 @@ lvl:67,
 hp:7200,
 atk:420,
 def:240,
-img:"images/mobs/fighting/zone7/crimson_thorn_warden.png"
+img:"images/mobs/fighting/zone7/crimson_thorn_warden.webp"
 },
 
 {
@@ -659,7 +659,7 @@ lvl:69,
 hp:8200,
 atk:460,
 def:260,
-img:"images/mobs/fighting/zone7/heart_of_the_thicket.png"
+img:"images/mobs/fighting/zone7/heart_of_the_thicket.webp"
 }
 
 ]
@@ -669,7 +669,7 @@ img:"images/mobs/fighting/zone7/heart_of_the_thicket.png"
 id: "dreadmist_highlands",
 name: "Dreadmist Vale",
 reqLevel: 70,
-img: "images/zones/dreadmist_highlands.png",
+img: "images/zones/dreadmist_highlands.webp",
 mobs: [
 
 {
@@ -679,7 +679,7 @@ lvl:71,
 hp:9500,
 atk:520,
 def:290,
-img:"images/mobs/fighting/zone8/mist_raven.png"
+img:"images/mobs/fighting/zone8/mist_raven.webp"
 },
 
 {
@@ -689,7 +689,7 @@ lvl:73,
 hp:10000,
 atk:540,
 def:305,
-img:"images/mobs/fighting/zone8/highland_wraith.png"
+img:"images/mobs/fighting/zone8/highland_wraith.webp"
 },
 
 {
@@ -699,7 +699,7 @@ lvl:75,
 hp:10800,
 atk:570,
 def:320,
-img:"images/mobs/fighting/zone8/frosthorn_ram.png"
+img:"images/mobs/fighting/zone8/frosthorn_ram.webp"
 },
 
 {
@@ -709,7 +709,7 @@ lvl:77,
 hp:11800,
 atk:600,
 def:340,
-img:"images/mobs/fighting/zone8/stone_sentinel.png"
+img:"images/mobs/fighting/zone8/stone_sentinel.webp"
 },
 
 {
@@ -719,7 +719,7 @@ lvl:79,
 hp:13500,
 atk:650,
 def:370,
-img:"images/mobs/fighting/zone8/ancient_storm_avatar.png"
+img:"images/mobs/fighting/zone8/ancient_storm_avatar.webp"
 }
 
 ]
@@ -729,7 +729,7 @@ img:"images/mobs/fighting/zone8/ancient_storm_avatar.png"
 id: "obsidian_wastes",
 name: "Obsidian Wastes",
 reqLevel: 80,
-img: "images/zones/obsidian_wastes.png",
+img: "images/zones/obsidian_wastes.webp",
 mobs: [
 
 {
@@ -739,7 +739,7 @@ lvl:81,
 hp:12000,
 atk:600,
 def:340,
-img:"images/mobs/fighting/zone9/lava_serpent.png"
+img:"images/mobs/fighting/zone9/lava_serpent.webp"
 },
 
 {
@@ -749,7 +749,7 @@ lvl:83,
 hp:12800,
 atk:630,
 def:360,
-img:"images/mobs/fighting/zone9/obsidian_gargoyle.png"
+img:"images/mobs/fighting/zone9/obsidian_gargoyle.webp"
 },
 
 {
@@ -759,7 +759,7 @@ lvl:85,
 hp:13800,
 atk:660,
 def:380,
-img:"images/mobs/fighting/zone9/magma_behemoth.png"
+img:"images/mobs/fighting/zone9/magma_behemoth.webp"
 },
 
 {
@@ -769,7 +769,7 @@ lvl:87,
 hp:15000,
 atk:700,
 def:400,
-img:"images/mobs/fighting/zone9/ash_revenant.png"
+img:"images/mobs/fighting/zone9/ash_revenant.webp"
 },
 
 {
@@ -779,7 +779,7 @@ lvl:89,
 hp:17000,
 atk:760,
 def:430,
-img:"images/mobs/fighting/zone9/inferno_titan.png"
+img:"images/mobs/fighting/zone9/inferno_titan.webp"
 }
 
 ]
@@ -789,7 +789,7 @@ img:"images/mobs/fighting/zone9/inferno_titan.png"
 id: "abyssal_rift",
 name: "Abyssal Rift",
 reqLevel: 90,
-img: "images/zones/abyssal_rift.png",
+img: "images/zones/abyssal_rift.webp",
 mobs: [
 
 {
@@ -799,7 +799,7 @@ lvl:91,
 hp:15000,
 atk:720,
 def:410,
-img:"images/mobs/fighting/zone10/void_skyray.png"
+img:"images/mobs/fighting/zone10/void_skyray.webp"
 },
 
 {
@@ -809,7 +809,7 @@ lvl:93,
 hp:16000,
 atk:760,
 def:430,
-img:"images/mobs/fighting/zone10/rift_crawler.png"
+img:"images/mobs/fighting/zone10/rift_crawler.webp"
 },
 
 {
@@ -819,7 +819,7 @@ lvl:95,
 hp:17200,
 atk:800,
 def:455,
-img:"images/mobs/fighting/zone10/abyss_watcher.png"
+img:"images/mobs/fighting/zone10/abyss_watcher.webp"
 },
 
 {
@@ -829,7 +829,7 @@ lvl:97,
 hp:18800,
 atk:850,
 def:480,
-img:"images/mobs/fighting/zone10/void_devourer.png"
+img:"images/mobs/fighting/zone10/void_devourer.webp"
 },
 
 {
@@ -839,7 +839,7 @@ lvl:99,
 hp:22000,
 atk:920,
 def:520,
-img:"images/mobs/fighting/zone10/eternal_rift_sovereign.png"
+img:"images/mobs/fighting/zone10/eternal_rift_sovereign.webp"
 }
 
 ]
@@ -2128,7 +2128,7 @@ const FIGHT_TEMPLATE = `
 
       <div style="display:flex;align-items:start;justify-content:center;align-self:start;min-width:126px;padding-top:10px;">
         <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;">
-          <img src="images/ui/my_vs_icon.png" alt="VS" style="width:126px;height:126px;object-fit:contain;display:block;">
+          <img src="images/ui/my_vs_icon.webp" alt="VS" style="width:126px;height:126px;object-fit:contain;display:block;">
         </div>
       </div>
 

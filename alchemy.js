@@ -69,13 +69,13 @@
   }
 
   const ALCHEMY_TIERS = [
-    { tier:1, req:1, herbName:"Greenleaf", title:"Tier I Potions", icon:"images/alchemy/tiers/tier_1.png" },
-    { tier:2, req:15, herbName:"Sungrass", title:"Tier II Potions", icon:"images/alchemy/tiers/tier_2.png" },
-    { tier:3, req:30, herbName:"Ironroot", title:"Tier III Potions", icon:"images/alchemy/tiers/tier_3.png" },
-    { tier:4, req:45, herbName:"Frost Bloom", title:"Tier IV Potions", icon:"images/alchemy/tiers/tier_4.png" },
-    { tier:5, req:60, herbName:"Shadow Mint", title:"Tier V Potions", icon:"images/alchemy/tiers/tier_5.png" },
-    { tier:6, req:75, herbName:"Goldthorn", title:"Tier VI Potions", icon:"images/alchemy/tiers/tier_6.png" },
-    { tier:7, req:90, herbName:"Ember Lotus", title:"Tier VII Potions", icon:"images/alchemy/tiers/tier_7.png" }
+    { tier:1, req:1, herbName:"Greenleaf", title:"Tier I Potions", icon:"images/alchemy/tiers/tier_1.webp" },
+    { tier:2, req:15, herbName:"Sungrass", title:"Tier II Potions", icon:"images/alchemy/tiers/tier_2.webp" },
+    { tier:3, req:30, herbName:"Ironroot", title:"Tier III Potions", icon:"images/alchemy/tiers/tier_3.webp" },
+    { tier:4, req:45, herbName:"Frost Bloom", title:"Tier IV Potions", icon:"images/alchemy/tiers/tier_4.webp" },
+    { tier:5, req:60, herbName:"Shadow Mint", title:"Tier V Potions", icon:"images/alchemy/tiers/tier_5.webp" },
+    { tier:6, req:75, herbName:"Goldthorn", title:"Tier VI Potions", icon:"images/alchemy/tiers/tier_6.webp" },
+    { tier:7, req:90, herbName:"Ember Lotus", title:"Tier VII Potions", icon:"images/alchemy/tiers/tier_7.webp" }
   ];
 
   function renderAlchemyHeader(){

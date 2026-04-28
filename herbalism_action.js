@@ -5,7 +5,7 @@ const BUILDING_BONUS_PER_LEVEL = 0.0005;
 const VERDANT_SIGIL_ITEM = {
   type: "material",
   name: "Verdant Sigil",
-  img: "images/items/sigils/wood_sigil.png"
+  img: "images/items/sigils/wood_sigil.webp"
 };
 const VERDANT_SIGIL_DROP_CHANCE = 1 / 250;
 const ROUGH_GEM_DROP_CHANCE = 1 / 100;
@@ -282,13 +282,13 @@ function renderGatheringPetBonus(save){
 }
 
 const HERB_ZONES = [
-  { id:"verdant_hollow", name:"Verdant Hollow", req:1, herbId:"greenleaf", herbName:"Greenleaf", zoneImg:"images/herbalism/zones/verdant_hollow.png", herbImg:"images/herbalism/herbs/greenleaf.png" },
-  { id:"sunspire_plains", name:"Sunspire Plains", req:15, herbId:"sungrass", herbName:"Sungrass", zoneImg:"images/herbalism/zones/sunspire_plains.png", herbImg:"images/herbalism/herbs/sungrass.png" },
-  { id:"ironwood_depths", name:"Ironwood Depths", req:30, herbId:"ironroot", herbName:"Ironroot", zoneImg:"images/herbalism/zones/ironwood_depths.png", herbImg:"images/herbalism/herbs/ironroot.png" },
-  { id:"frostpetal_vale", name:"Frostpetal Vale", req:45, herbId:"frost_bloom", herbName:"Frost Bloom", zoneImg:"images/herbalism/zones/frostpetal_vale.png", herbImg:"images/herbalism/herbs/frost_bloom.png" },
-  { id:"duskmire_thicket", name:"Duskmire Thicket", req:60, herbId:"shadow_mint", herbName:"Shadow Mint", zoneImg:"images/herbalism/zones/duskmire_thicket.png", herbImg:"images/herbalism/herbs/shadow_mint.png" },
-  { id:"aurathorn_expanse", name:"Aurathorn Expanse", req:75, herbId:"goldthorn", herbName:"Goldthorn", zoneImg:"images/herbalism/zones/aurathorn_expanse.png", herbImg:"images/herbalism/herbs/goldthorn.png" },
-  { id:"emberfall_sanctuary", name:"Emberfall Sanctuary", req:90, herbId:"ember_lotus", herbName:"Ember Lotus", zoneImg:"images/herbalism/zones/emberfall_sanctuary.png", herbImg:"images/herbalism/herbs/ember_lotus.png" }
+  { id:"verdant_hollow", name:"Verdant Hollow", req:1, herbId:"greenleaf", herbName:"Greenleaf", zoneImg:"images/herbalism/zones/verdant_hollow.webp", herbImg:"images/herbalism/herbs/greenleaf.png" },
+  { id:"sunspire_plains", name:"Sunspire Plains", req:15, herbId:"sungrass", herbName:"Sungrass", zoneImg:"images/herbalism/zones/sunspire_plains.webp", herbImg:"images/herbalism/herbs/sungrass.png" },
+  { id:"ironwood_depths", name:"Ironwood Depths", req:30, herbId:"ironroot", herbName:"Ironroot", zoneImg:"images/herbalism/zones/ironwood_depths.webp", herbImg:"images/herbalism/herbs/ironroot.png" },
+  { id:"frostpetal_vale", name:"Frostpetal Vale", req:45, herbId:"frost_bloom", herbName:"Frost Bloom", zoneImg:"images/herbalism/zones/frostpetal_vale.webp", herbImg:"images/herbalism/herbs/frost_bloom.png" },
+  { id:"duskmire_thicket", name:"Duskmire Thicket", req:60, herbId:"shadow_mint", herbName:"Shadow Mint", zoneImg:"images/herbalism/zones/duskmire_thicket.webp", herbImg:"images/herbalism/herbs/shadow_mint.png" },
+  { id:"aurathorn_expanse", name:"Aurathorn Expanse", req:75, herbId:"goldthorn", herbName:"Goldthorn", zoneImg:"images/herbalism/zones/aurathorn_expanse.webp", herbImg:"images/herbalism/herbs/goldthorn.png" },
+  { id:"emberfall_sanctuary", name:"Emberfall Sanctuary", req:90, herbId:"ember_lotus", herbName:"Ember Lotus", zoneImg:"images/herbalism/zones/emberfall_sanctuary.webp", herbImg:"images/herbalism/herbs/ember_lotus.png" }
 ];
 
 function getZoneFromUrl(){

@@ -5,7 +5,7 @@ const WARDEN_SIGIL_ITEM = {
   type: "material",
   id: "warden_sigil",
   name: "Warden Sigil",
-  img: "images/items/sigils/warden_sigil.png"
+  img: "images/items/sigils/warden_sigil.webp"
 };
 const WARDEN_SIGIL_DROP_CHANCE = 1 / 250;
 const ROUGH_GEM_DROP_CHANCE = 1 / 100;
@@ -303,10 +303,10 @@ const SPOTS = [
  id:"Mangrove_Spirit_Swamp",
  req:1,
  title:"Mangrove Spirit Swamp",
- img:"images/fishing_spots/Mangrove_Spirit_Swamp.png",
+ img:"images/fishing_spots/Mangrove_Spirit_Swamp.webp",
  fish:[
-  { id:"mud_minnow", name:"Mud Minnow", img:"images/fish/mud_minnow.png", chance:0.70 },
-  { id:"bog_carp", name:"Bog Carp", img:"images/fish/bog_carp.png", chance:0.30 }
+  { id:"mud_minnow", name:"Mud Minnow", img:"images/fish/mud_minnow.webp", chance:0.70 },
+  { id:"bog_carp", name:"Bog Carp", img:"images/fish/bog_carp.webp", chance:0.30 }
  ]
 },
 
@@ -314,10 +314,10 @@ const SPOTS = [
  id:"Crystal_Stream",
  req:10,
  title:"Crystal Stream",
- img:"images/fishing_spots/Crystal_Stream.png",
+ img:"images/fishing_spots/Crystal_Stream.webp",
  fish:[
-  { id:"shiner_fish", name:"Shiner Fish", img:"images/fish/shiner_fish.png", chance:0.70 },
-  { id:"golden_perch", name:"Golden Perch", img:"images/fish/golden_perch.png", chance:0.30 }
+  { id:"shiner_fish", name:"Shiner Fish", img:"images/fish/shiner_fish.webp", chance:0.70 },
+  { id:"golden_perch", name:"Golden Perch", img:"images/fish/golden_perch.webp", chance:0.30 }
  ]
 },
 
@@ -325,10 +325,10 @@ const SPOTS = [
  id:"Emerald_Forest_Lake",
  req:20,
  title:"Emerald Forest Lake",
- img:"images/fishing_spots/Emerald_Forest_Lake.png",
+ img:"images/fishing_spots/Emerald_Forest_Lake.webp",
  fish:[
-  { id:"spiny_sunfish", name:"Spiny Sunfish", img:"images/fish/spiny_sunfish.png", chance:0.70 },
-  { id:"striped_bass", name:"Striped Bass", img:"images/fish/striped_bass.png", chance:0.30 }
+  { id:"spiny_sunfish", name:"Spiny Sunfish", img:"images/fish/spiny_sunfish.webp", chance:0.70 },
+  { id:"striped_bass", name:"Striped Bass", img:"images/fish/striped_bass.webp", chance:0.30 }
  ]
 },
 
@@ -336,10 +336,10 @@ const SPOTS = [
  id:"Canyon_Thunder_River",
  req:30,
  title:"Canyon Thunder River",
- img:"images/fishing_spots/Canyon_Thunder_River.png",
+ img:"images/fishing_spots/Canyon_Thunder_River.webp",
  fish:[
-  { id:"stone_catfish", name:"Stone Catfish", img:"images/fish/stone_catfish.png", chance:0.70 },
-  { id:"crystal_pike", name:"Crystal Pike", img:"images/fish/crystal_pike.png", chance:0.30 }
+  { id:"stone_catfish", name:"Stone Catfish", img:"images/fish/stone_catfish.webp", chance:0.70 },
+  { id:"crystal_pike", name:"Crystal Pike", img:"images/fish/crystal_pike.webp", chance:0.30 }
  ]
 },
 
@@ -347,10 +347,10 @@ const SPOTS = [
  id:"Moon_Lotus_Pond",
  req:40,
  title:"Moon Lotus Pond",
- img:"images/fishing_spots/Moon_Lotus_Pond.png",
+ img:"images/fishing_spots/Moon_Lotus_Pond.webp",
  fish:[
-  { id:"moon_carp", name:"Moon Carp", img:"images/fish/moon_carp.png", chance:0.70 },
-  { id:"glass_eel", name:"Glass Eel", img:"images/fish/glass_eel.png", chance:0.30 }
+  { id:"moon_carp", name:"Moon Carp", img:"images/fish/moon_carp.webp", chance:0.70 },
+  { id:"glass_eel", name:"Glass Eel", img:"images/fish/glass_eel.webp", chance:0.30 }
  ]
 },
 
@@ -358,10 +358,10 @@ const SPOTS = [
  id:"Frozen_Aurora_River",
  req:50,
  title:"Frozen Aurora River",
- img:"images/fishing_spots/Frozen_Aurora_River.png",
+ img:"images/fishing_spots/Frozen_Aurora_River.webp",
  fish:[
-  { id:"frost_salmon", name:"Frost Salmon", img:"images/fish/frost_salmon.png", chance:0.70 },
-  { id:"glacier_char", name:"Glacier Char", img:"images/fish/glacier_char.png", chance:0.30 }
+  { id:"frost_salmon", name:"Frost Salmon", img:"images/fish/frost_salmon.webp", chance:0.70 },
+  { id:"glacier_char", name:"Glacier Char", img:"images/fish/glacier_char.webp", chance:0.30 }
  ]
 },
 
@@ -369,10 +369,10 @@ const SPOTS = [
  id:"Glacier_Mirror_Lake",
  req:60,
  title:"Glacier Mirror Lake",
- img:"images/fishing_spots/Glacier_Mirror_Lake.png",
+ img:"images/fishing_spots/Glacier_Mirror_Lake.webp",
  fish:[
-  { id:"ice_sturgeon", name:"Ice Sturgeon", img:"images/fish/ice_sturgeon.png", chance:0.70 },
-  { id:"spiral_horn_gar", name:"Spiral Horn Gar", img:"images/fish/spiral_horn_gar.png", chance:0.30 }
+  { id:"ice_sturgeon", name:"Ice Sturgeon", img:"images/fish/ice_sturgeon.webp", chance:0.70 },
+  { id:"spiral_horn_gar", name:"Spiral Horn Gar", img:"images/fish/spiral_horn_gar.webp", chance:0.30 }
  ]
 },
 
@@ -380,10 +380,10 @@ const SPOTS = [
  id:"Sunken_Coral_Sea",
  req:70,
  title:"Sunken Coral Sea",
- img:"images/fishing_spots/Sunken_Coral_Sea.png",
+ img:"images/fishing_spots/Sunken_Coral_Sea.webp",
  fish:[
-  { id:"storm_mackerel", name:"Storm Mackerel", img:"images/fish/storm_mackerel.png", chance:0.70 },
-  { id:"lantern_pike", name:"Lantern Pike", img:"images/fish/lantern_pike.png", chance:0.30 }
+  { id:"storm_mackerel", name:"Storm Mackerel", img:"images/fish/storm_mackerel.webp", chance:0.70 },
+  { id:"lantern_pike", name:"Lantern Pike", img:"images/fish/lantern_pike.webp", chance:0.30 }
  ]
 },
 
@@ -391,10 +391,10 @@ const SPOTS = [
  id:"Abyssal_Glow_Depths",
  req:80,
  title:"Abyssal Glow Depths",
- img:"images/fishing_spots/Abyssal_Glow_Depths.png",
+ img:"images/fishing_spots/Abyssal_Glow_Depths.webp",
  fish:[
-  { id:"ghost_ray", name:"Ghost Ray", img:"images/fish/ghost_ray.png", chance:0.70 },
-  { id:"hammerhead_pike", name:"Hammerhead Pike", img:"images/fish/hammerhead_pike.png", chance:0.30 }
+  { id:"ghost_ray", name:"Ghost Ray", img:"images/fish/ghost_ray.webp", chance:0.70 },
+  { id:"hammerhead_pike", name:"Hammerhead Pike", img:"images/fish/hammerhead_pike.webp", chance:0.30 }
  ]
 },
 
@@ -402,10 +402,10 @@ const SPOTS = [
  id:"Leviathan_Rift_Trench",
  req:90,
  title:"Leviathan Rift Trench",
- img:"images/fishing_spots/Leviathan_Rift_Trench.png",
+ img:"images/fishing_spots/Leviathan_Rift_Trench.webp",
  fish:[
-  { id:"void_angler", name:"Void Angler", img:"images/fish/void_angler.png", chance:0.70 },
-  { id:"leviathan_marlin", name:"Leviathan Marlin", img:"images/fish/leviathan_marlin.png", chance:0.30 }
+  { id:"void_angler", name:"Void Angler", img:"images/fish/void_angler.webp", chance:0.70 },
+  { id:"leviathan_marlin", name:"Leviathan Marlin", img:"images/fish/leviathan_marlin.webp", chance:0.30 }
  ]
 }
 

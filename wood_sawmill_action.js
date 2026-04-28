@@ -3,7 +3,7 @@ const SAVE_KEY = "darkstone_save_v1";
 const WOOD_SIGIL_ITEM = {
   type: "material",
   name: "Wood Sigil",
-  img: "images/items/sigils/wood_sigil.png"
+  img: "images/items/sigils/wood_sigil.webp"
 };
 const BUILDING_BONUS_PER_LEVEL = 0.0005;
 const WOOD_SAWMILL_TEMPLATE = `

@@ -10,7 +10,7 @@ const ORE_SIGIL_ITEM = {
   type: "material",
   id: "ore_sigil",
   name: "Ore Sigil",
-  img: "images/items/sigils/ore_sigil.png"
+  img: "images/items/sigils/ore_sigil.webp"
 };
 const FORGE_ACTION_TEMPLATE = `
   <div class="profXpShell">

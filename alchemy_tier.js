@@ -221,7 +221,7 @@ window.DSAlchemyTier = {
       quantity: 1
     })));
     return [
-      { type: "material", id: "empty_vial", name: "Empty Vial", img: "images/alchemy/items/empty_vial.png", quantity: 1 },
+      { type: "material", id: "empty_vial", name: "Empty Vial", img: "images/alchemy/items/empty_vial.webp", quantity: 1 },
       ...herbItems,
       ...potionItems
     ];

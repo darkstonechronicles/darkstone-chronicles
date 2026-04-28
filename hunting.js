@@ -73,16 +73,16 @@
   }
 
   const TARGETS = [
-    { id:"shadow_hare", name:"Shadow Hare", req:1, img:"images/hunting/shadow_hare.png", rawName:"Raw Shadow Hare Meat", rawImg:"images/meat/shadow_hare_raw.png" },
-    { id:"rotfeather_turkey", name:"Rotfeather Turkey", req:10, img:"images/hunting/rotfeather_turkey.png", rawName:"Raw Rotfeather Turkey Meat", rawImg:"images/meat/rotfeather_turkey_raw.png" },
-    { id:"gloom_fox", name:"Gloom Fox", req:20, img:"images/hunting/gloom_fox.png", rawName:"Raw Gloom Fox Meat", rawImg:"images/meat/gloom_fox_raw.png" },
-    { id:"bloodtusk_boar", name:"Bloodtusk Boar", req:30, img:"images/hunting/bloodtusk_boar.png", rawName:"Raw Bloodtusk Boar Meat", rawImg:"images/meat/bloodtusk_boar_raw.png" },
-    { id:"night_wolf", name:"Night Wolf", req:40, img:"images/hunting/night_wolf.png", rawName:"Raw Night Wolf Meat", rawImg:"images/meat/night_wolf_raw.png" },
-    { id:"stonehorn_ram", name:"Stonehorn Ram", req:50, img:"images/hunting/stonehorn_ram.png", rawName:"Raw Stonehorn Ram Meat", rawImg:"images/meat/stonehorn_ram_raw.png" },
-    { id:"thorn_stag", name:"Thorn Stag", req:60, img:"images/hunting/thorn_stag.png", rawName:"Raw Thorn Stag Meat", rawImg:"images/meat/thorn_stag_raw.png" },
-    { id:"grave_bear", name:"Grave Bear", req:70, img:"images/hunting/grave_bear.png", rawName:"Raw Grave Bear Meat", rawImg:"images/meat/bear_raw.png" },
-    { id:"dire_warg", name:"Dire Warg", req:80, img:"images/hunting/dire_warg.png", rawName:"Raw Dire Warg Meat", rawImg:"images/meat/dire_warg_raw.png" },
-    { id:"forest_troll", name:"Forest Troll", req:90, img:"images/hunting/forest_troll.png", rawName:"Raw Forest Troll Meat", rawImg:"images/meat/troll_raw.png" }
+    { id:"shadow_hare", name:"Shadow Hare", req:1, img:"images/hunting/shadow_hare.webp", rawName:"Raw Shadow Hare Meat", rawImg:"images/meat/shadow_hare_raw.webp" },
+    { id:"rotfeather_turkey", name:"Rotfeather Turkey", req:10, img:"images/hunting/rotfeather_turkey.webp", rawName:"Raw Rotfeather Turkey Meat", rawImg:"images/meat/rotfeather_turkey_raw.webp" },
+    { id:"gloom_fox", name:"Gloom Fox", req:20, img:"images/hunting/gloom_fox.webp", rawName:"Raw Gloom Fox Meat", rawImg:"images/meat/gloom_fox_raw.webp" },
+    { id:"bloodtusk_boar", name:"Bloodtusk Boar", req:30, img:"images/hunting/bloodtusk_boar.webp", rawName:"Raw Bloodtusk Boar Meat", rawImg:"images/meat/bloodtusk_boar_raw.webp" },
+    { id:"night_wolf", name:"Night Wolf", req:40, img:"images/hunting/night_wolf.webp", rawName:"Raw Night Wolf Meat", rawImg:"images/meat/night_wolf_raw.webp" },
+    { id:"stonehorn_ram", name:"Stonehorn Ram", req:50, img:"images/hunting/stonehorn_ram.webp", rawName:"Raw Stonehorn Ram Meat", rawImg:"images/meat/stonehorn_ram_raw.webp" },
+    { id:"thorn_stag", name:"Thorn Stag", req:60, img:"images/hunting/thorn_stag.webp", rawName:"Raw Thorn Stag Meat", rawImg:"images/meat/thorn_stag_raw.webp" },
+    { id:"grave_bear", name:"Grave Bear", req:70, img:"images/hunting/grave_bear.webp", rawName:"Raw Grave Bear Meat", rawImg:"images/meat/bear_raw.webp" },
+    { id:"dire_warg", name:"Dire Warg", req:80, img:"images/hunting/dire_warg.webp", rawName:"Raw Dire Warg Meat", rawImg:"images/meat/dire_warg_raw.webp" },
+    { id:"forest_troll", name:"Forest Troll", req:90, img:"images/hunting/forest_troll.webp", rawName:"Raw Forest Troll Meat", rawImg:"images/meat/troll_raw.webp" }
   ];
 
   function countByName(inv, name){

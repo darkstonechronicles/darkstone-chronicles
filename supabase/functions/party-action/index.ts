@@ -38,7 +38,7 @@ const PARTY_FIGHT_MONSTERS: Record<string, JsonRecord> = {
   "gravefang-hydra": {
     id: "gravefang-hydra",
     name: "Mirehook Ravager",
-    img: "images/mobs/party/mirehook_ravager.png",
+    img: "images/mobs/party/mirehook_ravager.webp",
     level: 30,
     attack: 350,
     defense: 210,
@@ -47,7 +47,7 @@ const PARTY_FIGHT_MONSTERS: Record<string, JsonRecord> = {
   "embermaw-colossus": {
     id: "embermaw-colossus",
     name: "Gloomtail Stalker",
-    img: "images/mobs/party/gloomtail_stalker.png",
+    img: "images/mobs/party/gloomtail_stalker.webp",
     level: 16,
     attack: 49,
     defense: 31,
@@ -56,7 +56,7 @@ const PARTY_FIGHT_MONSTERS: Record<string, JsonRecord> = {
   "thornveil-broodmother": {
     id: "thornveil-broodmother",
     name: "Ashhide Brute",
-    img: "images/mobs/party/ashhide_brute.png",
+    img: "images/mobs/party/ashhide_brute.webp",
     level: 18,
     attack: 54,
     defense: 43,
@@ -65,7 +65,7 @@ const PARTY_FIGHT_MONSTERS: Record<string, JsonRecord> = {
   "stormglass-seraph": {
     id: "stormglass-seraph",
     name: "Frostvein Harrier",
-    img: "images/mobs/party/frostvein_harrier.png",
+    img: "images/mobs/party/frostvein_harrier.webp",
     level: 20,
     attack: 61,
     defense: 39,
@@ -74,7 +74,7 @@ const PARTY_FIGHT_MONSTERS: Record<string, JsonRecord> = {
   "cryptwarden-revenant": {
     id: "cryptwarden-revenant",
     name: "Ironroot Mauler",
-    img: "images/mobs/party/ironroot_mauler.png",
+    img: "images/mobs/party/ironroot_mauler.webp",
     level: 22,
     attack: 66,
     defense: 58,
@@ -332,7 +332,7 @@ const ORB_OF_CREATION_DROP_CHANCE = 1 / 150;
 const FIRST_MONSTER_ROUGH_GEM_DROP_CHANCE = 1 / 75;
 const FIRST_MONSTER_ORB_OF_CREATION_DROP_CHANCE = 1 / 100;
 const FIRST_MONSTER_MYTHIC_DROP_CHANCE = 1 / 10000;
-const ORB_OF_CREATION_ITEM = { type: "material", id: "orb_of_creation", name: "Orb of Creation", img: "images/ui/orb_of_creation.png" } as const;
+const ORB_OF_CREATION_ITEM = { type: "material", id: "orb_of_creation", name: "Orb of Creation", img: "images/ui/orb_of_creation.webp" } as const;
 const ROUGH_GEM_POOL = [
   { type: "material", id: "rough_ruby", name: "Rough Ruby", img: "images/gems/rough_ruby.png" },
   { type: "material", id: "rough_sapphire", name: "Rough Sapphire", img: "images/gems/rough_sapphire.png" },

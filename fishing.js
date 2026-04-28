@@ -70,16 +70,16 @@
   }
 
   const SPOTS = [
-    { id:"Mangrove_Spirit_Swamp", req:1, title:"Mangrove Spirit Swamp", img:"images/fishing_spots/Mangrove_Spirit_Swamp.png" },
-    { id:"Crystal_Stream", req:10, title:"Crystal Stream", img:"images/fishing_spots/Crystal_Stream.png" },
-    { id:"Emerald_Forest_Lake", req:20, title:"Emerald Forest Lake", img:"images/fishing_spots/Emerald_Forest_Lake.png" },
-    { id:"Canyon_Thunder_River", req:30, title:"Canyon Thunder River", img:"images/fishing_spots/Canyon_Thunder_River.png" },
-    { id:"Moon_Lotus_Pond", req:40, title:"Moon Lotus Pond", img:"images/fishing_spots/Moon_Lotus_Pond.png" },
-    { id:"Frozen_Aurora_River", req:50, title:"Frozen Aurora River", img:"images/fishing_spots/Frozen_Aurora_River.png" },
-    { id:"Glacier_Mirror_Lake", req:60, title:"Glacier Mirror Lake", img:"images/fishing_spots/Glacier_Mirror_Lake.png" },
-    { id:"Sunken_Coral_Sea", req:70, title:"Sunken Coral Sea", img:"images/fishing_spots/Sunken_Coral_Sea.png" },
-    { id:"Abyssal_Glow_Depths", req:80, title:"Abyssal Glow Depths", img:"images/fishing_spots/Abyssal_Glow_Depths.png" },
-    { id:"Leviathan_Rift_Trench", req:90, title:"Leviathan Rift Trench", img:"images/fishing_spots/Leviathan_Rift_Trench.png" }
+    { id:"Mangrove_Spirit_Swamp", req:1, title:"Mangrove Spirit Swamp", img:"images/fishing_spots/Mangrove_Spirit_Swamp.webp" },
+    { id:"Crystal_Stream", req:10, title:"Crystal Stream", img:"images/fishing_spots/Crystal_Stream.webp" },
+    { id:"Emerald_Forest_Lake", req:20, title:"Emerald Forest Lake", img:"images/fishing_spots/Emerald_Forest_Lake.webp" },
+    { id:"Canyon_Thunder_River", req:30, title:"Canyon Thunder River", img:"images/fishing_spots/Canyon_Thunder_River.webp" },
+    { id:"Moon_Lotus_Pond", req:40, title:"Moon Lotus Pond", img:"images/fishing_spots/Moon_Lotus_Pond.webp" },
+    { id:"Frozen_Aurora_River", req:50, title:"Frozen Aurora River", img:"images/fishing_spots/Frozen_Aurora_River.webp" },
+    { id:"Glacier_Mirror_Lake", req:60, title:"Glacier Mirror Lake", img:"images/fishing_spots/Glacier_Mirror_Lake.webp" },
+    { id:"Sunken_Coral_Sea", req:70, title:"Sunken Coral Sea", img:"images/fishing_spots/Sunken_Coral_Sea.webp" },
+    { id:"Abyssal_Glow_Depths", req:80, title:"Abyssal Glow Depths", img:"images/fishing_spots/Abyssal_Glow_Depths.webp" },
+    { id:"Leviathan_Rift_Trench", req:90, title:"Leviathan Rift Trench", img:"images/fishing_spots/Leviathan_Rift_Trench.webp" }
   ];
 
   function renderHeader(){

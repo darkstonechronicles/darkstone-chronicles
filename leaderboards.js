@@ -5,7 +5,7 @@
       label: "Hero Level",
       source: "public",
       field: "hero_level",
-      icon: "images/ui/fight.png",
+      icon: "images/ui/fight.webp",
       pageTitle: "Hero Level",
       subtitle: "Top players by hero level.",
       valueHeader: "Level / XP"
@@ -15,7 +15,7 @@
       label: "Dungeons",
       source: "public",
       field: "dungeons_completed",
-      icon: "images/ui/dungeons.png",
+      icon: "images/ui/dungeons.webp",
       pageTitle: "Dungeons Completed",
       subtitle: "Top players by dungeon completions.",
       valueHeader: "Completed"
@@ -35,7 +35,7 @@
       label: "Forge",
       source: "public",
       field: "forge_level",
-      icon: "images/ui/forge.png",
+      icon: "images/ui/forge.webp",
       pageTitle: "Forge Level",
       subtitle: "Top players by forge level.",
       valueHeader: "Level / XP"
@@ -45,7 +45,7 @@
       label: "Woodcutting",
       source: "public",
       field: "woodcutting_level",
-      icon: "images/ui/woodcutting.png",
+      icon: "images/ui/woodcutting.webp",
       pageTitle: "Woodcutting Level",
       subtitle: "Top players by woodcutting level.",
       valueHeader: "Level / XP"
@@ -55,7 +55,7 @@
       label: "Carpentry",
       source: "public",
       field: "carpentry_level",
-      icon: "images/ui/carpentry.png",
+      icon: "images/ui/carpentry.webp",
       pageTitle: "Carpentry Level",
       subtitle: "Top players by carpentry level.",
       valueHeader: "Level / XP"

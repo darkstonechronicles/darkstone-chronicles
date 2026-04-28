@@ -35,7 +35,7 @@
       bonusPerLevel: BUILDING_BONUS_PER_LEVEL,
       bonusText: "Fighting Fields ATK/DEF",
       desc: "Permanent bonus in Fight only.",
-      img: "images/buildings/barracks.png"
+      img: "images/buildings/barracks.webp"
     },
     {
       id: "cryptHall",
@@ -45,7 +45,7 @@
       bonusPerLevel: BUILDING_BONUS_PER_LEVEL,
       bonusText: "Dungeon ATK/DEF",
       desc: "Bonus applies only inside Dungeons.",
-      img: "images/buildings/crypt_hall.png"
+      img: "images/buildings/crypt_hall.webp"
     },
     {
       id: "minerHut",
@@ -55,7 +55,7 @@
       bonusPerLevel: BUILDING_BONUS_PER_LEVEL,
       bonusText: "Mining XP",
       desc: "Bonus applies only to Mining XP.",
-      img: "images/buildings/miner_hut.png"
+      img: "images/buildings/miner_hut.webp"
     },
     {
       id: "forgeAcademy",
@@ -65,7 +65,7 @@
       bonusPerLevel: BUILDING_BONUS_PER_LEVEL,
       bonusText: "Forge XP",
       desc: "Bonus applies only to smelting XP.",
-      img: "images/buildings/forge_academy.png"
+      img: "images/buildings/forge_academy.webp"
     },
     {
       id: "foresterLodge",
@@ -75,7 +75,7 @@
       bonusPerLevel: BUILDING_BONUS_PER_LEVEL,
       bonusText: "Woodcutting XP",
       desc: "Bonus applies only to wood gathering XP.",
-      img: "images/buildings/forester_lodge.png"
+      img: "images/buildings/forester_lodge.webp"
     },
     {
       id: "carpenterWorkshop",
@@ -85,7 +85,7 @@
       bonusPerLevel: BUILDING_BONUS_PER_LEVEL,
       bonusText: "Carpentry XP",
       desc: "Bonus applies only to plank crafting XP.",
-      img: "images/buildings/carpenter_workshop.png"
+      img: "images/buildings/carpenter_workshop.webp"
     },
     {
       id: "herbalistConservatory",
@@ -95,7 +95,7 @@
       bonusPerLevel: BUILDING_BONUS_PER_LEVEL,
       bonusText: "Herbalism XP",
       desc: "Bonus applies only to herb gathering XP.",
-      img: "images/buildings/herbalist_conservatory.png"
+      img: "images/buildings/herbalist_conservatory.webp"
     },
     {
       id: "alchemistLaboratory",
@@ -105,7 +105,7 @@
       bonusPerLevel: BUILDING_BONUS_PER_LEVEL,
       bonusText: "Alchemy XP",
       desc: "Bonus applies only to potion brewing XP.",
-      img: "images/buildings/alchemist_laboratory.png"
+      img: "images/buildings/alchemist_laboratory.webp"
     },
     {
       id: "hunterLodge",
@@ -115,7 +115,7 @@
       bonusPerLevel: BUILDING_BONUS_PER_LEVEL,
       bonusText: "Hunting XP",
       desc: "Bonus applies only to hunting XP.",
-      img: "images/buildings/hunter_lodge.png"
+      img: "images/buildings/hunter_lodge.webp"
     },
     {
       id: "anglerPier",
@@ -125,7 +125,7 @@
       bonusPerLevel: BUILDING_BONUS_PER_LEVEL,
       bonusText: "Fishing XP",
       desc: "Bonus applies only to fishing XP.",
-      img: "images/buildings/angler_pier.png"
+      img: "images/buildings/angler_pier.webp"
     },
     {
       id: "cookhouse",
@@ -145,7 +145,7 @@
       bonusPerLevel: BUILDING_BONUS_PER_LEVEL,
       bonusText: "Enchanting XP",
       desc: "Bonus applies only to enchanting XP.",
-      img: "images/buildings/enchanter_sanctum.png"
+      img: "images/buildings/enchanter_sanctum.webp"
     },
     {
       id: "jewelcrafterAtelier",
@@ -155,7 +155,7 @@
       bonusPerLevel: BUILDING_BONUS_PER_LEVEL,
       bonusText: "Jewelcrafting XP",
       desc: "Bonus applies only to jewelcrafting XP.",
-      img: "images/buildings/jewelcrafter_atelier.png"
+      img: "images/buildings/jewelcrafter_atelier.webp"
     }
   ];
 

@@ -69,13 +69,13 @@
   }
 
   const HERB_ZONES = [
-    { id:"verdant_hollow", name:"Verdant Hollow", req:1, herbName:"Greenleaf", zoneImg:"images/herbalism/zones/verdant_hollow.png" },
-    { id:"sunspire_plains", name:"Sunspire Plains", req:15, herbName:"Sungrass", zoneImg:"images/herbalism/zones/sunspire_plains.png" },
-    { id:"ironwood_depths", name:"Ironwood Depths", req:30, herbName:"Ironroot", zoneImg:"images/herbalism/zones/ironwood_depths.png" },
-    { id:"frostpetal_vale", name:"Frostpetal Vale", req:45, herbName:"Frost Bloom", zoneImg:"images/herbalism/zones/frostpetal_vale.png" },
-    { id:"duskmire_thicket", name:"Duskmire Thicket", req:60, herbName:"Shadow Mint", zoneImg:"images/herbalism/zones/duskmire_thicket.png" },
-    { id:"aurathorn_expanse", name:"Aurathorn Expanse", req:75, herbName:"Goldthorn", zoneImg:"images/herbalism/zones/aurathorn_expanse.png" },
-    { id:"emberfall_sanctuary", name:"Emberfall Sanctuary", req:90, herbName:"Ember Lotus", zoneImg:"images/herbalism/zones/emberfall_sanctuary.png" }
+    { id:"verdant_hollow", name:"Verdant Hollow", req:1, herbName:"Greenleaf", zoneImg:"images/herbalism/zones/verdant_hollow.webp" },
+    { id:"sunspire_plains", name:"Sunspire Plains", req:15, herbName:"Sungrass", zoneImg:"images/herbalism/zones/sunspire_plains.webp" },
+    { id:"ironwood_depths", name:"Ironwood Depths", req:30, herbName:"Ironroot", zoneImg:"images/herbalism/zones/ironwood_depths.webp" },
+    { id:"frostpetal_vale", name:"Frostpetal Vale", req:45, herbName:"Frost Bloom", zoneImg:"images/herbalism/zones/frostpetal_vale.webp" },
+    { id:"duskmire_thicket", name:"Duskmire Thicket", req:60, herbName:"Shadow Mint", zoneImg:"images/herbalism/zones/duskmire_thicket.webp" },
+    { id:"aurathorn_expanse", name:"Aurathorn Expanse", req:75, herbName:"Goldthorn", zoneImg:"images/herbalism/zones/aurathorn_expanse.webp" },
+    { id:"emberfall_sanctuary", name:"Emberfall Sanctuary", req:90, herbName:"Ember Lotus", zoneImg:"images/herbalism/zones/emberfall_sanctuary.webp" }
   ];
 
   function renderHerbalismHeader(){

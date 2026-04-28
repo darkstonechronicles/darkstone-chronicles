@@ -19,21 +19,21 @@
 
       <button class="hubNav" id="goForge" data-open-tab-href="forge.html">
         <span class="hubIconFrame">
-          <img class="hubIconImg" src="images/ui/forge.png" alt="" aria-hidden="true">
+          <img class="hubIconImg" src="images/ui/forge.webp" alt="" aria-hidden="true">
         </span>
         <span class="hubLabel">Forge</span>
       </button>
 
       <button class="hubNav" id="goWoodcut" data-open-tab-href="woodcutting.html">
         <span class="hubIconFrame">
-          <img class="hubIconImg" src="images/ui/woodcutting.png" alt="" aria-hidden="true">
+          <img class="hubIconImg" src="images/ui/woodcutting.webp" alt="" aria-hidden="true">
         </span>
         <span class="hubLabel">Woodcutting</span>
       </button>
 
       <button class="hubNav" id="goCarp" data-open-tab-href="carpentry.html">
         <span class="hubIconFrame">
-          <img class="hubIconImg" src="images/ui/carpentry.png" alt="" aria-hidden="true">
+          <img class="hubIconImg" src="images/ui/carpentry.webp" alt="" aria-hidden="true">
         </span>
         <span class="hubLabel">Carpentry</span>
       </button>
@@ -68,7 +68,7 @@
 
       <button class="hubNav" id="goJewelcraft" data-open-tab-href="jewelcrafting.html">
         <span class="hubIconFrame">
-          <img class="hubIconImg" src="images/ui/jewelcrafting.png" alt="" aria-hidden="true">
+          <img class="hubIconImg" src="images/ui/jewelcrafting.webp" alt="" aria-hidden="true">
         </span>
         <span class="hubLabel">Jewelcrafting</span>
       </button>

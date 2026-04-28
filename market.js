@@ -39,10 +39,10 @@
       kind: "item",
       shopTab: "misc",
       name: "Empty Vial",
-      img: "images/alchemy/items/empty_vial.png",
+      img: "images/alchemy/items/empty_vial.webp",
       price: 10,
       quantity: 1,
-      item: { type: "material", id: "empty_vial", name: "Empty Vial", img: "images/alchemy/items/empty_vial.png" },
+      item: { type: "material", id: "empty_vial", name: "Empty Vial", img: "images/alchemy/items/empty_vial.webp" },
       meta: "Used for alchemy potions."
     },
     {
@@ -264,8 +264,8 @@
 
   function marketIcon(kind){
     if (kind === "gear") return "images/ui/equipment.png";
-    if (kind === "materials") return "images/ui/bank.png";
-    return "images/ui/market.png";
+    if (kind === "materials") return "images/ui/bank.webp";
+    return "images/ui/market.webp";
   }
 
   function findBuyQtyInput(id){

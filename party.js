@@ -6,7 +6,7 @@
     {
       id: "gravefang-hydra",
       name: "Mirehook Ravager",
-      img: "images/mobs/party/mirehook_ravager.png",
+      img: "images/mobs/party/mirehook_ravager.webp",
       attack: 350,
       defense: 210,
       role: "Swamp Skirmisher",
@@ -16,7 +16,7 @@
     {
       id: "embermaw-colossus",
       name: "Gloomtail Stalker",
-      img: "images/mobs/party/gloomtail_stalker.png",
+      img: "images/mobs/party/gloomtail_stalker.webp",
       attack: 49,
       defense: 31,
       role: "Agile Predator",
@@ -26,7 +26,7 @@
     {
       id: "thornveil-broodmother",
       name: "Ashhide Brute",
-      img: "images/mobs/party/ashhide_brute.png",
+      img: "images/mobs/party/ashhide_brute.webp",
       attack: 54,
       defense: 43,
       role: "Frontline Bruiser",
@@ -36,7 +36,7 @@
     {
       id: "stormglass-seraph",
       name: "Frostvein Harrier",
-      img: "images/mobs/party/frostvein_harrier.png",
+      img: "images/mobs/party/frostvein_harrier.webp",
       attack: 61,
       defense: 39,
       role: "Winged Striker",
@@ -46,7 +46,7 @@
     {
       id: "cryptwarden-revenant",
       name: "Ironroot Mauler",
-      img: "images/mobs/party/ironroot_mauler.png",
+      img: "images/mobs/party/ironroot_mauler.webp",
       attack: 66,
       defense: 58,
       role: "Heavy Mauler",
@@ -1083,7 +1083,7 @@
             </div>
 
             <div style="display:grid;justify-items:center;">
-              <img src="images/ui/my_vs_icon.png" alt="VS" style="width:126px;height:126px;object-fit:contain;display:block;">
+              <img src="images/ui/my_vs_icon.webp" alt="VS" style="width:126px;height:126px;object-fit:contain;display:block;">
             </div>
 
             <div style="display:grid;justify-items:center;gap:10px;text-align:center;">

@@ -17,7 +17,7 @@
 
   /* Background */
   --bg-fallback: #0b0b10;
-  --bg-image: url("./images/bg/main_bg.png");
+  --bg-image: url("./images/bg/main_bg.webp");
   --bg-overlay: rgba(0,0,0,0.22);
 
   /* Premium buttons */
@@ -433,7 +433,7 @@ a:hover{ text-decoration: underline; }
 }
 
 .hubIconArtFrame{
-  background-image: url("images/ui/home_icon_frame.png");
+  background-image: url("images/ui/home_icon_frame.webp");
   background-size: contain;
   filter: drop-shadow(0 10px 24px rgba(0,0,0,.34));
 }
@@ -468,43 +468,43 @@ a:hover{ text-decoration: underline; }
 }
 
 .hubIconArtFight{
-  background-image: url("images/ui/fighting_fields_button.png");
+  background-image: url("images/ui/fighting_fields_button.webp");
 }
 
 .hubIconArtProfessions{
-  background-image: url("images/ui/professions_button.png");
+  background-image: url("images/ui/professions_button.webp");
 }
 
 .hubIconArtOverview{
-  background-image: url("images/ui/overview_button.png");
+  background-image: url("images/ui/overview_button.webp");
 }
 
 .hubIconArtDungeons{
-  background-image: url("images/ui/dungeons_button.png");
+  background-image: url("images/ui/dungeons_button.webp");
 }
 
 .hubIconArtBuildings{
-  background-image: url("images/ui/buildings_button.png");
+  background-image: url("images/ui/buildings_button.webp");
 }
 
 .hubIconArtChallenges{
-  background-image: url("images/ui/challenges_button.png");
+  background-image: url("images/ui/challenges_button.webp");
 }
 
 .hubIconArtEquipment{
-  background-image: url("images/ui/equipment_button.png");
+  background-image: url("images/ui/equipment_button.webp");
 }
 
 .hubIconArtMarket{
-  background-image: url("images/ui/market_button.png");
+  background-image: url("images/ui/market_button.webp");
 }
 
 .hubIconArtBank{
-  background-image: url("images/ui/bank_button.png");
+  background-image: url("images/ui/bank_button.webp");
 }
 
 .hubIconArtStats{
-  background-image: url("images/ui/my_stats_button.png");
+  background-image: url("images/ui/my_stats_button.webp");
 }
 
 .hubEmoji{
