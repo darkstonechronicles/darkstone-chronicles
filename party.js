@@ -77,6 +77,9 @@
     pollIntervalMs: 0,
     realtimeChannel: null,
     realtimePartyId: "",
+    inviteChannel: null,
+    inviteUserId: "",
+    inviteRefreshTimer: 0,
     realtimeRefreshTimer: 0,
     uiTimer: 0,
     uiRaf: 0,
@@ -415,6 +418,39 @@
     channel.subscribe();
     state.realtimeChannel = channel;
     state.realtimePartyId = partyId;
+  }
+
+  function queueInviteRefresh(delayMs = 250) {
+    if (state.inviteRefreshTimer) window.clearTimeout(state.inviteRefreshTimer);
+    state.inviteRefreshTimer = window.setTimeout(() => {
+      state.inviteRefreshTimer = 0;
+      if (document.hidden || state.loading || state.actionBusy) return;
+      Promise.resolve(loadPartyState({ silent: true })).catch(() => {});
+    }, Math.max(0, delayMs));
+  }
+
+  async function initInviteWatcher() {
+    try {
+      await window.DSAuth?.ready;
+    } catch {}
+    const client = window.DSAuth?.getClient?.();
+    const userId = String(window.DSAuth?.getUser?.()?.id || "").trim();
+    if (!client?.channel || !userId) return;
+    if (state.inviteChannel && state.inviteUserId === userId) return;
+    if (state.inviteChannel) {
+      Promise.resolve(client.removeChannel?.(state.inviteChannel)).catch(() => {});
+      state.inviteChannel = null;
+      state.inviteUserId = "";
+    }
+
+    const refresh = () => queueInviteRefresh(250);
+    const channel = client
+      .channel(`party-invites-${userId}`)
+      .on("postgres_changes", { event: "*", schema: "public", table: "party_invites", filter: `to_user_id=eq.${userId}` }, refresh);
+    channel.subscribe();
+    state.inviteChannel = channel;
+    state.inviteUserId = userId;
+    queueInviteRefresh(1200);
   }
 
   function updatePartyFightTimerUI() {
@@ -1530,17 +1566,21 @@
   window.DSPartyHall = {
     mount: mountPartyHall,
     initRealtime,
+    initInviteWatcher,
     confirmStopPartyFightForNavigation,
     getCurrentPartyId: () => String(myParty()?.id || "")
   };
   window.addEventListener("DOMContentLoaded", () => {
     initStandalonePartyHall();
+    initInviteWatcher();
     if (hasPartyPage()) initRealtime();
   });
   window.addEventListener("ds:auth", () => {
+    initInviteWatcher();
     if (hasPartyPage()) initRealtime();
   });
   window.addEventListener("visibilitychange", () => {
+    if (!document.hidden) queueInviteRefresh(250);
     if (!document.hidden && hasPartyPage()) loadPartyState({ silent: true });
   });
 })();

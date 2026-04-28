@@ -7932,12 +7932,13 @@ function renderAll() {
 
       const page = normalizePagePath(window.location.pathname || "index.html");
 
-      if (page === "party_hall.html" && !window.DSPartyHall) {
+      if (!window.DSPartyHall) {
         await ensureOptionalScript("party.js");
       }
       if (!window.DSLeaderboards) {
         await ensureOptionalScript("leaderboards.js");
       }
+      await window.DSPartyHall?.initInviteWatcher?.();
       if (page === "party_hall.html") await window.DSPartyHall?.initRealtime?.();
 
       const rawSave = loadSave();
