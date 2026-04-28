@@ -94,6 +94,7 @@
     boundaryFetchTimer: 0,
     lastMessage: "",
     lastError: "",
+    lastPersonalFightResult: null,
     createDraft: null,
     inviteDraft: "",
   };
@@ -290,6 +291,34 @@
 
   function partyMonsterProgress() {
     return Array.isArray(state.data?.partyMonsterProgress) ? state.data.partyMonsterProgress : [];
+  }
+
+  function partyFightBonuses() {
+    const profileBonuses = state.data?.profile?.partyFightBonuses;
+    if (profileBonuses && typeof profileBonuses === "object") {
+      return {
+        atkPct: Math.max(0, num(profileBonuses.atkPct, 0)),
+        defPct: Math.max(0, num(profileBonuses.defPct, 0)),
+      };
+    }
+    return {
+      atkPct: Math.max(0, num(state.data?.partyFightBonuses?.atkPct, 0)),
+      defPct: Math.max(0, num(state.data?.partyFightBonuses?.defPct, 0)),
+    };
+  }
+
+  function partyMonsterMilestones(monsterId) {
+    const profileMilestones = state.data?.profile?.partyMonsterMilestones;
+    if (profileMilestones && typeof profileMilestones === "object") {
+      const rows = profileMilestones[partyMonsterId(monsterId)];
+      if (Array.isArray(rows)) return rows;
+    }
+    const topLevel = state.data?.partyMonsterMilestones;
+    if (topLevel && typeof topLevel === "object") {
+      const rows = topLevel[partyMonsterId(monsterId)];
+      if (Array.isArray(rows)) return rows;
+    }
+    return [];
   }
 
   function monsterProgressEntry(monsterId) {
@@ -637,6 +666,7 @@
     try {
       const data = await window.DSAuth?.invokePartyAction?.(payload || {});
       state.data = data || state.data;
+      state.lastPersonalFightResult = data?.personalFightResult || null;
       dispatchPartyStateChanged();
       state.lastError = "";
       const nextMessage = successMessage !== undefined ? successMessage : data?.message;
@@ -734,7 +764,7 @@
           <div style="opacity:.76;font-size:12px;">Level ${num(member.heroLevel, 1)}${member.userId === meId ? " - You" : ""}</div>
         </div>
         <div style="opacity:.82;">${member.isLeader ? "Leader" : "Member"}</div>
-        <div style="color:${member.ready ? "#9df0aa" : "#d6c7a1"};font-weight:800;">${member.ready ? "Ready" : "Not Ready"}</div>
+        <div style="color:#d6c7a1;font-weight:800;">Active</div>
         ${showLeaderTools && !member.isLeader ? `<button type="button" data-party-kick="${esc(member.userId)}" disabled title="Kick member will be added next.">Kick</button>` : ""}
       </div>
     `).join("");
@@ -862,8 +892,8 @@
   }
 
   function partySlotCardMarkup(member) {
-    const frameColor = member.isLeader || member.ready ? "#43c26b" : "#c45151";
-    const statusText = member.isLeader || member.ready ? "Ready" : "Not Ready";
+    const frameColor = member.isLeader ? "#43c26b" : "#c79b44";
+    const statusText = member.isLeader ? "Leader" : "Member";
     const canKick = isLeader() && !member.isSelf && !member.isLeader;
     return `
       <div style="display:grid;justify-items:center;align-content:start;gap:10px;text-align:center;">
@@ -871,7 +901,7 @@
           ${canKick ? `<button type="button" data-party-kick-member="${esc(member.userId)}" style="padding:7px 14px;border-radius:10px;">Kick</button>` : ``}
         </div>
         <div style="min-height:28px;display:flex;align-items:center;justify-content:center;">
-          <div style="padding:4px 10px;border-radius:999px;background:${member.isLeader || member.ready ? "rgba(67,194,107,.16)" : "rgba(196,81,81,.16)"};border:1px solid ${member.isLeader || member.ready ? "rgba(67,194,107,.32)" : "rgba(196,81,81,.32)"};color:${member.isLeader || member.ready ? "#bff0ca" : "#ffd3d3"};font-weight:900;font-size:12px;">${statusText}</div>
+          <div style="padding:4px 10px;border-radius:999px;background:${member.isLeader ? "rgba(67,194,107,.16)" : "rgba(199,155,68,.14)"};border:1px solid ${member.isLeader ? "rgba(67,194,107,.32)" : "rgba(199,155,68,.28)"};color:${member.isLeader ? "#bff0ca" : "#f0d9a8"};font-weight:900;font-size:12px;">${statusText}</div>
         </div>
         <img src="${esc(member.avatarUrl)}" alt="${esc(member.heroName)}" style="width:110px;height:110px;border-radius:18px;border:3px solid ${frameColor};object-fit:cover;box-shadow:0 0 0 1px rgba(0,0,0,.28);">
         <div style="font-weight:900;font-size:18px;line-height:1.1;">${esc(member.heroName)}</div>
@@ -903,11 +933,17 @@
 
   function partySlotsMarkup(party) {
     const members = Array.isArray(party.members) ? party.members : [];
-    const totalAttack = members.reduce((sum, member) => sum + num(member?.heroAttack, 0), 0);
-    const totalDefense = members.reduce((sum, member) => sum + num(member?.heroDefense, 0), 0);
+    const totalAttack = num(party?.totalAttack, members.reduce((sum, member) => sum + num(member?.heroAttack, 0), 0));
+    const totalDefense = num(party?.totalDefense, members.reduce((sum, member) => sum + num(member?.heroDefense, 0), 0));
+    const totalHp = num(party?.totalHp, members.reduce((sum, member) => sum + num(member?.heroHP, 0), 0));
+    const totalHpMax = num(party?.totalHpMax, members.reduce((sum, member) => sum + num(member?.heroHPMax, 0), 0));
     const selectedMonster = selectedPartyMonsterFromParty(party);
     const selectedMonsterProgress = selectedMonster ? monsterProgressEntry(selectedMonster.id) : null;
     const rewardPreview = selectedMonsterRewardPreview(selectedMonster);
+    const milestones = selectedMonster ? partyMonsterMilestones(selectedMonster.id) : [];
+    const bonuses = partyFightBonuses();
+    const canRunFight = members.length >= 2 && !!selectedMonster && !!selectedMonsterProgress?.unlocked;
+    const latest = state.lastPersonalFightResult;
     const slots = [];
     for (let index = 0; index < 4; index += 1) {
       const member = members[index] || null;
@@ -964,22 +1000,58 @@
           ${isLeader() ? `<button id="partyChooseMonsterBtn" type="button">Choose Monster</button>` : ``}
         </div>
         <div style="margin-top:14px;padding:10px 14px;border:1px solid rgba(255,255,255,.10);border-radius:12px;background:rgba(255,255,255,.03);text-align:center;font-weight:800;">
-          Total Attack : ${num(totalAttack, 0)} , Total Defense : ${num(totalDefense, 0)}
+          Total Attack : ${num(totalAttack, 0)} , Total Defense : ${num(totalDefense, 0)} , Party HP : ${num(totalHp, 0)} / ${num(totalHpMax, 0)}
+        </div>
+        <div style="margin-top:12px;padding:10px 14px;border:1px solid rgba(255,255,255,.10);border-radius:12px;background:rgba(255,255,255,.03);text-align:center;font-weight:800;">
+          Party Fight Bonus : ATK +${(Math.max(0, num(bonuses.atkPct, 0)) * 100).toFixed(1)}% , DEF +${(Math.max(0, num(bonuses.defPct, 0)) * 100).toFixed(1)}%
+        </div>
+        <div style="margin-top:14px;display:grid;gap:12px;">
+          <div style="padding:14px;border:1px solid rgba(255,255,255,.10);border-radius:14px;background:rgba(255,255,255,.025);display:grid;gap:10px;">
+            <div style="display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;align-items:center;">
+              <div style="font-size:16px;font-weight:900;">Async Party Fight</div>
+              <button id="partyResolveFightBtn" type="button" ${canRunFight ? "" : "disabled"}>Spend 5 Stamina</button>
+            </div>
+            <div style="font-size:12px;opacity:.84;">
+              Needs 2+ party members. The active player spends stamina, uses personal healing, and receives all rewards. Party member stats and HP only contribute to party power.
+            </div>
+            ${selectedMonster ? `
+              <div style="font-size:12px;opacity:.82;">
+                Your kills on ${esc(selectedMonster.name)}: ${num(selectedMonsterProgress?.kills, 0)}
+              </div>
+            ` : `<div style="font-size:12px;opacity:.82;">Choose a monster first.</div>`}
+            ${latest ? `
+              <div style="padding:12px;border:1px solid rgba(255,255,255,.08);border-radius:12px;background:rgba(255,255,255,.03);display:grid;gap:6px;">
+                <div style="font-weight:900;">Latest Result: ${esc(String(latest.outcome || "").toUpperCase())}</div>
+                <div style="font-size:12px;opacity:.86;">Rounds: ${num(latest.rounds, 0)} | Damage Dealt: ${num(latest.totalDamageDealt, 0)} | Damage Taken: ${num(latest.personalDamageTaken, 0)}</div>
+                <div style="font-size:12px;opacity:.86;">Rewards: XP ${num(latest.xp, 0)} | Gold ${num(latest.gold, 0)}${num(latest.partyPoints, 0) > 0 ? ` | PP ${num(latest.partyPoints, 0)}` : ""}</div>
+                <div style="font-size:12px;opacity:.86;">Party HP: ${num(latest.partyHpRemaining, 0)} / ${num(latest.partyHpMax, 0)} | Stamina Left: ${num(latest.staminaRemaining, 0)}</div>
+                ${Array.isArray(latest.milestoneRewards) && latest.milestoneRewards.length ? `<div style="font-size:12px;color:#f0d58b;">Milestones: ${latest.milestoneRewards.map((entry) => esc(entry.rewardLabel || "Reward")).join(" | ")}</div>` : ``}
+              </div>
+            ` : ``}
+          </div>
+          ${selectedMonster && milestones.length ? `
+            <div style="padding:14px;border:1px solid rgba(255,255,255,.10);border-radius:14px;background:rgba(255,255,255,.025);display:grid;gap:10px;">
+              <div style="font-size:15px;font-weight:900;">${esc(selectedMonster.name)} Milestones</div>
+              ${milestones.map((entry) => `
+                <div style="display:grid;grid-template-columns:auto 1fr auto;gap:10px;align-items:center;padding:10px 12px;border:1px solid rgba(255,255,255,.08);border-radius:12px;background:rgba(255,255,255,.02);">
+                  <div style="font-weight:900;">${num(entry.kills, 0)}</div>
+                  <div style="font-size:12px;opacity:.86;">${esc(entry.rewardLabel || "Reward")} (${num(entry.progress, 0)}/${num(entry.kills, 0)})</div>
+                  <div style="font-size:12px;font-weight:900;color:${entry.claimed ? "#9df0aa" : entry.reached ? "#f0d58b" : "#d6c7a1"};">${entry.claimed ? "Claimed" : entry.reached ? "Ready" : "Locked"}</div>
+                </div>
+              `).join("")}
+            </div>
+          ` : ``}
         </div>
       </section>
     `;
   }
 
   function leaderPartyMarkup(party) {
-    const canStart = !!party.canStartActivity;
-    const active = party.state === "active";
-    const hasSelectedMonster = !!String(party.selectedMonsterId || "").trim();
     return `
       <div style="display:grid;gap:14px;">
         ${partySlotsMarkup(party)}
 
         <div style="display:flex;gap:12px;flex-wrap:wrap;justify-content:flex-start;">
-          <button id="partyStartActivityBtn" type="button" ${!canStart || active || !hasSelectedMonster ? "disabled" : ""}>Start Party Fight</button>
           <button id="partyDisbandBtn" type="button">Disband Party</button>
           <button id="partyLeaveBtn" type="button">Leave Party</button>
         </div>
@@ -989,13 +1061,11 @@
   }
 
   function memberPartyMarkup(party) {
-    const me = (party.members || []).find((entry) => entry.isSelf);
     return `
       <div style="display:grid;gap:14px;">
         ${partySlotsMarkup(party)}
         <div style="display:flex;gap:12px;flex-wrap:wrap;justify-content:flex-start;">
-          <button id="partyReadyBtn" type="button" ${party.state !== "forming" ? "disabled" : ""}>${me?.ready ? "Not Ready" : "Ready"}</button>
-          <button id="partyLeaveBtn" type="button" ${party.state === "active" ? "disabled" : ""}>Leave Party</button>
+          <button id="partyLeaveBtn" type="button">Leave Party</button>
         </div>
       </div>
     `;
@@ -1041,7 +1111,7 @@
             <div style="display:grid;grid-template-columns:40px 1fr auto;gap:10px;align-items:center;padding:8px 10px;border:1px solid rgba(255,255,255,.08);border-radius:10px;background:rgba(255,255,255,.02);">
               <img src="${esc(member.avatarUrl)}" alt="${esc(member.heroName)}" style="width:40px;height:40px;border-radius:10px;border:2px solid #333;object-fit:cover;">
               <div>${esc(member.heroName)} <span style="opacity:.72;">Lv ${num(member.heroLevel, 1)}</span></div>
-              <div style="opacity:.72;">${member.role === "leader" ? "Leader" : member.ready ? "Ready" : "Not Ready"}</div>
+              <div style="opacity:.72;">${member.role === "leader" ? "Leader" : "Member"}</div>
             </div>
           `).join("")}
         </div>
@@ -1265,9 +1335,6 @@
     if (!state.data && state.lastError) {
       return `<div style="padding:14px;border:1px solid rgba(179,72,92,.45);border-radius:12px;background:rgba(78,22,34,.35);color:#ffd8de;">${esc(state.lastError)}</div>`;
     }
-    if (party && party.state === "active" && String(party.activity || "").toLowerCase().includes("party fight")) {
-      return partyFightMarkup();
-    }
     if (party && isLeader() && state.monsterSelectionOpen) {
       return chooseMonsterPageMarkup(party);
     }
@@ -1434,12 +1501,12 @@
       });
     });
 
-    document.getElementById("partyReadyBtn")?.addEventListener("click", async () => {
-      await runAction({ action: "set_ready" }, "");
-    });
-
     document.getElementById("partyLeaveBtn")?.addEventListener("click", async () => {
       await runAction({ action: "leave_party" }, "");
+    });
+
+    document.getElementById("partyResolveFightBtn")?.addEventListener("click", async () => {
+      await runAction({ action: "resolve_party_fight" }, "");
     });
 
     document.querySelectorAll("[data-party-kick-member]").forEach((btn) => btn.addEventListener("click", async () => {
@@ -1457,44 +1524,6 @@
       if (!party) return;
       await runAction({ action: "disband_party", partyId: party.id }, "Party disbanded.");
     });
-
-    document.getElementById("partyStartActivityBtn")?.addEventListener("click", async () => {
-      const party = myParty();
-      if (!party) return;
-      state.tab = "my_party";
-      await runAction({ action: "start_activity", partyId: party.id, activity: "Party Fight" }, "");
-    });
-
-    document.getElementById("partyFightEndBtn")?.addEventListener("click", async () => {
-      const party = myParty();
-      if (!party) return;
-      await runAction({ action: "end_activity", partyId: party.id, result: "cancelled", nextActivity: "Party Fight" }, "Party Fight stopped.");
-    });
-
-    document.getElementById("partyFightReadyBtn")?.addEventListener("click", async () => {
-      await runAction({ action: "set_ready" }, "");
-    });
-
-    document.getElementById("partyFightBackBtn")?.addEventListener("click", () => {
-      state.selectedPartyFightMonsterId = null;
-      renderPartyHall();
-    });
-
-    document.getElementById("partyFightMonsterStartBtn")?.addEventListener("click", async () => {
-      const party = myParty();
-      const monster = selectedPartyFightMonster();
-      if (!party || !monster) return;
-      await runAction({
-        action: "start_activity",
-        partyId: party.id,
-        activity: `Party Fight - ${monster.name}`
-      }, "");
-    });
-
-    document.querySelectorAll("[data-party-fight-monster]").forEach((btn) => btn.addEventListener("click", () => {
-      state.selectedPartyFightMonsterId = btn.dataset.partyFightMonster || null;
-      renderPartyHall();
-    }));
 
     document.querySelectorAll("[data-party-view]").forEach((btn) => btn.addEventListener("click", () => {
       state.selectedPartyId = btn.dataset.partyView || null;

@@ -386,6 +386,18 @@ const FIRST_MONSTER_MYTHIC_DROPS = [
     img: "images/items/dropsfromzones/zone3/rh_legendary_shoulders.png",
   },
 ] as const;
+const PARTY_FIGHT_STANDALONE_STAMINA_COST = 5;
+const PARTY_FIGHT_MIN_DAMAGE = 3;
+const PARTY_FIGHT_LOW_DAMAGE_MAX = 10;
+const FIRST_MONSTER_MILESTONES = [
+  { kills: 1000, rewardType: "unlock", rewardLabel: "Unlock Mob 2" },
+  { kills: 3000, rewardType: "party_points", amount: 1500, rewardLabel: "+1,500 PP" },
+  { kills: 5000, rewardType: "orb_of_creation", amount: 20, rewardLabel: "+20 Orb of Creation" },
+  { kills: 10000, rewardType: "party_points", amount: 7500, rewardLabel: "+7,500 PP" },
+  { kills: 50000, rewardType: "party_fight_buff", atkPct: 0.01, defPct: 0.01, rewardLabel: "+1% Party Fight ATK/DEF" },
+  { kills: 100000, rewardType: "placeholder", rewardLabel: "Reward TBD" },
+  { kills: 500000, rewardType: "placeholder", rewardLabel: "Reward TBD" },
+] as const;
 
 function rollRoughGemDrop() {
   if (Math.random() >= ROUGH_GEM_DROP_CHANCE) return null;
@@ -414,6 +426,99 @@ function ensureInventory(saveData: unknown) {
   const save = asRecord(saveData);
   if (!Array.isArray(save.inventory)) save.inventory = [];
   return save.inventory as JsonRecord[];
+}
+
+function ensurePartyHallState(saveData: unknown) {
+  const save = asRecord(saveData);
+  const partyHall = asRecord(save.partyHall);
+  save.partyHall = partyHall;
+  return partyHall;
+}
+
+function ensurePartyFightMilestoneClaims(saveData: unknown, monsterId: string) {
+  const partyHall = ensurePartyHallState(saveData);
+  const claims = asRecord(partyHall.milestoneClaims);
+  const key = normalizeMonsterId(monsterId);
+  let monsterClaims = claims[key];
+  if (!Array.isArray(monsterClaims)) {
+    monsterClaims = [];
+    claims[key] = monsterClaims;
+  }
+  partyHall.milestoneClaims = claims;
+  return monsterClaims as unknown[];
+}
+
+function hasPartyFightMilestoneClaim(saveData: unknown, monsterId: string, kills: number) {
+  const claims = ensurePartyFightMilestoneClaims(saveData, monsterId);
+  return claims.some((entry) => int(entry, -1) === Math.max(0, int(kills, 0)));
+}
+
+function markPartyFightMilestoneClaimed(saveData: unknown, monsterId: string, kills: number) {
+  const claims = ensurePartyFightMilestoneClaims(saveData, monsterId);
+  if (!claims.some((entry) => int(entry, -1) === Math.max(0, int(kills, 0)))) {
+    claims.push(Math.max(0, int(kills, 0)));
+  }
+}
+
+function ensurePartyFightBonuses(saveData: unknown) {
+  const partyHall = ensurePartyHallState(saveData);
+  const bonuses = asRecord(partyHall.partyFightBonuses);
+  bonuses.atkPct = Math.max(0, num(bonuses.atkPct, 0));
+  bonuses.defPct = Math.max(0, num(bonuses.defPct, 0));
+  partyHall.partyFightBonuses = bonuses;
+  return bonuses;
+}
+
+function getPartyFightBonuses(saveData: unknown) {
+  const bonuses = ensurePartyFightBonuses(saveData);
+  return {
+    atkPct: Math.max(0, num(bonuses.atkPct, 0)),
+    defPct: Math.max(0, num(bonuses.defPct, 0)),
+  };
+}
+
+function applyFirstMonsterMilestoneRewards(saveData: unknown, killCount: number) {
+  const granted: JsonRecord[] = [];
+  for (const milestone of FIRST_MONSTER_MILESTONES) {
+    if (killCount < milestone.kills) continue;
+    if (hasPartyFightMilestoneClaim(saveData, FIRST_PARTY_MONSTER_ID, milestone.kills)) continue;
+    if (milestone.rewardType === "party_points") {
+      awardPartyPoints(saveData, int(milestone.amount, 0));
+    } else if (milestone.rewardType === "orb_of_creation") {
+      addStackableInventoryItem(saveData, ORB_OF_CREATION_ITEM, int(milestone.amount, 0));
+    } else if (milestone.rewardType === "party_fight_buff") {
+      const bonuses = ensurePartyFightBonuses(saveData);
+      bonuses.atkPct = Math.max(0, num(bonuses.atkPct, 0)) + Math.max(0, num(milestone.atkPct, 0));
+      bonuses.defPct = Math.max(0, num(bonuses.defPct, 0)) + Math.max(0, num(milestone.defPct, 0));
+    }
+    markPartyFightMilestoneClaimed(saveData, FIRST_PARTY_MONSTER_ID, milestone.kills);
+    granted.push({
+      monsterId: FIRST_PARTY_MONSTER_ID,
+      kills: milestone.kills,
+      rewardType: milestone.rewardType,
+      rewardLabel: milestone.rewardLabel,
+    });
+  }
+  return granted;
+}
+
+function buildMonsterMilestones(saveData: unknown, monsterId: string) {
+  const normalizedMonsterId = normalizeMonsterId(monsterId);
+  if (normalizedMonsterId !== FIRST_PARTY_MONSTER_ID) return [];
+  const killCount = getMonsterKillCount(saveData, normalizedMonsterId);
+  const bonuses = getPartyFightBonuses(saveData);
+  return FIRST_MONSTER_MILESTONES.map((milestone) => ({
+    kills: milestone.kills,
+    rewardType: milestone.rewardType,
+    rewardLabel: milestone.rewardLabel,
+    reached: killCount >= milestone.kills,
+    claimed: hasPartyFightMilestoneClaim(saveData, normalizedMonsterId, milestone.kills),
+    progress: Math.min(milestone.kills, killCount),
+    atkPct: milestone.rewardType === "party_fight_buff" ? Math.max(0, num(milestone.atkPct, 0)) : 0,
+    defPct: milestone.rewardType === "party_fight_buff" ? Math.max(0, num(milestone.defPct, 0)) : 0,
+    currentBonusAtkPct: bonuses.atkPct,
+    currentBonusDefPct: bonuses.defPct,
+  }));
 }
 
 function addStackableInventoryItem(saveData: unknown, itemData: unknown, quantity: number) {
@@ -1116,6 +1221,10 @@ async function getUserSummaries(admin: ReturnType<typeof createClient>, userIds:
       stamina: getCurrentStamina(saveData),
       partyPoints: Math.max(0, int(asRecord(saveData).partyPoints, 0)),
       partyMonsterProgress: buildMonsterProgress(saveData),
+      partyFightBonuses: getPartyFightBonuses(saveData),
+      partyMonsterMilestones: {
+        [FIRST_PARTY_MONSTER_ID]: buildMonsterMilestones(saveData, FIRST_PARTY_MONSTER_ID),
+      },
       lastSeenAt: row.last_seen_at || null,
       lastSeenPage: str(row.last_seen_page),
     });
@@ -1136,6 +1245,10 @@ async function getUserSummaries(admin: ReturnType<typeof createClient>, userIds:
         stamina: calcStaminaMax(1),
         partyPoints: 0,
         partyMonsterProgress: buildMonsterProgress({}),
+        partyFightBonuses: getPartyFightBonuses({}),
+        partyMonsterMilestones: {
+          [FIRST_PARTY_MONSTER_ID]: buildMonsterMilestones({}, FIRST_PARTY_MONSTER_ID),
+        },
         lastSeenAt: null,
         lastSeenPage: "",
       });
@@ -1574,6 +1687,10 @@ async function buildPartySnapshot(admin: ReturnType<typeof createClient>, partyI
   const memberCount = memberList.length;
   const role = memberList.find((entry) => entry.userId === viewerUserId)?.role || "none";
   const nonLeaderMembers = memberList.filter((entry) => !entry.isLeader);
+  const totalAttack = memberList.reduce((sum, entry) => sum + Math.max(0, int(entry.heroAttack, 0)), 0);
+  const totalDefense = memberList.reduce((sum, entry) => sum + Math.max(0, int(entry.heroDefense, 0)), 0);
+  const totalHp = memberList.reduce((sum, entry) => sum + Math.max(0, int(entry.heroHP, 0)), 0);
+  const totalHpMax = memberList.reduce((sum, entry) => sum + Math.max(1, int(entry.heroHPMax, 1)), 0);
   const canStartActivity = party.state === "forming" && memberCount >= 2 && memberCount <= party.max_members && nonLeaderMembers.every((entry) => entry.ready);
 
   const snapshot: JsonRecord = {
@@ -1593,6 +1710,10 @@ async function buildPartySnapshot(admin: ReturnType<typeof createClient>, partyI
     leaderName: str(leaderSummary.heroName, "Hero"),
     role,
     memberCount,
+    totalAttack,
+    totalDefense,
+    totalHp,
+    totalHpMax,
     canStartActivity,
     members: memberList,
     pendingInvites: [],
@@ -2456,6 +2577,186 @@ async function endActivity(admin: ReturnType<typeof createClient>, userId: strin
   });
 }
 
+function calcStandalonePartyDamage(totalAttack: number, monsterDefense: number) {
+  if (totalAttack <= monsterDefense) return randomInt(PARTY_FIGHT_MIN_DAMAGE, PARTY_FIGHT_LOW_DAMAGE_MAX);
+  return Math.max(PARTY_FIGHT_MIN_DAMAGE, calcDamage(totalAttack, monsterDefense));
+}
+
+function simulateStandalonePartyFight(
+  memberSummaries: JsonRecord[],
+  monster: JsonRecord,
+  actorBonuses: { atkPct: number; defPct: number },
+) {
+  const memberCount = Math.max(1, memberSummaries.length);
+  const totalAttackBase = memberSummaries.reduce((sum, entry) => sum + Math.max(0, int(entry.heroAttack, 0)), 0);
+  const totalDefenseBase = memberSummaries.reduce((sum, entry) => sum + Math.max(0, int(entry.heroDefense, 0)), 0);
+  const totalHpMax = memberSummaries.reduce((sum, entry) => sum + Math.max(1, int(entry.heroHPMax, 1)), 0);
+  let partyHp = memberSummaries.reduce((sum, entry) => sum + Math.max(0, int(entry.heroHP, int(entry.heroHPMax, 1))), 0);
+  let monsterHp = Math.max(1, int(monster.hp, 1));
+  const totalAttack = Math.max(0, Math.floor(totalAttackBase * (1 + Math.max(0, num(actorBonuses.atkPct, 0)))));
+  const totalDefense = Math.max(0, Math.floor(totalDefenseBase * (1 + Math.max(0, num(actorBonuses.defPct, 0)))));
+  let rounds = 0;
+  let totalDamageDealt = 0;
+  let totalDamageTaken = 0;
+  while (partyHp > 0 && monsterHp > 0 && rounds < 12) {
+    rounds += 1;
+    const dealt = calcStandalonePartyDamage(totalAttack, Math.max(0, int(monster.defense, 0)));
+    totalDamageDealt += dealt;
+    monsterHp = Math.max(0, monsterHp - dealt);
+    if (monsterHp <= 0) break;
+    const taken = calcStandalonePartyDamage(Math.max(0, int(monster.attack, 0)), totalDefense);
+    totalDamageTaken += taken;
+    partyHp = Math.max(0, partyHp - taken);
+  }
+  const personalDamageTaken = Math.max(1, Math.ceil(totalDamageTaken / memberCount));
+  return {
+    rounds,
+    outcome: monsterHp <= 0 ? "victory" : partyHp > 0 ? "stalemate" : "defeat",
+    totalAttack,
+    totalDefense,
+    totalHpMax,
+    partyHpRemaining: partyHp,
+    monsterHpMax: Math.max(1, int(monster.hp, 1)),
+    monsterHpRemaining: monsterHp,
+    totalDamageDealt,
+    totalDamageTaken,
+    personalDamageTaken,
+  };
+}
+
+async function resolvePartyFight(admin: ReturnType<typeof createClient>, userId: string) {
+  const partyId = await getCurrentPartyId(admin, userId);
+  if (!partyId) throw new Error("You are not in a party.");
+  const party = await getPartyRow(admin, partyId);
+  if (!party || party.disbanded_at) throw new Error("Party not found.");
+  const members = await getPartyMembers(admin, partyId);
+  if (members.length < 2) throw new Error("Party Fight needs at least 2 party members.");
+  const selectedMonsterId = normalizeMonsterId(party.selected_monster_id);
+  if (!selectedMonsterId) throw new Error("Choose a party monster first.");
+  const monster = getPartyFightMonster(selectedMonsterId);
+  if (!monster) throw new Error("Invalid party monster.");
+
+  const [summaries, actorSaveRes] = await Promise.all([
+    getUserSummaries(admin, members.map((entry) => entry.user_id)),
+    admin.from("player_saves").select("user_id, save_data, revision").eq("user_id", userId).maybeSingle(),
+  ]);
+  if (actorSaveRes.error) throw actorSaveRes.error;
+
+  const actorSummary = summaries.get(userId) || {};
+  if (Math.max(1, int(actorSummary.heroLevel, 1)) < PARTY_HALL_MIN_LEVEL) {
+    throw new Error(`Party Hall unlocks at hero level ${PARTY_HALL_MIN_LEVEL}+.`);
+  }
+  if (!isMonsterUnlocked(actorSaveRes.data?.save_data, selectedMonsterId)) {
+    throw new Error("This monster is still locked for you.");
+  }
+
+  const actorRow = {
+    save: asRecord(actorSaveRes.data?.save_data),
+    revision: Math.max(0, int(actorSaveRes.data?.revision, 0)),
+  };
+  const actorBonuses = getPartyFightBonuses(actorRow.save);
+  const memberSummaries = members.map((entry) => summaries.get(entry.user_id) || {});
+  const currentStamina = getCurrentStamina(actorRow.save);
+  if (currentStamina < PARTY_FIGHT_STANDALONE_STAMINA_COST) {
+    const autoStamina = autoUseQuickStaminaFood(actorRow.save, { force: true });
+    if (getCurrentStamina(actorRow.save) < PARTY_FIGHT_STANDALONE_STAMINA_COST) {
+      throw new Error("Not enough stamina for Party Fight.");
+    }
+    if (autoStamina.used > 0) actorRow.revision += 1;
+  }
+
+  const encounter = simulateStandalonePartyFight(memberSummaries, monster, actorBonuses);
+  const baseRewards = encounter.outcome === "victory" ? partyFightRewardForMonster(selectedMonsterId) : { xp: 0, gold: 0, partyPoints: 0 };
+  const hpState = getCurrentHeroHpState(actorRow.save);
+  actorRow.save.heroHPMax = hpState.hpMax;
+  actorRow.save.heroHP = Math.max(0, hpState.hp - encounter.personalDamageTaken);
+  const autoHp = autoUseQuickHpFood(actorRow.save);
+  const rewardResult = encounter.outcome === "victory"
+    ? applyHeroRewards(actorRow.save, baseRewards.xp, baseRewards.gold)
+    : { save: actorRow.save };
+  actorRow.save = asRecord(rewardResult.save);
+  const staminaResult = spendPartyFightStamina(actorRow.save, PARTY_FIGHT_STANDALONE_STAMINA_COST);
+  actorRow.save = staminaResult.save;
+  const autoStaminaAfter = autoUseQuickStaminaFood(actorRow.save);
+  tickPotionActions(actorRow.save, 1);
+  tickBattleCharmBreak(actorRow.save);
+  tickDefenseCharmBreak(actorRow.save);
+
+  let partyPointsEarned = 0;
+  let roughGemDrop: JsonRecord | null = null;
+  let orbDrop: JsonRecord | null = null;
+  let mythicDrops: JsonRecord[] = [];
+  let milestoneRewards: JsonRecord[] = [];
+  if (encounter.outcome === "victory") {
+    partyPointsEarned = Math.max(0, int(baseRewards.partyPoints, 0));
+    awardPartyPoints(actorRow.save, partyPointsEarned);
+    roughGemDrop = (selectedMonsterId === FIRST_PARTY_MONSTER_ID ? rollFirstMonsterRoughGemDrop() : rollRoughGemDrop()) as JsonRecord | null;
+    orbDrop = (selectedMonsterId === FIRST_PARTY_MONSTER_ID ? rollFirstMonsterOrbDrop() : rollOrbOfCreationDrop()) as JsonRecord | null;
+    mythicDrops = selectedMonsterId === FIRST_PARTY_MONSTER_ID ? rollFirstMonsterMythicDrops().map((item) => ({ ...item })) as JsonRecord[] : [];
+    if (roughGemDrop) addStackableInventoryItem(actorRow.save, roughGemDrop, 1);
+    if (orbDrop) addStackableInventoryItem(actorRow.save, orbDrop, 1);
+    mythicDrops.forEach((item) => addUniqueInventoryItem(actorRow.save, item));
+    const monsterData = ensurePartyMonsterKills(actorRow.save);
+    monsterData.monsterKills[selectedMonsterId] = getMonsterKillCount(monsterData.save, selectedMonsterId) + 1;
+    if (selectedMonsterId === FIRST_PARTY_MONSTER_ID) {
+      milestoneRewards = applyFirstMonsterMilestoneRewards(actorRow.save, getMonsterKillCount(actorRow.save, selectedMonsterId));
+    }
+  }
+
+  actorRow.revision += 1;
+  const saveUpsert = await admin.from("player_saves").upsert({
+    user_id: userId,
+    save_data: actorRow.save,
+    revision: actorRow.revision,
+    updated_at: formatIsoNow(),
+  });
+  if (saveUpsert.error) throw saveUpsert.error;
+  await updatePublicStatsFromSave(admin, userId, actorRow.save);
+
+  const encounterResult = {
+    monsterId: selectedMonsterId,
+    monsterName: str(monster.name),
+    monsterImg: str(monster.img),
+    outcome: encounter.outcome,
+    rounds: encounter.rounds,
+    totalAttack: encounter.totalAttack,
+    totalDefense: encounter.totalDefense,
+    partyHpMax: encounter.totalHpMax,
+    partyHpRemaining: encounter.partyHpRemaining,
+    monsterHpMax: encounter.monsterHpMax,
+    monsterHpRemaining: encounter.monsterHpRemaining,
+    totalDamageDealt: encounter.totalDamageDealt,
+    totalDamageTaken: encounter.totalDamageTaken,
+    personalDamageTaken: encounter.personalDamageTaken,
+    staminaCost: PARTY_FIGHT_STANDALONE_STAMINA_COST,
+    staminaRemaining: getCurrentStamina(actorRow.save),
+    heroHpRemaining: getCurrentHeroHpState(actorRow.save).hp,
+    xp: baseRewards.xp,
+    gold: baseRewards.gold,
+    partyPoints: partyPointsEarned,
+    roughGemDrop,
+    orbOfCreationDrop: orbDrop,
+    mythicDrops,
+    milestoneRewards,
+    autoHpFoodUsed: autoHp.used > 0 ? { used: autoHp.used, healed: autoHp.healed } : null,
+    autoStaminaFoodUsed: autoStaminaAfter.used > 0 ? { used: autoStaminaAfter.used, restored: autoStaminaAfter.restored } : null,
+  };
+  await logPartyEvent(admin, partyId, userId, "party_fight_resolved", {
+    monsterId: selectedMonsterId,
+    outcome: encounter.outcome,
+    rounds: encounter.rounds,
+  });
+  return {
+    ...(await getBootstrapState(admin, userId)),
+    message: encounter.outcome === "victory" ? `Victory against ${str(monster.name)}.` : `Party Fight finished: ${encounter.outcome}.`,
+    personalFightResult: encounterResult,
+    partyMonsterMilestones: {
+      [FIRST_PARTY_MONSTER_ID]: buildMonsterMilestones(actorRow.save, FIRST_PARTY_MONSTER_ID),
+    },
+    partyFightBonuses: getPartyFightBonuses(actorRow.save),
+  };
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
@@ -2557,6 +2858,9 @@ Deno.serve(async (req) => {
     if (action === "end_activity") {
       await endActivity(admin, user.id, payload);
       return json({ ...(await getBootstrapState(admin, user.id)), message: "Party activity ended." });
+    }
+    if (action === "resolve_party_fight") {
+      return json(await resolvePartyFight(admin, user.id));
     }
 
     return json({ error: `Unknown action '${action}'.` }, { status: 400 });
