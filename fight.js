@@ -3036,7 +3036,9 @@ function startBattle(mobData, autoStart=true){
   const hero = getHeroState();
   renderCombatPetBadge();
   heroImg.src = hero.portrait || "images/hero.png";
-  mobImg.src = mobData.img;
+  mobImg.style.display = "";
+  if (window.DSImage?.bindFallback) window.DSImage.bindFallback(mobImg);
+  mobImg.src = normalizeFightAsset(mobData.img);
 
   battleLog.innerHTML = "";
 

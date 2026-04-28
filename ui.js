@@ -618,6 +618,9 @@
   function bindAssetImageFallback(img) {
     if (!img || img.dataset.dsImageFallbackBound === "1") return;
     img.dataset.dsImageFallbackBound = "1";
+    img.addEventListener("load", () => {
+      img.style.display = "";
+    });
     img.addEventListener("error", () => {
       const current = img.getAttribute("src") || "";
       const fallbackPng = img.dataset.dsFallbackPng || "";
