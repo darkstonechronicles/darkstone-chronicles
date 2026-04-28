@@ -102,7 +102,7 @@
       name: `${woodName} Defense Charm`,
       req: r.req,
       inputText: `3 ${r.name}`,
-      img: `${CHARM_IMG}/${woodId}_defense_charm.png`,
+      img: `${CHARM_IMG}/${woodId}_defense_charm.webp`,
       defenseBonus: (index + 1) * 10
     };
   });

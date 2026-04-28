@@ -19,11 +19,11 @@ const ORE_SIGIL_ITEM = {
 };
 const ROUGH_GEM_DROP_CHANCE = 1 / 100;
 const ROUGH_GEM_POOL = [
-  { type:"material", id:"rough_ruby", name:"Rough Ruby", img:"images/gems/rough_ruby.png" },
-  { type:"material", id:"rough_sapphire", name:"Rough Sapphire", img:"images/gems/rough_sapphire.png" },
-  { type:"material", id:"rough_emerald", name:"Rough Emerald", img:"images/gems/rough_emerald.png" },
-  { type:"material", id:"rough_topaz", name:"Rough Topaz", img:"images/gems/rough_topaz.png" },
-  { type:"material", id:"rough_amethyst", name:"Rough Amethyst", img:"images/gems/rough_amethyst.png" }
+  { type:"material", id:"rough_ruby", name:"Rough Ruby", img:"images/gems/rough_ruby.webp" },
+  { type:"material", id:"rough_sapphire", name:"Rough Sapphire", img:"images/gems/rough_sapphire.webp" },
+  { type:"material", id:"rough_emerald", name:"Rough Emerald", img:"images/gems/rough_emerald.webp" },
+  { type:"material", id:"rough_topaz", name:"Rough Topaz", img:"images/gems/rough_topaz.webp" },
+  { type:"material", id:"rough_amethyst", name:"Rough Amethyst", img:"images/gems/rough_amethyst.webp" }
 ];
 const MINING_ACTION_TEMPLATE = `
   <div class="profXpShell">

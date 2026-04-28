@@ -22,7 +22,7 @@
     return {
       key: meta.key,
       label: meta.label,
-      img: `images/heroes/hero_${n}.png`
+      img: `images/heroes/hero_${n}.webp`
     };
   });
 
@@ -47,7 +47,7 @@
     selectedHero = {
       key: String(button.dataset.heroKey || "vanguard"),
       label: String(button.dataset.heroLabel || "Vanguard"),
-      img: String(button.dataset.heroImg || "images/heroes/hero_1.png")
+      img: String(button.dataset.heroImg || "images/heroes/hero_1.webp")
     };
     updatePreview();
   }

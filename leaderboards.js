@@ -25,7 +25,7 @@
       label: "Mining",
       source: "public",
       field: "mining_level",
-      icon: "images/ui/mining.png",
+      icon: "images/ui/mining.webp",
       pageTitle: "Mining Level",
       subtitle: "Top players by mining level.",
       valueHeader: "Level / XP"
@@ -65,7 +65,7 @@
       label: "Hunting",
       source: "public",
       field: "hunting_level",
-      icon: "images/ui/hunting.png",
+      icon: "images/ui/hunting.webp",
       pageTitle: "Hunting Level",
       subtitle: "Top players by hunting level.",
       valueHeader: "Level / XP"
@@ -75,7 +75,7 @@
       label: "Fishing",
       source: "public",
       field: "fishing_level",
-      icon: "images/ui/fishing.png",
+      icon: "images/ui/fishing.webp",
       pageTitle: "Fishing Level",
       subtitle: "Top players by fishing level.",
       valueHeader: "Level / XP"
@@ -85,7 +85,7 @@
       label: "Cooking",
       source: "public",
       field: "cooking_level",
-      icon: "images/ui/cooking.png",
+      icon: "images/ui/cooking.webp",
       pageTitle: "Cooking Level",
       subtitle: "Top players by cooking level.",
       valueHeader: "Level / XP"
@@ -95,7 +95,7 @@
       label: "Herbalism",
       source: "public",
       field: "herbalism_level",
-      icon: "images/ui/herbalism.png",
+      icon: "images/ui/herbalism.webp",
       pageTitle: "Herbalism Level",
       subtitle: "Top players by herbalism level.",
       valueHeader: "Level / XP"
@@ -105,7 +105,7 @@
       label: "Alchemy",
       source: "public",
       field: "alchemy_level",
-      icon: "images/ui/alchemy.png",
+      icon: "images/ui/alchemy.webp",
       pageTitle: "Alchemy Level",
       subtitle: "Top players by alchemy level.",
       valueHeader: "Level / XP"
@@ -115,7 +115,7 @@
       label: "Enchanting",
       source: "public",
       field: "enchanting_level",
-      icon: "images/ui/enchanting.png",
+      icon: "images/ui/enchanting.webp",
       pageTitle: "Enchanting Level",
       subtitle: "Top players by enchanting level.",
       valueHeader: "Level / XP"

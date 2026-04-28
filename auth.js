@@ -19,11 +19,12 @@
   const APP_VERSION_URL = "version.json";
   const APP_VERSION_RELOAD_PREFIX = "ds:app-version-reload:";
   const APP_VERSION_BROADCAST_KEY = "ds:app-version-latest";
-  const APP_VERSION_POLL_MS = 10 * 1000;
-  const APP_VERSION_HIDDEN_POLL_MS = 60 * 1000;
+  const APP_VERSION_POLL_MS = 5 * 60 * 1000;
+  const APP_VERSION_HIDDEN_POLL_MS = 30 * 60 * 1000;
   const PRESENCE_HEARTBEAT_MS = 45 * 1000;
   const PRESENCE_MIN_UPDATE_MS = 20 * 1000;
   const ONLINE_WINDOW_MS = 2 * 60 * 1000;
+  const PRESENCE_DIRECTORY_LIMIT = 24;
   const CONFIG = {
     url: "https://ibpwrvtsnuhbylexuoil.supabase.co",
     anonKey: "sb_publishable_TLEC6vRVLjVzDOsmbXs4uA_X0MUXTYi"
@@ -118,7 +119,10 @@
     const currentVersion = getCurrentAssetVersion();
     if (!currentVersion || !/^https?:$/i.test(String(window.location.protocol || ""))) return false;
     const now = Date.now();
-    if (!force && now - state.appVersionLastCheckAt < 2500) return false;
+    const minIntervalMs = force
+      ? 2500
+      : (document.visibilityState === "hidden" ? APP_VERSION_HIDDEN_POLL_MS : APP_VERSION_POLL_MS);
+    if (now - state.appVersionLastCheckAt < minIntervalMs) return false;
     if (state.appVersionChecking) return state.appVersionChecking;
     state.appVersionLastCheckAt = now;
 
@@ -1045,11 +1049,14 @@
   async function fetchPresenceSnapshot() {
     await ready;
     if (!state.client) return { ok: false, players: [], onlineCount: 0, onlineWindowMs: ONLINE_WINDOW_MS };
+    const onlineSinceIso = new Date(Date.now() - ONLINE_WINDOW_MS).toISOString();
 
     const { data, error } = await state.client
       .from("profiles")
       .select("id, display_name, avatar_url, last_seen_at, last_seen_page, player_public_stats(hero_level)")
-      .order("last_seen_at", { ascending: false, nullsFirst: false });
+      .gt("last_seen_at", onlineSinceIso)
+      .order("last_seen_at", { ascending: false, nullsFirst: false })
+      .limit(PRESENCE_DIRECTORY_LIMIT);
 
     if (error) throw error;
 
@@ -1640,15 +1647,15 @@
   window.addEventListener("pagehide", flushCloudSaveSoon);
   window.addEventListener("pageshow", () => {
     flushCloudSaveSoon();
-    checkForAppUpdateOnBoot({ force: true });
+    checkForAppUpdateOnBoot();
   });
   window.addEventListener("focus", () => {
     flushCloudSaveSoon();
-    checkForAppUpdateOnBoot({ force: true });
+    checkForAppUpdateOnBoot();
   });
   window.addEventListener("online", () => {
     flushCloudSaveSoon();
-    checkForAppUpdateOnBoot({ force: true });
+    checkForAppUpdateOnBoot();
   });
   window.addEventListener("storage", (event) => {
     if (event.key !== APP_VERSION_BROADCAST_KEY) return;
@@ -1660,7 +1667,7 @@
   });
   document.addEventListener("visibilitychange", () => {
     if (document.visibilityState === "hidden") flushCloudSaveSoon();
-    if (document.visibilityState === "visible") checkForAppUpdateOnBoot({ force: true });
+    if (document.visibilityState === "visible") checkForAppUpdateOnBoot();
   });
 
   window.DSAuth = {

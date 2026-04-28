@@ -12,7 +12,7 @@
     <div id="homeHub">
       <button class="hubNav" id="goMine" data-open-tab-href="mining.html">
         <span class="hubIconFrame">
-          <img class="hubIconImg" src="images/ui/mining.png" alt="" aria-hidden="true">
+          <img class="hubIconImg" src="images/ui/mining.webp" alt="" aria-hidden="true">
         </span>
         <span class="hubLabel">Mining</span>
       </button>
@@ -40,28 +40,28 @@
 
       <button class="hubNav" id="goHunt" data-open-tab-href="hunting.html">
         <span class="hubIconFrame">
-          <img class="hubIconImg" src="images/ui/hunting.png" alt="" aria-hidden="true">
+          <img class="hubIconImg" src="images/ui/hunting.webp" alt="" aria-hidden="true">
         </span>
         <span class="hubLabel">Hunting</span>
       </button>
 
       <button class="hubNav" id="goFish" data-open-tab-href="fishing.html">
         <span class="hubIconFrame">
-          <img class="hubIconImg" src="images/ui/fishing.png" alt="" aria-hidden="true">
+          <img class="hubIconImg" src="images/ui/fishing.webp" alt="" aria-hidden="true">
         </span>
         <span class="hubLabel">Fishing</span>
       </button>
 
       <button class="hubNav" id="goCook" data-open-tab-href="cooking.html">
         <span class="hubIconFrame">
-          <img class="hubIconImg" src="images/ui/cooking.png" alt="" aria-hidden="true">
+          <img class="hubIconImg" src="images/ui/cooking.webp" alt="" aria-hidden="true">
         </span>
         <span class="hubLabel">Cooking</span>
       </button>
 
       <button class="hubNav" id="goEnchant" data-open-tab-href="enchanting.html">
         <span class="hubIconFrame">
-          <img class="hubIconImg" src="images/ui/enchanting.png" alt="" aria-hidden="true">
+          <img class="hubIconImg" src="images/ui/enchanting.webp" alt="" aria-hidden="true">
         </span>
         <span class="hubLabel">Enchanting</span>
       </button>
@@ -75,14 +75,14 @@
 
       <button class="hubNav" id="goHerb" data-open-tab-href="herbalism.html">
         <span class="hubIconFrame">
-          <img class="hubIconImg" src="images/ui/herbalism.png" alt="" aria-hidden="true">
+          <img class="hubIconImg" src="images/ui/herbalism.webp" alt="" aria-hidden="true">
         </span>
         <span class="hubLabel">Herbalism</span>
       </button>
 
       <button class="hubNav" id="goAlchemy" data-open-tab-href="alchemy.html">
         <span class="hubIconFrame">
-          <img class="hubIconImg" src="images/ui/alchemy.png" alt="" aria-hidden="true">
+          <img class="hubIconImg" src="images/ui/alchemy.webp" alt="" aria-hidden="true">
         </span>
         <span class="hubLabel">Alchemy</span>
       </button>

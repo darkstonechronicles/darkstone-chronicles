@@ -339,7 +339,7 @@ function mkCraftRecipe(material, slotDef){
     mode: "craft",
     name: craftDisplayName(material, slotDef),
     req: req,
-    img: `${CRAFT_IMG}/${material.id}/${material.id}_${slotDef.id}.png`,
+    img: `${CRAFT_IMG}/${material.id}/${material.id}_${slotDef.id}.webp`,
     input: [
       { name: `${material.name} Bar`, qty: slotDef.barCost }
     ],
@@ -348,7 +348,7 @@ function mkCraftRecipe(material, slotDef){
       crafted: true,
       slot: slotDef.slot,
       name: craftDisplayName(material, slotDef),
-      img: `${CRAFT_IMG}/${material.id}/${material.id}_${slotDef.id}.png`,
+      img: `${CRAFT_IMG}/${material.id}/${material.id}_${slotDef.id}.webp`,
       rarity: "uncommon",
       reqLevel: req,
       atk: slotDef.atk + Math.floor(req / 10),
@@ -373,7 +373,7 @@ function mkBattleCharmRecipe(material){
     mode: "craft",
     name: `${material.name} Battle Charm`,
     req,
-    img: `${CHARM_IMG}/${id}.png`,
+    img: `${CHARM_IMG}/${id}.webp`,
     input: [
       { name: `${material.name} Bar`, qty: 3 }
     ],
@@ -383,7 +383,7 @@ function mkBattleCharmRecipe(material){
       id,
       crafted: true,
       name: `${material.name} Battle Charm`,
-      img: `${CHARM_IMG}/${id}.png`,
+      img: `${CHARM_IMG}/${id}.webp`,
       rarity: "crafted",
       reqLevel: req,
       attackBonus: battleCharmAttackBonus(material),
@@ -1068,7 +1068,7 @@ window.DSForgeAction = {
         reqLevel: material.reqLevel,
         rarity: "crafted",
         crafted: true,
-        img: `${CRAFT_IMG}/${material.id}/${material.id}_${slotDef.id}.png`,
+        img: `${CRAFT_IMG}/${material.id}/${material.id}_${slotDef.id}.webp`,
         quantity: 1
       };
     }));
@@ -1083,7 +1083,7 @@ window.DSForgeAction = {
         attackBonus: battleCharmAttackBonus(material),
         reqLevel: material.reqLevel,
         rarity: "crafted",
-        img: `${CHARM_IMG}/${id}.png`,
+        img: `${CHARM_IMG}/${id}.webp`,
         quantity: 1
       };
     });

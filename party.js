@@ -1,7 +1,9 @@
 (() => {
-  const POLL_MS = 15000;
-  const ACTIVE_PARTY_FIGHT_POLL_MS = 5000;
-  const INVITE_NOTICE_POLL_MS = 20000;
+  const POLL_MS = 45000;
+  const ACTIVE_PARTY_FIGHT_POLL_MS = 12000;
+  const REALTIME_FALLBACK_POLL_MS = 120000;
+  const ACTIVE_PARTY_FIGHT_REALTIME_FALLBACK_POLL_MS = 20000;
+  const INVITE_NOTICE_POLL_MS = 120000;
   const PARTY_HALL_MIN_LEVEL = 20;
   const PARTY_FIGHT_MONSTERS = [
     {
@@ -78,8 +80,10 @@
     pollIntervalMs: 0,
     realtimeChannel: null,
     realtimePartyId: "",
+    realtimeSubscribed: false,
     inviteChannel: null,
     inviteUserId: "",
+    inviteRealtimeSubscribed: false,
     inviteRefreshTimer: 0,
     inviteNoticePollTimer: 0,
     realtimeRefreshTimer: 0,
@@ -411,6 +415,15 @@
     }, Math.max(0, delayMs));
   }
 
+  function currentPollIntervalMs() {
+    if (state.realtimeSubscribed) {
+      return isActivePartyFight()
+        ? ACTIVE_PARTY_FIGHT_REALTIME_FALLBACK_POLL_MS
+        : REALTIME_FALLBACK_POLL_MS;
+    }
+    return isActivePartyFight() ? ACTIVE_PARTY_FIGHT_POLL_MS : POLL_MS;
+  }
+
   function syncPartyRealtimeSubscription() {
     const client = window.DSAuth?.getClient?.();
     if (!client?.channel) return;
@@ -420,6 +433,7 @@
       Promise.resolve(client.removeChannel?.(state.realtimeChannel)).catch(() => {});
       state.realtimeChannel = null;
       state.realtimePartyId = "";
+      state.realtimeSubscribed = false;
     }
     if (!partyId) return;
     const refresh = () => queueRealtimeRefresh(50);
@@ -431,7 +445,13 @@
       .on("postgres_changes", { event: "*", schema: "public", table: "party_invites", filter: `party_id=eq.${partyId}` }, refresh)
       .on("postgres_changes", { event: "*", schema: "public", table: "party_join_requests", filter: `party_id=eq.${partyId}` }, refresh)
       .on("postgres_changes", { event: "*", schema: "public", table: "party_events", filter: `party_id=eq.${partyId}` }, refresh);
-    channel.subscribe();
+    channel.subscribe((status) => {
+      state.realtimeSubscribed = status === "SUBSCRIBED";
+      if (status === "CHANNEL_ERROR" || status === "TIMED_OUT" || status === "CLOSED") {
+        state.realtimeSubscribed = false;
+      }
+      restartPollingIfNeeded();
+    });
     state.realtimeChannel = channel;
     state.realtimePartyId = partyId;
   }
@@ -479,8 +499,15 @@
     if (state.inviteNoticePollTimer) return;
     state.inviteNoticePollTimer = window.setInterval(() => {
       if (document.hidden) return;
+      if (state.inviteRealtimeSubscribed) return;
       Promise.resolve(refreshInviteNotice()).catch(() => {});
     }, INVITE_NOTICE_POLL_MS);
+  }
+
+  function stopInviteNoticePolling() {
+    if (!state.inviteNoticePollTimer) return;
+    window.clearInterval(state.inviteNoticePollTimer);
+    state.inviteNoticePollTimer = 0;
   }
 
   async function initInviteWatcher() {
@@ -495,13 +522,24 @@
       Promise.resolve(client.removeChannel?.(state.inviteChannel)).catch(() => {});
       state.inviteChannel = null;
       state.inviteUserId = "";
+      state.inviteRealtimeSubscribed = false;
     }
 
     const refresh = () => queueInviteRefresh(250);
     const channel = client
       .channel(`party-invites-${userId}`)
       .on("postgres_changes", { event: "*", schema: "public", table: "party_invites", filter: `to_user_id=eq.${userId}` }, refresh);
-    channel.subscribe();
+    channel.subscribe((status) => {
+      state.inviteRealtimeSubscribed = status === "SUBSCRIBED";
+      if (state.inviteRealtimeSubscribed) {
+        stopInviteNoticePolling();
+        return;
+      }
+      if (status === "CHANNEL_ERROR" || status === "TIMED_OUT" || status === "CLOSED") {
+        state.inviteRealtimeSubscribed = false;
+      }
+      startInviteNoticePolling();
+    });
     state.inviteChannel = channel;
     state.inviteUserId = userId;
     startInviteNoticePolling();
@@ -1547,7 +1585,7 @@
   }
 
   function startPolling() {
-    const intervalMs = isActivePartyFight() ? ACTIVE_PARTY_FIGHT_POLL_MS : POLL_MS;
+    const intervalMs = currentPollIntervalMs();
     if (state.pollTimer && state.pollIntervalMs === intervalMs) return;
     if (state.pollTimer) window.clearInterval(state.pollTimer);
     state.pollIntervalMs = intervalMs;
@@ -1559,7 +1597,7 @@
 
   function restartPollingIfNeeded() {
     if (!state.initialized) return;
-    const intervalMs = isActivePartyFight() ? ACTIVE_PARTY_FIGHT_POLL_MS : POLL_MS;
+    const intervalMs = currentPollIntervalMs();
     if (!state.pollTimer || state.pollIntervalMs !== intervalMs) startPolling();
   }
 

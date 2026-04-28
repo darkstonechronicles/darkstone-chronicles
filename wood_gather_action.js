@@ -8,11 +8,11 @@ const WOOD_SIGIL_ITEM = {
 const BUILDING_BONUS_PER_LEVEL = 0.0005;
 const ROUGH_GEM_DROP_CHANCE = 1 / 100;
 const ROUGH_GEM_POOL = [
-  { type:"material", id:"rough_ruby", name:"Rough Ruby", img:"images/gems/rough_ruby.png" },
-  { type:"material", id:"rough_sapphire", name:"Rough Sapphire", img:"images/gems/rough_sapphire.png" },
-  { type:"material", id:"rough_emerald", name:"Rough Emerald", img:"images/gems/rough_emerald.png" },
-  { type:"material", id:"rough_topaz", name:"Rough Topaz", img:"images/gems/rough_topaz.png" },
-  { type:"material", id:"rough_amethyst", name:"Rough Amethyst", img:"images/gems/rough_amethyst.png" }
+  { type:"material", id:"rough_ruby", name:"Rough Ruby", img:"images/gems/rough_ruby.webp" },
+  { type:"material", id:"rough_sapphire", name:"Rough Sapphire", img:"images/gems/rough_sapphire.webp" },
+  { type:"material", id:"rough_emerald", name:"Rough Emerald", img:"images/gems/rough_emerald.webp" },
+  { type:"material", id:"rough_topaz", name:"Rough Topaz", img:"images/gems/rough_topaz.webp" },
+  { type:"material", id:"rough_amethyst", name:"Rough Amethyst", img:"images/gems/rough_amethyst.webp" }
 ];
 const WOOD_GATHER_TEMPLATE = `
   <div class="profXpShell">
@@ -270,16 +270,16 @@ function getGatheringPetState(save){
 }
 
 const WOODS = [
-  { id:"ash",      name:"Ash",      req: 1,  img:"images/wood/logs/ash_log.png" },
-  { id:"pine",     name:"Pine",     req:10,  img:"images/wood/logs/pine_log.png" },
-  { id:"birch",    name:"Birch",    req:20,  img:"images/wood/logs/birch_log.png" },
-  { id:"oak",      name:"Oak",      req:30,  img:"images/wood/logs/oak_log.png" },
-  { id:"cedar",    name:"Cedar",    req:40,  img:"images/wood/logs/cedar_log.png" },
-  { id:"maple",    name:"Maple",    req:50,  img:"images/wood/logs/maple_log.png" },
-  { id:"ironwood", name:"Ironwood", req:60,  img:"images/wood/logs/ironwood_log.png" },
-  { id:"heartwood",name:"Heartwood",req:70,  img:"images/wood/logs/heartwood_log.png" },
-  { id:"darkwood", name:"Darkwood", req:80,  img:"images/wood/logs/darkwood_log.png" },
-  { id:"ebony",    name:"Ebony",    req:90,  img:"images/wood/logs/ebony_log.png" }
+  { id:"ash",      name:"Ash",      req: 1,  img:"images/wood/logs/ash_log.webp" },
+  { id:"pine",     name:"Pine",     req:10,  img:"images/wood/logs/pine_log.webp" },
+  { id:"birch",    name:"Birch",    req:20,  img:"images/wood/logs/birch_log.webp" },
+  { id:"oak",      name:"Oak",      req:30,  img:"images/wood/logs/oak_log.webp" },
+  { id:"cedar",    name:"Cedar",    req:40,  img:"images/wood/logs/cedar_log.webp" },
+  { id:"maple",    name:"Maple",    req:50,  img:"images/wood/logs/maple_log.webp" },
+  { id:"ironwood", name:"Ironwood", req:60,  img:"images/wood/logs/ironwood_log.webp" },
+  { id:"heartwood",name:"Heartwood",req:70,  img:"images/wood/logs/heartwood_log.webp" },
+  { id:"darkwood", name:"Darkwood", req:80,  img:"images/wood/logs/darkwood_log.webp" },
+  { id:"ebony",    name:"Ebony",    req:90,  img:"images/wood/logs/ebony_log.webp" }
 ];
 function getWoodDef(id){
   return WOODS.find(w => w.id === id) || WOODS[0];
@@ -542,7 +542,7 @@ function gatherTick(){
   }
   const petBonus = getGatheringPetState(save);
   const logName = `${wood.name} Log`;
-  const logImg  = `images/wood/logs/${wood.id}_log.png`;
+  const logImg  = `images/wood/logs/${wood.id}_log.webp`;
   addToInventoryStack(save, { type:"material", name: logName, img: logImg }, 1);
   const doubled = Math.random() < petBonus.doublePct;
   if (doubled) addToInventoryStack(save, { type:"material", name: logName, img: logImg }, 1);

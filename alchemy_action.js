@@ -334,7 +334,7 @@ function buildRecipes(){
       name: `${potion.label} ${ROMAN[herb.tier - 1]}`,
       req: herb.req,
       herbName: herb.herbName,
-      img: `images/alchemy/potions/${potion.id}_${herb.tier}.png`,
+      img: `images/alchemy/potions/${potion.id}_${herb.tier}.webp`,
       input: [
         { name: herb.herbName, qty: 3 },
         { name: "Empty Vial", qty: 1 }
@@ -344,7 +344,7 @@ function buildRecipes(){
         subType: "potion",
         id: `${potion.id}_potion_${herb.tier}`,
         name: `${potion.label} ${ROMAN[herb.tier - 1]}`,
-        img: `images/alchemy/potions/${potion.id}_${herb.tier}.png`,
+        img: `images/alchemy/potions/${potion.id}_${herb.tier}.webp`,
         rarity: "uncommon"
       },
       baseXP: gatherXpForReq(herb.req) * 4,

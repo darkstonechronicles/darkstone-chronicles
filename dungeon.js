@@ -16,13 +16,25 @@
   const ROUGH_GEM_DROP_CHANCE = 1 / 100;
   const ORB_OF_CREATION_DROP_CHANCE = 1 / 30;
   const ORB_OF_CREATION_ITEM = { type:"material", id:"orb_of_creation", name:"Orb of Creation", img:"images/ui/orb_of_creation.webp" };
+  const PNG_ONLY_DUNGEON_ASSETS = new Set([
+    "images/dungeons/crypt_thumb.png",
+    "images/mobs/dungeons/storm/gust_watcher.png"
+  ]);
   const ROUGH_GEM_POOL = [
-    { type:"material", id:"rough_ruby", name:"Rough Ruby", img:"images/gems/rough_ruby.png" },
-    { type:"material", id:"rough_sapphire", name:"Rough Sapphire", img:"images/gems/rough_sapphire.png" },
-    { type:"material", id:"rough_emerald", name:"Rough Emerald", img:"images/gems/rough_emerald.png" },
-    { type:"material", id:"rough_topaz", name:"Rough Topaz", img:"images/gems/rough_topaz.png" },
-    { type:"material", id:"rough_amethyst", name:"Rough Amethyst", img:"images/gems/rough_amethyst.png" }
+    { type:"material", id:"rough_ruby", name:"Rough Ruby", img:"images/gems/rough_ruby.webp" },
+    { type:"material", id:"rough_sapphire", name:"Rough Sapphire", img:"images/gems/rough_sapphire.webp" },
+    { type:"material", id:"rough_emerald", name:"Rough Emerald", img:"images/gems/rough_emerald.webp" },
+    { type:"material", id:"rough_topaz", name:"Rough Topaz", img:"images/gems/rough_topaz.webp" },
+    { type:"material", id:"rough_amethyst", name:"Rough Amethyst", img:"images/gems/rough_amethyst.webp" }
   ];
+
+  function preferredDungeonAsset(src) {
+    const value = String(src || "").trim();
+    if (!/\.png$/i.test(value)) return value;
+    if (PNG_ONLY_DUNGEON_ASSETS.has(value)) return value;
+    return value.replace(/\.png$/i, ".webp");
+  }
+
   const DUNGEON_LIST_TEMPLATE = `
     <h1 style="color:#ead39b;text-shadow:0 1px 0 rgba(87, 58, 16, .95),0 0 10px rgba(0,0,0,.34),0 2px 8px rgba(0,0,0,.72);">Dungeons</h1>
     <div style="width:90%;max-width:900px;margin:0 auto;">
@@ -379,7 +391,7 @@
       name: `${setName} ${suffix}`,
       reqLevel,
       rarity: "legendary",
-      img: `images/items/sets/${setId}/${setId}_${file}.png`
+      img: `images/items/sets/${setId}/${setId}_${file}.webp`
     }));
   }
 
@@ -404,7 +416,7 @@
       hp: Math.max(1, Math.round(halfHp * scales[idx])),
       atk: Math.max(1, Math.round(halfAtk * scales[idx])),
       def: Math.max(0, Math.round(halfDef * scales[idx])),
-      img: `images/mobs/dungeons/${dungeonId}/${mobId}.png`
+      img: preferredDungeonAsset(`images/mobs/dungeons/${dungeonId}/${mobId}.png`)
     }));
   }
 
@@ -418,7 +430,7 @@
       hp: Math.max(1, Math.round(source.hp * 1.5)),
       atk: Math.max(1, Math.round(source.atk * 1.5)),
       def: Math.max(0, Math.round(source.def * 1.5)),
-      img: `images/mobs/dungeons/${dungeonId}/${bossId}.png`
+      img: preferredDungeonAsset(`images/mobs/dungeons/${dungeonId}/${bossId}.png`)
     };
   }
 
@@ -428,7 +440,7 @@
       return [def.id, {
         id: def.id,
         name: def.name,
-        thumb: `images/dungeons/${def.id}_thumb.png`,
+        thumb: preferredDungeonAsset(`images/dungeons/${def.id}_thumb.png`),
         reqLevel: def.reqLevel,
         entryCost: def.entryCost,
         rewards: def.rewards,
@@ -2070,7 +2082,7 @@
 
       card.innerHTML = `
         <button type="button" class="dungeonLootBtn" style="position:absolute;top:8px;right:8px;width:28px;height:28px;background:#222438;border:1px solid #3a3d5c;border-radius:8px;cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0;z-index:2;">
-          <img src="images/ui/my_treasure_chest.png" alt="Loot" style="width:18px;height:18px;display:block;image-rendering:auto;">
+          <img src="images/ui/my_treasure_chest.webp" alt="Loot" style="width:18px;height:18px;display:block;image-rendering:auto;">
         </button>
         <div class="dungeonCardInner">
           <button type="button" class="dungeonEnterBtn" aria-label="Enter ${d.name}">
@@ -2354,10 +2366,6 @@
     if(state.running) persistRunState();
   });
 })();
-
-
-
-
 
 
 

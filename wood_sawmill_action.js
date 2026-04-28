@@ -278,7 +278,7 @@ function mkDefenseCharmRecipe(plankRecipe){
     mode: "craft",
     name: `${woodName} Defense Charm`,
     req: plankRecipe.req,
-    img: `${CHARM_IMG}/${id}.png`,
+    img: `${CHARM_IMG}/${id}.webp`,
     input: [
       { name: plankRecipe.name, qty: 3 }
     ],
@@ -288,7 +288,7 @@ function mkDefenseCharmRecipe(plankRecipe){
       id,
       crafted: true,
       name: `${woodName} Defense Charm`,
-      img: `${CHARM_IMG}/${id}.png`,
+      img: `${CHARM_IMG}/${id}.webp`,
       rarity: "crafted",
       reqLevel: plankRecipe.req,
       defenseBonus: defenseCharmDefenseBonus(plankRecipe),

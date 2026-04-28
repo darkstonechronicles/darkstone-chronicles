@@ -46,7 +46,7 @@
       </div>
       <div class="hubNav">
         <button class="hubNavBtn" id="goEquip" type="button" aria-label="Equipment" data-open-tab-href="equipment.html">
-          <span class="hubIconFrame" aria-hidden="true"><img class="hubIconImg hubIconImgEquip" src="images/ui/equipment.png" alt=""></span>
+          <span class="hubIconFrame" aria-hidden="true"><img class="hubIconImg hubIconImgEquip" src="images/ui/equipment.webp" alt=""></span>
         </button>
         <div class="hubLabel">Equipment</div>
       </div>

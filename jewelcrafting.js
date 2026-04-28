@@ -161,35 +161,35 @@
   `;
 
   const REFINE_RECIPES = [
-    { id: "rough_ruby", name: "Rough Ruby", refinedName: "Refined Ruby", reqLevel: 1, img: "images/gems/rough_ruby.png", refinedImg: "images/gems/refined_ruby.png", needText: "Needs 1 Rough Ruby" },
-    { id: "rough_sapphire", name: "Rough Sapphire", refinedName: "Refined Sapphire", reqLevel: 1, img: "images/gems/rough_sapphire.png", refinedImg: "images/gems/refined_sapphire.png", needText: "Needs 1 Rough Sapphire" },
-    { id: "rough_emerald", name: "Rough Emerald", refinedName: "Refined Emerald", reqLevel: 1, img: "images/gems/rough_emerald.png", refinedImg: "images/gems/refined_emerald.png", needText: "Needs 1 Rough Emerald" },
-    { id: "rough_topaz", name: "Rough Topaz", refinedName: "Refined Topaz", reqLevel: 1, img: "images/gems/rough_topaz.png", refinedImg: "images/gems/refined_topaz.png", needText: "Needs 1 Rough Topaz" },
-    { id: "rough_amethyst", name: "Rough Amethyst", refinedName: "Refined Amethyst", reqLevel: 1, img: "images/gems/rough_amethyst.png", refinedImg: "images/gems/refined_amethyst.png", needText: "Needs 1 Rough Amethyst" }
+    { id: "rough_ruby", name: "Rough Ruby", refinedName: "Refined Ruby", reqLevel: 1, img: "images/gems/rough_ruby.webp", refinedImg: "images/gems/refined_ruby.webp", needText: "Needs 1 Rough Ruby" },
+    { id: "rough_sapphire", name: "Rough Sapphire", refinedName: "Refined Sapphire", reqLevel: 1, img: "images/gems/rough_sapphire.webp", refinedImg: "images/gems/refined_sapphire.webp", needText: "Needs 1 Rough Sapphire" },
+    { id: "rough_emerald", name: "Rough Emerald", refinedName: "Refined Emerald", reqLevel: 1, img: "images/gems/rough_emerald.webp", refinedImg: "images/gems/refined_emerald.webp", needText: "Needs 1 Rough Emerald" },
+    { id: "rough_topaz", name: "Rough Topaz", refinedName: "Refined Topaz", reqLevel: 1, img: "images/gems/rough_topaz.webp", refinedImg: "images/gems/refined_topaz.webp", needText: "Needs 1 Rough Topaz" },
+    { id: "rough_amethyst", name: "Rough Amethyst", refinedName: "Refined Amethyst", reqLevel: 1, img: "images/gems/rough_amethyst.webp", refinedImg: "images/gems/refined_amethyst.webp", needText: "Needs 1 Rough Amethyst" }
   ];
 
   const FLAWLESS_RECIPES = [
-    { id: "refined_ruby", name: "Refined Ruby", refinedName: "Flawless Ruby", reqLevel: 5, img: "images/gems/refined_ruby.png", refinedImg: "images/gems/flawless_ruby.png", needText: "Needs 3 Refined Ruby" },
-    { id: "refined_sapphire", name: "Refined Sapphire", refinedName: "Flawless Sapphire", reqLevel: 5, img: "images/gems/refined_sapphire.png", refinedImg: "images/gems/flawless_sapphire.png", needText: "Needs 3 Refined Sapphire" },
-    { id: "refined_emerald", name: "Refined Emerald", refinedName: "Flawless Emerald", reqLevel: 5, img: "images/gems/refined_emerald.png", refinedImg: "images/gems/flawless_emerald.png", needText: "Needs 3 Refined Emerald" },
-    { id: "refined_topaz", name: "Refined Topaz", refinedName: "Flawless Topaz", reqLevel: 5, img: "images/gems/refined_topaz.png", refinedImg: "images/gems/flawless_topaz.png", needText: "Needs 3 Refined Topaz" },
-    { id: "refined_amethyst", name: "Refined Amethyst", refinedName: "Flawless Amethyst", reqLevel: 5, img: "images/gems/refined_amethyst.png", refinedImg: "images/gems/flawless_amethyst.png", needText: "Needs 3 Refined Amethyst" }
+    { id: "refined_ruby", name: "Refined Ruby", refinedName: "Flawless Ruby", reqLevel: 5, img: "images/gems/refined_ruby.webp", refinedImg: "images/gems/flawless_ruby.webp", needText: "Needs 3 Refined Ruby" },
+    { id: "refined_sapphire", name: "Refined Sapphire", refinedName: "Flawless Sapphire", reqLevel: 5, img: "images/gems/refined_sapphire.webp", refinedImg: "images/gems/flawless_sapphire.webp", needText: "Needs 3 Refined Sapphire" },
+    { id: "refined_emerald", name: "Refined Emerald", refinedName: "Flawless Emerald", reqLevel: 5, img: "images/gems/refined_emerald.webp", refinedImg: "images/gems/flawless_emerald.webp", needText: "Needs 3 Refined Emerald" },
+    { id: "refined_topaz", name: "Refined Topaz", refinedName: "Flawless Topaz", reqLevel: 5, img: "images/gems/refined_topaz.webp", refinedImg: "images/gems/flawless_topaz.webp", needText: "Needs 3 Refined Topaz" },
+    { id: "refined_amethyst", name: "Refined Amethyst", refinedName: "Flawless Amethyst", reqLevel: 5, img: "images/gems/refined_amethyst.webp", refinedImg: "images/gems/flawless_amethyst.webp", needText: "Needs 3 Refined Amethyst" }
   ];
 
   const MASTERWORK_RECIPES = [
-    { id: "flawless_ruby", name: "Flawless Ruby", refinedName: "Masterwork Ruby", reqLevel: 10, img: "images/gems/flawless_ruby.png", refinedImg: "images/gems/masterwork_ruby.png", needText: "Needs 3 Flawless Ruby" },
-    { id: "flawless_sapphire", name: "Flawless Sapphire", refinedName: "Masterwork Sapphire", reqLevel: 10, img: "images/gems/flawless_sapphire.png", refinedImg: "images/gems/masterwork_sapphire.png", needText: "Needs 3 Flawless Sapphire" },
-    { id: "flawless_emerald", name: "Flawless Emerald", refinedName: "Masterwork Emerald", reqLevel: 10, img: "images/gems/flawless_emerald.png", refinedImg: "images/gems/masterwork_emerald.png", needText: "Needs 3 Flawless Emerald" },
-    { id: "flawless_topaz", name: "Flawless Topaz", refinedName: "Masterwork Topaz", reqLevel: 10, img: "images/gems/flawless_topaz.png", refinedImg: "images/gems/masterwork_topaz.png", needText: "Needs 3 Flawless Topaz" },
-    { id: "flawless_amethyst", name: "Flawless Amethyst", refinedName: "Masterwork Amethyst", reqLevel: 10, img: "images/gems/flawless_amethyst.png", refinedImg: "images/gems/masterwork_amethyst.png", needText: "Needs 3 Flawless Amethyst" }
+    { id: "flawless_ruby", name: "Flawless Ruby", refinedName: "Masterwork Ruby", reqLevel: 10, img: "images/gems/flawless_ruby.webp", refinedImg: "images/gems/masterwork_ruby.webp", needText: "Needs 3 Flawless Ruby" },
+    { id: "flawless_sapphire", name: "Flawless Sapphire", refinedName: "Masterwork Sapphire", reqLevel: 10, img: "images/gems/flawless_sapphire.webp", refinedImg: "images/gems/masterwork_sapphire.webp", needText: "Needs 3 Flawless Sapphire" },
+    { id: "flawless_emerald", name: "Flawless Emerald", refinedName: "Masterwork Emerald", reqLevel: 10, img: "images/gems/flawless_emerald.webp", refinedImg: "images/gems/masterwork_emerald.webp", needText: "Needs 3 Flawless Emerald" },
+    { id: "flawless_topaz", name: "Flawless Topaz", refinedName: "Masterwork Topaz", reqLevel: 10, img: "images/gems/flawless_topaz.webp", refinedImg: "images/gems/masterwork_topaz.webp", needText: "Needs 3 Flawless Topaz" },
+    { id: "flawless_amethyst", name: "Flawless Amethyst", refinedName: "Masterwork Amethyst", reqLevel: 10, img: "images/gems/flawless_amethyst.webp", refinedImg: "images/gems/masterwork_amethyst.webp", needText: "Needs 3 Flawless Amethyst" }
   ];
 
   const EXQUISITE_RECIPES = [
-    { id: "masterwork_ruby", name: "Masterwork Ruby", refinedName: "Exquisite Ruby", reqLevel: 15, img: "images/gems/masterwork_ruby.png", refinedImg: "images/gems/exquisite_ruby.png", needText: "Needs 3 Masterwork Ruby" },
-    { id: "masterwork_sapphire", name: "Masterwork Sapphire", refinedName: "Exquisite Sapphire", reqLevel: 15, img: "images/gems/masterwork_sapphire.png", refinedImg: "images/gems/exquisite_sapphire.webp", needText: "Needs 3 Masterwork Sapphire" },
-    { id: "masterwork_emerald", name: "Masterwork Emerald", refinedName: "Exquisite Emerald", reqLevel: 15, img: "images/gems/masterwork_emerald.png", refinedImg: "images/gems/exquisite_emerald.png", needText: "Needs 3 Masterwork Emerald" },
-    { id: "masterwork_topaz", name: "Masterwork Topaz", refinedName: "Exquisite Topaz", reqLevel: 15, img: "images/gems/masterwork_topaz.png", refinedImg: "images/gems/exquisite_topaz.png", needText: "Needs 3 Masterwork Topaz" },
-    { id: "masterwork_amethyst", name: "Masterwork Amethyst", refinedName: "Exquisite Amethyst", reqLevel: 15, img: "images/gems/masterwork_amethyst.png", refinedImg: "images/gems/exquisite_amethyst.png", needText: "Needs 3 Masterwork Amethyst" }
+    { id: "masterwork_ruby", name: "Masterwork Ruby", refinedName: "Exquisite Ruby", reqLevel: 15, img: "images/gems/masterwork_ruby.webp", refinedImg: "images/gems/exquisite_ruby.webp", needText: "Needs 3 Masterwork Ruby" },
+    { id: "masterwork_sapphire", name: "Masterwork Sapphire", refinedName: "Exquisite Sapphire", reqLevel: 15, img: "images/gems/masterwork_sapphire.webp", refinedImg: "images/gems/exquisite_sapphire.webp", needText: "Needs 3 Masterwork Sapphire" },
+    { id: "masterwork_emerald", name: "Masterwork Emerald", refinedName: "Exquisite Emerald", reqLevel: 15, img: "images/gems/masterwork_emerald.webp", refinedImg: "images/gems/exquisite_emerald.webp", needText: "Needs 3 Masterwork Emerald" },
+    { id: "masterwork_topaz", name: "Masterwork Topaz", refinedName: "Exquisite Topaz", reqLevel: 15, img: "images/gems/masterwork_topaz.webp", refinedImg: "images/gems/exquisite_topaz.webp", needText: "Needs 3 Masterwork Topaz" },
+    { id: "masterwork_amethyst", name: "Masterwork Amethyst", refinedName: "Exquisite Amethyst", reqLevel: 15, img: "images/gems/masterwork_amethyst.webp", refinedImg: "images/gems/exquisite_amethyst.webp", needText: "Needs 3 Masterwork Amethyst" }
   ];
 
   const GEM_VIEWS = {
@@ -475,10 +475,10 @@
     const grid = document.getElementById("gemcraftingCategoryGrid");
     if (!grid) return;
     renderStageCards(grid, [
-      { view: "refine", title: "Refine", meta: "", img: "images/gems/refined_ruby.png", reqLevel: 1 },
-      { view: "flawless", title: "Flawless", meta: "Req Level 5", img: "images/gems/flawless_ruby.png", reqLevel: 5 },
-      { view: "masterwork", title: "Masterwork", meta: "Req Level 10", img: "images/gems/masterwork_ruby.png", reqLevel: 10 },
-      { view: "exquisite", title: "Exquisite", meta: "Req Level 15", img: "images/gems/exquisite_ruby.png", reqLevel: 15 }
+      { view: "refine", title: "Refine", meta: "", img: "images/gems/refined_ruby.webp", reqLevel: 1 },
+      { view: "flawless", title: "Flawless", meta: "Req Level 5", img: "images/gems/flawless_ruby.webp", reqLevel: 5 },
+      { view: "masterwork", title: "Masterwork", meta: "Req Level 10", img: "images/gems/masterwork_ruby.webp", reqLevel: 10 },
+      { view: "exquisite", title: "Exquisite", meta: "Req Level 15", img: "images/gems/exquisite_ruby.webp", reqLevel: 15 }
     ], {
       onSelect: (entry) => openGemView(entry.view)
     });

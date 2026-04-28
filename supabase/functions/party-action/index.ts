@@ -334,11 +334,11 @@ const FIRST_MONSTER_ORB_OF_CREATION_DROP_CHANCE = 1 / 100;
 const FIRST_MONSTER_MYTHIC_DROP_CHANCE = 1 / 10000;
 const ORB_OF_CREATION_ITEM = { type: "material", id: "orb_of_creation", name: "Orb of Creation", img: "images/ui/orb_of_creation.webp" } as const;
 const ROUGH_GEM_POOL = [
-  { type: "material", id: "rough_ruby", name: "Rough Ruby", img: "images/gems/rough_ruby.png" },
-  { type: "material", id: "rough_sapphire", name: "Rough Sapphire", img: "images/gems/rough_sapphire.png" },
-  { type: "material", id: "rough_emerald", name: "Rough Emerald", img: "images/gems/rough_emerald.png" },
-  { type: "material", id: "rough_topaz", name: "Rough Topaz", img: "images/gems/rough_topaz.png" },
-  { type: "material", id: "rough_amethyst", name: "Rough Amethyst", img: "images/gems/rough_amethyst.png" },
+  { type: "material", id: "rough_ruby", name: "Rough Ruby", img: "images/gems/rough_ruby.webp" },
+  { type: "material", id: "rough_sapphire", name: "Rough Sapphire", img: "images/gems/rough_sapphire.webp" },
+  { type: "material", id: "rough_emerald", name: "Rough Emerald", img: "images/gems/rough_emerald.webp" },
+  { type: "material", id: "rough_topaz", name: "Rough Topaz", img: "images/gems/rough_topaz.webp" },
+  { type: "material", id: "rough_amethyst", name: "Rough Amethyst", img: "images/gems/rough_amethyst.webp" },
 ] as const;
 const FIRST_MONSTER_MYTHIC_DROPS = [
   {

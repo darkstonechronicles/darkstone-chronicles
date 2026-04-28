@@ -143,7 +143,7 @@ function renderTier(){
     const effectiveLevel = save.alchemyLevel + getArtisanPotionBonus(save);
     const locked = effectiveLevel < herb.req;
     const fullName = `${potion.label} ${ROMAN[currentTier - 1]}`;
-    const icon = `images/alchemy/potions/${potion.id}_${currentTier}.png`;
+    const icon = `images/alchemy/potions/${potion.id}_${currentTier}.webp`;
     const bonusLine = getPotionBonusLine(potion.id, currentTier);
     const card = document.createElement("div");
     card.className = "profChoiceCard";
@@ -217,7 +217,7 @@ window.DSAlchemyTier = {
       type: "consumable",
       id: `${potion.id}_${herb.tier}`,
       name: `${potion.label} ${ROMAN[herb.tier - 1]}`,
-      img: `images/alchemy/potions/${potion.id}_${herb.tier}.png`,
+      img: `images/alchemy/potions/${potion.id}_${herb.tier}.webp`,
       quantity: 1
     })));
     return [

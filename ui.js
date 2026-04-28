@@ -24,6 +24,19 @@
   const LIVE_CHAT_POLL_MS = 30000;
   const WHISPER_POLL_MS = 30000;
   const PRESENCE_DIRECTORY_REFRESH_MS = 120000;
+  const WEBP_SIBLING_PREFIXES = [
+    "images/charms/",
+    "images/dungeons/",
+    "images/mobs/dungeons/",
+    "images/items/forge_crafted/",
+    "images/items/sets/",
+    "images/heroes/",
+    "images/wood/logs/",
+    "images/gems/",
+    "images/pets/",
+    "images/alchemy/potions/",
+    "images/ui/"
+  ];
   const GLOBAL_CHAT_COOLDOWN_MS = 2000;
   const GLOBAL_CHAT_DUPLICATE_WINDOW_MS = 6000;
   const CHAT_CHANNELS = ["global", "market", "clan", "party", "whispers"];
@@ -35,11 +48,11 @@
   ];
   const COMBAT_PET_FAMILIES = {
     wolf: [
-      { tier: 1, name: "Wolf Cub", cost: 100000, atkPerLevel: 0.20, defPerLevel: 0.20, img: "images/pets/combat_wolf_cub.png", iconText: "WC" },
-      { tier: 2, name: "Wild Wolf", cost: 1000000, atkPerLevel: 0.30, defPerLevel: 0.30, img: "images/pets/combat_wild_wolf.png", iconText: "WW" },
-      { tier: 3, name: "Dire Wolf", cost: 10000000, atkPerLevel: 0.40, defPerLevel: 0.40, img: "images/pets/combat_dire_wolf.png", iconText: "DW" },
-      { tier: 4, name: "Warfang Alpha", cost: 100000000, atkPerLevel: 0.50, defPerLevel: 0.50, img: "images/pets/combat_warfang_alpha.png", iconText: "WA" },
-      { tier: 5, name: "Shadowfang Beast", cost: 1000000000, atkPerLevel: 0.60, defPerLevel: 0.60, img: "images/pets/combat_shadowfang_beast.png", iconText: "SB" }
+      { tier: 1, name: "Wolf Cub", cost: 100000, atkPerLevel: 0.20, defPerLevel: 0.20, img: "images/pets/combat_wolf_cub.webp", iconText: "WC" },
+      { tier: 2, name: "Wild Wolf", cost: 1000000, atkPerLevel: 0.30, defPerLevel: 0.30, img: "images/pets/combat_wild_wolf.webp", iconText: "WW" },
+      { tier: 3, name: "Dire Wolf", cost: 10000000, atkPerLevel: 0.40, defPerLevel: 0.40, img: "images/pets/combat_dire_wolf.webp", iconText: "DW" },
+      { tier: 4, name: "Warfang Alpha", cost: 100000000, atkPerLevel: 0.50, defPerLevel: 0.50, img: "images/pets/combat_warfang_alpha.webp", iconText: "WA" },
+      { tier: 5, name: "Shadowfang Beast", cost: 1000000000, atkPerLevel: 0.60, defPerLevel: 0.60, img: "images/pets/combat_shadowfang_beast.webp", iconText: "SB" }
     ]
   };
   const COMBAT_PET_MILESTONES = [
@@ -51,11 +64,11 @@
   ];
   const GATHERING_PET_FAMILIES = {
     burrower: [
-      { tier: 1, name: "Burrower Pup", cost: 100000, professionXpPctPerLevel: 0.0010, img: "images/pets/gathering_burrower_pup.png", iconText: "BP" },
-      { tier: 2, name: "Stoneburrow Mole", cost: 1000000, professionXpPctPerLevel: 0.0015, img: "images/pets/gathering_stoneburrow_mole.png", iconText: "SM" },
-      { tier: 3, name: "Ironhide Mole", cost: 10000000, professionXpPctPerLevel: 0.0020, img: "images/pets/gathering_ironhide_mole.png", iconText: "IM" },
-      { tier: 4, name: "Crystalburrow Alpha", cost: 100000000, professionXpPctPerLevel: 0.0025, img: "images/pets/gathering_crystalburrow_alpha.png", iconText: "CA" },
-      { tier: 5, name: "Ancient Earthshaper", cost: 1000000000, professionXpPctPerLevel: 0.0030, img: "images/pets/gathering_ancient_earthshaper.png", iconText: "AE" }
+      { tier: 1, name: "Burrower Pup", cost: 100000, professionXpPctPerLevel: 0.0010, img: "images/pets/gathering_burrower_pup.webp", iconText: "BP" },
+      { tier: 2, name: "Stoneburrow Mole", cost: 1000000, professionXpPctPerLevel: 0.0015, img: "images/pets/gathering_stoneburrow_mole.webp", iconText: "SM" },
+      { tier: 3, name: "Ironhide Mole", cost: 10000000, professionXpPctPerLevel: 0.0020, img: "images/pets/gathering_ironhide_mole.webp", iconText: "IM" },
+      { tier: 4, name: "Crystalburrow Alpha", cost: 100000000, professionXpPctPerLevel: 0.0025, img: "images/pets/gathering_crystalburrow_alpha.webp", iconText: "CA" },
+      { tier: 5, name: "Ancient Earthshaper", cost: 1000000000, professionXpPctPerLevel: 0.0030, img: "images/pets/gathering_ancient_earthshaper.webp", iconText: "AE" }
     ]
   };
   const GATHERING_PET_MILESTONES = [
@@ -67,11 +80,11 @@
   ];
   const ARTISAN_PET_FAMILIES = {
     workshop: [
-      { tier: 1, name: "Workshop Mouse", cost: 100000, professionXpPctPerLevel: 0.0010, img: "images/pets/artisan_workshop_mouse.png", iconText: "WM" },
-      { tier: 2, name: "Craft Imp", cost: 1000000, professionXpPctPerLevel: 0.0015, img: "images/pets/artisan_craft_imp.png", iconText: "CI" },
-      { tier: 3, name: "Forge Elemental", cost: 10000000, professionXpPctPerLevel: 0.0020, img: "images/pets/artisan_forge_elemental.png", iconText: "FE" },
+      { tier: 1, name: "Workshop Mouse", cost: 100000, professionXpPctPerLevel: 0.0010, img: "images/pets/artisan_workshop_mouse.webp", iconText: "WM" },
+      { tier: 2, name: "Craft Imp", cost: 1000000, professionXpPctPerLevel: 0.0015, img: "images/pets/artisan_craft_imp.webp", iconText: "CI" },
+      { tier: 3, name: "Forge Elemental", cost: 10000000, professionXpPctPerLevel: 0.0020, img: "images/pets/artisan_forge_elemental.webp", iconText: "FE" },
       { tier: 4, name: "Ember Servitor", cost: 100000000, professionXpPctPerLevel: 0.0025, img: "images/pets/artisan_ember_servitor.webp", iconText: "ES" },
-      { tier: 5, name: "Eternal Homunculus", cost: 1000000000, professionXpPctPerLevel: 0.0030, img: "images/pets/artisan_eternal_homunculus.png", iconText: "EH" }
+      { tier: 5, name: "Eternal Homunculus", cost: 1000000000, professionXpPctPerLevel: 0.0030, img: "images/pets/artisan_eternal_homunculus.webp", iconText: "EH" }
     ]
   };
   const ARTISAN_PET_MILESTONES = [
@@ -83,11 +96,11 @@
   ];
   const FORTUNE_PET_FAMILIES = {
     fortune: [
-      { tier: 1, name: "Coin Ferret", cost: 100000, goldPctPerLevel: 0.0010, img: "images/pets/fortune_coin_ferret.png", iconText: "CF" },
-      { tier: 2, name: "Lucky Raven", cost: 1000000, goldPctPerLevel: 0.0015, img: "images/pets/fortune_lucky_raven.png", iconText: "LR" },
-      { tier: 3, name: "Golden Trickfox", cost: 10000000, goldPctPerLevel: 0.0020, img: "images/pets/fortune_golden_trickfox.png", iconText: "GT" },
-      { tier: 4, name: "Treasure Wisp", cost: 100000000, goldPctPerLevel: 0.0025, img: "images/pets/fortune_treasure_wisp.png", iconText: "TW" },
-      { tier: 5, name: "Gilded Gremlin King", cost: 1000000000, goldPctPerLevel: 0.0030, img: "images/pets/fortune_gilded_gremlin_king.png", iconText: "GG" }
+      { tier: 1, name: "Coin Ferret", cost: 100000, goldPctPerLevel: 0.0010, img: "images/pets/fortune_coin_ferret.webp", iconText: "CF" },
+      { tier: 2, name: "Lucky Raven", cost: 1000000, goldPctPerLevel: 0.0015, img: "images/pets/fortune_lucky_raven.webp", iconText: "LR" },
+      { tier: 3, name: "Golden Trickfox", cost: 10000000, goldPctPerLevel: 0.0020, img: "images/pets/fortune_golden_trickfox.webp", iconText: "GT" },
+      { tier: 4, name: "Treasure Wisp", cost: 100000000, goldPctPerLevel: 0.0025, img: "images/pets/fortune_treasure_wisp.webp", iconText: "TW" },
+      { tier: 5, name: "Gilded Gremlin King", cost: 1000000000, goldPctPerLevel: 0.0030, img: "images/pets/fortune_gilded_gremlin_king.webp", iconText: "GG" }
     ]
   };
   const FORTUNE_PET_MILESTONES = [
@@ -574,6 +587,8 @@
   function getWebpSiblingPath(src) {
     const value = String(src || "").trim();
     if (!/\.png(?:$|[?#])/i.test(value)) return "";
+    const normalized = value.toLowerCase();
+    if (!WEBP_SIBLING_PREFIXES.some((prefix) => normalized.startsWith(prefix))) return "";
     return value.replace(/\.png(?=$|[?#])/i, ".webp");
   }
 
@@ -582,14 +597,21 @@
     img.dataset.dsImageFallbackBound = "1";
     img.addEventListener("error", () => {
       const current = img.getAttribute("src") || "";
-      const next = getWebpSiblingPath(current);
-      if (next && next !== current && img.dataset.dsTriedWebp !== "1") {
-        img.dataset.dsTriedWebp = "1";
-        img.src = next;
+      const fallbackPng = img.dataset.dsFallbackPng || "";
+      if (fallbackPng && current !== fallbackPng && img.dataset.dsTriedPngFallback !== "1") {
+        img.dataset.dsTriedPngFallback = "1";
+        img.src = fallbackPng;
         return;
       }
       img.style.display = "none";
     });
+    const initialSrc = img.getAttribute("src") || "";
+    const preferredSrc = getWebpSiblingPath(initialSrc);
+    if (preferredSrc && preferredSrc !== initialSrc) {
+      img.dataset.dsFallbackPng = initialSrc;
+      img.dataset.dsPreferredWebp = preferredSrc;
+      img.src = preferredSrc;
+    }
   }
 
   function bindAssetImageFallbacks(root = document) {
@@ -5018,31 +5040,31 @@ function buildAdminItemCatalog() {
     { type: "consumable", id: "arrows", name: "Arrows", img: "images/items/arrows.png" },
     { type: "material", id: "empty_vial", name: "Empty Vial", img: "images/alchemy/items/empty_vial.webp" },
     { type: "material", id: "orb_of_creation", name: "Orb of Creation", img: "images/ui/orb_of_creation.webp" },
-    { type: "material", id: "rough_ruby", name: "Rough Ruby", img: "images/gems/rough_ruby.png" },
-    { type: "material", id: "rough_sapphire", name: "Rough Sapphire", img: "images/gems/rough_sapphire.png" },
-    { type: "material", id: "rough_emerald", name: "Rough Emerald", img: "images/gems/rough_emerald.png" },
-    { type: "material", id: "rough_topaz", name: "Rough Topaz", img: "images/gems/rough_topaz.png" },
-    { type: "material", id: "rough_amethyst", name: "Rough Amethyst", img: "images/gems/rough_amethyst.png" },
-    { type: "material", id: "refined_ruby", name: "Refined Ruby", img: "images/gems/refined_ruby.png" },
-    { type: "material", id: "refined_sapphire", name: "Refined Sapphire", img: "images/gems/refined_sapphire.png" },
-    { type: "material", id: "refined_emerald", name: "Refined Emerald", img: "images/gems/refined_emerald.png" },
-    { type: "material", id: "refined_topaz", name: "Refined Topaz", img: "images/gems/refined_topaz.png" },
-    { type: "material", id: "refined_amethyst", name: "Refined Amethyst", img: "images/gems/refined_amethyst.png" },
-    { type: "material", id: "flawless_ruby", name: "Flawless Ruby", img: "images/gems/flawless_ruby.png" },
-    { type: "material", id: "flawless_sapphire", name: "Flawless Sapphire", img: "images/gems/flawless_sapphire.png" },
-    { type: "material", id: "flawless_emerald", name: "Flawless Emerald", img: "images/gems/flawless_emerald.png" },
-    { type: "material", id: "flawless_topaz", name: "Flawless Topaz", img: "images/gems/flawless_topaz.png" },
-    { type: "material", id: "flawless_amethyst", name: "Flawless Amethyst", img: "images/gems/flawless_amethyst.png" },
-    { type: "material", id: "masterwork_ruby", name: "Masterwork Ruby", img: "images/gems/masterwork_ruby.png" },
-    { type: "material", id: "masterwork_sapphire", name: "Masterwork Sapphire", img: "images/gems/masterwork_sapphire.png" },
-    { type: "material", id: "masterwork_emerald", name: "Masterwork Emerald", img: "images/gems/masterwork_emerald.png" },
-    { type: "material", id: "masterwork_topaz", name: "Masterwork Topaz", img: "images/gems/masterwork_topaz.png" },
-    { type: "material", id: "masterwork_amethyst", name: "Masterwork Amethyst", img: "images/gems/masterwork_amethyst.png" },
-    { type: "material", id: "exquisite_ruby", name: "Exquisite Ruby", img: "images/gems/exquisite_ruby.png" },
+    { type: "material", id: "rough_ruby", name: "Rough Ruby", img: "images/gems/rough_ruby.webp" },
+    { type: "material", id: "rough_sapphire", name: "Rough Sapphire", img: "images/gems/rough_sapphire.webp" },
+    { type: "material", id: "rough_emerald", name: "Rough Emerald", img: "images/gems/rough_emerald.webp" },
+    { type: "material", id: "rough_topaz", name: "Rough Topaz", img: "images/gems/rough_topaz.webp" },
+    { type: "material", id: "rough_amethyst", name: "Rough Amethyst", img: "images/gems/rough_amethyst.webp" },
+    { type: "material", id: "refined_ruby", name: "Refined Ruby", img: "images/gems/refined_ruby.webp" },
+    { type: "material", id: "refined_sapphire", name: "Refined Sapphire", img: "images/gems/refined_sapphire.webp" },
+    { type: "material", id: "refined_emerald", name: "Refined Emerald", img: "images/gems/refined_emerald.webp" },
+    { type: "material", id: "refined_topaz", name: "Refined Topaz", img: "images/gems/refined_topaz.webp" },
+    { type: "material", id: "refined_amethyst", name: "Refined Amethyst", img: "images/gems/refined_amethyst.webp" },
+    { type: "material", id: "flawless_ruby", name: "Flawless Ruby", img: "images/gems/flawless_ruby.webp" },
+    { type: "material", id: "flawless_sapphire", name: "Flawless Sapphire", img: "images/gems/flawless_sapphire.webp" },
+    { type: "material", id: "flawless_emerald", name: "Flawless Emerald", img: "images/gems/flawless_emerald.webp" },
+    { type: "material", id: "flawless_topaz", name: "Flawless Topaz", img: "images/gems/flawless_topaz.webp" },
+    { type: "material", id: "flawless_amethyst", name: "Flawless Amethyst", img: "images/gems/flawless_amethyst.webp" },
+    { type: "material", id: "masterwork_ruby", name: "Masterwork Ruby", img: "images/gems/masterwork_ruby.webp" },
+    { type: "material", id: "masterwork_sapphire", name: "Masterwork Sapphire", img: "images/gems/masterwork_sapphire.webp" },
+    { type: "material", id: "masterwork_emerald", name: "Masterwork Emerald", img: "images/gems/masterwork_emerald.webp" },
+    { type: "material", id: "masterwork_topaz", name: "Masterwork Topaz", img: "images/gems/masterwork_topaz.webp" },
+    { type: "material", id: "masterwork_amethyst", name: "Masterwork Amethyst", img: "images/gems/masterwork_amethyst.webp" },
+    { type: "material", id: "exquisite_ruby", name: "Exquisite Ruby", img: "images/gems/exquisite_ruby.webp" },
     { type: "material", id: "exquisite_sapphire", name: "Exquisite Sapphire", img: "images/gems/exquisite_sapphire.webp" },
-    { type: "material", id: "exquisite_emerald", name: "Exquisite Emerald", img: "images/gems/exquisite_emerald.png" },
-    { type: "material", id: "exquisite_topaz", name: "Exquisite Topaz", img: "images/gems/exquisite_topaz.png" },
-    { type: "material", id: "exquisite_amethyst", name: "Exquisite Amethyst", img: "images/gems/exquisite_amethyst.png" }
+    { type: "material", id: "exquisite_emerald", name: "Exquisite Emerald", img: "images/gems/exquisite_emerald.webp" },
+    { type: "material", id: "exquisite_topaz", name: "Exquisite Topaz", img: "images/gems/exquisite_topaz.webp" },
+    { type: "material", id: "exquisite_amethyst", name: "Exquisite Amethyst", img: "images/gems/exquisite_amethyst.webp" }
   ];
   const getters = [
     window.DSFight?.getAdminItems,

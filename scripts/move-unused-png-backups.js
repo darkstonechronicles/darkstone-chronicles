@@ -7,14 +7,8 @@ const TEXT_EXTENSIONS = new Set([".html", ".js", ".css", ".ts"]);
 
 // These folders still have runtime-built .png paths in the code. Keep them in place.
 const DYNAMIC_PNG_PREFIXES = [
-  "images/alchemy/potions/",
-  "images/charms/",
   "images/dungeons/",
-  "images/heroes/",
-  "images/items/forge_crafted/",
-  "images/items/sets/",
-  "images/mobs/dungeons/",
-  "images/wood/logs/"
+  "images/mobs/dungeons/"
 ];
 
 function walk(dir, predicate = () => true, out = []) {

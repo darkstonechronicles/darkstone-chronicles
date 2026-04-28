@@ -162,7 +162,6 @@
     { id:"bracers", label:"Bracers" },
     { id:"shoulders", label:"Shoulders" }
   ];
-
   function smeltRecipeId(material){ return `${material.id}_bar`; }
   function craftRecipeId(material, slotDef){ return `${material.id}_${slotDef.id}`; }
   function charmRecipeId(material){ return `${material.id}_battle_charm`; }
@@ -337,7 +336,7 @@
       btn.style.minHeight = "118px";
 
       const img = document.createElement("img");
-      img.src = `images/items/forge_crafted/${material.id}/${material.id}_chest.png`;
+      img.src = `images/items/forge_crafted/${material.id}/${material.id}_chest.webp`;
       img.alt = material.name;
       img.style.width = "54px";
       img.style.height = "54px";
@@ -415,7 +414,7 @@
       cost.style.lineHeight = "1.1";
       cost.textContent = `Needs 5 ${material.name} Bar`;
       card.append(
-        makeImage(`images/items/forge_crafted/${material.id}/${recipeId}.png`, "#14361d"),
+        makeImage(`images/items/forge_crafted/${material.id}/${recipeId}.webp`, "#14361d"),
         title,
         cost,
         button("Craft", false, () => openRecipe(recipeId))
@@ -445,7 +444,7 @@
       if (!locked) card.dataset.openTabHref = `forge_action.html?recipe=${encodeURIComponent(recipeId)}`;
 
       const img = document.createElement("img");
-      img.src = `images/charms/${recipeId}.png`;
+      img.src = `images/charms/${recipeId}.webp`;
       img.alt = `${material.name} Battle Charm`;
       img.style.width = "64px";
       img.style.height = "64px";

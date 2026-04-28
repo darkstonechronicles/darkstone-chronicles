@@ -16,6 +16,7 @@ function contentType(file) {
     ".js": "text/javascript; charset=utf-8",
     ".css": "text/css; charset=utf-8",
     ".png": "image/png",
+    ".webp": "image/webp",
     ".jpg": "image/jpeg",
     ".jpeg": "image/jpeg",
     ".svg": "image/svg+xml"
@@ -116,6 +117,48 @@ const preload = `
   window.__dsSmoke = { playerSaveUpdates: [], playerSaveUpserts: [], remoteStorageKey, remoteSaveRow: savedRemote };
   window.crypto = window.crypto || {};
   window.crypto.randomUUID = () => "client-session-1";
+  const nativeFetch = window.fetch ? window.fetch.bind(window) : null;
+
+  window.fetch = async (input, init = {}) => {
+    const url = typeof input === "string" ? input : String(input?.url || "");
+    if (url.includes("/functions/v1/save-backup")) {
+      const body = JSON.parse(String(init?.body || "{}") || "{}");
+      return new Response(JSON.stringify({
+        ok: true,
+        revision: Number(body?.revision || 1) || 1,
+        reason: String(body?.reason || "sync")
+      }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" }
+      });
+    }
+    if (url.includes("/functions/v1/party-action")) {
+      return new Response(JSON.stringify({
+        ok: true,
+        myParty: null,
+        invites: [],
+        requests: [],
+        parties: []
+      }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" }
+      });
+    }
+    if (url.includes("/functions/v1/action-journal")) {
+      return new Response(JSON.stringify({ ok: true }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" }
+      });
+    }
+    if (url.includes("/functions/v1/admin-grant") || url.includes("/functions/v1/create-dark-stone-checkout")) {
+      return new Response(JSON.stringify({ ok: true }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" }
+      });
+    }
+    if (nativeFetch) return nativeFetch(input, init);
+    throw new Error("fetch is not available");
+  };
 
   function resultFor(table) {
     if (table === "player_saves") return window.__dsSmoke.remoteSaveRow;
@@ -130,6 +173,7 @@ const preload = `
     const chain = {
       select() { return this; },
       eq() { return this; },
+      gt() { return this; },
       neq() { return this; },
       in() { return this; },
       order() { return this; },
@@ -242,20 +286,103 @@ async function main() {
       returnByValue: true
     });
     const summary = JSON.parse(result.result.value);
-    const errors = page.events.filter((event) => {
+    const isRelevantError = (event) => {
       const entryUrl = String(event.params?.entry?.url || "");
       if (entryUrl.endsWith("/favicon.ico")) return false;
       if (event.method === "Runtime.exceptionThrown") return true;
       if (event.method === "Log.entryAdded" && ["error", "warning"].includes(event.params?.entry?.level)) return true;
       if (event.method === "Runtime.consoleAPICalled" && ["error", "warning"].includes(event.params?.type)) return true;
       return false;
-    });
+    };
+    const errors = page.events.filter(isRelevantError);
 
     if (!summary.bootReady) throw new Error(`Game did not finish booting: ${JSON.stringify(summary)}`);
     if (summary.heroLevel !== 12) throw new Error(`Expected same-PC local progression to survive reload. Got ${JSON.stringify(summary)}`);
     if (summary.updates < 1) throw new Error(`Expected local progression to sync upward. Got ${JSON.stringify(summary)}`);
     if (errors.length) {
       throw new Error(`Browser reported ${errors.length} errors/warnings: ${JSON.stringify(errors.slice(0, 5))}`);
+    }
+
+    const pages = [
+      {
+        path: "create_character.html",
+        validate(pageSummary) {
+          const href = String(pageSummary.href || "");
+          const title = String(pageSummary.title || "");
+          if (href.endsWith("/create_character.html")) return title.includes("Create Character");
+          return href.endsWith("/index.html") && title.includes("Darkstone Chronicles");
+        },
+        expected: "Create Character title or redirect back to index when a hero already exists"
+      },
+      {
+        path: "dungeons.html",
+        validate(pageSummary) {
+          return String(pageSummary.title || "").includes("Dungeons");
+        },
+        expected: "Dungeons title"
+      },
+      {
+        path: "forge.html",
+        validate(pageSummary) {
+          return String(pageSummary.title || "").includes("Forge");
+        },
+        expected: "Forge title"
+      },
+      {
+        path: "jewelcrafting.html",
+        validate(pageSummary) {
+          return String(pageSummary.title || "").includes("Jewelcrafting");
+        },
+        expected: "Jewelcrafting title"
+      },
+      {
+        path: "market.html",
+        validate(pageSummary) {
+          return String(pageSummary.title || "").includes("Market");
+        },
+        expected: "Market title"
+      }
+    ];
+
+    for (const target of pages) {
+      const errorBaseline = page.events.length;
+      await page.send("Page.navigate", { url: `http://127.0.0.1:${PORT}/${target.path}` });
+      await new Promise((resolve) => setTimeout(resolve, 3000));
+      const inspection = await page.send("Runtime.evaluate", {
+        expression: `JSON.stringify((() => {
+          const imgs = Array.from(document.images || []);
+          const broken = imgs
+            .filter((img) => {
+              const src = String(img.getAttribute("src") || img.src || "");
+              if (!src || src.endsWith("/favicon.ico")) return false;
+              const style = window.getComputedStyle(img);
+              if (style.display === "none" || style.visibility === "hidden") return false;
+              return !img.complete || img.naturalWidth === 0;
+            })
+            .map((img) => String(img.getAttribute("src") || img.src || ""));
+          return {
+            href: location.href,
+            title: document.title,
+            bootReady: document.documentElement.classList.contains("ds-boot-ready"),
+            broken,
+            bodyText: document.body.innerText.slice(0, 180)
+          };
+        })())`,
+        returnByValue: true
+      });
+      const pageSummary = JSON.parse(inspection.result.value);
+      const newErrors = page.events.slice(errorBaseline).filter(isRelevantError);
+      if (!pageSummary.bootReady) throw new Error(`Page did not finish booting: ${target.path} ${JSON.stringify(pageSummary)}`);
+      if (typeof target.validate === "function" && !target.validate(pageSummary)) {
+        throw new Error(`Unexpected page state on ${target.path} (expected ${target.expected}): ${JSON.stringify(pageSummary)}`);
+      }
+      if (pageSummary.broken.length) {
+        throw new Error(`Broken images on ${target.path}: ${JSON.stringify(pageSummary.broken.slice(0, 10))}`);
+      }
+      if (newErrors.length) {
+        throw new Error(`Browser errors on ${target.path}: ${JSON.stringify(newErrors.slice(0, 5))}`);
+      }
+      console.log(`PASS page smoke ${target.path} ${JSON.stringify(pageSummary)}`);
     }
 
     console.log(`PASS browser hard-refresh smoke ${JSON.stringify(summary)}`);

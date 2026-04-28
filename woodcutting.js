@@ -72,16 +72,16 @@
   }
 
   const WOODS = [
-    { id:"ash", name:"Ash", req:1, img:"images/wood/logs/ash_log.png" },
-    { id:"pine", name:"Pine", req:10, img:"images/wood/logs/pine_log.png" },
-    { id:"birch", name:"Birch", req:20, img:"images/wood/logs/birch_log.png" },
-    { id:"oak", name:"Oak", req:30, img:"images/wood/logs/oak_log.png" },
-    { id:"cedar", name:"Cedar", req:40, img:"images/wood/logs/cedar_log.png" },
-    { id:"maple", name:"Maple", req:50, img:"images/wood/logs/maple_log.png" },
-    { id:"ironwood", name:"Ironwood", req:60, img:"images/wood/logs/ironwood_log.png" },
-    { id:"heartwood", name:"Heartwood", req:70, img:"images/wood/logs/heartwood_log.png" },
-    { id:"darkwood", name:"Darkwood", req:80, img:"images/wood/logs/darkwood_log.png" },
-    { id:"ebony", name:"Ebony", req:90, img:"images/wood/logs/ebony_log.png" }
+    { id:"ash", name:"Ash", req:1, img:"images/wood/logs/ash_log.webp" },
+    { id:"pine", name:"Pine", req:10, img:"images/wood/logs/pine_log.webp" },
+    { id:"birch", name:"Birch", req:20, img:"images/wood/logs/birch_log.webp" },
+    { id:"oak", name:"Oak", req:30, img:"images/wood/logs/oak_log.webp" },
+    { id:"cedar", name:"Cedar", req:40, img:"images/wood/logs/cedar_log.webp" },
+    { id:"maple", name:"Maple", req:50, img:"images/wood/logs/maple_log.webp" },
+    { id:"ironwood", name:"Ironwood", req:60, img:"images/wood/logs/ironwood_log.webp" },
+    { id:"heartwood", name:"Heartwood", req:70, img:"images/wood/logs/heartwood_log.webp" },
+    { id:"darkwood", name:"Darkwood", req:80, img:"images/wood/logs/darkwood_log.webp" },
+    { id:"ebony", name:"Ebony", req:90, img:"images/wood/logs/ebony_log.webp" }
   ];
 
   function renderHeader(){

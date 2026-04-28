@@ -51,10 +51,10 @@
       shopTab: "pets",
       slot: "combat",
       name: "Wolf Cub",
-      img: "images/pets/combat_wolf_cub.png",
+      img: "images/pets/combat_wolf_cub.webp",
       price: 100000,
       meta: "Combat Pet Tier 1",
-      pet: { slot: "combat", family: "wolf", tier: 1, name: "Wolf Cub", atkPerLevel: 0.20, defPerLevel: 0.20, img: "images/pets/combat_wolf_cub.png", iconText: "WC" }
+      pet: { slot: "combat", family: "wolf", tier: 1, name: "Wolf Cub", atkPerLevel: 0.20, defPerLevel: 0.20, img: "images/pets/combat_wolf_cub.webp", iconText: "WC" }
     },
     {
       id: "pet_gathering",
@@ -62,10 +62,10 @@
       shopTab: "pets",
       slot: "gathering",
       name: "Burrower Pup",
-      img: "images/pets/gathering_burrower_pup.png",
+      img: "images/pets/gathering_burrower_pup.webp",
       price: 100000,
       meta: "Gathering Pet Tier 1",
-      pet: { slot: "gathering", family: "burrower", tier: 1, name: "Burrower Pup", professionXpPctPerLevel: 0.0010, img: "images/pets/gathering_burrower_pup.png", iconText: "BP" }
+      pet: { slot: "gathering", family: "burrower", tier: 1, name: "Burrower Pup", professionXpPctPerLevel: 0.0010, img: "images/pets/gathering_burrower_pup.webp", iconText: "BP" }
     },
     {
       id: "pet_artisan",
@@ -73,10 +73,10 @@
       shopTab: "pets",
       slot: "artisan",
       name: "Workshop Mouse",
-      img: "images/pets/artisan_workshop_mouse.png",
+      img: "images/pets/artisan_workshop_mouse.webp",
       price: 100000,
       meta: "Artisan Pet Tier 1",
-      pet: { slot: "artisan", family: "workshop", tier: 1, name: "Workshop Mouse", professionXpPctPerLevel: 0.0010, img: "images/pets/artisan_workshop_mouse.png", iconText: "WM" }
+      pet: { slot: "artisan", family: "workshop", tier: 1, name: "Workshop Mouse", professionXpPctPerLevel: 0.0010, img: "images/pets/artisan_workshop_mouse.webp", iconText: "WM" }
     },
     {
       id: "pet_fortune",
@@ -84,10 +84,10 @@
       shopTab: "pets",
       slot: "fortune",
       name: "Coin Ferret",
-      img: "images/pets/fortune_coin_ferret.png",
+      img: "images/pets/fortune_coin_ferret.webp",
       price: 100000,
       meta: "Fortune Pet Tier 1",
-      pet: { slot: "fortune", family: "fortune", tier: 1, name: "Coin Ferret", goldPctPerLevel: 0.0010, img: "images/pets/fortune_coin_ferret.png", iconText: "CF" }
+      pet: { slot: "fortune", family: "fortune", tier: 1, name: "Coin Ferret", goldPctPerLevel: 0.0010, img: "images/pets/fortune_coin_ferret.webp", iconText: "CF" }
     }
   ];
 
@@ -263,7 +263,7 @@
   }
 
   function marketIcon(kind){
-    if (kind === "gear") return "images/ui/equipment.png";
+    if (kind === "gear") return "images/ui/equipment.webp";
     if (kind === "materials") return "images/ui/bank.webp";
     return "images/ui/market.webp";
   }
