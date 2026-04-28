@@ -571,6 +571,37 @@
     return window.DSAuth?.getClient?.() || null;
   }
 
+  function getWebpSiblingPath(src) {
+    const value = String(src || "").trim();
+    if (!/\.png(?:$|[?#])/i.test(value)) return "";
+    return value.replace(/\.png(?=$|[?#])/i, ".webp");
+  }
+
+  function bindAssetImageFallback(img) {
+    if (!img || img.dataset.dsImageFallbackBound === "1") return;
+    img.dataset.dsImageFallbackBound = "1";
+    img.addEventListener("error", () => {
+      const current = img.getAttribute("src") || "";
+      const next = getWebpSiblingPath(current);
+      if (next && next !== current && img.dataset.dsTriedWebp !== "1") {
+        img.dataset.dsTriedWebp = "1";
+        img.src = next;
+        return;
+      }
+      img.style.display = "none";
+    });
+  }
+
+  function bindAssetImageFallbacks(root = document) {
+    root.querySelectorAll?.("img")?.forEach(bindAssetImageFallback);
+  }
+
+  window.DSImage = Object.assign(window.DSImage || {}, {
+    bindFallback: bindAssetImageFallback,
+    bindFallbacks: bindAssetImageFallbacks,
+    webpSibling: getWebpSiblingPath
+  });
+
   function addMarketSaleHistory(sale) {
     try {
       const rows = JSON.parse(localStorage.getItem(MARKET_SALE_HISTORY_KEY) || "[]");
@@ -6189,6 +6220,7 @@ function renderInventory(save) {
       const img = document.createElement("img");
       img.src = it.img;
       img.alt = it.name || "item";
+      bindAssetImageFallback(img);
       slot.appendChild(img);
 
       const upg = num(it.upg, 0);
@@ -7100,6 +7132,7 @@ function openQuickConsumableInspector(slotKey) {
   window.DS?.pause?.();
   box.className = "dsInspector";
   box.innerHTML = html;
+  bindAssetImageFallbacks(box);
 
   const msg = (t) => {
     const m = document.getElementById("dsMsg");
@@ -7566,8 +7599,9 @@ function openInspector(invIndex, item) {
     box = ensureInspectorBoxReplace();
     if (!box) return;
     window.DS?.pause?.();
-    box.className = "dsInspector";
-    box.innerHTML = html;
+  box.className = "dsInspector";
+  box.innerHTML = html;
+  bindAssetImageFallbacks(box);
     if (!box.firstElementChild) {
       box.innerHTML = `<div style="color:#fff;font-weight:800;">${item.name || "Item"}</div>`;
     }
@@ -7924,6 +7958,7 @@ function renderAll() {
   renderEquipmentPanel(save);
   setInvTab(__invTab);
   syncRightColumnToNav();
+  bindAssetImageFallbacks(document);
 }
 
   function forceRerenderNow() {

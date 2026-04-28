@@ -230,6 +230,7 @@
         <div id="bankMsg" style="margin-top:4px;text-align:center;opacity:.9;font-size:12px;color:#d9ccb0;"></div>
       </div>
     `;
+    window.DSImage?.bindFallbacks?.(bankPreview);
 
     const msgEl = document.getElementById("bankMsg");
     const setMsg = (t) => { if (msgEl) msgEl.textContent = t || ""; };
@@ -319,6 +320,7 @@
         const img = document.createElement("img");
         img.src = it.img;
         img.alt = it.name || "Item";
+        window.DSImage?.bindFallback?.(img);
         slot.appendChild(img);
       }
 

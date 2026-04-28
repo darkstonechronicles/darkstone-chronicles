@@ -552,6 +552,7 @@
         const img = document.createElement("img");
         img.src = it.img;
         img.alt = it.name || SLOT_LABEL[slotKey] || slotKey;
+        window.DSImage?.bindFallback?.(img);
         node.appendChild(img);
 
         const upg = Math.max(0, num(it.upg, 0));
