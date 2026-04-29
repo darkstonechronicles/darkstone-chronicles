@@ -28,6 +28,8 @@ const PARTY_FIGHT_MAX_ROUNDS = 15;
 const PARTY_FIGHT_STAT_POINTS_PER_LEVEL = 5;
 const PARTY_FIGHT_STAMINA_COST = 5;
 const PARTY_HALL_MIN_LEVEL = 20;
+const PARTY_FIGHT_DAILY_ACTION_LIMIT = 200;
+const PARTY_ACTIONS_RESET_TZ = "Europe/Athens";
 const PARTY_FIGHT_AUTO_HP_THRESHOLD = 0.25;
 const PARTY_FIGHT_AUTO_HP_TARGET = 0.50;
 const PARTY_FIGHT_AUTO_STAMINA_THRESHOLD = 0.30;
@@ -474,6 +476,58 @@ function getPartyFightBonuses(saveData: unknown) {
   return {
     atkPct: Math.max(0, num(bonuses.atkPct, 0)),
     defPct: Math.max(0, num(bonuses.defPct, 0)),
+  };
+}
+
+function getAthensDayKey(date = new Date()) {
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: PARTY_ACTIONS_RESET_TZ,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(date);
+}
+
+function ensurePartyActionUsage(saveData: unknown) {
+  const partyHall = ensurePartyHallState(saveData);
+  const usage = asRecord(partyHall.dailyActions);
+  const todayKey = getAthensDayKey();
+  if (str(usage.dayKey) !== todayKey) {
+    usage.dayKey = todayKey;
+    usage.used = 0;
+  } else {
+    usage.used = Math.max(0, int(usage.used, 0));
+  }
+  usage.limit = PARTY_FIGHT_DAILY_ACTION_LIMIT;
+  usage.resetTimeZone = PARTY_ACTIONS_RESET_TZ;
+  partyHall.dailyActions = usage;
+  return usage;
+}
+
+function getPartyActionUsage(saveData: unknown) {
+  const usage = ensurePartyActionUsage(saveData);
+  const used = Math.max(0, int(usage.used, 0));
+  return {
+    dayKey: str(usage.dayKey, getAthensDayKey()),
+    used,
+    limit: PARTY_FIGHT_DAILY_ACTION_LIMIT,
+    remaining: Math.max(0, PARTY_FIGHT_DAILY_ACTION_LIMIT - used),
+    resetTimeZone: PARTY_ACTIONS_RESET_TZ,
+  };
+}
+
+function spendPartyActionUsage(saveData: unknown, amount = 1) {
+  const usage = ensurePartyActionUsage(saveData);
+  const nextUsed = Math.max(0, int(usage.used, 0)) + Math.max(0, int(amount, 0));
+  usage.used = nextUsed;
+  usage.limit = PARTY_FIGHT_DAILY_ACTION_LIMIT;
+  usage.resetTimeZone = PARTY_ACTIONS_RESET_TZ;
+  return {
+    dayKey: str(usage.dayKey, getAthensDayKey()),
+    used: nextUsed,
+    limit: PARTY_FIGHT_DAILY_ACTION_LIMIT,
+    remaining: Math.max(0, PARTY_FIGHT_DAILY_ACTION_LIMIT - nextUsed),
+    resetTimeZone: PARTY_ACTIONS_RESET_TZ,
   };
 }
 
@@ -1220,6 +1274,7 @@ async function getUserSummaries(admin: ReturnType<typeof createClient>, userIds:
       staminaMax: Math.max(1, int(asRecord(saveData).staminaMax, calcStaminaMax(asRecord(saveData).heroLevel))),
       stamina: getCurrentStamina(saveData),
       partyPoints: Math.max(0, int(asRecord(saveData).partyPoints, 0)),
+      partyActionUsage: getPartyActionUsage(saveData),
       partyMonsterProgress: buildMonsterProgress(saveData),
       partyFightBonuses: getPartyFightBonuses(saveData),
       partyMonsterMilestones: {
@@ -1244,6 +1299,7 @@ async function getUserSummaries(admin: ReturnType<typeof createClient>, userIds:
         staminaMax: calcStaminaMax(1),
         stamina: calcStaminaMax(1),
         partyPoints: 0,
+        partyActionUsage: getPartyActionUsage({}),
         partyMonsterProgress: buildMonsterProgress({}),
         partyFightBonuses: getPartyFightBonuses({}),
         partyMonsterMilestones: {
@@ -2672,6 +2728,10 @@ async function resolvePartyFight(admin: ReturnType<typeof createClient>, userId:
   };
   const actorBonuses = getPartyFightBonuses(actorRow.save);
   const memberSummaries = members.map((entry) => summaries.get(entry.user_id) || {});
+  const partyActionUsageBefore = getPartyActionUsage(actorRow.save);
+  if (partyActionUsageBefore.used >= PARTY_FIGHT_DAILY_ACTION_LIMIT) {
+    throw new Error(`You have used all ${PARTY_FIGHT_DAILY_ACTION_LIMIT} Party Actions for today.`);
+  }
   const currentStamina = getCurrentStamina(actorRow.save);
   if (currentStamina < PARTY_FIGHT_STANDALONE_STAMINA_COST) {
     const autoStamina = autoUseQuickStaminaFood(actorRow.save, { force: true });
@@ -2693,6 +2753,7 @@ async function resolvePartyFight(admin: ReturnType<typeof createClient>, userId:
   actorRow.save = asRecord(rewardResult.save);
   const staminaResult = spendPartyFightStamina(actorRow.save, PARTY_FIGHT_STANDALONE_STAMINA_COST);
   actorRow.save = staminaResult.save;
+  const partyActionUsageAfter = spendPartyActionUsage(actorRow.save, 1);
   const autoStaminaAfter = autoUseQuickStaminaFood(actorRow.save);
   tickPotionActions(actorRow.save, 1);
   tickBattleCharmBreak(actorRow.save);
@@ -2747,6 +2808,7 @@ async function resolvePartyFight(admin: ReturnType<typeof createClient>, userId:
     staminaCost: PARTY_FIGHT_STANDALONE_STAMINA_COST,
     staminaRemaining: getCurrentStamina(actorRow.save),
     heroHpRemaining: getCurrentHeroHpState(actorRow.save).hp,
+    partyActionUsage: partyActionUsageAfter,
     xp: baseRewards.xp,
     gold: baseRewards.gold,
     partyPoints: partyPointsEarned,

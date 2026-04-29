@@ -263,6 +263,18 @@
     return Math.max(0, num(state.data?.profile?.partyPoints, 0));
   }
 
+  function partyActionUsage() {
+    const usage = state.data?.profile?.partyActionUsage;
+    const used = Math.max(0, num(usage?.used, 0));
+    const limit = Math.max(1, num(usage?.limit, 200));
+    return {
+      used,
+      limit,
+      remaining: Math.max(0, num(usage?.remaining, Math.max(0, limit - used))),
+      resetTimeZone: String(usage?.resetTimeZone || "Europe/Athens"),
+    };
+  }
+
   function myJoinRequests() {
     return Array.isArray(state.data?.myJoinRequests) ? state.data.myJoinRequests : [];
   }
@@ -289,6 +301,7 @@
 
   function hallSummaryMarkup() {
     const me = profile();
+    const usage = partyActionUsage();
     return `
       <section style="margin-bottom:14px;padding:14px;border:1px solid rgba(255,255,255,.10);border-radius:12px;background:rgba(255,255,255,.03);display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;align-items:center;">
         <div>
@@ -298,12 +311,14 @@
         <div>
           <div style="font-size:12px;opacity:.74;">Hero Level</div>
           <div style="font-size:18px;font-weight:900;">${num(me.heroLevel, 1)}</div>
+          <div style="margin-top:8px;font-size:12px;opacity:.74;">Party Actions</div>
+          <div style="font-size:16px;font-weight:900;color:#8fe7b1;">${usage.used}/${usage.limit}</div>
+          <div style="font-size:11px;opacity:.7;">Resets at 00:00 Greece time</div>
         </div>
         <div>
           <div style="font-size:12px;opacity:.74;">Party Points</div>
           <div style="font-size:18px;font-weight:900;color:#f0d58b;">${partyPoints()} PP</div>
         </div>
-        <div style="font-size:12px;opacity:.82;">Party Hall access and the first monster both require hero level ${PARTY_HALL_MIN_LEVEL}+.</div>
       </section>
     `;
   }
@@ -1086,11 +1101,17 @@
   }
 
   function inlineInviteFormMarkup(canRunFight = false) {
-    if (!isLeader()) return "";
+    if (isLeader()) {
+      return `
+        <div style="display:grid;grid-template-columns:auto minmax(180px,320px) auto;gap:10px;align-items:center;justify-content:start;margin-bottom:14px;">
+          <button id="partySendInlineInviteBtn" type="button">Invite Player</button>
+          <input id="partyInlineInviteName" type="text" value="${esc(state.inviteDraft)}" placeholder="Hero Name" style="width:100%;padding:10px 12px;border-radius:10px;border:2px solid #333;background:#101019;color:#fff;">
+          <button id="partyOpenBattleBtn" type="button" ${canRunFight ? "" : "disabled"}>Start Battle</button>
+        </div>
+      `;
+    }
     return `
-      <div style="display:grid;grid-template-columns:auto minmax(180px,320px) auto;gap:10px;align-items:center;justify-content:start;margin-bottom:14px;">
-        <button id="partySendInlineInviteBtn" type="button">Invite Player</button>
-        <input id="partyInlineInviteName" type="text" value="${esc(state.inviteDraft)}" placeholder="Hero Name" style="width:100%;padding:10px 12px;border-radius:10px;border:2px solid #333;background:#101019;color:#fff;">
+      <div style="display:flex;justify-content:flex-start;margin-bottom:14px;">
         <button id="partyOpenBattleBtn" type="button" ${canRunFight ? "" : "disabled"}>Start Battle</button>
       </div>
     `;
