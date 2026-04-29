@@ -104,6 +104,13 @@
   const num = (v, f = 0) => (Number.isFinite(Number(v)) ? Number(v) : f);
   const hasPartyPage = () => !!document.getElementById("partyHallCard");
   const partyMonsterId = (v) => PARTY_MONSTER_ID_ALIASES[String(v || "").trim()] || String(v || "").trim();
+  const normalizeAvatarUrl = (src) => {
+    const value = String(src || "").trim();
+    if (!value) return "images/heroes/hero_1.webp";
+    if (/^images\/hero\.png(?:$|[?#])/i.test(value)) return "images/heroes/hero_1.webp";
+    if (/^images\/heroes\/.+\.png(?:$|[?#])/i.test(value)) return value.replace(/\.png(?=$|[?#])/i, ".webp");
+    return value;
+  };
 
   function setNotice(message = "", isError = false) {
     state.lastMessage = isError ? "" : String(message || "");
@@ -129,7 +136,7 @@
       id: "",
       heroName: "Hero",
       heroLevel: 1,
-      avatarUrl: "images/hero.png",
+      avatarUrl: "images/heroes/hero_1.webp",
     };
   }
 
@@ -759,7 +766,7 @@
     const meId = String(profile().id || "");
     return party.members.map((member) => `
       <div style="display:grid;grid-template-columns:52px 1fr auto auto ${showLeaderTools && !member.isLeader ? "auto" : ""};gap:12px;align-items:center;padding:10px 12px;border:1px solid rgba(255,255,255,.08);border-radius:12px;background:rgba(255,255,255,.02);">
-        <img src="${esc(member.avatarUrl)}" alt="${esc(member.heroName)}" style="width:52px;height:52px;border-radius:12px;border:2px solid #333;object-fit:cover;">
+        <img src="${esc(normalizeAvatarUrl(member.avatarUrl))}" alt="${esc(member.heroName)}" style="width:52px;height:52px;border-radius:12px;border:2px solid #333;object-fit:cover;">
         <div>
           <div style="font-weight:800;">${esc(member.heroName)}</div>
           <div style="opacity:.76;font-size:12px;">Level ${num(member.heroLevel, 1)}${member.userId === meId ? " - You" : ""}</div>
@@ -776,7 +783,7 @@
     if (!pending.length) return `<div style="opacity:.72;">No pending invites.</div>`;
     return pending.map((entry) => `
       <div style="padding:10px 12px;border:1px solid rgba(255,255,255,.08);border-radius:12px;background:rgba(255,255,255,.02);display:grid;grid-template-columns:44px 1fr auto;gap:12px;align-items:center;">
-        <img src="${esc(entry.avatarUrl)}" alt="${esc(entry.heroName)}" style="width:44px;height:44px;border-radius:12px;border:2px solid #333;object-fit:cover;">
+        <img src="${esc(normalizeAvatarUrl(entry.avatarUrl))}" alt="${esc(entry.heroName)}" style="width:44px;height:44px;border-radius:12px;border:2px solid #333;object-fit:cover;">
         <div>
           <div style="font-weight:800;">${esc(entry.heroName)}</div>
           <div style="opacity:.72;font-size:12px;">Level ${num(entry.heroLevel, 1)}</div>
@@ -814,7 +821,7 @@
     if (!requests.length) return `<div style="opacity:.72;">No pending join requests.</div>`;
     return requests.map((entry) => `
       <div style="padding:10px 12px;border:1px solid rgba(255,255,255,.08);border-radius:12px;background:rgba(255,255,255,.02);display:grid;grid-template-columns:44px 1fr auto;gap:12px;align-items:center;">
-        <img src="${esc(entry.avatarUrl)}" alt="${esc(entry.heroName)}" style="width:44px;height:44px;border-radius:12px;border:2px solid #333;object-fit:cover;">
+        <img src="${esc(normalizeAvatarUrl(entry.avatarUrl))}" alt="${esc(entry.heroName)}" style="width:44px;height:44px;border-radius:12px;border:2px solid #333;object-fit:cover;">
         <div>
           <div style="font-weight:800;">${esc(entry.heroName)}</div>
           <div style="opacity:.72;font-size:12px;">Level ${num(entry.heroLevel, 1)}${entry.message ? ` - ${esc(entry.message)}` : ""}</div>
@@ -904,7 +911,7 @@
         <div style="min-height:28px;display:flex;align-items:center;justify-content:center;">
           <div style="padding:4px 10px;border-radius:999px;background:${member.isLeader ? "rgba(67,194,107,.16)" : "rgba(199,155,68,.14)"};border:1px solid ${member.isLeader ? "rgba(67,194,107,.32)" : "rgba(199,155,68,.28)"};color:${member.isLeader ? "#bff0ca" : "#f0d9a8"};font-weight:900;font-size:12px;">${statusText}</div>
         </div>
-        <img src="${esc(member.avatarUrl)}" alt="${esc(member.heroName)}" style="width:110px;height:110px;border-radius:18px;border:3px solid ${frameColor};object-fit:cover;box-shadow:0 0 0 1px rgba(0,0,0,.28);">
+        <img src="${esc(normalizeAvatarUrl(member.avatarUrl))}" alt="${esc(member.heroName)}" style="width:110px;height:110px;border-radius:18px;border:3px solid ${frameColor};object-fit:cover;box-shadow:0 0 0 1px rgba(0,0,0,.28);">
         <div style="font-weight:900;font-size:18px;line-height:1.1;">${esc(member.heroName)}</div>
         <div style="font-size:12px;opacity:.82;letter-spacing:.02em;">ATT ${num(member.heroAttack, 0)}  DEF ${num(member.heroDefense, 0)}</div>
       </div>
@@ -1110,7 +1117,7 @@
         <div style="display:grid;gap:8px;margin-top:10px;">
           ${(detail.members || []).map((member) => `
             <div style="display:grid;grid-template-columns:40px 1fr auto;gap:10px;align-items:center;padding:8px 10px;border:1px solid rgba(255,255,255,.08);border-radius:10px;background:rgba(255,255,255,.02);">
-              <img src="${esc(member.avatarUrl)}" alt="${esc(member.heroName)}" style="width:40px;height:40px;border-radius:10px;border:2px solid #333;object-fit:cover;">
+              <img src="${esc(normalizeAvatarUrl(member.avatarUrl))}" alt="${esc(member.heroName)}" style="width:40px;height:40px;border-radius:10px;border:2px solid #333;object-fit:cover;">
               <div>${esc(member.heroName)} <span style="opacity:.72;">Lv ${num(member.heroLevel, 1)}</span></div>
               <div style="opacity:.72;">${member.role === "leader" ? "Leader" : "Member"}</div>
             </div>
@@ -1231,7 +1238,7 @@
                     const hpPct = Math.max(0, Math.min(100, (hpRemaining / hpMax) * 100));
                     return `
                       <div style="display:grid;justify-items:center;gap:8px;text-align:center;">
-                        <img src="${esc(member.avatarUrl)}" alt="${esc(member.heroName)}" style="width:96px;height:96px;border-radius:18px;border:3px solid ${member.isLeader ? "#43c26b" : "rgba(255,255,255,.22)"};object-fit:cover;box-shadow:0 0 0 1px rgba(0,0,0,.32);">
+                        <img src="${esc(normalizeAvatarUrl(member.avatarUrl))}" alt="${esc(member.heroName)}" style="width:96px;height:96px;border-radius:18px;border:3px solid ${member.isLeader ? "#43c26b" : "rgba(255,255,255,.22)"};object-fit:cover;box-shadow:0 0 0 1px rgba(0,0,0,.32);">
                         <div style="width:82px;height:4px;background:#222;border:1px solid #333;border-radius:999px;overflow:hidden;">
                           <div style="height:100%;width:${hpPct.toFixed(1)}%;border-radius:999px;background:linear-gradient(90deg,#00ff88,#00bb55);"></div>
                         </div>

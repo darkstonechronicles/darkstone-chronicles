@@ -594,10 +594,17 @@
     return value.replace(/\.png(?=$|[?#])/i, ".webp");
   }
 
+  function normalizeHeroPortraitPath(src) {
+    const value = String(src || "").trim();
+    if (!value) return "images/heroes/hero_1.webp";
+    if (/^images\/hero\.png(?:$|[?#])/i.test(value)) return "images/heroes/hero_1.webp";
+    return getWebpSiblingPath(value) || value;
+  }
+
   function normalizeAssetPath(src) {
     const value = String(src || "").trim();
     if (!value) return value;
-    return getWebpSiblingPath(value) || value;
+    return normalizeHeroPortraitPath(value) || getWebpSiblingPath(value) || value;
   }
 
   function normalizeItemAsset(item) {
@@ -1021,7 +1028,7 @@
     const box = ensureInspectorBoxReplace();
     if (!box) return;
     const name = String(player.name || "Player");
-    const img = String(player.avatarUrl || "images/hero.png");
+    const img = normalizeHeroPortraitPath(player.avatarUrl || "images/heroes/hero_1.webp");
     const level = Math.max(1, Math.floor(num(player.heroLevel ?? player.level, 1)));
     const onlineText = player.isOnline ? "Online" : "Offline";
     const currentText = cleanPresenceActivityLabel(player.lastSeenPage || "Unknown");
@@ -1067,7 +1074,7 @@
     const box = ensureInspectorBoxReplace();
     if (!box || !player?.id) return;
     const name = String(player.name || "Player");
-    const img = String(player.avatarUrl || "images/hero.png");
+    const img = normalizeHeroPortraitPath(player.avatarUrl || "images/heroes/hero_1.webp");
     box.className = "dsInspector";
     box.innerHTML = `
       <div style="min-height:360px;display:flex;align-items:center;justify-content:center;padding:12px;box-sizing:border-box;color:#f3ead6;">
@@ -1091,7 +1098,7 @@
     const box = ensureInspectorBoxReplace();
     if (!box) return;
     const name = String(player.name || "Player");
-    const img = String(player.avatarUrl || "images/hero.png");
+    const img = normalizeHeroPortraitPath(player.avatarUrl || "images/heroes/hero_1.webp");
     const slots = [
       { key:"helmet", label:"Helmet", x:"46%", y:"6px" },
       { key:"chest", label:"Chest", x:"46%", y:"88px" },
@@ -1569,7 +1576,7 @@
 
     s.heroName = String(s.heroName || s.playerName || "Hero").trim() || "Hero";
     s.playerName = s.heroName;
-    s.heroPortrait = String(s.heroPortrait || "images/hero.png").trim() || "images/hero.png";
+    s.heroPortrait = normalizeHeroPortraitPath(s.heroPortrait || "images/heroes/hero_1.webp");
     s.heroCreated = hasCreatedHero(s) || s.heroCreated === true;
 
     s.heroLevel = num(s.heroLevel, 1);
@@ -4198,7 +4205,7 @@ function getChatInputSelectionSnapshot() {
             ${__whisperState.conversations.length ? `<div class="whisperList">
               ${__whisperState.conversations.map((conv) => `
                 <button type="button" class="whisperRow" data-whisper-open="${escapeHtml(conv.userId)}">
-                  <img src="${escapeHtml(conv.avatarUrl || "images/hero.png")}" alt="">
+                  <img src="${escapeHtml(normalizeHeroPortraitPath(conv.avatarUrl || "images/heroes/hero_1.webp"))}" alt="">
                   <div style="min-width:0;flex:1;">
                     <div class="whisperName">${escapeHtml(conv.name)}</div>
                     <div class="whisperPreview">${escapeHtml(conv.preview)}</div>
@@ -4742,7 +4749,7 @@ function claimActiveChallengeFromQuest(){
       <div class="dsHeaderTop">
         <div class="dsHeroPanel">
           <div class="dsHeroPortrait" id="heroPortrait" title="Open Equipment">
-            <img src="${save.heroPortrait || "images/hero.png"}" alt="${save.heroName || "Hero"}">
+            <img src="${normalizeHeroPortraitPath(save.heroPortrait || "images/heroes/hero_1.webp")}" alt="${save.heroName || "Hero"}">
           </div>
           <div class="dsHeroStats">
             <p class="dsLine" style="display:flex;align-items:center;justify-content:space-between;gap:12px;">
@@ -4958,7 +4965,7 @@ function getPresenceMenuMarkup() {
     <div style="padding:8px 0;border-top:1px solid rgba(255,255,255,.06);">
       <button type="button" data-presence-player="${escapeHtml(player.id)}" style="width:100%;display:flex;align-items:center;gap:10px;padding:0;border:0;background:transparent;color:inherit;text-align:left;cursor:${isSelf ? "default" : "pointer"};">
       <div style="position:relative;flex:0 0 auto;">
-        <img src="${player.avatarUrl || "images/hero.png"}" alt="${player.name}" style="width:38px;height:38px;border-radius:10px;border:1px solid rgba(255,255,255,.12);object-fit:cover;background:#10131d;">
+        <img src="${normalizeHeroPortraitPath(player.avatarUrl || "images/heroes/hero_1.webp")}" alt="${player.name}" style="width:38px;height:38px;border-radius:10px;border:1px solid rgba(255,255,255,.12);object-fit:cover;background:#10131d;">
         <span style="position:absolute;right:-2px;bottom:-2px;width:11px;height:11px;border-radius:999px;border:2px solid #111723;background:#31d07f;"></span>
       </div>
       <div style="min-width:0;flex:1;">

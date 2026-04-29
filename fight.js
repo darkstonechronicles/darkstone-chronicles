@@ -38,10 +38,12 @@ const num = (v, f=0) => (Number.isFinite(Number(v)) ? Number(v) : f);
 const clamp = (v,a,b) => Math.max(a, Math.min(b, v));
 function normalizeFightAsset(src){
   const value = String(src || "").trim();
+  if (!value) return "images/heroes/hero_1.webp";
+  if (/^images\/hero\.png(?:$|[?#])/i.test(value)) return "images/heroes/hero_1.webp";
   if (!/\.png(?:$|[?#])/i.test(value)) return value;
   const sibling = window.DSImage?.webpSibling?.(value);
   if (sibling) return sibling;
-  if (/^images\/mobs\/fighting\//i.test(value) || /^images\/items\/sigils\//i.test(value)) {
+  if (/^images\/mobs\/fighting\//i.test(value) || /^images\/items\/sigils\//i.test(value) || /^images\/heroes\//i.test(value)) {
     return value.replace(/\.png(?=$|[?#])/i, ".webp");
   }
   return value;
@@ -2111,7 +2113,7 @@ const FIGHT_TEMPLATE = `
           <div id="heroInfo" style="position:absolute;left:50%;top:-28px;transform:translateX(-50%);font-size:13px;opacity:.9;text-align:center;white-space:nowrap;"></div>
           <div style="display:flex;align-items:flex-start;justify-content:center;gap:10px;width:100%;">
             <div style="display:flex;flex-direction:column;align-items:center;gap:4px;flex:0 0 auto;">
-              <img id="heroImg" src="images/hero.png" alt="Hero" style="width:82px;height:82px;border-radius:10px;border:2px solid #333;object-fit:cover;flex:0 0 auto;">
+              <img id="heroImg" src="images/heroes/hero_1.webp" alt="Hero" style="width:82px;height:82px;border-radius:10px;border:2px solid #333;object-fit:cover;flex:0 0 auto;">
               <div style="width:74px;height:4px;background:#222;border:1px solid #333;border-radius:999px;overflow:hidden;">
                 <div id="heroHpBar" style="height:100%;width:100%;border-radius:999px;background:linear-gradient(90deg,#b63a3a,#e05555);"></div>
               </div>
@@ -2430,7 +2432,7 @@ function getHeroState(){
     stamina: staminaNow,
     heroXP: num(s.heroXP, 0),
     heroXPNext: xpNextForLevel(heroLevel),
-    portrait: String(s.heroPortrait || "images/hero.png")
+    portrait: normalizeFightAsset(s.heroPortrait || "images/heroes/hero_1.webp")
   };
 }
 
@@ -3035,7 +3037,7 @@ function startBattle(mobData, autoStart=true){
 
   const hero = getHeroState();
   renderCombatPetBadge();
-  heroImg.src = hero.portrait || "images/hero.png";
+  heroImg.src = normalizeFightAsset(hero.portrait || "images/heroes/hero_1.webp");
   mobImg.style.display = "";
   if (window.DSImage?.bindFallback) window.DSImage.bindFallback(mobImg);
   mobImg.src = normalizeFightAsset(mobData.img);
