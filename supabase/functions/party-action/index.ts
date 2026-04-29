@@ -40,9 +40,9 @@ const PARTY_FIGHT_MONSTERS: Record<string, JsonRecord> = {
     name: "Mirehook Ravager",
     img: "images/mobs/party/mirehook_ravager.webp",
     level: 30,
-    attack: 350,
-    defense: 210,
-    hp: 3500,
+    attack: 260,
+    defense: 180,
+    hp: 2600,
   },
   "embermaw-colossus": {
     id: "embermaw-colossus",
@@ -2582,6 +2582,17 @@ function calcStandalonePartyDamage(totalAttack: number, monsterDefense: number) 
   return Math.max(PARTY_FIGHT_MIN_DAMAGE, calcDamage(totalAttack, monsterDefense));
 }
 
+function calcStandaloneActorDamage(outcome: string, rounds: number) {
+  const resolvedRounds = Math.max(1, int(rounds, 1));
+  if (outcome === "victory") {
+    return randomInt(4, Math.max(4, Math.min(12, resolvedRounds)));
+  }
+  if (outcome === "fled") {
+    return randomInt(6, Math.max(8, Math.min(15, resolvedRounds + 2)));
+  }
+  return randomInt(10, Math.max(12, Math.min(18, resolvedRounds + 3)));
+}
+
 function simulateStandalonePartyFight(
   memberSummaries: JsonRecord[],
   monster: JsonRecord,
@@ -2598,7 +2609,7 @@ function simulateStandalonePartyFight(
   let rounds = 0;
   let totalDamageDealt = 0;
   let totalDamageTaken = 0;
-  while (partyHp > 0 && monsterHp > 0 && rounds < 12) {
+  while (partyHp > 0 && monsterHp > 0 && rounds < PARTY_FIGHT_MAX_ROUNDS) {
     rounds += 1;
     const dealt = calcStandalonePartyDamage(totalAttack, Math.max(0, int(monster.defense, 0)));
     totalDamageDealt += dealt;
@@ -2608,10 +2619,15 @@ function simulateStandalonePartyFight(
     totalDamageTaken += taken;
     partyHp = Math.max(0, partyHp - taken);
   }
-  const personalDamageTaken = Math.max(1, Math.ceil(totalDamageTaken / memberCount));
+  const outcome = monsterHp <= 0
+    ? "victory"
+    : partyHp <= 0
+      ? "defeat"
+      : "fled";
+  const personalDamageTaken = calcStandaloneActorDamage(outcome, rounds);
   return {
     rounds,
-    outcome: monsterHp <= 0 ? "victory" : partyHp > 0 ? "stalemate" : "defeat",
+    outcome,
     totalAttack,
     totalDefense,
     totalHpMax,
@@ -2740,6 +2756,7 @@ async function resolvePartyFight(admin: ReturnType<typeof createClient>, userId:
     milestoneRewards,
     autoHpFoodUsed: autoHp.used > 0 ? { used: autoHp.used, healed: autoHp.healed } : null,
     autoStaminaFoodUsed: autoStaminaAfter.used > 0 ? { used: autoStaminaAfter.used, restored: autoStaminaAfter.restored } : null,
+    saveSnapshot: actorRow.save,
   };
   await logPartyEvent(admin, partyId, userId, "party_fight_resolved", {
     monsterId: selectedMonsterId,
@@ -2748,7 +2765,11 @@ async function resolvePartyFight(admin: ReturnType<typeof createClient>, userId:
   });
   return {
     ...(await getBootstrapState(admin, userId)),
-    message: encounter.outcome === "victory" ? `Victory against ${str(monster.name)}.` : `Party Fight finished: ${encounter.outcome}.`,
+    message: encounter.outcome === "victory"
+      ? `Victory against ${str(monster.name)}.`
+      : encounter.outcome === "fled"
+        ? `${str(monster.name)} fled after ${PARTY_FIGHT_MAX_ROUNDS} rounds.`
+        : `Defeat against ${str(monster.name)}.`,
     personalFightResult: encounterResult,
     partyMonsterMilestones: {
       [FIRST_PARTY_MONSTER_ID]: buildMonsterMilestones(actorRow.save, FIRST_PARTY_MONSTER_ID),

@@ -6,13 +6,15 @@
   const INVITE_NOTICE_POLL_MS = 120000;
   const PARTY_HALL_MIN_LEVEL = 20;
   const PARTY_BATTLE_ENCOUNTER_MS = 6000;
+  const PARTY_BATTLE_PRETRIGGER_MS = 450;
   const PARTY_FIGHT_MONSTERS = [
     {
       id: "gravefang-hydra",
       name: "Mirehook Ravager",
       img: "images/mobs/party/mirehook_ravager.webp",
-      attack: 350,
-      defense: 210,
+      attack: 260,
+      defense: 180,
+      hp: 2600,
       role: "Swamp Skirmisher",
       levelText: "Requires Hero Lv 20+",
       description: "The first Party Hall raid target. Tuned around a level 30-style enemy pushed up for full party play."
@@ -23,6 +25,7 @@
       img: "images/mobs/party/gloomtail_stalker.webp",
       attack: 49,
       defense: 31,
+      hp: 360,
       role: "Agile Predator",
       levelText: "Recommended Party Lv 16+",
       description: "A fast shadow beast that pressures weaker members and rewards steady damage pacing."
@@ -33,6 +36,7 @@
       img: "images/mobs/party/ashhide_brute.webp",
       attack: 54,
       defense: 43,
+      hp: 420,
       role: "Frontline Bruiser",
       levelText: "Recommended Party Lv 18+",
       description: "A heavy ash-covered fighter with reliable pressure and enough armor to punish scattered attacks."
@@ -43,6 +47,7 @@
       img: "images/mobs/party/frostvein_harrier.webp",
       attack: 61,
       defense: 39,
+      hp: 450,
       role: "Winged Striker",
       levelText: "Recommended Party Lv 20+",
       description: "A sharp ice-winged hunter that hits hard and forces the party to survive sudden burst windows."
@@ -53,6 +58,7 @@
       img: "images/mobs/party/ironroot_mauler.webp",
       attack: 66,
       defense: 58,
+      hp: 540,
       role: "Heavy Mauler",
       levelText: "Recommended Party Lv 22+",
       description: "A slow but brutal tree-and-stone monster that demands sustained damage from a prepared party."
@@ -94,6 +100,7 @@
     boundaryResolvedCount: -1,
     boundaryFetchTimer: 0,
     battleLoopTimer: 0,
+    battleCooldownAnimId: 0,
     battleAutoActive: false,
     battleNextActionAt: 0,
     lastMessage: "",
@@ -599,8 +606,58 @@
     state.battleLoopTimer = 0;
   }
 
+  function stopPartyCooldownUI(reset = true) {
+    if (state.battleCooldownAnimId) {
+      window.cancelAnimationFrame(state.battleCooldownAnimId);
+      state.battleCooldownAnimId = 0;
+    }
+    const wrap = document.getElementById("partyFightCooldownWrap");
+    const text = document.getElementById("partyFightCooldownText");
+    const bar = document.getElementById("partyFightCooldownBar");
+    if (!wrap || !text || !bar) return;
+    if (reset || !state.battleView || !state.battleAutoActive) {
+      wrap.style.display = "none";
+      text.textContent = "6.0s";
+      bar.style.width = "0%";
+      return;
+    }
+    wrap.style.display = "";
+    text.textContent = "Resolving...";
+    bar.style.width = "100%";
+  }
+
+  function startPartyCooldownUI(remainingMs = PARTY_BATTLE_ENCOUNTER_MS) {
+    stopPartyCooldownUI(true);
+    if (!state.battleView || !state.battleAutoActive) return;
+    const wrap = document.getElementById("partyFightCooldownWrap");
+    const text = document.getElementById("partyFightCooldownText");
+    const bar = document.getElementById("partyFightCooldownBar");
+    if (!wrap || !text || !bar) return;
+    const durationMs = Math.max(1, Math.min(PARTY_BATTLE_ENCOUNTER_MS, Number(remainingMs) || PARTY_BATTLE_ENCOUNTER_MS));
+    const startAt = performance.now() - (PARTY_BATTLE_ENCOUNTER_MS - durationMs);
+    wrap.style.display = "";
+    const tick = () => {
+      if (!state.battleView || !state.battleAutoActive) {
+        state.battleCooldownAnimId = 0;
+        return;
+      }
+      const elapsed = Math.max(0, performance.now() - startAt);
+      const progress = Math.max(0, Math.min(1, elapsed / PARTY_BATTLE_ENCOUNTER_MS));
+      const remain = Math.max(0, (PARTY_BATTLE_ENCOUNTER_MS - elapsed) / 1000);
+      text.textContent = `${remain.toFixed(1)}s`;
+      bar.style.width = `${(progress * 100).toFixed(1)}%`;
+      if (progress < 1 && !state.actionBusy) {
+        state.battleCooldownAnimId = window.requestAnimationFrame(tick);
+      } else {
+        state.battleCooldownAnimId = 0;
+      }
+    };
+    state.battleCooldownAnimId = window.requestAnimationFrame(tick);
+  }
+
   function stopAutoPartyBattle({ keepView = true } = {}) {
     clearPartyBattleLoopTimer();
+    stopPartyCooldownUI(true);
     state.battleAutoActive = false;
     state.battleNextActionAt = 0;
     if (!keepView) state.battleView = false;
@@ -609,10 +666,14 @@
   function scheduleAutoPartyBattle(delayMs = PARTY_BATTLE_ENCOUNTER_MS) {
     clearPartyBattleLoopTimer();
     if (!state.battleAutoActive || !state.battleView) return;
+    const nextDelay = Math.max(0, delayMs);
+    state.battleNextActionAt = Date.now() + nextDelay;
+    if (hasPartyPage()) startPartyCooldownUI(nextDelay);
+    const triggerDelay = Math.max(0, nextDelay - PARTY_BATTLE_PRETRIGGER_MS);
     state.battleLoopTimer = window.setTimeout(async () => {
       state.battleLoopTimer = 0;
       await runAutoPartyBattleTick();
-    }, Math.max(0, delayMs));
+    }, triggerDelay);
   }
 
   async function runAutoPartyBattleTick() {
@@ -631,12 +692,29 @@
       stopAutoPartyBattle({ keepView: true });
       return;
     }
-    state.battleNextActionAt = Date.now() + PARTY_BATTLE_ENCOUNTER_MS;
-    if (hasPartyPage()) renderPartyHall();
+    const result = data?.personalFightResult || null;
+    const heroHpRemaining = Math.max(0, num(result?.heroHpRemaining, 0));
+    const staminaRemaining = Math.max(0, num(result?.staminaRemaining, 0));
+    const outcome = String(result?.outcome || "").toLowerCase();
+    if (heroHpRemaining <= 0 || outcome === "defeat") {
+      stopAutoPartyBattle({ keepView: true });
+      setNotice("You collapsed and the Party Fight stopped.", true);
+      if (hasPartyPage()) renderPartyHall();
+      return;
+    }
+    if (staminaRemaining < 5) {
+      stopAutoPartyBattle({ keepView: true });
+      setNotice("You need at least 5 stamina to continue Party Fight.", true);
+      if (hasPartyPage()) renderPartyHall();
+      return;
+    }
+    if (hasPartyPage()) {
+      renderPartyHall();
+    }
     scheduleAutoPartyBattle(PARTY_BATTLE_ENCOUNTER_MS);
   }
 
-  function startAutoPartyBattle() {
+  async function startAutoPartyBattle() {
     if (!state.battleView) state.battleView = true;
     if (!canAutoRunPartyBattle()) {
       stopAutoPartyBattle({ keepView: true });
@@ -645,8 +723,9 @@
     }
     if (state.battleAutoActive) return;
     state.battleAutoActive = true;
-    state.battleNextActionAt = Date.now();
-    scheduleAutoPartyBattle(0);
+    state.battleNextActionAt = 0;
+    if (hasPartyPage()) renderPartyHall();
+    await runAutoPartyBattleTick();
   }
 
   function updatePartyFightTimerUI() {
@@ -661,11 +740,24 @@
       return;
     }
     wrap.style.display = "";
+    if (state.battleCooldownAnimId && !state.actionBusy) {
+      return;
+    }
+    if (state.actionBusy) {
+      const remainingMsWhileResolving = Math.max(0, num(state.battleNextActionAt, 0) - Date.now());
+      if (remainingMsWhileResolving > 0) {
+        text.textContent = `${(remainingMsWhileResolving / 1000).toFixed(1)}s`;
+        const progressDuringResolve = Math.max(0, Math.min(100, ((PARTY_BATTLE_ENCOUNTER_MS - remainingMsWhileResolving) / PARTY_BATTLE_ENCOUNTER_MS) * 100));
+        bar.style.width = `${progressDuringResolve.toFixed(1)}%`;
+      } else {
+        text.textContent = "Resolving...";
+        bar.style.width = "100%";
+      }
+      return;
+    }
     const remainingMs = Math.max(0, num(state.battleNextActionAt, 0) - Date.now());
     text.textContent = `${(remainingMs / 1000).toFixed(1)}s`;
-    const progress = state.actionBusy
-      ? 100
-      : Math.max(0, Math.min(100, ((PARTY_BATTLE_ENCOUNTER_MS - remainingMs) / PARTY_BATTLE_ENCOUNTER_MS) * 100));
+    const progress = Math.max(0, Math.min(100, ((PARTY_BATTLE_ENCOUNTER_MS - remainingMs) / PARTY_BATTLE_ENCOUNTER_MS) * 100));
     bar.style.width = `${progress.toFixed(1)}%`;
   }
 
@@ -705,7 +797,8 @@
         && previousResolvedCount === nextResolvedCount
         && String(previousParty?.id || "") === String(nextParty?.id || "")
         && String(previousParty?.noticeMessage || "") === String(nextParty?.noticeMessage || "");
-      if (hasPartyPage() && !(silent && !forceRender && (shouldSkipSilentRender() || sameActivePartyFrame))) renderPartyHall();
+      const skipBattleAutoRender = silent && state.battleView && state.battleAutoActive;
+      if (hasPartyPage() && !skipBattleAutoRender && !(silent && !forceRender && (shouldSkipSilentRender() || sameActivePartyFrame))) renderPartyHall();
       restartPollingIfNeeded();
       syncPartyRealtimeSubscription();
       return data;
@@ -725,18 +818,26 @@
   async function runAction(payload, successMessage) {
     if (state.actionBusy) return null;
     state.actionBusy = true;
-    setNotice("Applying party action...");
+    const isSilentAutoFightResolve = String(payload?.action || "").toLowerCase() === "resolve_party_fight";
+    if (!isSilentAutoFightResolve) setNotice("Applying party action...");
     try {
       const data = await window.DSAuth?.invokePartyAction?.(payload || {});
       state.data = data || state.data;
       state.lastPersonalFightResult = data?.personalFightResult || null;
+      if (state.lastPersonalFightResult) {
+        window.DSAuth?.applyLocalPartyFightSnapshot?.(state.lastPersonalFightResult);
+      }
       dispatchPartyStateChanged();
       state.lastError = "";
       const nextMessage = successMessage !== undefined ? successMessage : data?.message;
-      setNotice(nextMessage || "");
+      if (!isSilentAutoFightResolve) {
+        setNotice(nextMessage || "");
+      } else if (state.lastError) {
+        setNotice("");
+      }
       publishInviteNoticeFromState();
       renderInvitePopups();
-      if (hasPartyPage()) renderPartyHall();
+      if (hasPartyPage() && !isSilentAutoFightResolve) renderPartyHall();
       window.setTimeout(() => {
         if (!document.hidden) Promise.resolve(loadPartyState({ silent: true })).catch(() => {});
       }, 250);
@@ -984,12 +1085,13 @@
     `;
   }
 
-  function inlineInviteFormMarkup() {
+  function inlineInviteFormMarkup(canRunFight = false) {
     if (!isLeader()) return "";
     return `
-      <div style="display:grid;grid-template-columns:auto minmax(180px,320px);gap:10px;align-items:center;justify-content:start;margin-bottom:14px;">
+      <div style="display:grid;grid-template-columns:auto minmax(180px,320px) auto;gap:10px;align-items:center;justify-content:start;margin-bottom:14px;">
         <button id="partySendInlineInviteBtn" type="button">Invite Player</button>
         <input id="partyInlineInviteName" type="text" value="${esc(state.inviteDraft)}" placeholder="Hero Name" style="width:100%;padding:10px 12px;border-radius:10px;border:2px solid #333;background:#101019;color:#fff;">
+        <button id="partyOpenBattleBtn" type="button" ${canRunFight ? "" : "disabled"}>Start Battle</button>
       </div>
     `;
   }
@@ -1017,7 +1119,7 @@
     }
     return `
       <section style="padding:14px;border:1px solid rgba(255,255,255,.10);border-radius:16px;background:rgba(255,255,255,.02);">
-        ${inlineInviteFormMarkup()}
+        ${inlineInviteFormMarkup(canRunFight)}
         <div style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:18px;align-items:start;">
           ${slots.join("")}
         </div>
@@ -1064,7 +1166,6 @@
           <div style="padding:14px;border:1px solid rgba(255,255,255,.10);border-radius:14px;background:rgba(255,255,255,.025);display:grid;gap:10px;">
             <div style="display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;align-items:center;">
               <div style="font-size:16px;font-weight:900;">Party Fight</div>
-              <button id="partyOpenBattleBtn" type="button" ${canRunFight ? "" : "disabled"}>Start Battle</button>
             </div>
             <div style="font-size:12px;opacity:.84;">
               Needs 2+ party members. Start Battle opens the fight and auto-resolves one action every 6 seconds using your own stamina and healing while the party shares stat and HP contribution.
@@ -1246,17 +1347,29 @@
     }
 
     const members = Array.isArray(party.members) ? party.members : [];
-    const groups = partyFightPlayerGroups(members);
+    const battleMembers = [
+      members[0] || null,
+      members[1] || null,
+      members[2] || null,
+      members[3] || null,
+    ];
     const monster = selectedPartyMonsterFromParty(party);
     const latestRound = state.lastPersonalFightResult || null;
     const totalAttack = num(party?.totalAttack, members.reduce((sum, member) => sum + num(member?.heroAttack, 0), 0));
     const totalDefense = num(party?.totalDefense, members.reduce((sum, member) => sum + num(member?.heroDefense, 0), 0));
-    const totalHp = num(latestRound?.partyHpRemaining, num(party?.totalHp, members.reduce((sum, member) => sum + num(member?.heroHP, 0), 0)));
-    const totalHpMax = num(latestRound?.partyHpMax, num(party?.totalHpMax, members.reduce((sum, member) => sum + num(member?.heroHPMax, 0), 0)));
-    const totalHpPct = Math.max(0, Math.min(100, (Math.max(0, totalHp) / Math.max(1, totalHpMax)) * 100));
-    const monsterHpRemaining = num(latestRound?.monsterHpRemaining, num(monster?.hp, 0));
-    const monsterHpMax = Math.max(1, num(latestRound?.monsterHpMax, num(monster?.hp, 1)));
-    const monsterHpPct = Math.max(0, Math.min(100, (Math.max(0, monsterHpRemaining) / monsterHpMax) * 100));
+    const totalHp = num(party?.totalHp, members.reduce((sum, member) => sum + num(member?.heroHP, 0), 0));
+    const totalHpMax = num(party?.totalHpMax, members.reduce((sum, member) => sum + num(member?.heroHPMax, 0), 0));
+    const displayedPartyHp = latestRound ? num(latestRound.partyHpRemaining, totalHp) : totalHp;
+    const displayedPartyHpMax = latestRound ? Math.max(1, num(latestRound.partyHpMax, totalHpMax)) : Math.max(1, totalHpMax);
+    const totalHpPct = Math.max(0, Math.min(100, (Math.max(0, displayedPartyHp) / Math.max(1, displayedPartyHpMax)) * 100));
+    const monsterHpMax = Math.max(1, num(monster?.hp, 1));
+    const latestOutcome = String(latestRound?.outcome || "").toLowerCase();
+    const displayedMonsterHp = latestOutcome === "victory"
+      ? 0
+      : latestOutcome === "fled" || latestOutcome === "defeat"
+        ? Math.max(0, num(latestRound?.monsterHpRemaining, monsterHpMax))
+        : monsterHpMax;
+    const displayedMonsterHpPct = Math.max(0, Math.min(100, (displayedMonsterHp / monsterHpMax) * 100));
     const canAttack = members.length >= 2 && !!monster && !!monsterProgressEntry(monster.id)?.unlocked;
     const latestDrops = Array.isArray(latestRound?.drops) ? latestRound.drops.filter((entry) => entry && typeof entry === "object") : [];
     return `
@@ -1282,21 +1395,42 @@
             </div>
           </div>
 
-          <div style="display:grid;grid-template-columns:minmax(0,1.3fr) 126px minmax(220px,.9fr);gap:18px;align-items:center;">
-            <div style="display:grid;grid-template-columns:repeat(${groups.length}, minmax(0,1fr));gap:14px;align-items:start;">
-              ${groups.map((group) => `
-                <div style="display:grid;gap:12px;justify-items:center;">
-                  ${group.map((member) => {
-                    return `
-                      <div style="display:grid;justify-items:center;gap:8px;text-align:center;">
-                        <img src="${esc(normalizeAvatarUrl(member.avatarUrl))}" alt="${esc(member.heroName)}" style="width:96px;height:96px;border-radius:18px;border:3px solid ${member.isLeader ? "#43c26b" : "rgba(255,255,255,.22)"};object-fit:cover;box-shadow:0 0 0 1px rgba(0,0,0,.32);">
-                        <div style="font-weight:900;font-size:17px;line-height:1.1;">${esc(member.heroName)}</div>
-                        <div style="font-size:10px;opacity:.8;line-height:1.2;">ATK ${num(member?.heroAttack, 0)} | DEF ${num(member?.heroDefense, 0)}</div>
-                      </div>
-                    `;
-                  }).join("")}
+          <div style="display:grid;grid-template-columns:minmax(0,1.3fr) 126px minmax(220px,.9fr);gap:18px;align-items:start;">
+            <div style="display:grid;grid-template-columns:repeat(2,minmax(0,110px));grid-template-rows:auto auto auto;column-gap:14px;row-gap:12px;align-items:start;justify-content:start;">
+              ${battleMembers[0] ? `
+                <div style="display:grid;justify-items:center;gap:8px;text-align:center;grid-column:1;grid-row:1;">
+                  <img src="${esc(normalizeAvatarUrl(battleMembers[0].avatarUrl))}" alt="${esc(battleMembers[0].heroName)}" style="width:96px;height:96px;border-radius:18px;border:3px solid ${battleMembers[0].isLeader ? "#43c26b" : "rgba(255,255,255,.22)"};object-fit:cover;box-shadow:0 0 0 1px rgba(0,0,0,.32);">
+                  <div style="font-weight:900;font-size:17px;line-height:1.1;">${esc(battleMembers[0].heroName)}</div>
+                  <div style="font-size:10px;opacity:.8;line-height:1.2;">ATK ${num(battleMembers[0]?.heroAttack, 0)} | DEF ${num(battleMembers[0]?.heroDefense, 0)}</div>
                 </div>
-              `).join("")}
+              ` : ``}
+              ${battleMembers[1] ? `
+                <div style="display:grid;justify-items:center;gap:8px;text-align:center;grid-column:2;grid-row:1;">
+                  <img src="${esc(normalizeAvatarUrl(battleMembers[1].avatarUrl))}" alt="${esc(battleMembers[1].heroName)}" style="width:96px;height:96px;border-radius:18px;border:3px solid ${battleMembers[1].isLeader ? "#43c26b" : "rgba(255,255,255,.22)"};object-fit:cover;box-shadow:0 0 0 1px rgba(0,0,0,.32);">
+                  <div style="font-weight:900;font-size:17px;line-height:1.1;">${esc(battleMembers[1].heroName)}</div>
+                  <div style="font-size:10px;opacity:.8;line-height:1.2;">ATK ${num(battleMembers[1]?.heroAttack, 0)} | DEF ${num(battleMembers[1]?.heroDefense, 0)}</div>
+                </div>
+              ` : ``}
+              <div style="width:220px;display:grid;gap:6px;text-align:center;grid-column:1 / span 2;grid-row:2;justify-self:start;">
+                <div style="height:8px;background:#222;border:1px solid #333;border-radius:999px;overflow:hidden;">
+                  <div style="height:100%;width:${totalHpPct.toFixed(1)}%;border-radius:999px;background:linear-gradient(90deg,#2dbf73,#7dff9b);"></div>
+                </div>
+                <div style="font-size:11px;opacity:.86;">${num(displayedPartyHp, 0)} / ${num(displayedPartyHpMax, 0)} HP</div>
+              </div>
+              ${battleMembers[2] ? `
+                <div style="display:grid;justify-items:center;gap:8px;text-align:center;grid-column:1;grid-row:3;">
+                  <img src="${esc(normalizeAvatarUrl(battleMembers[2].avatarUrl))}" alt="${esc(battleMembers[2].heroName)}" style="width:96px;height:96px;border-radius:18px;border:3px solid ${battleMembers[2].isLeader ? "#43c26b" : "rgba(255,255,255,.22)"};object-fit:cover;box-shadow:0 0 0 1px rgba(0,0,0,.32);">
+                  <div style="font-weight:900;font-size:17px;line-height:1.1;">${esc(battleMembers[2].heroName)}</div>
+                  <div style="font-size:10px;opacity:.8;line-height:1.2;">ATK ${num(battleMembers[2]?.heroAttack, 0)} | DEF ${num(battleMembers[2]?.heroDefense, 0)}</div>
+                </div>
+              ` : ``}
+              ${battleMembers[3] ? `
+                <div style="display:grid;justify-items:center;gap:8px;text-align:center;grid-column:2;grid-row:3;">
+                  <img src="${esc(normalizeAvatarUrl(battleMembers[3].avatarUrl))}" alt="${esc(battleMembers[3].heroName)}" style="width:96px;height:96px;border-radius:18px;border:3px solid ${battleMembers[3].isLeader ? "#43c26b" : "rgba(255,255,255,.22)"};object-fit:cover;box-shadow:0 0 0 1px rgba(0,0,0,.32);">
+                  <div style="font-weight:900;font-size:17px;line-height:1.1;">${esc(battleMembers[3].heroName)}</div>
+                  <div style="font-size:10px;opacity:.8;line-height:1.2;">ATK ${num(battleMembers[3]?.heroAttack, 0)} | DEF ${num(battleMembers[3]?.heroDefense, 0)}</div>
+                </div>
+              ` : ``}
             </div>
 
             <div style="display:grid;justify-items:center;">
@@ -1310,9 +1444,9 @@
                   <div style="font-size:22px;font-weight:900;line-height:1.1;">${esc(monster.name)}</div>
                   <div style="width:min(220px,100%);display:grid;gap:6px;">
                     <div style="height:8px;background:#222;border:1px solid #333;border-radius:999px;overflow:hidden;">
-                      <div style="height:100%;width:${monsterHpPct.toFixed(1)}%;border-radius:999px;background:linear-gradient(90deg,#d34f4f,#ff8a65);"></div>
+                      <div style="height:100%;width:${displayedMonsterHpPct.toFixed(1)}%;border-radius:999px;background:linear-gradient(90deg,#d34f4f,#ff8a65);"></div>
                     </div>
-                    <div style="font-size:11px;opacity:.86;">${num(monsterHpRemaining, 0)} / ${num(monsterHpMax, 0)} HP</div>
+                    <div style="font-size:11px;opacity:.86;">${num(displayedMonsterHp, 0)} / ${num(monsterHpMax, 0)} HP</div>
                   </div>
                   <div style="min-height:18px;margin-top:2px;padding:4px 8px;border-radius:999px;border:1px solid rgba(199,155,68,.35);background:rgba(59,43,18,.78);box-shadow:0 0 10px rgba(150,110,30,.14);font-size:10px;font-weight:700;line-height:1;text-align:center;color:#f5e7c0;">
                     ATK ${num(monster.attack, 0)} | DEF ${num(monster.defense, 0)}
@@ -1325,20 +1459,11 @@
 
           <div style="display:grid;gap:10px;">
             <div style="padding:12px 14px;border:1px solid rgba(255,255,255,.10);border-radius:12px;background:rgba(255,255,255,.03);display:grid;gap:8px;text-align:left;font-weight:800;">
-              <div style="display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;align-items:center;">
-                <div>Party HP Pool</div>
-                <div style="font-size:12px;opacity:.86;">ATK ${num(totalAttack, 0)} | DEF ${num(totalDefense, 0)}</div>
-              </div>
-              <div style="height:10px;background:#222;border:1px solid #333;border-radius:999px;overflow:hidden;">
-                <div style="height:100%;width:${totalHpPct.toFixed(1)}%;border-radius:999px;background:linear-gradient(90deg,#2dbf73,#7dff9b);"></div>
-              </div>
-              <div style="font-size:12px;opacity:.86;">${num(totalHp, 0)} / ${num(totalHpMax, 0)} HP</div>
-            </div>
-              <div style="padding:12px 14px;border:1px solid rgba(255,255,255,.10);border-radius:12px;background:rgba(255,255,255,.03);display:grid;gap:8px;text-align:left;font-weight:800;">
               ${latestRound ? `
                 <div style="font-size:13px;">Result: ${esc(String(latestRound.outcome || "").toUpperCase())} in ${num(latestRound.rounds, 0)} rounds</div>
                 <div style="font-size:12px;opacity:.86;">Damage dealt: ${num(latestRound.totalDamageDealt, 0)} | Damage taken: ${num(latestRound.personalDamageTaken, 0)} | Stamina left: ${num(latestRound.staminaRemaining, 0)}</div>
                 <div style="font-size:12px;opacity:.86;">Rewards: XP ${num(latestRound.xp, 0)} | Gold ${num(latestRound.gold, 0)}${num(latestRound.partyPoints, 0) > 0 ? ` | PP ${num(latestRound.partyPoints, 0)}` : ""}</div>
+                ${String(latestRound.outcome || "").toLowerCase() === "fled" ? `<div style="font-size:12px;opacity:.86;">${esc(monster?.name || "Monster")} fled after ${num(latestRound.rounds, 0)} rounds.</div>` : ``}
                 ${latestDrops.length ? `<div style="font-size:12px;opacity:.86;">Drops: ${latestDrops.map((entry) => `${esc(entry.name || "Drop")} x${num(entry.quantity, 1)}`).join(" | ")}</div>` : ``}
                 ${Array.isArray(latestRound.milestoneRewards) && latestRound.milestoneRewards.length ? `<div style="font-size:12px;color:#f0d58b;">Milestones: ${latestRound.milestoneRewards.map((entry) => esc(entry.rewardLabel || "Reward")).join(" | ")}</div>` : ``}
               ` : `
@@ -1561,10 +1686,10 @@
       await runAction({ action: "leave_party" }, "");
     });
 
-    document.getElementById("partyOpenBattleBtn")?.addEventListener("click", () => {
+    document.getElementById("partyOpenBattleBtn")?.addEventListener("click", async () => {
       state.battleView = true;
       renderPartyHall();
-      startAutoPartyBattle();
+      await startAutoPartyBattle();
     });
 
     document.getElementById("partyBattleBackBtn")?.addEventListener("click", () => {
@@ -1651,9 +1776,10 @@
     if (!shell) return;
     preservePartyInputsFromDom();
     normalizePartyTab();
+    const showBattleOnlyView = !!myParty() && state.battleView;
     shell.innerHTML = `
-      ${hallSummaryMarkup()}
-      ${tabsMarkup()}
+      ${showBattleOnlyView ? "" : hallSummaryMarkup()}
+      ${showBattleOnlyView ? "" : tabsMarkup()}
       ${noticeMarkup()}
       ${bodyMarkup()}
     `;
@@ -1714,7 +1840,7 @@
   }
 
   function startFallbackUiTimer() {
-    if (state.uiTimer || "requestAnimationFrame" in window) return;
+    if (state.uiTimer) return;
     state.uiTimer = window.setInterval(() => {
       if (document.hidden) return;
       updatePartyFightTimerUI();
@@ -1750,9 +1876,18 @@
     initInviteWatcher();
     if (hasPartyPage()) initRealtime();
   });
+  window.addEventListener("ds:pause", () => {
+    stopAutoPartyBattle({ keepView: false });
+  });
   window.addEventListener("ds:auth", () => {
     initInviteWatcher();
     if (hasPartyPage()) initRealtime();
+  });
+  window.addEventListener("pagehide", () => {
+    stopAutoPartyBattle({ keepView: false });
+  });
+  window.addEventListener("beforeunload", () => {
+    stopAutoPartyBattle({ keepView: false });
   });
   window.addEventListener("visibilitychange", () => {
     if (!document.hidden) queueInviteRefresh(250);

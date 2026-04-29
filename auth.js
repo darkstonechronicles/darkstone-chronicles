@@ -29,6 +29,8 @@
     url: "https://ibpwrvtsnuhbylexuoil.supabase.co",
     anonKey: "sb_publishable_TLEC6vRVLjVzDOsmbXs4uA_X0MUXTYi"
   };
+  const PARTY_ACTION_FUNCTION_DEFAULT = "party-action";
+  const PARTY_ACTION_FUNCTION_OVERRIDE_KEY = "ds_party_action_function_override";
 
   const state = {
     client: null,
@@ -74,6 +76,24 @@
   function isConfigured() {
     return /^https?:\/\//i.test(String(CONFIG.url || "").trim()) &&
       !String(CONFIG.anonKey || "").includes("PASTE_YOUR_SUPABASE_ANON_KEY_HERE");
+  }
+
+  function getPartyActionFunctionName() {
+    try {
+      const url = new URL(window.location.href);
+      const queryOverride = String(url.searchParams.get("partyFunction") || "").trim();
+      if (queryOverride) return queryOverride;
+      if (url.protocol === "file:") return "party-action-dev";
+      const host = String(url.hostname || "").trim().toLowerCase();
+      if (host && host !== "www.darkstone-chronicles.com" && host !== "darkstone-chronicles.com") {
+        return "party-action-dev";
+      }
+    } catch {}
+    try {
+      const stored = String(localStorage.getItem(PARTY_ACTION_FUNCTION_OVERRIDE_KEY) || "").trim();
+      if (stored) return stored;
+    } catch {}
+    return PARTY_ACTION_FUNCTION_DEFAULT;
   }
 
   function getCurrentAssetVersion() {
@@ -1337,7 +1357,8 @@
     const token = session?.access_token;
     if (!token) throw new Error("Missing access token.");
 
-    const res = await fetch(`${CONFIG.url}/functions/v1/party-action`, {
+    const functionName = getPartyActionFunctionName();
+    const res = await fetch(`${CONFIG.url}/functions/v1/${encodeURIComponent(functionName)}`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -1353,6 +1374,28 @@
     }
 
     return body;
+  }
+
+  function applyLocalPartyFightSnapshot(result = {}) {
+    const snapshot = result && typeof result === "object" ? result : {};
+    const saveSnapshot = snapshot.saveSnapshot && typeof snapshot.saveSnapshot === "object"
+      ? snapshot.saveSnapshot
+      : null;
+    if (saveSnapshot) {
+      writeLocalSave(saveSnapshot, state.user?.id || "", state.cloud.revision);
+      window.dispatchEvent(new Event("ds:save"));
+      return saveSnapshot;
+    }
+    const hasHp = Number.isFinite(Number(snapshot.heroHpRemaining));
+    const hasStamina = Number.isFinite(Number(snapshot.staminaRemaining));
+    if (!hasHp && !hasStamina) return null;
+    const nextSave = readLocalSave();
+    if (!nextSave || typeof nextSave !== "object") return null;
+    if (hasHp) nextSave.heroHP = Math.max(0, Number(snapshot.heroHpRemaining) || 0);
+    if (hasStamina) nextSave.stamina = Math.max(0, Number(snapshot.staminaRemaining) || 0);
+    writeLocalSave(nextSave, state.user?.id || "", state.cloud.revision);
+    window.dispatchEvent(new Event("ds:save"));
+    return nextSave;
   }
 
   async function invokeActionJournal(payload = {}) {
@@ -1699,6 +1742,7 @@
     invokeCancelMarketListing,
     invokePlayerProfile,
     invokePartyAction,
+    applyLocalPartyFightSnapshot,
     invokeActionJournal,
     invokeCreateDarkStoneCheckout,
     refreshPremiumWallet
