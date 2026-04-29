@@ -5,6 +5,7 @@
   const ACTIVE_PARTY_FIGHT_REALTIME_FALLBACK_POLL_MS = 20000;
   const INVITE_NOTICE_POLL_MS = 120000;
   const PARTY_HALL_MIN_LEVEL = 20;
+  const PARTY_BATTLE_ENCOUNTER_MS = 6000;
   const PARTY_FIGHT_MONSTERS = [
     {
       id: "gravefang-hydra",
@@ -92,6 +93,9 @@
     boundaryFetchAt: 0,
     boundaryResolvedCount: -1,
     boundaryFetchTimer: 0,
+    battleLoopTimer: 0,
+    battleAutoActive: false,
+    battleNextActionAt: 0,
     lastMessage: "",
     lastError: "",
     lastPersonalFightResult: null,
@@ -583,38 +587,86 @@
     queueInviteRefresh(1200);
   }
 
+  function canAutoRunPartyBattle(party = myParty()) {
+    const members = Array.isArray(party?.members) ? party.members : [];
+    const monster = selectedPartyMonsterFromParty(party);
+    return members.length >= 2 && !!monster && !!monsterProgressEntry(monster.id)?.unlocked;
+  }
+
+  function clearPartyBattleLoopTimer() {
+    if (!state.battleLoopTimer) return;
+    window.clearTimeout(state.battleLoopTimer);
+    state.battleLoopTimer = 0;
+  }
+
+  function stopAutoPartyBattle({ keepView = true } = {}) {
+    clearPartyBattleLoopTimer();
+    state.battleAutoActive = false;
+    state.battleNextActionAt = 0;
+    if (!keepView) state.battleView = false;
+  }
+
+  function scheduleAutoPartyBattle(delayMs = PARTY_BATTLE_ENCOUNTER_MS) {
+    clearPartyBattleLoopTimer();
+    if (!state.battleAutoActive || !state.battleView) return;
+    state.battleLoopTimer = window.setTimeout(async () => {
+      state.battleLoopTimer = 0;
+      await runAutoPartyBattleTick();
+    }, Math.max(0, delayMs));
+  }
+
+  async function runAutoPartyBattleTick() {
+    if (!state.battleAutoActive || !state.battleView) return;
+    if (!canAutoRunPartyBattle()) {
+      stopAutoPartyBattle({ keepView: true });
+      if (hasPartyPage()) renderPartyHall();
+      return;
+    }
+    if (state.actionBusy) {
+      scheduleAutoPartyBattle(250);
+      return;
+    }
+    const data = await runAction({ action: "resolve_party_fight" }, "");
+    if (!data) {
+      stopAutoPartyBattle({ keepView: true });
+      return;
+    }
+    state.battleNextActionAt = Date.now() + PARTY_BATTLE_ENCOUNTER_MS;
+    if (hasPartyPage()) renderPartyHall();
+    scheduleAutoPartyBattle(PARTY_BATTLE_ENCOUNTER_MS);
+  }
+
+  function startAutoPartyBattle() {
+    if (!state.battleView) state.battleView = true;
+    if (!canAutoRunPartyBattle()) {
+      stopAutoPartyBattle({ keepView: true });
+      if (hasPartyPage()) renderPartyHall();
+      return;
+    }
+    if (state.battleAutoActive) return;
+    state.battleAutoActive = true;
+    state.battleNextActionAt = Date.now();
+    scheduleAutoPartyBattle(0);
+  }
+
   function updatePartyFightTimerUI() {
     const wrap = document.getElementById("partyFightCooldownWrap");
     const text = document.getElementById("partyFightCooldownText");
     const bar = document.getElementById("partyFightCooldownBar");
     if (!wrap || !text || !bar) return;
-    const party = myParty();
-    if (!isActivePartyFight(party)) {
+    if (!state.battleView || !state.battleAutoActive) {
       wrap.style.display = "none";
       bar.style.width = "0%";
       text.textContent = "6.0s";
       return;
     }
     wrap.style.display = "";
-    text.textContent = formatEncounterCountdown(party);
-    bar.style.width = `${encounterProgressPct(party).toFixed(1)}%`;
-
-    const payload = activeSessionPayload(party);
-    const resolvedCount = Math.max(0, num(payload.resolvedCount, 0));
-    const encounterMs = Math.max(1000, num(payload.encounterMs, 6000));
-    const startedAt = Date.parse(String(party?.activeSession?.startedAt || ""));
-    const visualResolvedCount = Number.isFinite(startedAt)
-      ? Math.max(0, Math.floor((Date.now() - startedAt) / encounterMs))
-      : resolvedCount;
-    if (visualResolvedCount > resolvedCount && !state.loading && !state.actionBusy) {
-      const now = Date.now();
-      const sameRound = state.boundaryResolvedCount === visualResolvedCount;
-      if (!sameRound || (now - state.boundaryFetchAt) >= 2500) {
-        state.boundaryResolvedCount = visualResolvedCount;
-        state.boundaryFetchAt = now;
-        queuePartyFightBoundaryFetch(visualResolvedCount);
-      }
-    }
+    const remainingMs = Math.max(0, num(state.battleNextActionAt, 0) - Date.now());
+    text.textContent = `${(remainingMs / 1000).toFixed(1)}s`;
+    const progress = state.actionBusy
+      ? 100
+      : Math.max(0, Math.min(100, ((PARTY_BATTLE_ENCOUNTER_MS - remainingMs) / PARTY_BATTLE_ENCOUNTER_MS) * 100));
+    bar.style.width = `${progress.toFixed(1)}%`;
   }
 
   async function loadPartyState({ silent = false, forceRender = false } = {}) {
@@ -627,6 +679,9 @@
       const previousActive = isActivePartyFight(previousParty);
       const data = await window.DSAuth.invokePartyAction({ action: "bootstrap" });
       state.data = data || null;
+      if (state.battleAutoActive && !canAutoRunPartyBattle(state.data?.myParty || null)) {
+        stopAutoPartyBattle({ keepView: true });
+      }
       dispatchPartyStateChanged();
       const nextResolvedCount = num(activeSessionPayload(state.data?.myParty || null).resolvedCount, -1);
       const nextParty = state.data?.myParty || null;
@@ -947,7 +1002,6 @@
     const totalHpMax = num(party?.totalHpMax, members.reduce((sum, member) => sum + num(member?.heroHPMax, 0), 0));
     const selectedMonster = selectedPartyMonsterFromParty(party);
     const selectedMonsterProgress = selectedMonster ? monsterProgressEntry(selectedMonster.id) : null;
-    const rewardPreview = selectedMonsterRewardPreview(selectedMonster);
     const milestones = selectedMonster ? partyMonsterMilestones(selectedMonster.id) : [];
     const bonuses = partyFightBonuses();
     const canRunFight = members.length >= 2 && !!selectedMonster && !!selectedMonsterProgress?.unlocked;
@@ -993,13 +1047,6 @@
                       <div class="dungeonStatValue">${num(selectedMonster.defense, 0)}</div>
                     </div>
                   </div>
-                  ${rewardPreview ? `
-                    <div style="padding:10px 12px;border:1px solid rgba(255,255,255,.10);border-radius:12px;background:rgba(255,255,255,.03);min-width:250px;">
-                      <div style="font-size:12px;font-weight:900;opacity:.84;margin-bottom:6px;">Reward Preview</div>
-                      <div style="font-size:12px;line-height:1.55;">${esc(rewardPreview.partyPoints)} , ${esc(rewardPreview.xp)} , ${esc(rewardPreview.gold)}</div>
-                      <div style="font-size:12px;line-height:1.55;opacity:.86;margin-top:4px;">${rewardPreview.extras.map((entry) => esc(entry)).join(" | ")}</div>
-                    </div>
-                  ` : ``}
                 </div>
               </div>
             `
@@ -1020,7 +1067,7 @@
               <button id="partyOpenBattleBtn" type="button" ${canRunFight ? "" : "disabled"}>Start Battle</button>
             </div>
             <div style="font-size:12px;opacity:.84;">
-              Needs 2+ party members. Open the battle screen, then attack using your own stamina and healing while the party shares stat and HP contribution.
+              Needs 2+ party members. Start Battle opens the fight and auto-resolves one action every 6 seconds using your own stamina and healing while the party shares stat and HP contribution.
             </div>
             ${selectedMonster ? `
               <div style="font-size:12px;opacity:.82;">
@@ -1215,6 +1262,15 @@
     return `
       <section style="display:grid;gap:14px;">
         <div style="padding:16px;border:1px solid rgba(255,255,255,.10);border-radius:16px;background:rgba(255,255,255,.02);display:grid;gap:16px;">
+          <div id="partyFightCooldownWrap" style="display:${state.battleAutoActive ? "block" : "none"};">
+            <div style="display:flex;justify-content:space-between;font-size:12px;opacity:.9;">
+              <span>Next attack</span>
+              <span id="partyFightCooldownText">${state.actionBusy ? "0.0s" : "6.0s"}</span>
+            </div>
+            <div style="height:5px;background:#222;border:1px solid #333;border-radius:6px;margin-top:6px;overflow:hidden;">
+              <div id="partyFightCooldownBar" style="height:100%;width:0%;border-radius:6px;background:linear-gradient(90deg,#b63a3a,#e05555);"></div>
+            </div>
+          </div>
           <div style="display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;align-items:center;">
             <div>
               <div style="font-size:28px;font-weight:900;line-height:1.05;">Party Battle</div>
@@ -1222,7 +1278,7 @@
             </div>
             <div style="display:flex;gap:10px;flex-wrap:wrap;">
               <button id="partyBattleBackBtn" type="button">Back</button>
-              <button id="partyBattleAttackBtn" type="button" ${canAttack ? "" : "disabled"}>Attack</button>
+              <button id="partyBattleStopBtn" type="button" ${state.battleAutoActive ? "" : "disabled"}>Stop Battle</button>
             </div>
           </div>
 
@@ -1231,18 +1287,9 @@
               ${groups.map((group) => `
                 <div style="display:grid;gap:12px;justify-items:center;">
                   ${group.map((member) => {
-                    const memberHpMax = Math.max(1, num(member?.heroHPMax, 100));
-                    const memberHp = Math.max(0, num(member?.heroHP, memberHpMax));
-                    const hpMax = memberHpMax;
-                    const hpRemaining = memberHp;
-                    const hpPct = Math.max(0, Math.min(100, (hpRemaining / hpMax) * 100));
                     return `
                       <div style="display:grid;justify-items:center;gap:8px;text-align:center;">
                         <img src="${esc(normalizeAvatarUrl(member.avatarUrl))}" alt="${esc(member.heroName)}" style="width:96px;height:96px;border-radius:18px;border:3px solid ${member.isLeader ? "#43c26b" : "rgba(255,255,255,.22)"};object-fit:cover;box-shadow:0 0 0 1px rgba(0,0,0,.32);">
-                        <div style="width:82px;height:4px;background:#222;border:1px solid #333;border-radius:999px;overflow:hidden;">
-                          <div style="height:100%;width:${hpPct.toFixed(1)}%;border-radius:999px;background:linear-gradient(90deg,#00ff88,#00bb55);"></div>
-                        </div>
-                        <div style="font-size:10px;opacity:.85;line-height:1;">${hpRemaining} / ${hpMax} HP</div>
                         <div style="font-weight:900;font-size:17px;line-height:1.1;">${esc(member.heroName)}</div>
                         <div style="font-size:10px;opacity:.8;line-height:1.2;">ATK ${num(member?.heroAttack, 0)} | DEF ${num(member?.heroDefense, 0)}</div>
                       </div>
@@ -1287,7 +1334,7 @@
               </div>
               <div style="font-size:12px;opacity:.86;">${num(totalHp, 0)} / ${num(totalHpMax, 0)} HP</div>
             </div>
-            <div style="padding:12px 14px;border:1px solid rgba(255,255,255,.10);border-radius:12px;background:rgba(255,255,255,.03);display:grid;gap:8px;text-align:left;font-weight:800;">
+              <div style="padding:12px 14px;border:1px solid rgba(255,255,255,.10);border-radius:12px;background:rgba(255,255,255,.03);display:grid;gap:8px;text-align:left;font-weight:800;">
               ${latestRound ? `
                 <div style="font-size:13px;">Result: ${esc(String(latestRound.outcome || "").toUpperCase())} in ${num(latestRound.rounds, 0)} rounds</div>
                 <div style="font-size:12px;opacity:.86;">Damage dealt: ${num(latestRound.totalDamageDealt, 0)} | Damage taken: ${num(latestRound.personalDamageTaken, 0)} | Stamina left: ${num(latestRound.staminaRemaining, 0)}</div>
@@ -1295,7 +1342,7 @@
                 ${latestDrops.length ? `<div style="font-size:12px;opacity:.86;">Drops: ${latestDrops.map((entry) => `${esc(entry.name || "Drop")} x${num(entry.quantity, 1)}`).join(" | ")}</div>` : ``}
                 ${Array.isArray(latestRound.milestoneRewards) && latestRound.milestoneRewards.length ? `<div style="font-size:12px;color:#f0d58b;">Milestones: ${latestRound.milestoneRewards.map((entry) => esc(entry.rewardLabel || "Reward")).join(" | ")}</div>` : ``}
               ` : `
-                <div style="font-size:13px;text-align:center;">No battle result yet. Press Attack to resolve one party battle.</div>
+                <div style="font-size:13px;text-align:center;">Battle starts automatically every 6 seconds after you press Start Battle.</div>
               `}
             </div>
           </div>
@@ -1385,9 +1432,9 @@
     document.getElementById("partyInlineInviteNamePending")?.addEventListener("input", syncInviteDraftFromDom);
 
     document.querySelectorAll("[data-party-tab]").forEach((btn) => btn.addEventListener("click", () => {
+      stopAutoPartyBattle({ keepView: false });
       state.tab = btn.dataset.partyTab || "my_party";
       state.selectedPartyId = null;
-      state.battleView = false;
       state.monsterSelectionOpen = false;
       state.monsterInfoOpen = false;
       renderPartyHall();
@@ -1420,7 +1467,7 @@
     }));
 
     document.getElementById("partyChooseMonsterBtn")?.addEventListener("click", () => {
-      state.battleView = false;
+      stopAutoPartyBattle({ keepView: false });
       state.monsterSelectionOpen = true;
       state.monsterInfoOpen = false;
       renderPartyHall();
@@ -1436,7 +1483,7 @@
       const selectedMonsterId = btn.dataset.partyChooseMonster || "";
       if (!party || !selectedMonsterId) return;
       await runAction({ action: "choose_monster", partyId: party.id, selectedMonsterId }, "");
-      state.battleView = false;
+      stopAutoPartyBattle({ keepView: false });
       state.monsterSelectionOpen = false;
       state.monsterInfoOpen = false;
       renderPartyHall();
@@ -1510,22 +1557,23 @@
     });
 
     document.getElementById("partyLeaveBtn")?.addEventListener("click", async () => {
+      stopAutoPartyBattle({ keepView: false });
       await runAction({ action: "leave_party" }, "");
     });
 
     document.getElementById("partyOpenBattleBtn")?.addEventListener("click", () => {
       state.battleView = true;
       renderPartyHall();
+      startAutoPartyBattle();
     });
 
     document.getElementById("partyBattleBackBtn")?.addEventListener("click", () => {
-      state.battleView = false;
+      stopAutoPartyBattle({ keepView: false });
       renderPartyHall();
     });
 
-    document.getElementById("partyBattleAttackBtn")?.addEventListener("click", async () => {
-      await runAction({ action: "resolve_party_fight" }, "");
-      state.battleView = true;
+    document.getElementById("partyBattleStopBtn")?.addEventListener("click", () => {
+      stopAutoPartyBattle({ keepView: true });
       renderPartyHall();
     });
 
@@ -1536,12 +1584,14 @@
       const name = String(member?.heroName || "this player");
       if (!targetUserId || !party) return;
       if (!window.confirm(`Kick ${name} from the party?`)) return;
+      stopAutoPartyBattle({ keepView: false });
       await runAction({ action: "kick_member", partyId: party.id, targetUserId }, `${name} was kicked from the party.`);
     }));
 
     document.getElementById("partyDisbandBtn")?.addEventListener("click", async () => {
       const party = myParty();
       if (!party) return;
+      stopAutoPartyBattle({ keepView: false });
       await runAction({ action: "disband_party", partyId: party.id }, "Party disbanded.");
     });
 
@@ -1562,7 +1612,7 @@
       if (!data) return;
       state.tab = "my_party";
       state.selectedPartyId = null;
-      state.battleView = false;
+      stopAutoPartyBattle({ keepView: false });
       state.monsterSelectionOpen = false;
       state.monsterInfoOpen = false;
       renderPartyHall();
