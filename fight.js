@@ -2591,6 +2591,79 @@ function appendFightRewardReceipt(saveObj, receipt){
   saveObj.recentFightRewards = current.slice(0, 12);
 }
 
+function buildFightDropDebugEntry(actionId, data, addedDrops, skippedDrops, saveObj){
+  const save = saveObj && typeof saveObj === "object" ? saveObj : {};
+  const summarize = (it) => ({
+    id: String(it?.id || ""),
+    name: String(it?.name || "Item"),
+    rarity: String(it?.rarity || ""),
+    type: String(it?.type || ""),
+    quantity: Math.max(1, num(it?.quantity ?? it?.qty, 1))
+  });
+  return {
+    id: String(actionId || ""),
+    at: new Date().toISOString(),
+    zoneId: String(data?.zoneId || ""),
+    mobId: String(data?.mobId || ""),
+    mobName: String(data?.mobName || ""),
+    inventoryUsedUnits: Array.isArray(save.inventory)
+      ? save.inventory.reduce((sum, it) => sum + Math.max(1, num(it?.quantity ?? it?.qty, 1)), 0)
+      : 0,
+    inventoryMaxUnits: Math.max(0, num(save.inventoryMaxSlots, 1000)),
+    rolledDrops: (Array.isArray(data?.drops) ? data.drops : []).map(summarize),
+    addedDrops: (addedDrops || []).map(summarize),
+    skippedDrops: (skippedDrops || []).map(summarize),
+    cloudSyncRequested: false,
+    cloudSyncRequestedAt: 0
+  };
+}
+
+function appendLegendaryDropDebug(saveObj, actionId, data, addedDrops, skippedDrops){
+  if (!saveObj || typeof saveObj !== "object") return;
+  const summarize = (it) => ({
+    id: String(it?.id || ""),
+    name: String(it?.name || "Item"),
+    rarity: String(it?.rarity || ""),
+    type: String(it?.type || ""),
+    slot: String(it?.slot || ""),
+    quantity: Math.max(1, num(it?.quantity ?? it?.qty, 1))
+  });
+  const rolledLegendaryDrops = (Array.isArray(data?.drops) ? data.drops : [])
+    .filter((it) => String(it?.rarity || "").toLowerCase() === "legendary")
+    .map(summarize);
+  const addedLegendaryDrops = (addedDrops || [])
+    .filter((it) => String(it?.rarity || "").toLowerCase() === "legendary")
+    .map(summarize);
+  const skippedLegendaryDrops = (skippedDrops || [])
+    .filter((it) => String(it?.rarity || "").toLowerCase() === "legendary")
+    .map(summarize);
+
+  if (!rolledLegendaryDrops.length && !addedLegendaryDrops.length && !skippedLegendaryDrops.length) return;
+
+  const entry = {
+    id: String(actionId || ""),
+    at: new Date().toISOString(),
+    zoneId: String(data?.zoneId || ""),
+    mobId: String(data?.mobId || ""),
+    mobName: String(data?.mobName || ""),
+    inventoryUsedUnits: Array.isArray(saveObj.inventory)
+      ? saveObj.inventory.reduce((sum, it) => sum + Math.max(1, num(it?.quantity ?? it?.qty, 1)), 0)
+      : 0,
+    inventoryMaxUnits: Math.max(0, num(saveObj.inventoryMaxSlots, 1000)),
+    rolledLegendaryDrops,
+    addedLegendaryDrops,
+    skippedLegendaryDrops,
+    announced: addedLegendaryDrops.length > 0,
+    cloudSyncRequested: false,
+    cloudSyncRequestedAt: 0
+  };
+
+  saveObj.lastLegendaryDropDebug = entry;
+  const history = Array.isArray(saveObj.recentLegendaryDropDebug) ? saveObj.recentLegendaryDropDebug : [];
+  history.unshift(entry);
+  saveObj.recentLegendaryDropDebug = history.slice(0, 6);
+}
+
 function applyHeroXpToSave(saveObj, xp, options = {}){
   const s = saveObj && typeof saveObj === "object" ? saveObj : {};
   const addXp = Math.max(0, num(xp, 0));
@@ -2708,8 +2781,26 @@ function applyFightWinRewards(result){
     addedDrops: addedDrops.map((it) => ({ name: it.name || "Item", quantity: Math.max(1, num(it.quantity, 1)) })),
     skippedDrops: skippedDrops.map((it) => ({ name: it.name || "Item", quantity: Math.max(1, num(it.quantity, 1)) }))
   });
+  save.lastFightDropDebug = buildFightDropDebugEntry(actionId, data, addedDrops, skippedDrops, save);
+  appendLegendaryDropDebug(save, actionId, data, addedDrops, skippedDrops);
 
   recomputeTotalsOnSave(save);
+  localStorage.setItem(SAVE_KEY, JSON.stringify(save));
+  if (save.lastFightDropDebug && typeof save.lastFightDropDebug === "object") {
+    save.lastFightDropDebug.cloudSyncRequested = true;
+    save.lastFightDropDebug.cloudSyncRequestedAt = Date.now();
+  }
+  if (save.lastLegendaryDropDebug && typeof save.lastLegendaryDropDebug === "object") {
+    save.lastLegendaryDropDebug.cloudSyncRequested = true;
+    save.lastLegendaryDropDebug.cloudSyncRequestedAt = Date.now();
+  }
+  if (Array.isArray(save.recentLegendaryDropDebug) && save.recentLegendaryDropDebug.length) {
+    const head = save.recentLegendaryDropDebug[0];
+    if (head && typeof head === "object") {
+      head.cloudSyncRequested = true;
+      head.cloudSyncRequestedAt = Date.now();
+    }
+  }
   localStorage.setItem(SAVE_KEY, JSON.stringify(save));
   window.DSAuth?.prioritizeCloudSaveSync?.();
 

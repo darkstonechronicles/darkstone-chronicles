@@ -2283,6 +2283,7 @@ async function requestJoin(admin: ReturnType<typeof createClient>, userId: strin
   const members = await getPartyMembers(admin, partyId);
   if (members.length >= party.max_members) throw new Error("Party is already full.");
 
+  const now = formatIsoNow();
   const memberInsert = await admin.from("party_members").insert({
     party_id: partyId,
     user_id: userId,
@@ -2291,23 +2292,21 @@ async function requestJoin(admin: ReturnType<typeof createClient>, userId: strin
   });
   if (memberInsert.error) throw memberInsert.error;
 
-  const now = formatIsoNow();
   await admin
     .from("party_join_requests")
     .update({ status: "cancelled", responded_at: now })
     .eq("user_id", userId)
     .eq("status", "pending");
 
-  const requestInsert = await admin.from("party_join_requests").insert({
-    party_id: partyId,
-    user_id: userId,
-    status: "approved",
-    responded_at: now,
-    message: str(payload.message).slice(0, 240),
-  });
-  if (requestInsert.error) throw requestInsert.error;
+  await admin
+    .from("party_invites")
+    .update({ status: "accepted", responded_at: now })
+    .eq("party_id", partyId)
+    .eq("to_user_id", userId)
+    .eq("status", "pending");
 
-  await logPartyEvent(admin, partyId, userId, "party_join_auto_approved", {});
+  await logPartyEvent(admin, partyId, userId, "party_join_open", {});
+  return "Joined party.";
 }
 
 async function respondJoinRequest(admin: ReturnType<typeof createClient>, userId: string, payload: JsonRecord) {
@@ -2907,8 +2906,8 @@ Deno.serve(async (req) => {
       return json({ ...(await getBootstrapState(admin, user.id)), message: "Invite response saved." });
     }
     if (action === "request_join") {
-      await requestJoin(admin, user.id, payload);
-      return json({ ...(await getBootstrapState(admin, user.id)), message: "Joined party." });
+      const message = await requestJoin(admin, user.id, payload);
+      return json({ ...(await getBootstrapState(admin, user.id)), message });
     }
     if (action === "respond_join_request") {
       await respondJoinRequest(admin, user.id, payload);

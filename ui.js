@@ -6598,7 +6598,16 @@ function addInventoryItem(save, item, qty = 1, options = {}) {
   if (!Array.isArray(save.inventory)) save.inventory = [];
 
   const amount = Math.max(1, num(qty, 1));
-  if (!inventoryHasSpaceFor(save, amount)) {
+  const stack = options.stack !== false;
+  const prepend = options.prepend === true;
+  const stackKeyFn = typeof options.stackKeyFn === "function" ? options.stackKeyFn : itemStackKey;
+  const existingStack = stack
+    ? save.inventory.find(i => i && stackKeyFn(i) === stackKeyFn(item))
+    : null;
+
+  // If the item can merge into an existing stack, allow the add even when the
+  // inventory has no free visible slots left.
+  if (!existingStack && !inventoryHasSpaceFor(save, amount)) {
     return {
       ok: false,
       reason: "full",
@@ -6607,16 +6616,10 @@ function addInventoryItem(save, item, qty = 1, options = {}) {
     };
   }
 
-  const stack = options.stack !== false;
-  const prepend = options.prepend === true;
-  const stackKeyFn = typeof options.stackKeyFn === "function" ? options.stackKeyFn : itemStackKey;
-
   if (stack) {
-    const key = stackKeyFn(item);
-    const ex = save.inventory.find(i => i && stackKeyFn(i) === key);
-    if (ex) {
-      ex.quantity = num(ex.quantity, 1) + amount;
-      preferNewerImage(ex, item);
+    if (existingStack) {
+      existingStack.quantity = num(existingStack.quantity, 1) + amount;
+      preferNewerImage(existingStack, item);
     }
     else if (prepend) save.inventory.unshift({ ...item, quantity: amount });
     else save.inventory.push({ ...item, quantity: amount });
