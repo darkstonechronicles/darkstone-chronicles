@@ -375,8 +375,12 @@
     return PARTY_FIGHT_MONSTERS.find((entry) => entry.id === state.selectedPartyFightMonsterId) || null;
   }
 
+  function mySelectedPartyMonsterId() {
+    return partyMonsterId(state.data?.profile?.selectedPartyMonsterId || myParty()?.selectedMonsterId || "");
+  }
+
   function selectedPartyMonsterFromParty(party) {
-    return PARTY_FIGHT_MONSTERS.find((entry) => entry.id === partyMonsterId(party?.selectedMonsterId)) || null;
+    return PARTY_FIGHT_MONSTERS.find((entry) => entry.id === mySelectedPartyMonsterId()) || null;
   }
 
   function activeSessionPayload(party) {
@@ -1175,7 +1179,7 @@
             `
             : `<div style="width:110px;height:110px;border-radius:18px;border:2px dashed rgba(255,255,255,.18);display:flex;align-items:center;justify-content:center;font-size:18px;opacity:.55;">Monster</div>`}
           <div style="font-weight:900;font-size:18px;line-height:1.1;">${esc(selectedMonster?.name || "No Monster Selected")}</div>
-          ${isLeader() ? `<button id="partyChooseMonsterBtn" type="button">Choose Monster</button>` : ``}
+          <button id="partyChooseMonsterBtn" type="button">Choose Monster</button>
         </div>
         <div style="margin-top:14px;padding:10px 14px;border:1px solid rgba(255,255,255,.10);border-radius:12px;background:rgba(255,255,255,.03);text-align:center;font-weight:800;">
           Total Attack : ${num(totalAttack, 0)} , Total Defense : ${num(totalDefense, 0)} , Party HP : ${num(totalHp, 0)} / ${num(totalHpMax, 0)}
@@ -1189,7 +1193,7 @@
               <div style="font-size:16px;font-weight:900;">Party Fight</div>
             </div>
             <div style="font-size:12px;opacity:.84;">
-              Needs 2+ party members. Start Battle opens the fight and auto-resolves one action every 6 seconds using your own stamina and healing while the party shares stat and HP contribution.
+              Needs 2+ party members. Each player chooses their own unlocked monster and fights with their own rewards, while the party still shares stat and HP contribution.
             </div>
             ${selectedMonster ? `
               <div style="font-size:12px;opacity:.82;">
@@ -1280,7 +1284,7 @@
           <div><strong>Members:</strong> ${num(detail.memberCount, 0)} / ${num(detail.maxMembers, 4)}</div>
           <div><strong>Activity:</strong> ${esc(detail.activity)}</div>
           <div><strong>Requirement:</strong> Level ${num(detail.minLevel, 1)}+</div>
-          <div><strong>Auto Accept:</strong> ${detail.autoAcceptRequests ? "On" : "Off"}</div>
+          <div><strong>Join Type:</strong> Instant Join</div>
         </div>
         <div style="margin-top:14px;font-weight:800;">Current Roster</div>
         <div style="display:grid;gap:8px;margin-top:10px;">
@@ -1533,7 +1537,7 @@
     if (party && state.battleView) {
       return partyFightMarkup();
     }
-    if (party && isLeader() && state.monsterSelectionOpen) {
+    if (party && state.monsterSelectionOpen) {
       return chooseMonsterPageMarkup(party);
     }
     if (state.tab === "my_party") {

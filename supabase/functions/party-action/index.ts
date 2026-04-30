@@ -437,6 +437,19 @@ function ensurePartyHallState(saveData: unknown) {
   return partyHall;
 }
 
+function getSelectedPartyMonsterIdFromSave(saveData: unknown) {
+  const partyHall = ensurePartyHallState(saveData);
+  const selectedMonsterId = normalizeMonsterId(partyHall.selectedMonsterId);
+  return PARTY_MONSTER_ORDER.includes(selectedMonsterId) ? selectedMonsterId : "";
+}
+
+function setSelectedPartyMonsterIdOnSave(saveData: unknown, monsterId: string) {
+  const partyHall = ensurePartyHallState(saveData);
+  const normalizedMonsterId = normalizeMonsterId(monsterId);
+  partyHall.selectedMonsterId = PARTY_MONSTER_ORDER.includes(normalizedMonsterId) ? normalizedMonsterId : "";
+  return partyHall.selectedMonsterId as string;
+}
+
 function ensurePartyFightMilestoneClaims(saveData: unknown, monsterId: string) {
   const partyHall = ensurePartyHallState(saveData);
   const claims = asRecord(partyHall.milestoneClaims);
@@ -1276,6 +1289,7 @@ async function getUserSummaries(admin: ReturnType<typeof createClient>, userIds:
       partyPoints: Math.max(0, int(asRecord(saveData).partyPoints, 0)),
       partyActionUsage: getPartyActionUsage(saveData),
       partyMonsterProgress: buildMonsterProgress(saveData),
+      selectedPartyMonsterId: getSelectedPartyMonsterIdFromSave(saveData),
       partyFightBonuses: getPartyFightBonuses(saveData),
       partyMonsterMilestones: {
         [FIRST_PARTY_MONSTER_ID]: buildMonsterMilestones(saveData, FIRST_PARTY_MONSTER_ID),
@@ -1301,6 +1315,7 @@ async function getUserSummaries(admin: ReturnType<typeof createClient>, userIds:
         partyPoints: 0,
         partyActionUsage: getPartyActionUsage({}),
         partyMonsterProgress: buildMonsterProgress({}),
+        selectedPartyMonsterId: "",
         partyFightBonuses: getPartyFightBonuses({}),
         partyMonsterMilestones: {
           [FIRST_PARTY_MONSTER_ID]: buildMonsterMilestones({}, FIRST_PARTY_MONSTER_ID),
@@ -1720,6 +1735,7 @@ async function buildPartySnapshot(admin: ReturnType<typeof createClient>, partyI
   const memberIds = members.map((entry) => entry.user_id);
   const summaries = await getUserSummaries(admin, [party.leader_user_id, ...memberIds]);
   const leaderSummary = summaries.get(party.leader_user_id) || {};
+  const viewerSummary = summaries.get(viewerUserId) || {};
   const memberList = members.map((entry) => {
     const summary = summaries.get(entry.user_id) || {};
     return {
@@ -1755,7 +1771,7 @@ async function buildPartySnapshot(admin: ReturnType<typeof createClient>, partyI
     visibility: party.visibility,
     state: party.state,
     activity: party.activity,
-    selectedMonsterId: str(party.selected_monster_id),
+    selectedMonsterId: str(viewerSummary.selectedPartyMonsterId),
     minLevel: party.min_level,
     maxMembers: party.max_members,
     autoAcceptRequests: !!party.auto_accept_requests,
@@ -2179,23 +2195,29 @@ async function chooseMonster(admin: ReturnType<typeof createClient>, userId: str
   if (!partyId) throw new Error("Party not found.");
   const party = await getPartyRow(admin, partyId);
   if (!party || party.disbanded_at) throw new Error("Party not found.");
-  if (party.leader_user_id !== userId) throw new Error("Leader access required.");
-  if (party.state !== "forming" || party.locked) throw new Error("Monster selection is locked right now.");
+  const members = await getPartyMembers(admin, partyId);
+  if (!members.some((entry) => entry.user_id === userId)) throw new Error("Party member not found.");
 
   const selectedMonsterId = normalizeMonsterId(payload.selectedMonsterId);
   if (!PARTY_MONSTER_ORDER.includes(selectedMonsterId)) throw new Error("Invalid monster.");
-  const { data: leaderSaveRow, error: leaderSaveError } = await admin
+  const { data: playerSaveRow, error: playerSaveError } = await admin
     .from("player_saves")
-    .select("save_data")
+    .select("save_data, revision")
     .eq("user_id", userId)
     .maybeSingle();
-  if (leaderSaveError) throw leaderSaveError;
-  if (!isMonsterUnlocked(leaderSaveRow?.save_data, selectedMonsterId)) throw new Error("This monster is still locked for you.");
-  const { error } = await admin
-    .from("parties")
-    .update({ selected_monster_id: selectedMonsterId })
-    .eq("id", partyId);
-  if (error) throw error;
+  if (playerSaveError) throw playerSaveError;
+  const nextSave = asRecord(playerSaveRow?.save_data);
+  if (!isMonsterUnlocked(nextSave, selectedMonsterId)) throw new Error("This monster is still locked for you.");
+  setSelectedPartyMonsterIdOnSave(nextSave, selectedMonsterId);
+  const nextRevision = Math.max(1, int(playerSaveRow?.revision, 0) + 1);
+  const saveUpsert = await admin.from("player_saves").upsert({
+    user_id: userId,
+    save_data: nextSave,
+    revision: nextRevision,
+    updated_at: formatIsoNow(),
+  });
+  if (saveUpsert.error) throw saveUpsert.error;
+  await updatePublicStatsFromSave(admin, userId, nextSave);
 
   await logPartyEvent(admin, partyId, userId, "party_monster_selected", {
     selectedMonsterId,
@@ -2550,10 +2572,7 @@ async function startActivity(admin: ReturnType<typeof createClient>, userId: str
     };
   });
   const activity = normalizeActivity(payload.activity || party.activity);
-  const selectedMonsterId = str(party.selected_monster_id);
-  if (activity.toLowerCase().includes("party fight") && !selectedMonsterId) {
-    throw new Error("Choose a monster before starting Party Fight.");
-  }
+  const selectedMonsterId = "";
   const selectedMonster = getPartyFightMonster(selectedMonsterId);
   const resultPayload = activity.toLowerCase().includes("party fight")
     ? normalizePartyFightPayload({}, selectedMonster)
@@ -2702,10 +2721,6 @@ async function resolvePartyFight(admin: ReturnType<typeof createClient>, userId:
   if (!party || party.disbanded_at) throw new Error("Party not found.");
   const members = await getPartyMembers(admin, partyId);
   if (members.length < 2) throw new Error("Party Fight needs at least 2 party members.");
-  const selectedMonsterId = normalizeMonsterId(party.selected_monster_id);
-  if (!selectedMonsterId) throw new Error("Choose a party monster first.");
-  const monster = getPartyFightMonster(selectedMonsterId);
-  if (!monster) throw new Error("Invalid party monster.");
 
   const [summaries, actorSaveRes] = await Promise.all([
     getUserSummaries(admin, members.map((entry) => entry.user_id)),
@@ -2717,6 +2732,10 @@ async function resolvePartyFight(admin: ReturnType<typeof createClient>, userId:
   if (Math.max(1, int(actorSummary.heroLevel, 1)) < PARTY_HALL_MIN_LEVEL) {
     throw new Error(`Party Hall unlocks at hero level ${PARTY_HALL_MIN_LEVEL}+.`);
   }
+  const selectedMonsterId = getSelectedPartyMonsterIdFromSave(actorSaveRes.data?.save_data);
+  if (!selectedMonsterId) throw new Error("Choose your party monster first.");
+  const monster = getPartyFightMonster(selectedMonsterId);
+  if (!monster) throw new Error("Invalid party monster.");
   if (!isMonsterUnlocked(actorSaveRes.data?.save_data, selectedMonsterId)) {
     throw new Error("This monster is still locked for you.");
   }
