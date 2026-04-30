@@ -1179,6 +1179,10 @@
             `
             : `<div style="width:110px;height:110px;border-radius:18px;border:2px dashed rgba(255,255,255,.18);display:flex;align-items:center;justify-content:center;font-size:18px;opacity:.55;">Monster</div>`}
           <div style="font-weight:900;font-size:18px;line-height:1.1;">${esc(selectedMonster?.name || "No Monster Selected")}</div>
+          <div style="padding:8px 12px;border:1px solid rgba(199,155,68,.25);border-radius:12px;background:rgba(199,155,68,.08);font-size:12px;font-weight:800;line-height:1.45;">
+            Your Selected Monster: ${esc(selectedMonster?.name || "None")}
+            <br>Your Kills: ${num(selectedMonsterProgress?.kills, 0)}
+          </div>
           <button id="partyChooseMonsterBtn" type="button">Choose Monster</button>
         </div>
         <div style="margin-top:14px;padding:10px 14px;border:1px solid rgba(255,255,255,.10);border-radius:12px;background:rgba(255,255,255,.03);text-align:center;font-weight:800;">
@@ -1413,6 +1417,7 @@
             <div>
               <div style="font-size:28px;font-weight:900;line-height:1.05;">Party Battle</div>
               <div style="font-size:12px;opacity:.84;margin-top:4px;">Use your own stamina and healing. The party adds shared ATK, DEF, and HP contribution.</div>
+              <div style="font-size:12px;font-weight:800;color:#f0d58b;margin-top:6px;">Your Monster: ${esc(monster?.name || "None")} | Your Kills: ${num(monster ? monsterProgressEntry(monster.id)?.kills : 0, 0)}</div>
             </div>
             <div style="display:flex;gap:10px;flex-wrap:wrap;">
               <button id="partyBattleBackBtn" type="button">Back</button>
