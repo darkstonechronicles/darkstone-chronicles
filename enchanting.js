@@ -536,7 +536,7 @@
     if (rarity === "rare") return { bg: "#0f1b2e", border: "#3d73c9" };
     if (rarity === "epic") return { bg: "#1a0f2e", border: "#7d4bc2" };
     if (rarity === "legendary") return { bg: "#2b1a0b", border: "#d18a1f" };
-    if (rarity === "mythic") return { bg: "#0b2a2e", border: "#2aa7b0" };
+    if (rarity === "mythic") return { bg: "#5a0b12", border: "#ff3b45" };
     return { bg: "#101019", border: "#333" };
   }
 

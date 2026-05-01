@@ -355,7 +355,7 @@
         --rarity-rare:#0f1b2e;
         --rarity-epic:#1a0f2e;
         --rarity-legendary:#2b1a0b;
-        --rarity-mythic:#0b2a2e;
+        --rarity-mythic:#5a0b12;
         --rarity-set:#2a0a0d;
         --rarity-crafted:#14361d;
       }

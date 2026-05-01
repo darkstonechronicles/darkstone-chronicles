@@ -106,7 +106,7 @@
     if (it?.setId) return "#2a0a0d";
     if (it?.crafted) return "#14361d";
     switch (String(it?.rarity || "").toLowerCase()) {
-      case "mythic": return "#0b2a2e";
+      case "mythic": return "#5a0b12";
       case "legendary": return "#2b1a0b";
       case "epic": return "#1a0f2e";
       case "rare": return "#0f1b2e";
@@ -120,7 +120,7 @@
     if (it?.setId) return "#7c2d35";
     if (it?.crafted) return "#2d7a3d";
     switch (String(it?.rarity || "").toLowerCase()) {
-      case "mythic": return "#2aa7b0";
+      case "mythic": return "#ff3b45";
       case "legendary": return "#d18a1f";
       case "epic": return "#7d4bc2";
       case "rare": return "#3d73c9";

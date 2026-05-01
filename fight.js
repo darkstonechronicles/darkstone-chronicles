@@ -1259,6 +1259,28 @@ const ITEM_LIBRARY = {
   ar_legendary_ring:     { type:"gear", slot:"ring",     name:"Riftlord Ring",      atk:22, def:16,reqLevel:90, rarity:"legendary", img:`${Z10_ITEM_PATH}/ar_legendary_ring.png` },
   ar_legendary_amulet:   { type:"gear", slot:"amulet",   name:"Riftlord Amulet",    atk:22, def:16,reqLevel:90, rarity:"legendary", img:`${Z10_ITEM_PATH}/ar_legendary_amulet.png` },
 
+  // Zone-wide mythic weapons (1 roll per kill, picks one weapon from the zone pool)
+  ww_mythic_main_hand: { type:"gear", slot:"mainHand", name:"Moonthorn Fang",       atk:15,  def:0, reqLevel:1,  rarity:"mythic", img:`${Z1_ITEM_PATH}/ww_mythic_main_hand.png` },
+  ww_mythic_off_hand:  { type:"gear", slot:"offHand",  name:"Gloambark Fang",       atk:12,  def:0, reqLevel:1,  rarity:"mythic", img:`${Z1_ITEM_PATH}/ww_mythic_off_hand.png` },
+  fm_mythic_main_hand: { type:"gear", slot:"mainHand", name:"Miremoon Saber",       atk:27,  def:0, reqLevel:10, rarity:"mythic", img:`${Z2_ITEM_PATH}/fm_mythic_main_hand.png` },
+  fm_mythic_off_hand:  { type:"gear", slot:"offHand",  name:"Boglight Saber",       atk:24,  def:0, reqLevel:10, rarity:"mythic", img:`${Z2_ITEM_PATH}/fm_mythic_off_hand.png` },
+  rh_mythic_main_hand: { type:"gear", slot:"mainHand", name:"Gravecrow Dirk",       atk:39,  def:0, reqLevel:20, rarity:"mythic", img:`${Z3_ITEM_PATH}/rh_mythic_main_hand.png` },
+  rh_mythic_off_hand:  { type:"gear", slot:"offHand",  name:"Ravenshade Dirk",      atk:39,  def:0, reqLevel:20, rarity:"mythic", img:`${Z3_ITEM_PATH}/rh_mythic_off_hand.png` },
+  gr_mythic_main_hand: { type:"gear", slot:"mainHand", name:"Rootsplitter Sword",   atk:51,  def:0, reqLevel:30, rarity:"mythic", img:`${Z4_ITEM_PATH}/gr_mythic_main_hand.png` },
+  gr_mythic_off_hand:  { type:"gear", slot:"offHand",  name:"Fungalight Sword",     atk:51,  def:0, reqLevel:30, rarity:"mythic", img:`${Z4_ITEM_PATH}/gr_mythic_off_hand.png` },
+  ap_mythic_main_hand: { type:"gear", slot:"mainHand", name:"Cinderfall Axe",       atk:66,  def:0, reqLevel:40, rarity:"mythic", img:`${Z5_ITEM_PATH}/ap_mythic_main_hand.png` },
+  ap_mythic_off_hand:  { type:"gear", slot:"offHand",  name:"Ashreaver Axe",        atk:66,  def:0, reqLevel:40, rarity:"mythic", img:`${Z5_ITEM_PATH}/ap_mythic_off_hand.png` },
+  bf_mythic_main_hand: { type:"gear", slot:"mainHand", name:"Canyonstar Sword",     atk:78,  def:0, reqLevel:50, rarity:"mythic", img:`${Z6_ITEM_PATH}/bf_mythic_main_hand.png` },
+  bf_mythic_off_hand:  { type:"gear", slot:"offHand",  name:"Blackfang Sword",      atk:78,  def:0, reqLevel:50, rarity:"mythic", img:`${Z6_ITEM_PATH}/bf_mythic_off_hand.png` },
+  bt_mythic_main_hand: { type:"gear", slot:"mainHand", name:"Bloodbloom Sword",     atk:90,  def:0, reqLevel:60, rarity:"mythic", img:`${Z7_ITEM_PATH}/bt_mythic_main_hand.png` },
+  bt_mythic_off_hand:  { type:"gear", slot:"offHand",  name:"Thornheart Sword",     atk:90,  def:0, reqLevel:60, rarity:"mythic", img:`${Z7_ITEM_PATH}/bt_mythic_off_hand.png` },
+  dh_mythic_main_hand: { type:"gear", slot:"mainHand", name:"Stormcleft Axe",       atk:102, def:0, reqLevel:70, rarity:"mythic", img:`${Z8_ITEM_PATH}/dh_mythic_main_hand.png` },
+  dh_mythic_off_hand:  { type:"gear", slot:"offHand",  name:"Mistbreaker Axe",      atk:102, def:0, reqLevel:70, rarity:"mythic", img:`${Z8_ITEM_PATH}/dh_mythic_off_hand.png` },
+  ow_mythic_main_hand: { type:"gear", slot:"mainHand", name:"Obsidian Starbrand",   atk:114, def:0, reqLevel:80, rarity:"mythic", img:`${Z9_ITEM_PATH}/ow_mythic_main_hand.png` },
+  ow_mythic_off_hand:  { type:"gear", slot:"offHand",  name:"Volcanic Starbrand",   atk:114, def:0, reqLevel:80, rarity:"mythic", img:`${Z9_ITEM_PATH}/ow_mythic_off_hand.png` },
+  ar_mythic_main_hand: { type:"gear", slot:"mainHand", name:"Riftstar Sword",       atk:126, def:0, reqLevel:90, rarity:"mythic", img:`${Z10_ITEM_PATH}/ar_mythic_main_hand.png` },
+  ar_mythic_off_hand:  { type:"gear", slot:"offHand",  name:"Voidwake Sword",       atk:126, def:0, reqLevel:90, rarity:"mythic", img:`${Z10_ITEM_PATH}/ar_mythic_off_hand.png` },
+
   ashgrip_gloves:      { type:"gear", slot:"gloves",    name:"Ashgrip Gloves",       atk:0, def:1, reqLevel:1,  rarity:"common",   img:`${Z1_ITEM_PATH}/ashgrip_gloves.png` },
   rustwrap_bracers:    { type:"gear", slot:"bracers",   name:"Rustwrap Bracers",     atk:0, def:1, reqLevel:1,  rarity:"common",   img:`${Z1_ITEM_PATH}/rustwrap_bracers.png` },
   dustwalk_boots:      { type:"gear", slot:"boots",     name:"Dustwalk Boots",       atk:0, def:1, reqLevel:1,  rarity:"common",   img:`${Z1_ITEM_PATH}/dustwalk_boots.png` },
@@ -1801,9 +1823,18 @@ const MOB_UNIQUE_DROPS = {
 };
 
 const ZONE_MYTHIC = {
-  whispering_woods: ITEM_LIBRARY.ember_axe,
-  iron_revenant_keep: ITEM_LIBRARY.soulrender_blade_of_the_keep,
-  desert_wastes: ITEM_LIBRARY.aegis_of_the_drowned_sun
+  whispering_woods: [ITEM_LIBRARY.ww_mythic_main_hand, ITEM_LIBRARY.ww_mythic_off_hand],
+  fogmoor_marsh: [ITEM_LIBRARY.fm_mythic_main_hand, ITEM_LIBRARY.fm_mythic_off_hand],
+  ravenhill_fields: [ITEM_LIBRARY.rh_mythic_main_hand, ITEM_LIBRARY.rh_mythic_off_hand],
+  grimroot_forest: [ITEM_LIBRARY.gr_mythic_main_hand, ITEM_LIBRARY.gr_mythic_off_hand],
+  ashen_plains: [ITEM_LIBRARY.ap_mythic_main_hand, ITEM_LIBRARY.ap_mythic_off_hand],
+  blackfang_canyon: [ITEM_LIBRARY.bf_mythic_main_hand, ITEM_LIBRARY.bf_mythic_off_hand],
+  bloodthorn_thicket: [ITEM_LIBRARY.bt_mythic_main_hand, ITEM_LIBRARY.bt_mythic_off_hand],
+  dreadmist_highlands: [ITEM_LIBRARY.dh_mythic_main_hand, ITEM_LIBRARY.dh_mythic_off_hand],
+  obsidian_wastes: [ITEM_LIBRARY.ow_mythic_main_hand, ITEM_LIBRARY.ow_mythic_off_hand],
+  abyssal_rift: [ITEM_LIBRARY.ar_mythic_main_hand, ITEM_LIBRARY.ar_mythic_off_hand],
+  iron_revenant_keep: [ITEM_LIBRARY.soulrender_blade_of_the_keep],
+  desert_wastes: [ITEM_LIBRARY.aegis_of_the_drowned_sun]
 };
 
 function normalizeRarity(r){
@@ -1835,14 +1866,16 @@ function rollUniqueDrops(zoneId, mobId){
 }
 
 function rollZoneMythic(zoneId){
-  const it = ZONE_MYTHIC[zoneId];
-  if(!it) return null;
+  const pool = Array.isArray(ZONE_MYTHIC[zoneId]) ? ZONE_MYTHIC[zoneId].filter(Boolean) : [];
+  if(!pool.length) return null;
   const save = getCurrentSave();
   const fortune = getFortunePetBonuses(save);
   const potionBonuses = getPotionBonuses(save);
   const enchantBonuses = getEquipmentEnchantBonuses(save.equipment);
   const chance = ZONE_MYTHIC_CHANCE * (1 + Math.max(0, num(fortune.luckPct, 0)) + Math.max(0, num(potionBonuses.luckPct, 0)) + Math.max(0, num(enchantBonuses.luckPct, 0)));
-  return (Math.random() < chance) ? { ...it, quantity: 1 } : null;
+  if (Math.random() >= chance) return null;
+  const it = pool[Math.floor(Math.random() * pool.length)];
+  return it ? { ...it, quantity: 1 } : null;
 }
 
 // =========================
@@ -2975,9 +3008,9 @@ zone.mobs.forEach(m => {
   card.className = "fightMobCard";
 
   const loot = (MOB_UNIQUE_DROPS?.[zone.id]?.[m.id]) || [];
-  const mythic = ZONE_MYTHIC?.[zone.id] || null;
+  const mythic = Array.isArray(ZONE_MYTHIC?.[zone.id]) ? ZONE_MYTHIC[zone.id].filter(Boolean) : [];
   const lootItems = [...loot];
-  if (mythic) lootItems.push({ ...mythic, _label: "Zone Mythic" });
+  mythic.forEach((it) => lootItems.push({ ...it, _label: "Mythic" }));
 
   const lootHtml = lootItems.length ? lootItems.map(it => {
     const stats = [];
@@ -2991,17 +3024,20 @@ zone.mobs.forEach(m => {
     const rarityBg =
       isSetItem ? "#2a0a0d" :
       isCraftedItem ? "#14361d" :
-      rarityKey === "mythic" ? "#0b2a2e" :
+      rarityKey === "mythic" ? "#5a0b12" :
       rarityKey === "legendary" ? "#2b1a0b" :
       rarityKey === "epic" ? "#1a0f2e" :
       rarityKey === "rare" ? "#0f1b2e" :
       rarityKey === "uncommon" ? "#0f141b" :
       rarityKey === "common" ? "#0b0b0b" :
       "#1b1b24";
+    const rowBg =
+      rarityKey === "mythic" ? "#26070b" :
+      "#151520";
     const rarityBorder =
       isSetItem ? "#7c2d35" :
       isCraftedItem ? "#2d7a3d" :
-      rarityKey === "mythic" ? "#2aa7b0" :
+      rarityKey === "mythic" ? "#ff3b45" :
       rarityKey === "legendary" ? "#d18a1f" :
       rarityKey === "epic" ? "#7d4bc2" :
       rarityKey === "rare" ? "#3d73c9" :
@@ -3010,7 +3046,7 @@ zone.mobs.forEach(m => {
       "#2a2a3a";
 
     return `
-    <div style="display:flex;gap:8px;align-items:center;background:#151520;border:1px solid ${rarityBorder};border-radius:8px;padding:6px 8px;">
+    <div style="display:flex;gap:8px;align-items:center;background:${rowBg};border:1px solid ${rarityBorder};border-radius:8px;padding:6px 8px;">
       <img src="${it.img || ""}" alt="${it.name || "Item"}" style="width:32px;height:32px;border-radius:6px;border:1px solid ${rarityBorder};background:${rarityBg};object-fit:cover;flex:0 0 auto;">
       <div style="min-width:0;display:flex;flex-direction:column;align-items:flex-start;text-align:left;">
         <div style="font-size:12px;font-weight:800;line-height:1.1;">${it.name || "Item"}</div>

@@ -2052,7 +2052,7 @@
         const rarityKey = String(it.rarity || "").toLowerCase();
         const rarityBg =
           isSetItem ? "#2a0a0d" :
-          rarityKey === "mythic" ? "#0b2a2e" :
+          rarityKey === "mythic" ? "#5a0b12" :
           rarityKey === "legendary" ? "#2b1a0b" :
           rarityKey === "epic" ? "#1a0f2e" :
           rarityKey === "rare" ? "#0f1b2e" :
@@ -2061,7 +2061,7 @@
           "#1b1b24";
         const rarityBorder =
           isSetItem ? "#7c2d35" :
-          rarityKey === "mythic" ? "#2aa7b0" :
+          rarityKey === "mythic" ? "#ff3b45" :
           rarityKey === "legendary" ? "#d18a1f" :
           rarityKey === "epic" ? "#7d4bc2" :
           rarityKey === "rare" ? "#3d73c9" :
@@ -2366,7 +2366,6 @@
     if(state.running) persistRunState();
   });
 })();
-
 
 
 

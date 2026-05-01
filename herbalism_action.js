@@ -5,7 +5,7 @@ const BUILDING_BONUS_PER_LEVEL = 0.0005;
 const VERDANT_SIGIL_ITEM = {
   type: "material",
   name: "Verdant Sigil",
-  img: "images/items/sigils/wood_sigil.webp"
+  img: "images/items/sigils/verdant_sigil.webp"
 };
 const VERDANT_SIGIL_DROP_CHANCE = 1 / 250;
 const ROUGH_GEM_DROP_CHANCE = 1 / 100;

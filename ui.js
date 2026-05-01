@@ -3301,7 +3301,7 @@
         --rarity-rare:#0f1b2e;
         --rarity-epic:#1a0f2e;
         --rarity-legendary:#2b1a0b;
-        --rarity-mythic:#0b2a2e;
+        --rarity-mythic:#5a0b12;
         --rarity-set:#2a0a0d;
         --rarity-crafted:#14361d;
       }
@@ -5080,6 +5080,32 @@ function buildAdminItemCatalog() {
     { type: "consumable", id: "arrows", name: "Arrows", img: "images/items/arrows.png" },
     { type: "material", id: "empty_vial", name: "Empty Vial", img: "images/alchemy/items/empty_vial.webp" },
     { type: "material", id: "orb_of_creation", name: "Orb of Creation", img: "images/ui/orb_of_creation.webp" },
+    { type: "material", id: "war_sigil", name: "War Sigil", img: "images/items/sigils/war_sigil.webp" },
+    { type: "material", id: "crypt_sigil", name: "Crypt Sigil", img: "images/items/sigils/crypt_sigil.webp" },
+    { type: "material", id: "ore_sigil", name: "Ore Sigil", img: "images/items/sigils/ore_sigil.webp" },
+    { type: "material", id: "wood_sigil", name: "Wood Sigil", img: "images/items/sigils/wood_sigil.webp" },
+    { type: "material", id: "verdant_sigil", name: "Verdant Sigil", img: "images/items/sigils/verdant_sigil.webp" },
+    { type: "material", id: "warden_sigil", name: "Warden Sigil", img: "images/items/sigils/warden_sigil.webp" },
+    { type: "gear", slot: "mainHand", name: "Moonthorn Fang", atk: 15, def: 0, reqLevel: 1, rarity: "mythic", img: "images/items/dropsfromzones/zone1/ww_mythic_main_hand.png" },
+    { type: "gear", slot: "offHand", name: "Gloambark Fang", atk: 12, def: 0, reqLevel: 1, rarity: "mythic", img: "images/items/dropsfromzones/zone1/ww_mythic_off_hand.png" },
+    { type: "gear", slot: "mainHand", name: "Miremoon Saber", atk: 27, def: 0, reqLevel: 10, rarity: "mythic", img: "images/items/dropsfromzones/zone2/fm_mythic_main_hand.png" },
+    { type: "gear", slot: "offHand", name: "Boglight Saber", atk: 24, def: 0, reqLevel: 10, rarity: "mythic", img: "images/items/dropsfromzones/zone2/fm_mythic_off_hand.png" },
+    { type: "gear", slot: "mainHand", name: "Gravecrow Dirk", atk: 39, def: 0, reqLevel: 20, rarity: "mythic", img: "images/items/dropsfromzones/zone3/rh_mythic_main_hand.png" },
+    { type: "gear", slot: "offHand", name: "Ravenshade Dirk", atk: 39, def: 0, reqLevel: 20, rarity: "mythic", img: "images/items/dropsfromzones/zone3/rh_mythic_off_hand.png" },
+    { type: "gear", slot: "mainHand", name: "Rootsplitter Sword", atk: 51, def: 0, reqLevel: 30, rarity: "mythic", img: "images/items/dropsfromzones/zone4/gr_mythic_main_hand.png" },
+    { type: "gear", slot: "offHand", name: "Fungalight Sword", atk: 51, def: 0, reqLevel: 30, rarity: "mythic", img: "images/items/dropsfromzones/zone4/gr_mythic_off_hand.png" },
+    { type: "gear", slot: "mainHand", name: "Cinderfall Axe", atk: 66, def: 0, reqLevel: 40, rarity: "mythic", img: "images/items/dropsfromzones/zone5/ap_mythic_main_hand.png" },
+    { type: "gear", slot: "offHand", name: "Ashreaver Axe", atk: 66, def: 0, reqLevel: 40, rarity: "mythic", img: "images/items/dropsfromzones/zone5/ap_mythic_off_hand.png" },
+    { type: "gear", slot: "mainHand", name: "Canyonstar Sword", atk: 78, def: 0, reqLevel: 50, rarity: "mythic", img: "images/items/dropsfromzones/zone6/bf_mythic_main_hand.png" },
+    { type: "gear", slot: "offHand", name: "Blackfang Sword", atk: 78, def: 0, reqLevel: 50, rarity: "mythic", img: "images/items/dropsfromzones/zone6/bf_mythic_off_hand.png" },
+    { type: "gear", slot: "mainHand", name: "Bloodbloom Sword", atk: 90, def: 0, reqLevel: 60, rarity: "mythic", img: "images/items/dropsfromzones/zone7/bt_mythic_main_hand.png" },
+    { type: "gear", slot: "offHand", name: "Thornheart Sword", atk: 90, def: 0, reqLevel: 60, rarity: "mythic", img: "images/items/dropsfromzones/zone7/bt_mythic_off_hand.png" },
+    { type: "gear", slot: "mainHand", name: "Stormcleft Axe", atk: 102, def: 0, reqLevel: 70, rarity: "mythic", img: "images/items/dropsfromzones/zone8/dh_mythic_main_hand.png" },
+    { type: "gear", slot: "offHand", name: "Mistbreaker Axe", atk: 102, def: 0, reqLevel: 70, rarity: "mythic", img: "images/items/dropsfromzones/zone8/dh_mythic_off_hand.png" },
+    { type: "gear", slot: "mainHand", name: "Obsidian Starbrand", atk: 114, def: 0, reqLevel: 80, rarity: "mythic", img: "images/items/dropsfromzones/zone9/ow_mythic_main_hand.png" },
+    { type: "gear", slot: "offHand", name: "Volcanic Starbrand", atk: 114, def: 0, reqLevel: 80, rarity: "mythic", img: "images/items/dropsfromzones/zone9/ow_mythic_off_hand.png" },
+    { type: "gear", slot: "mainHand", name: "Riftstar Sword", atk: 126, def: 0, reqLevel: 90, rarity: "mythic", img: "images/items/dropsfromzones/zone10/ar_mythic_main_hand.png" },
+    { type: "gear", slot: "offHand", name: "Voidwake Sword", atk: 126, def: 0, reqLevel: 90, rarity: "mythic", img: "images/items/dropsfromzones/zone10/ar_mythic_off_hand.png" },
     { type: "material", id: "rough_ruby", name: "Rough Ruby", img: "images/gems/rough_ruby.webp" },
     { type: "material", id: "rough_sapphire", name: "Rough Sapphire", img: "images/gems/rough_sapphire.webp" },
     { type: "material", id: "rough_emerald", name: "Rough Emerald", img: "images/gems/rough_emerald.webp" },

@@ -1,6 +1,7 @@
 cf-pages-upload/
 node_modules/
 _png_backup_unused/
+_manual_asset_backups/
 supabase/.temp/
 .git_broken_backup_*/
 .DS_Store
