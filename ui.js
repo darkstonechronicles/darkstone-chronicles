@@ -176,6 +176,7 @@
     .replace(/"/g, "&quot;")
     .replace(/'/g, "&#39;");
   const stripPlus = (name) => String(name || "").replace(/\s*\+\d+$/, "");
+  const isSigilImage = (img) => /^images\/items\/sigils\//i.test(String(img || ""));
   function roundLevelXP(v){
     v = Math.max(1, Math.round(Number(v) || 1));
     if (v >= 10000000) return Math.ceil(v / 50000) * 50000;
@@ -3334,6 +3335,14 @@
       .dsSlot.dsCraftedItem{background:var(--rarity-crafted);}
       .dsSlot.dragOver{outline:2px solid #888;}
       .dsSlot img{width:100%;height:100%;object-fit:cover;display:block;pointer-events:none;}
+      .dsSlot img.dsSigilIcon{
+        width:100%;
+        height:100%;
+        object-fit:contain;
+        padding:3px;
+        box-sizing:border-box;
+        background:rgba(0,0,0,.18);
+      }
 
       .dsQty{position:absolute;right:3px;bottom:2px;font-size:11px;background:rgba(0,0,0,.65);padding:1px 4px;border-radius:6px;pointer-events:none;}
 
@@ -5072,7 +5081,9 @@ function normalizeAdminItem(raw) {
 function adminItemThumbHtml(item) {
   const fallback = String(item?.name || "?").slice(0, 2).toUpperCase();
   if (!item?.img) return `<span style="font-size:10px;font-weight:900;">${fallback}</span>`;
-  return `<img src="${item.img}" alt="" style="width:100%;height:100%;object-fit:cover;display:block;" onerror="this.remove();const fb=document.createElement('span');fb.textContent='${fallback}';fb.style.fontSize='10px';fb.style.fontWeight='900';this.parentNode&&this.parentNode.appendChild(fb);">`;
+  const fit = isSigilImage(item.img) ? "contain" : "cover";
+  const padding = isSigilImage(item.img) ? "3px" : "0";
+  return `<img src="${item.img}" alt="" style="width:100%;height:100%;object-fit:${fit};padding:${padding};box-sizing:border-box;display:block;" onerror="this.remove();const fb=document.createElement('span');fb.textContent='${fallback}';fb.style.fontSize='10px';fb.style.fontWeight='900';this.parentNode&&this.parentNode.appendChild(fb);">`;
 }
 
 function buildAdminItemCatalog() {
@@ -6308,6 +6319,7 @@ function renderInventory(save) {
       const img = document.createElement("img");
       img.src = it.img;
       img.alt = it.name || "item";
+      if (isSigilImage(it.img)) img.className = "dsSigilIcon";
       bindAssetImageFallback(img);
       slot.appendChild(img);
 
@@ -7570,6 +7582,7 @@ function openInspector(invIndex, item) {
     : isCraftedItem
     ? "var(--rarity-crafted)"
     : (rarityKey ? `var(--rarity-${rarityKey})` : "#0f0f16");
+  const sigilIcon = isSigilImage(item.img);
 
       const isGear = isGearItem(item);
       const isPotion = isPotionItem(item);
@@ -7614,7 +7627,7 @@ function openInspector(invIndex, item) {
   const html = `
       <div style="display:flex;gap:12px;align-items:center;">
             <img src="${item.img || ""}" alt="${item.name || "Item"}"
-           style="width:84px;height:84px;border-radius:12px;border:2px solid #333;object-fit:cover;background:${imgBg};">
+           style="width:84px;height:84px;border-radius:12px;border:2px solid #333;object-fit:${sigilIcon ? "contain" : "cover"};padding:${sigilIcon ? "6px" : "0"};box-sizing:border-box;background:${imgBg};">
         <div style="flex:1;">
           <div style="font-weight:900;font-size:20px;">${item.name || "Item"}</div>
           <div style="opacity:.85;margin-top:4px;">
@@ -7629,15 +7642,15 @@ function openInspector(invIndex, item) {
       </div>
 
         <div class="dsBtnRow">
-          ${isGear ? `<button id="dsEquip" ${canEquip(save,item) ? "" : "disabled"}>🛡 Equip</button>` : ``}
-          ${isPotion ? `<button id="dsEquipPotion">🧪 Equip Potion</button>` : ``}
-          ${isBattleCharm ? `<button id="dsEquipBattleCharm">Equip Battle Charm</button>` : ``}
-          ${isDefenseCharm ? `<button id="dsEquipDefenseCharm">Equip Defense Charm</button>` : ``}
+          ${isGear ? `<button id="dsEquip" type="button" ${canEquip(save,item) ? "" : "disabled"}>🛡 Equip</button>` : ``}
+          ${isPotion ? `<button id="dsEquipPotion" type="button">🧪 Equip Potion</button>` : ``}
+          ${isBattleCharm ? `<button id="dsEquipBattleCharm" type="button">Equip Battle Charm</button>` : ``}
+          ${isDefenseCharm ? `<button id="dsEquipDefenseCharm" type="button">Equip Defense Charm</button>` : ``}
         </div>
 
       ${isBattleCharm ? `
         <div class="dsSellRow">
-          <button id="dsEquipBattleCharmQtyBtn">Equip Amount</button>
+          <button id="dsEquipBattleCharmQtyBtn" type="button">Equip Amount</button>
           <input id="dsEquipBattleCharmQty" type="number" min="1" max="${q}" value="${q}">
           <div class="dsSellInfo">Attack +${Math.max(0, num(item.attackBonus, item.atkBonus ?? item.atk ?? 0))}</div>
         </div>
@@ -7645,7 +7658,7 @@ function openInspector(invIndex, item) {
 
       ${isDefenseCharm ? `
         <div class="dsSellRow">
-          <button id="dsEquipDefenseCharmQtyBtn">Equip Amount</button>
+          <button id="dsEquipDefenseCharmQtyBtn" type="button">Equip Amount</button>
           <input id="dsEquipDefenseCharmQty" type="number" min="1" max="${q}" value="${q}">
           <div class="dsSellInfo">Defense +${Math.max(0, num(item.defenseBonus, item.defBonus ?? item.def ?? 0))}</div>
         </div>
@@ -7653,7 +7666,7 @@ function openInspector(invIndex, item) {
 
       ${showEat ? `
         <div class="dsSellRow">
-          <button id="dsEatQtyBtn">Eat Amount</button>
+          <button id="dsEatQtyBtn" type="button">Eat Amount</button>
           <input id="dsEatQty" type="number" min="1" max="${q}" value="1">
           <div id="dsEatInfo" class="dsSellInfo">
             <span id="dsEatTotalText">Total: ${healHp > 0 ? `+${healHp} HP` : ``}${healHp > 0 && healSt > 0 ? `, ` : ``}${healSt > 0 ? `+${healSt} ST` : ``}</span>
@@ -7664,21 +7677,21 @@ function openInspector(invIndex, item) {
 
       ${showSellQty ? `
         <div class="dsSellRow">
-          <button id="dsSellQtyBtn">Sell Amount</button>
+          <button id="dsSellQtyBtn" type="button">Sell Amount</button>
           <input id="dsSellQty" type="number" min="1" max="${q}" value="1">
           <div id="dsSellPrice" class="dsSellInfo">Price: ${p1} Gold</div>
         </div>
       ` : ``}
 
       <div class="dsSellRow">
-        <button id="dsMarketListBtn">List on Market</button>
+        <button id="dsMarketListBtn" type="button">List on Market</button>
         <input id="dsMarketQty" type="number" min="1" max="${q}" value="1" title="Quantity">
         <input id="dsMarketPrice" type="number" min="1" value="${p1}" title="Price each">
         <div id="dsMarketInfo" class="dsSellInfo">EA: ${p1} Gold</div>
       </div>
 
       <div class="dsSellRow">
-        <button id="dsBankBtn">🏦 Send to Bank</button>
+        <button id="dsBankBtn" type="button">🏦 Send to Bank</button>
         <input id="dsBankQty" type="number" min="1" max="${q}" value="${q}">
       </div>
 
@@ -8019,20 +8032,38 @@ function openInspector(invIndex, item) {
     bankQtyInput?.addEventListener("change", updateBankBtn);
     updateBankBtn();
 
-    bankBtn?.addEventListener("click", () => {
+    const handleSendToBank = (event) => {
+      event?.preventDefault?.();
+      if (!bankBtn || bankBtn.dataset.busy === "1") return;
+      bankBtn.dataset.busy = "1";
+      bankBtn.disabled = true;
+
       const s = ensureSave(loadSave());
       const invIt = s.inventory[invIndex];
-      if (!invIt) { msg("❌ Item missing."); return; }
+      if (!invIt) {
+        delete bankBtn.dataset.busy;
+        bankBtn.disabled = false;
+        msg("❌ Item missing.");
+        return;
+      }
 
       const sendQty = clamp(getBankQty(), 1, num(invIt.quantity ?? invIt.qty, 1));
       const stack = consumeFromInventoryIndex(s, invIndex, sendQty);
-      if (!stack) { msg("❌ Item missing."); return; }
+      if (!stack) {
+        delete bankBtn.dataset.busy;
+        bankBtn.disabled = false;
+        msg("❌ Item missing.");
+        return;
+      }
 
       addToStack(s.bank, stack, num(stack.quantity ?? stack.qty, 1));
       setSave(s);
+      window.DSAuth?.prioritizeCloudSaveSync?.();
       const sentName = stack.name || invIt.name || "Item";
       showActionSuccess("Sent to Bank", { ...stack, name: sentName }, sendQty);
-    });
+    };
+    bankBtn?.addEventListener("pointerup", handleSendToBank);
+    bankBtn?.addEventListener("click", handleSendToBank);
   }
 
   // -------------------------

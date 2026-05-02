@@ -16,6 +16,7 @@
 
   const num = (v, f = 0) => (Number.isFinite(Number(v)) ? Number(v) : f);
   const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+  const isSigilImage = (img) => /^images\/items\/sigils\//i.test(String(img || ""));
 
   let selectedIndex = null;
   let activeFilter = "all";
@@ -221,7 +222,7 @@
     const border = getBorderForItem(item);
     bankPreview.innerHTML = `
       <div style="width:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;text-align:center;">
-        <img src="${item.img || ""}" alt="${item.name || "Item"}" style="width:92px;height:92px;border-radius:12px;border:2px solid ${border};background:${imgBg};object-fit:cover;">
+        <img src="${item.img || ""}" alt="${item.name || "Item"}" style="width:92px;height:92px;border-radius:12px;border:2px solid ${border};background:${imgBg};object-fit:${isSigilImage(item.img) ? "contain" : "cover"};padding:${isSigilImage(item.img) ? "6px" : "0"};box-sizing:border-box;">
         <div style="font-weight:800;font-size:13px;line-height:1.2;color:#f3ead6;text-shadow:0 1px 0 rgba(74,47,14,.95),0 0 8px rgba(0,0,0,.3),0 2px 6px rgba(0,0,0,.58);">${item.name || "Item"}</div>
         <div style="display:flex;align-items:center;justify-content:center;gap:6px;flex-wrap:nowrap;width:100%;max-width:160px;">
           <button id="bankWithdrawBtn" class="townBtn" type="button" style="min-width:96px;padding:8px 10px;font-size:12px;">Withdraw</button>
@@ -320,6 +321,12 @@
         const img = document.createElement("img");
         img.src = it.img;
         img.alt = it.name || "Item";
+        if (isSigilImage(it.img)) {
+          img.style.objectFit = "contain";
+          img.style.padding = "3px";
+          img.style.boxSizing = "border-box";
+          img.style.background = "rgba(0,0,0,.18)";
+        }
         window.DSImage?.bindFallback?.(img);
         slot.appendChild(img);
       }
