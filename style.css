@@ -734,7 +734,7 @@ a:hover{ text-decoration: underline; }
 }
 
 .fightMobCard.lootOpen{
-  z-index: 40;
+  z-index: 10000;
 }
 
 .fightMobCardInner{
@@ -827,7 +827,7 @@ a:hover{ text-decoration: underline; }
   top: 8px;
   width: 260px;
   max-width: min(260px, calc(100vw - 40px));
-  z-index: 120;
+  z-index: 10000;
   padding: 10px;
   border-radius: 12px;
   border: 1px solid var(--card-medieval-border);
@@ -880,7 +880,7 @@ a:hover{ text-decoration: underline; }
 }
 
 .dungeonCard.lootOpen{
-  z-index: 40;
+  z-index: 10000;
 }
 
 .dungeonCardInner{
@@ -1036,7 +1036,7 @@ a:hover{ text-decoration: underline; }
   top: 8px;
   width: 260px;
   max-width: min(260px, calc(100vw - 40px));
-  z-index: 120;
+  z-index: 10000;
   padding: 10px;
   border-radius: 12px;
   border: 1px solid var(--card-medieval-border);

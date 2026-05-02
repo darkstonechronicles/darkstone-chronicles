@@ -674,9 +674,9 @@
     const style = document.createElement("style");
     style.id = "dsMarketSaleNoticeStyles";
     style.textContent = `
-      .dsMarketSaleNotice{position:fixed;right:18px;top:96px;z-index:520;min-width:230px;max-width:min(360px,calc(100vw - 24px));border:1px solid rgba(55,190,104,.9);border-radius:8px;background:linear-gradient(180deg,rgba(15,46,30,.98),rgba(7,20,13,.98));box-shadow:0 16px 46px rgba(0,0,0,.42),inset 0 1px 0 rgba(204,255,220,.12);color:#9dffb4;padding:11px 13px;font-weight:900;text-align:left;cursor:pointer;}
+      .dsMarketSaleNotice{position:fixed;right:18px;top:96px;z-index:10000;min-width:230px;max-width:min(360px,calc(100vw - 24px));border:1px solid rgba(55,190,104,.9);border-radius:8px;background:linear-gradient(180deg,rgba(15,46,30,.98),rgba(7,20,13,.98));box-shadow:0 16px 46px rgba(0,0,0,.42),inset 0 1px 0 rgba(204,255,220,.12);color:#9dffb4;padding:11px 13px;font-weight:900;text-align:left;cursor:pointer;}
       .dsMarketSaleNotice small{display:block;margin-top:3px;color:#d7ffe0;font-weight:700;opacity:.9;}
-      .dsMarketSalePopupBackdrop{position:fixed;inset:0;z-index:521;display:flex;align-items:center;justify-content:center;padding:18px;background:rgba(0,0,0,.72);}
+      .dsMarketSalePopupBackdrop{position:fixed;inset:0;z-index:11000;display:flex;align-items:center;justify-content:center;padding:18px;background:rgba(0,0,0,.72);}
       .dsMarketSalePopup{width:min(560px,96vw);border:1px solid rgba(55,190,104,.86);border-radius:10px;background:linear-gradient(180deg,rgba(22,23,31,.98),rgba(9,10,14,.98));box-shadow:0 24px 80px rgba(0,0,0,.62),inset 0 1px 0 rgba(204,255,220,.08);padding:16px;color:#f3ead6;}
       .dsMarketSalePopupTop{display:flex;gap:13px;align-items:center;}
       .dsMarketSalePopupTop img{width:72px;height:72px;border-radius:8px;border:2px solid #333;background:#101219;object-fit:cover;}
@@ -1885,7 +1885,7 @@
         margin:12px auto 10px;
         padding:0 10px;
         position:relative;
-        z-index:260;
+        z-index:9000;
         pointer-events:none;
       }
       #hudRoot,
@@ -2395,18 +2395,31 @@
         gap:2px;
         flex:0 0 auto;
         pointer-events:auto;
+        position:relative;
+        z-index:10000;
       }
       .dsHeaderAccount{
         position:relative;
         flex:0 0 auto;
-        z-index:280;
+        z-index:10000;
         pointer-events:auto;
       }
       .dsHeaderPresence{
         position:relative;
         flex:0 0 auto;
-        z-index:280;
+        z-index:10000;
         pointer-events:auto;
+      }
+      .dsHeaderAccount:has(.dsAccountMenuOpen),
+      .dsHeaderPresence:has(.dsAccountMenuOpen){
+        z-index:10002;
+      }
+      .dsHeaderAccount.dsMenuLayerOpen,
+      .dsHeaderPresence.dsMenuLayerOpen{
+        z-index:10002;
+      }
+      .dsHeaderControls:has(.dsAccountMenuOpen){
+        z-index:10002;
       }
       .dsAccountBtn{
         min-height:42px;
@@ -2519,7 +2532,7 @@
           inset 0 -10px 18px rgba(0,0,0,.14),
           0 18px 42px rgba(0,0,0,.36);
         display:none;
-        z-index:320;
+        z-index:10000;
         pointer-events:auto;
       }
       .dsAccountMenu.dsAccountMenuOpen{
@@ -4819,12 +4832,14 @@ function claimActiveChallengeFromQuest(){
     accountBtn.setAttribute("aria-expanded", "false");
     accountMenu.classList.remove("dsAccountMenuOpen");
     accountMenu.setAttribute("aria-hidden", "true");
+    accountMenu.closest(".dsHeaderAccount")?.classList.remove("dsMenuLayerOpen");
   };
   const openAccountMenu = () => {
     if (!accountBtn || !accountMenu) return;
     accountBtn.setAttribute("aria-expanded", "true");
     accountMenu.classList.add("dsAccountMenuOpen");
     accountMenu.setAttribute("aria-hidden", "false");
+    accountMenu.closest(".dsHeaderAccount")?.classList.add("dsMenuLayerOpen");
   };
   accountBtn?.addEventListener("click", (e) => {
     e.stopPropagation();
@@ -5296,7 +5311,7 @@ function ensureAdminToolsModal() {
     "display:none",
     "position:fixed",
     "inset:0",
-    "z-index:1000",
+    "z-index:11000",
     "background:rgba(4,6,12,.72)",
     "backdrop-filter:blur(8px)",
     "padding:18px",
@@ -6133,7 +6148,7 @@ function ensureInventoryContextMenu() {
   menu.id = "dsInventoryContextMenu";
   Object.assign(menu.style, {
     position: "fixed",
-    zIndex: "240",
+    zIndex: "10000",
     display: "none",
     minWidth: "220px",
     padding: "8px",

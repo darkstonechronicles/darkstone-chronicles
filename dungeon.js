@@ -1,4 +1,4 @@
-﻿// dungeon.js β€” Darkstone Chronicles (Dungeons: entry + run) //668
+// dungeon.js - Darkstone Chronicles (Dungeons: entry + run) //668
 // Works on:
 // - dungeon.html (list)  -> DS_DUNGEON.enterCrypt()
 // - dungeon_run.html (battle) -> auto-start if active run exists
@@ -18,7 +18,7 @@
   const ORB_OF_CREATION_ITEM = { type:"material", id:"orb_of_creation", name:"Orb of Creation", img:"images/ui/orb_of_creation.webp" };
   const PNG_ONLY_DUNGEON_ASSETS = new Set([
     "images/dungeons/crypt_thumb.png",
-    "images/mobs/dungeons/storm/gust_watcher.png"
+    "images/mobs/dungeons/stormwatch_spire/gust_watcher.png"
   ]);
   const ROUGH_GEM_POOL = [
     { type:"material", id:"rough_ruby", name:"Rough Ruby", img:"images/gems/rough_ruby.webp" },
@@ -78,7 +78,7 @@
 
       <div id="waveCard" style="display:none;position:relative;grid-template-columns:1fr auto 1fr;align-items:center;gap:16px;background:#151520;border-radius:12px;border:2px solid #333;padding:42px 12px 18px;min-height:186px;box-sizing:border-box;">
         <div id="runTimerWrap" style="position:absolute;left:10px;top:8px;display:flex;align-items:center;gap:6px;opacity:.8;font-size:12px;pointer-events:none;">
-          <span>β±</span>
+          <span>Time</span>
           <span id="runTimer" style="font-weight:800;letter-spacing:.4px;">00:00</span>
         </div>
         <div style="position:absolute;left:50%;top:12px;transform:translateX(-50%);display:flex;justify-content:center;align-items:center;pointer-events:none;">
@@ -156,6 +156,7 @@
     {
       id: "ice",
       name: "Frostveil Citadel",
+      assetFolder: "frostveil_citadel",
       setId: "frostveil",
       setName: "Frostveil",
       reqLevel: 10,
@@ -173,6 +174,7 @@
     {
       id: "ash",
       name: "Ashen Vault",
+      assetFolder: "ashen_vault",
       setId: "ashen_guard",
       setName: "Ashen Guard",
       reqLevel: 20,
@@ -183,13 +185,15 @@
         ["smoke_imp", "Smoke Imp"],
         ["char_hound", "Char Hound"],
         ["ember_fiend", "Ember Fiend"],
-        ["slag_keeper", "Slag Keeper"]
+        ["slag_keeper", "Slag Keeper"],
+        ["obsidian_scorcher", "Obsidian Scorcher"]
       ],
       boss: ["vault_pyrelord", "Vault Pyrelord"]
     },
     {
       id: "bog",
       name: "Mirewake Hollow",
+      assetFolder: "mirewake_hollow",
       setId: "mirewake",
       setName: "Mirewake",
       reqLevel: 30,
@@ -200,13 +204,16 @@
         ["bog_shambler", "Bog Shambler"],
         ["miretoad", "Miretoad"],
         ["rot_stalker", "Rot Stalker"],
-        ["plague_bulwark", "Plague Bulwark"]
+        ["plague_bulwark", "Plague Bulwark"],
+        ["swamp_lurker", "Swamp Lurker"],
+        ["bogmaw_ravager", "Bogmaw Ravager"]
       ],
       boss: ["mirewake_abomination", "Mirewake Abomination"]
     },
     {
       id: "thorn",
       name: "Thornmaw Den",
+      assetFolder: "thornmaw_den",
       setId: "thornbound",
       setName: "Thornbound",
       reqLevel: 40,
@@ -217,13 +224,17 @@
         ["razor_vine", "Razor Vine"],
         ["thorn_howler", "Thorn Howler"],
         ["root_mauler", "Root Mauler"],
-        ["sap_guardian", "Sap Guardian"]
+        ["sap_guardian", "Sap Guardian"],
+        ["briarbone_stalker", "Briarbone Stalker"],
+        ["fungal_devourer", "Fungal Devourer"],
+        ["thornwing_horror", "Thornwing Horror"]
       ],
       boss: ["thornmaw_matriarch", "Thornmaw Matriarch"]
     },
     {
       id: "storm",
       name: "Stormwatch Spire",
+      assetFolder: "stormwatch_spire",
       setId: "stormwatch",
       setName: "Stormwatch",
       reqLevel: 50,
@@ -234,13 +245,18 @@
         ["hail_hunter", "Hail Hunter"],
         ["thunderbound_scout", "Thunderbound Scout"],
         ["storm_warden", "Storm Warden"],
-        ["skybreaker", "Skybreaker"]
+        ["skybreaker", "Skybreaker"],
+        ["lightning_wraith", "Lightning Wraith"],
+        ["thunder_colossus", "Thunder Colossus"],
+        ["tempest_lurker", "Tempest Lurker"],
+        ["stormclaw_behemoth", "Stormclaw Behemoth"]
       ],
       boss: ["tempest_archon", "Tempest Archon"]
     },
     {
       id: "dusk",
       name: "Duskwall Sanctum",
+      assetFolder: "duskwall_sanctum",
       setId: "duskwall",
       setName: "Duskwall",
       reqLevel: 60,
@@ -251,13 +267,19 @@
         ["gloom_knight", "Gloom Knight"],
         ["veil_serpent", "Veil Serpent"],
         ["night_binder", "Night Binder"],
-        ["twilight_colossus", "Twilight Colossus"]
+        ["twilight_colossus", "Twilight Colossus"],
+        ["shadow_reaper", "Shadow Reaper"],
+        ["dread_sentinel", "Dread Sentinel"],
+        ["void_matron", "Void Matron"],
+        ["abyssal_maw", "Abyssal Maw"],
+        ["eclipse_guardian", "Eclipse Guardian"]
       ],
       boss: ["duskwall_revenant", "Duskwall Revenant"]
     },
     {
       id: "sand",
       name: "Sunscar Pyramid",
+      assetFolder: "sunscar_pyramid",
       setId: "sunscar",
       setName: "Sunscar",
       reqLevel: 70,
@@ -268,13 +290,20 @@
         ["scarab_sworn", "Scarab Sworn"],
         ["dune_reaver", "Dune Reaver"],
         ["sun_guard", "Sun Guard"],
-        ["glass_juggernaut", "Glass Juggernaut"]
+        ["glass_juggernaut", "Glass Juggernaut"],
+        ["sunscar_scorpion", "Sunscar Scorpion"],
+        ["amber_watcher", "Amber Watcher"],
+        ["tomb_breaker", "Tomb Breaker"],
+        ["cinder_gargoyle", "Cinder Gargoyle"],
+        ["solar_wrath", "Solar Wrath"],
+        ["cursed_jackal", "Cursed Jackal"]
       ],
       boss: ["pharaoh_of_cinders", "Pharaoh of Cinders"]
     },
     {
       id: "void",
       name: "Voidscar Nexus",
+      assetFolder: "voidscar_nexus",
       setId: "voidscar",
       setName: "Voidscar",
       reqLevel: 80,
@@ -285,13 +314,21 @@
         ["void_drone", "Void Drone"],
         ["nexus_harrier", "Nexus Harrier"],
         ["starved_watcher", "Starved Watcher"],
-        ["abyss_engine", "Abyss Engine"]
+        ["abyss_engine", "Abyss Engine"],
+        ["voidheart_aberration", "Voidheart Aberration"],
+        ["umbral_seer", "Umbral Seer"],
+        ["nexus_oracle", "Nexus Oracle"],
+        ["riftwing_terror", "Riftwing Terror"],
+        ["starless_arcanist", "Starless Arcanist"],
+        ["abyssal_ravener", "Abyssal Ravener"],
+        ["oblivion_bulwark", "Oblivion Bulwark"]
       ],
       boss: ["voidscar_sovereign", "Voidscar Sovereign"]
     },
     {
       id: "blood",
       name: "Bloodforge Bastion",
+      assetFolder: "bloodforge_bastion",
       setId: "bloodforge",
       setName: "Bloodforge",
       reqLevel: 90,
@@ -302,13 +339,22 @@
         ["blood_smith", "Blood Smith"],
         ["forge_hound", "Forge Hound"],
         ["chain_colossus", "Chain Colossus"],
-        ["anvil_tyrant", "Anvil Tyrant"]
+        ["anvil_tyrant", "Anvil Tyrant"],
+        ["bloodplate_ravager", "Bloodplate Ravager"],
+        ["cinderbound_herald", "Cinderbound Herald"],
+        ["furnace_warlord", "Furnace Warlord"],
+        ["molten_widow", "Molten Widow"],
+        ["ironmaw_breaker", "Ironmaw Breaker"],
+        ["emberfang_hound", "Emberfang Hound"],
+        ["blood_anvil_smith", "Blood Anvil Smith"],
+        ["chainfire_reaper", "Chainfire Reaper"]
       ],
       boss: ["bloodforge_overlord", "Bloodforge Overlord"]
     },
     {
       id: "celestial",
       name: "Celestial Apex",
+      assetFolder: "celestial_apex",
       setId: "celestial_apex",
       setName: "Celestial Apex",
       reqLevel: 100,
@@ -319,7 +365,16 @@
         ["astral_keeper", "Astral Keeper"],
         ["comet_stalker", "Comet Stalker"],
         ["halo_sentinel", "Halo Sentinel"],
-        ["zenith_devourer", "Zenith Devourer"]
+        ["zenith_devourer", "Zenith Devourer"],
+        ["astral_conjurer", "Astral Conjurer"],
+        ["seraphic_warden", "Seraphic Warden"],
+        ["starforged_magus", "Starforged Magus"],
+        ["radiant_oracle", "Radiant Oracle"],
+        ["zenith_lancer", "Zenith Lancer"],
+        ["halo_construct", "Halo Construct"],
+        ["dawnblade_seraph", "Dawnblade Seraph"],
+        ["empyrean_justiciar", "Empyrean Justiciar"],
+        ["starlight_fenrir", "Starlight Fenrir"]
       ],
       boss: ["apex_paragon", "Apex Paragon"]
     }
@@ -408,14 +463,15 @@
     const halfAtk = bossAtk * 0.5;
     const halfDef = bossDef * 0.5;
     const scales = [0.82, 0.9, 1.0, 1.08, 1.16];
+    const scaleForWave = (idx) => scales[idx] ?? (scales[scales.length - 1] + ((idx - scales.length + 1) * 0.08));
 
     return waveDefs.map(([mobId, mobName], idx) => ({
       id: mobId,
       name: mobName,
       lvl: reqLevel + (idx * 2),
-      hp: Math.max(1, Math.round(halfHp * scales[idx])),
-      atk: Math.max(1, Math.round(halfAtk * scales[idx])),
-      def: Math.max(0, Math.round(halfDef * scales[idx])),
+      hp: Math.max(1, Math.round(halfHp * scaleForWave(idx))),
+      atk: Math.max(1, Math.round(halfAtk * scaleForWave(idx))),
+      def: Math.max(0, Math.round(halfDef * scaleForWave(idx))),
       img: preferredDungeonAsset(`images/mobs/dungeons/${dungeonId}/${mobId}.png`)
     }));
   }
@@ -448,8 +504,8 @@
         dropMode: "setChance",
         setChance: 1 / 25,
         setItems: makeSetItems(def.setId, def.setName, def.reqLevel),
-        waves: makeWaves(def.id, def.waves, def.reqLevel, tier),
-        boss: makeBoss(def.id, def.boss, def.reqLevel, tier)
+        waves: makeWaves(def.assetFolder || def.id, def.waves, def.reqLevel, tier),
+        boss: makeBoss(def.assetFolder || def.id, def.boss, def.reqLevel, tier)
       }];
     })
   );
@@ -951,12 +1007,12 @@
     return Math.max(1, v);
   }
 
-  // Boss: if att <= def => 0β€“1 dmg; else ~difference with small variance
+  // Boss: if att <= def => 0-1 dmg; else ~difference with small variance
   function dmgBoss(att, def){
     att = num(att,0); def = num(def,0);
     if(att <= def) return (Math.random() < 0.5) ? 0 : 1;
     const diff = att - def;
-    const v = 0.90 + Math.random() * 0.20; // Β±10%
+    const v = 0.90 + Math.random() * 0.20; // ±10%
     return Math.max(1, Math.floor(diff * v));
   }
 
@@ -1591,7 +1647,7 @@
     state.enemy = { ...mob, hpMax: mob.hp, hp: mob.hp };
 
     clearLog();
-    pushLog(`π§ Wave ${state.waveIndex + 1}: ${mob.name}`);
+    pushLog(`Wave ${state.waveIndex + 1}: ${mob.name}`);
 
     const hero = getHeroRuntime();
     renderVS(hero, state.enemy, "Wave " + (state.waveIndex + 1) + "/" + state.dungeon.waves.length);
@@ -1910,7 +1966,7 @@
       panel.style.maxHeight = `${Math.round(panelHeight)}px`;
       panel.style.overflowY = "auto";
       panel.style.overflowX = "hidden";
-      panel.style.zIndex = "120";
+      panel.style.zIndex = "10000";
       return;
     }
 
@@ -1923,7 +1979,7 @@
     panel.style.maxHeight = "";
     panel.style.overflowY = "";
     panel.style.overflowX = "";
-    panel.style.zIndex = "20";
+    panel.style.zIndex = "10000";
   }
 
   function openDungeonLootPanelFor(lootPanel, currentOpenPanelRef, anchorEl = null) {
@@ -2128,9 +2184,9 @@
         e.preventDefault();
         e.stopPropagation();
         if (!lootPanel) return;
-        const willOpen = lootPanel.style.display === "none";
+        const willOpen = getComputedStyle(lootPanel).display === "none";
         __dungeonListOpenPanel = willOpen
-          ? openDungeonLootPanelFor(lootPanel, __dungeonListOpenPanel, lootBtn)
+          ? openDungeonLootPanelFor(lootPanel, __dungeonListOpenPanel, e.currentTarget || lootBtn)
           : closeDungeonLootPanelFor(lootPanel, __dungeonListOpenPanel);
       };
 
@@ -2366,13 +2422,6 @@
     if(state.running) persistRunState();
   });
 })();
-
-
-
-
-
-
-
 
 
 

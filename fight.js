@@ -2230,7 +2230,7 @@ function ensureFightShellStyles() {
         overflow-y: auto !important;
         overflow-x: hidden !important;
         padding: 7px !important;
-        z-index: 120 !important;
+        z-index: 10000 !important;
       }
       .mobLootPanel > div:first-child { margin-bottom: 6px !important; }
       .mobLootPanel > div:first-child > div:first-child { font-size: 11px !important; }
@@ -2327,19 +2327,20 @@ function applyLootPanelLayout(panel, anchorEl = null) {
     panel.style.maxHeight = `${Math.round(panelHeight)}px`;
     panel.style.overflowY = "auto";
     panel.style.overflowX = "hidden";
-    panel.style.zIndex = "120";
-  } else {
-    panel.style.position = "absolute";
-    panel.style.left = "calc(100% + 8px)";
-    panel.style.top = "8px";
-    panel.style.transform = "";
-    panel.style.width = "260px";
-    panel.style.maxWidth = "min(260px,calc(100vw - 40px))";
-    panel.style.maxHeight = "";
-    panel.style.overflowY = "";
-    panel.style.overflowX = "";
-    panel.style.zIndex = "20";
+    panel.style.zIndex = "10000";
+    return;
   }
+
+  panel.style.position = "absolute";
+  panel.style.left = "calc(100% + 8px)";
+  panel.style.top = "8px";
+  panel.style.transform = "";
+  panel.style.width = "260px";
+  panel.style.maxWidth = "min(260px,calc(100vw - 40px))";
+  panel.style.maxHeight = "";
+  panel.style.overflowY = "";
+  panel.style.overflowX = "";
+  panel.style.zIndex = "10000";
 }
 
 // =========================
@@ -3115,9 +3116,9 @@ zone.mobs.forEach(m => {
       e.stopPropagation();
       if (!lootPanel) return;
 
-      const willOpen = lootPanel.style.display === "none";
+      const willOpen = getComputedStyle(lootPanel).display === "none";
       openLootPanel = willOpen
-        ? openLootPanelFor(lootPanel, openLootPanel, lootBtn)
+        ? openLootPanelFor(lootPanel, openLootPanel, e.currentTarget || lootBtn)
         : closeLootPanelFor(lootPanel, openLootPanel);
     };
     lootBtn?.addEventListener("click", toggleLootPanel);
