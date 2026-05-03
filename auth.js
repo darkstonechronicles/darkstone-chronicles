@@ -50,6 +50,7 @@
       ready: false,
       preparing: null,
       syncing: false,
+      syncingPromise: null,
       pendingSync: false,
       syncTimer: 0,
       revision: 0,
@@ -783,10 +784,20 @@
     }
   }
 
-  async function syncCloudSaveNow() {
-    if (!state.client || !state.user?.id || state.cloud.syncing || !state.cloud.ready) return;
-    if (!(await validateActiveSession())) return;
+  async function syncCloudSaveNow(options = {}) {
+    const waitForPending = options?.waitForPending === true;
+    if (!state.client || !state.user?.id || !state.cloud.ready) return false;
+    if (state.cloud.syncing) {
+      state.cloud.pendingSync = true;
+      if (waitForPending && state.cloud.syncingPromise) {
+        await state.cloud.syncingPromise.catch(() => false);
+        return syncCloudSaveNow(options);
+      }
+      return state.cloud.syncingPromise || false;
+    }
+    if (!(await validateActiveSession())) return false;
     state.cloud.syncing = true;
+    state.cloud.syncingPromise = (async () => {
     try {
       const localSave = readLocalSave();
       const saveResult = await writeRemoteSaveWithRevision(localSave);
@@ -802,7 +813,7 @@
           window.dispatchEvent(new CustomEvent("ds:cloud-save", {
             detail: { status: "synced", revision: state.cloud.revision, source: "remote" }
           }));
-          return;
+          return false;
         }
         throw new Error(saveResult.reason || "Cloud save sync failed.");
       }
@@ -814,17 +825,25 @@
       window.dispatchEvent(new CustomEvent("ds:cloud-save", {
         detail: { status: "synced", revision: state.cloud.revision }
       }));
+      return true;
     } catch (error) {
       console.error("[auth] cloud save sync failed", error);
       window.dispatchEvent(new CustomEvent("ds:cloud-save", {
         detail: { status: "error", error: error?.message || String(error) }
       }));
+      return false;
     } finally {
       state.cloud.syncing = false;
       if (state.cloud.pendingSync) {
         state.cloud.pendingSync = false;
         scheduleCloudSaveSync(0);
       }
+    }
+    })();
+    try {
+      return await state.cloud.syncingPromise;
+    } finally {
+      state.cloud.syncingPromise = null;
     }
   }
 

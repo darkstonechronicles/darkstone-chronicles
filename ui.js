@@ -8072,11 +8072,12 @@ function openInspector(invIndex, item) {
     bankQtyInput?.addEventListener("change", updateBankBtn);
     updateBankBtn();
 
-    const handleSendToBank = (event) => {
+    const handleSendToBank = async (event) => {
       event?.preventDefault?.();
       if (!bankBtn || bankBtn.dataset.busy === "1") return;
       bankBtn.dataset.busy = "1";
       bankBtn.disabled = true;
+      msg("Sending to bank...");
 
       const s = ensureSave(loadSave());
       const invIt = s.inventory[invIndex];
@@ -8098,8 +8099,15 @@ function openInspector(invIndex, item) {
 
       addToStack(s.bank, stack, num(stack.quantity ?? stack.qty, 1));
       setSave(s);
-      window.DSAuth?.prioritizeCloudSaveSync?.();
+      const synced = await window.DSAuth?.syncCloudSaveNow?.({ waitForPending: true });
       const sentName = stack.name || invIt.name || "Item";
+      if (synced === false) {
+        msg("Saved locally. Cloud sync will retry automatically.");
+        window.DSAuth?.prioritizeCloudSaveSync?.();
+        delete bankBtn.dataset.busy;
+        bankBtn.disabled = false;
+        return;
+      }
       showActionSuccess("Sent to Bank", { ...stack, name: sentName }, sendQty);
     };
     bankBtn?.addEventListener("pointerup", handleSendToBank);
