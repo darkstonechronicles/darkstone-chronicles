@@ -29,6 +29,9 @@
     url: "https://ibpwrvtsnuhbylexuoil.supabase.co",
     anonKey: "sb_publishable_TLEC6vRVLjVzDOsmbXs4uA_X0MUXTYi"
   };
+  const ADMIN_EMAIL_ALLOWLIST = new Set([
+    "mixaliskentros7@gmail.com",
+  ]);
   const PARTY_ACTION_FUNCTION_DEFAULT = "party-action";
   const PARTY_ACTION_FUNCTION_OVERRIDE_KEY = "ds_party_action_function_override";
 
@@ -971,7 +974,10 @@
       return false;
     }
 
+    const emailIsAllowlisted = ADMIN_EMAIL_ALLOWLIST.has(String(state.user?.email || "").trim().toLowerCase());
+
     if (state.admin.checked && state.admin.checkedUserId === state.user.id) {
+      state.admin.isAdmin = !!state.admin.isAdmin || emailIsAllowlisted;
       return state.admin.isAdmin;
     }
 
@@ -986,6 +992,20 @@
 
       if (error) {
         console.error("[auth] admin status check failed", error);
+        state.admin.checkedUserId = state.user.id;
+        state.admin.checked = true;
+        state.admin.isAdmin = emailIsAllowlisted;
+        return state.admin.isAdmin;
+      }
+
+      if (emailIsAllowlisted || data) {
+        state.admin.checkedUserId = state.user.id;
+        state.admin.checked = true;
+        state.admin.isAdmin = true;
+        return true;
+      }
+
+      if (!data) {
         state.admin.checkedUserId = state.user.id;
         state.admin.checked = true;
         state.admin.isAdmin = false;

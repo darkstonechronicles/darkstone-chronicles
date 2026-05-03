@@ -6,6 +6,10 @@ const corsHeaders = {
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 
+const ADMIN_EMAIL_ALLOWLIST = new Set([
+  "mixaliskentros7@gmail.com",
+]);
+
 type GrantItem = Record<string, unknown> & {
   type?: string;
   slot?: string;
@@ -452,7 +456,8 @@ Deno.serve(async (req) => {
     return json({ error: adminError.message }, { status: 500 });
   }
 
-  if (!adminRow) {
+  const adminEmail = String(user.email || "").trim().toLowerCase();
+  if (!adminRow && !ADMIN_EMAIL_ALLOWLIST.has(adminEmail)) {
     return json({ error: "Forbidden. Admin access required." }, { status: 403 });
   }
 
