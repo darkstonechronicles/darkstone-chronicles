@@ -177,6 +177,26 @@
     .replace(/'/g, "&#39;");
   const stripPlus = (name) => String(name || "").replace(/\s*\+\d+$/, "");
   const isSigilImage = (img) => /^images\/items\/sigils\//i.test(String(img || ""));
+  const SIGIL_IMAGE_BY_KEY = {
+    war_sigil: "images/items/sigils/war_sigil.webp",
+    "war sigil": "images/items/sigils/war_sigil.webp",
+    crypt_sigil: "images/items/sigils/crypt_sigil.webp",
+    "crypt sigil": "images/items/sigils/crypt_sigil.webp",
+    ore_sigil: "images/items/sigils/ore_sigil.webp",
+    "ore sigil": "images/items/sigils/ore_sigil.webp",
+    wood_sigil: "images/items/sigils/wood_sigil.webp",
+    "wood sigil": "images/items/sigils/wood_sigil.webp",
+    verdant_sigil: "images/items/sigils/verdant_sigil.webp",
+    "verdant sigil": "images/items/sigils/verdant_sigil.webp",
+    warden_sigil: "images/items/sigils/warden_sigil.webp",
+    "warden sigil": "images/items/sigils/warden_sigil.webp",
+  };
+  function canonicalSigilImage(item) {
+    if (!item || typeof item !== "object") return "";
+    const idKey = String(item.id || "").trim().toLowerCase();
+    const nameKey = String(item.name || "").trim().toLowerCase();
+    return SIGIL_IMAGE_BY_KEY[idKey] || SIGIL_IMAGE_BY_KEY[nameKey] || "";
+  }
   function roundLevelXP(v){
     v = Math.max(1, Math.round(Number(v) || 1));
     if (v >= 10000000) return Math.ceil(v / 50000) * 50000;
@@ -610,6 +630,11 @@
 
   function normalizeItemAsset(item) {
     if (!item || typeof item !== "object") return;
+    const sigilImg = canonicalSigilImage(item);
+    if (sigilImg) {
+      item.img = sigilImg;
+      return;
+    }
     if (item.img != null) item.img = normalizeAssetPath(item.img);
   }
 

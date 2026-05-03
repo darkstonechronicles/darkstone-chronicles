@@ -17,6 +17,28 @@
   const num = (v, f = 0) => (Number.isFinite(Number(v)) ? Number(v) : f);
   const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
   const isSigilImage = (img) => /^images\/items\/sigils\//i.test(String(img || ""));
+  const SIGIL_IMAGE_BY_KEY = {
+    war_sigil: "images/items/sigils/war_sigil.webp",
+    "war sigil": "images/items/sigils/war_sigil.webp",
+    crypt_sigil: "images/items/sigils/crypt_sigil.webp",
+    "crypt sigil": "images/items/sigils/crypt_sigil.webp",
+    ore_sigil: "images/items/sigils/ore_sigil.webp",
+    "ore sigil": "images/items/sigils/ore_sigil.webp",
+    wood_sigil: "images/items/sigils/wood_sigil.webp",
+    "wood sigil": "images/items/sigils/wood_sigil.webp",
+    verdant_sigil: "images/items/sigils/verdant_sigil.webp",
+    "verdant sigil": "images/items/sigils/verdant_sigil.webp",
+    warden_sigil: "images/items/sigils/warden_sigil.webp",
+    "warden sigil": "images/items/sigils/warden_sigil.webp",
+  };
+
+  function normalizeSigilImage(item) {
+    if (!item || typeof item !== "object") return;
+    const idKey = String(item.id || "").trim().toLowerCase();
+    const nameKey = String(item.name || "").trim().toLowerCase();
+    const img = SIGIL_IMAGE_BY_KEY[idKey] || SIGIL_IMAGE_BY_KEY[nameKey] || "";
+    if (img) item.img = img;
+  }
 
   let selectedIndex = null;
   let activeFilter = "all";
@@ -45,6 +67,8 @@
     if (!Array.isArray(save.inventory)) save.inventory = [];
     if (!Array.isArray(save.bank)) save.bank = [];
     if (!Number.isFinite(Number(save.inventoryMaxSlots))) save.inventoryMaxSlots = 1000;
+    save.inventory.forEach(normalizeSigilImage);
+    save.bank.forEach(normalizeSigilImage);
     return save;
   }
 
