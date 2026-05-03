@@ -122,6 +122,107 @@
     '"': "&quot;",
     "'": "&#39;"
   }[c]));
+  const WEBP_SIBLING_PREFIXES = [
+    "images/charms/",
+    "images/dungeons/",
+    "images/mobs/dungeons/",
+    "images/mobs/fighting/",
+    "images/items/dropsfromzones/",
+    "images/items/forge_crafted/",
+    "images/items/sets/",
+    "images/items/sigils/",
+    "images/heroes/",
+    "images/wood/logs/",
+    "images/gems/",
+    "images/pets/",
+    "images/alchemy/potions/",
+    "images/alchemy/items/",
+    "images/ui/"
+  ];
+  const SET_NAME_TO_ID = {
+    frostveil: "frostveil",
+    "ashen guard": "ashen_guard",
+    mirewake: "mirewake",
+    thornbound: "thornbound",
+    stormwatch: "stormwatch",
+    duskwall: "duskwall",
+    sunscar: "sunscar",
+    voidscar: "voidscar",
+    bloodforge: "bloodforge",
+    "celestial apex": "celestial_apex"
+  };
+  const SET_SLOT_FILE = {
+    helmet: "helm",
+    helm: "helm",
+    chest: "cuirass",
+    cuirass: "cuirass",
+    belt: "belt",
+    pants: "pants",
+    gloves: "gloves",
+    boots: "boots"
+  };
+  const SIGIL_IMAGE_BY_KEY = {
+    war_sigil: "images/items/sigils/war_sigil.webp",
+    "war sigil": "images/items/sigils/war_sigil.webp",
+    crypt_sigil: "images/items/sigils/crypt_sigil.webp",
+    "crypt sigil": "images/items/sigils/crypt_sigil.webp",
+    ore_sigil: "images/items/sigils/ore_sigil.webp",
+    "ore sigil": "images/items/sigils/ore_sigil.webp",
+    wood_sigil: "images/items/sigils/wood_sigil.webp",
+    "wood sigil": "images/items/sigils/wood_sigil.webp",
+    verdant_sigil: "images/items/sigils/verdant_sigil.webp",
+    "verdant sigil": "images/items/sigils/verdant_sigil.webp",
+    warden_sigil: "images/items/sigils/warden_sigil.webp",
+    "warden sigil": "images/items/sigils/warden_sigil.webp",
+  };
+
+  function getWebpSiblingPath(src) {
+    const value = String(src || "").trim();
+    if (!/\.png(?:$|[?#])/i.test(value)) return "";
+    const normalized = value.toLowerCase();
+    if (!WEBP_SIBLING_PREFIXES.some((prefix) => normalized.startsWith(prefix))) return "";
+    return value.replace(/\.png(?=$|[?#])/i, ".webp");
+  }
+
+  function normalizeAssetPath(src) {
+    const value = String(src || "").trim();
+    if (!value) return "";
+    if (/^images\/hero\.png(?:$|[?#])/i.test(value)) return "images/heroes/hero_1.webp";
+    return getWebpSiblingPath(value) || value;
+  }
+
+  function canonicalItemImage(item) {
+    if (!item || typeof item !== "object") return "";
+    const idKey = String(item.id || "").trim().toLowerCase();
+    const nameKey = String(item.name || item.baseName || "").trim().toLowerCase();
+    const sigilImg = SIGIL_IMAGE_BY_KEY[idKey] || SIGIL_IMAGE_BY_KEY[nameKey] || "";
+    if (sigilImg) return sigilImg;
+
+    const rawSetId = String(item.setId || "").trim().toLowerCase();
+    const setId = rawSetId || Object.entries(SET_NAME_TO_ID)
+      .find(([name]) => nameKey.startsWith(`${name} `))?.[1] || "";
+    const rawSlot = String(item.slot || "").trim().toLowerCase();
+    const slotFromName = Object.keys(SET_SLOT_FILE)
+      .find((slot) => nameKey.endsWith(` ${slot}`)) || "";
+    const slotFile = SET_SLOT_FILE[rawSlot] || SET_SLOT_FILE[slotFromName] || "";
+    if (setId && slotFile) return `images/items/sets/${setId}/${setId}_${slotFile}.webp`;
+    return "";
+  }
+
+  function normalizeMarketItem(item) {
+    if (!item || typeof item !== "object") return item;
+    const next = { ...item };
+    next.img = canonicalItemImage(next) || normalizeAssetPath(next.img);
+    return next;
+  }
+
+  function listingImage(listing) {
+    const item = normalizeMarketItem(listing?.item || {});
+    return canonicalItemImage(item)
+      || normalizeAssetPath(listing?.item_img)
+      || normalizeAssetPath(item.img)
+      || marketIcon(listing?.category || "latest");
+  }
 
   function loadSave(){
     try { return JSON.parse(localStorage.getItem(SAVE_KEY) || "{}") || {}; }
@@ -577,16 +678,17 @@
   }
 
   function renderListingRow(listing, userId){
-    const item = listing.item || {};
+    const item = normalizeMarketItem(listing.item || {});
     const qty = Math.max(1, Math.floor(num(listing.quantity, 1)));
     const req = num(item.reqLevel, 0);
     const mine = sameUserId(listing.seller_user_id, userId);
+    const img = listingImage({ ...listing, item });
     return `
       <tr>
         <td>
           <div class="marketItemCell">
             <button type="button" class="marketItemIconBtn" data-inspect-listing="${esc(listing.id)}" aria-label="Inspect ${esc(listing.item_name || item.name || "Item")}">
-              <img class="marketItemIcon" src="${esc(listing.item_img || item.img || marketIcon(listing.category))}" alt="">
+              <img class="marketItemIcon" src="${esc(img)}" alt="" data-market-img-fallback="${esc(marketIcon(listing.category))}">
             </button>
             <div style="min-width:0;">
               <div class="marketItemName">${esc(listing.item_name || item.name || "Item")}</div>
@@ -612,7 +714,7 @@
     const listing = selectedListing(state.inspectListingId);
     if (!listing) return "";
     const userId = getUserId();
-    const item = listing.item || {};
+    const item = normalizeMarketItem(listing.item || {});
     const qty = Math.max(1, Math.floor(num(listing.quantity, 1)));
     const priceEach = Math.max(1, Math.floor(num(listing.price_each, 1)));
     const mine = sameUserId(listing.seller_user_id, userId);
@@ -630,7 +732,7 @@
       <div class="marketModalBackdrop" data-close-market-inspector="1">
         <div class="marketModal" role="dialog" aria-modal="true" aria-label="${esc(listing.item_name || item.name || "Market Item")}" data-market-modal="1">
           <div class="marketModalTop">
-            <img class="marketModalIcon" src="${esc(listing.item_img || item.img || marketIcon(listing.category))}" alt="">
+            <img class="marketModalIcon" src="${esc(listingImage({ ...listing, item }))}" alt="" data-market-img-fallback="${esc(marketIcon(listing.category))}">
             <div style="min-width:0;flex:1;">
               <div class="marketModalName">${esc(listing.item_name || item.name || "Item")}</div>
               <div class="marketModalMeta">
@@ -714,7 +816,7 @@
       <div class="marketHistoryList">
         ${rows.length ? rows.slice(0, 10).map((row) => `
           <div class="marketHistoryRow">
-            <img src="${esc(row.img || marketIcon(row.category || "latest"))}" alt="">
+            <img src="${esc(canonicalItemImage(row.item) || normalizeAssetPath(row.img) || marketIcon(row.category || "latest"))}" alt="" data-market-img-fallback="${esc(marketIcon(row.category || "latest"))}">
             <div style="min-width:0;">
               <div class="marketHistoryName">${esc(row.itemName || "Item")}</div>
               <div class="marketHistoryMeta">Sold x${fmt.format(num(row.quantity, 1))} • ${esc(formatHistoryTime(row.at))}</div>
@@ -936,7 +1038,7 @@
     popup.innerHTML = `
       <div class="marketSalePopup" role="dialog" aria-modal="true">
         <div class="marketSalePopupTop">
-          <img src="${esc(sale.img || marketIcon(sale.category || "latest"))}" alt="">
+          <img src="${esc(canonicalItemImage(sale.item) || normalizeAssetPath(sale.img) || marketIcon(sale.category || "latest"))}" alt="" data-market-img-fallback="${esc(marketIcon(sale.category || "latest"))}">
           <div style="min-width:0;flex:1;">
             <div class="marketSalePopupTitle">You sold ${esc(sale.itemName || "an item")}</div>
             <div class="marketSalePopupMeta">
@@ -1088,7 +1190,7 @@
       showPurchaseSuccess(
         listing.item_name || listing.item?.name || "Item",
         qty,
-        listing.item_img || listing.item?.img || marketIcon(listing.category)
+        listingImage(listing)
       );
     } catch (error) {
       setStatus(error?.message || "Could not buy item.");
@@ -1240,7 +1342,22 @@
     left.innerHTML = state.purchaseSuccess ? purchaseSuccessTemplate() : template();
     document.title = "Darkstone Chronicles - Market";
     bind();
+    bindMarketImageFallbacks(left);
     return true;
+  }
+
+  function bindMarketImageFallbacks(root = document) {
+    root.querySelectorAll?.("img[data-market-img-fallback]")?.forEach((img) => {
+      if (img.dataset.marketFallbackBound === "1") return;
+      img.dataset.marketFallbackBound = "1";
+      img.addEventListener("error", () => {
+        const fallback = img.dataset.marketImgFallback || "images/ui/market.webp";
+        if ((img.getAttribute("src") || "") !== fallback) {
+          img.src = fallback;
+        }
+      });
+    });
+    window.DSImage?.bindFallbacks?.(root);
   }
 
   function mountMarket(root = null) {
