@@ -60,6 +60,7 @@
 
   function setSave(next){
     localStorage.setItem(SAVE_KEY, JSON.stringify(next));
+    window.dispatchEvent(new Event("ds:save"));
   }
 
   function ensureSave(save){
@@ -268,12 +269,12 @@
       if (qtyInput) qtyInput.value = String(v);
       return v;
     };
-    btn?.addEventListener("click", () => {
-      withdrawSelected(getQty(), setMsg);
+    btn?.addEventListener("click", async () => {
+      await withdrawSelected(getQty(), setMsg);
     });
   }
 
-  function withdrawSelected(qty, setMsg){
+  async function withdrawSelected(qty, setMsg){
     const save = ensureSave(loadSave());
     const item = Number.isFinite(selectedIndex) ? save.bank[selectedIndex] : null;
     if (!item) {
@@ -297,6 +298,9 @@
 
     addToStack(save.inventory, picked, takeQty);
     setSave(save);
+    window.DSUI?.refreshInventory?.();
+    const synced = await window.DSAuth?.syncCloudSaveNow?.({ waitForPending: true });
+    if (synced === false) window.DSAuth?.prioritizeCloudSaveSync?.();
 
     selectedIndex = null;
     setMsg?.(`Withdrew x${takeQty}.`);

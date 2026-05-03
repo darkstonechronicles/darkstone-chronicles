@@ -530,6 +530,7 @@
 
   function setSave(next) {
     localStorage.setItem(SAVE_KEY, JSON.stringify(next));
+    window.dispatchEvent(new Event("ds:save"));
   }
 
   function loadChatState() {
@@ -6093,7 +6094,8 @@ function navigateWithFade(targetHref) {
 window.DSUI = Object.assign(window.DSUI || {}, {
   navigateWithinShell,
   openWhisperWithPlayer,
-  openPlayerProfile: openExistingPlayerProfile
+  openPlayerProfile: openExistingPlayerProfile,
+  refreshInventory: refreshInventoryUi
 });
 
 // -------------------------
@@ -8099,6 +8101,7 @@ function openInspector(invIndex, item) {
 
       addToStack(s.bank, stack, num(stack.quantity ?? stack.qty, 1));
       setSave(s);
+      refreshInventoryUi();
       const synced = await window.DSAuth?.syncCloudSaveNow?.({ waitForPending: true });
       const sentName = stack.name || invIt.name || "Item";
       if (synced === false) {
@@ -8130,6 +8133,14 @@ function renderAll() {
   syncRightColumnToNav();
   bindAssetImageFallbacks(document);
 }
+
+  function refreshInventoryUi() {
+    const save = ensureSave(loadSave());
+    __invSig = "";
+    renderGold(save);
+    renderInventory(save);
+    setInvTab(__invTab);
+  }
 
   function forceRerenderNow() {
     __invSig = "";
