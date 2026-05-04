@@ -502,7 +502,7 @@
         rewards: def.rewards,
         description: `${def.waves.length} waves -> Boss. ${def.setName} 6-piece legendary set: chance for 1 item per completion.`,
         dropMode: "setChance",
-        setChance: 1 / 25,
+        setChance: idx === 0 ? (1 / 25) : (1 / 200),
         setItems: makeSetItems(def.setId, def.setName, def.reqLevel),
         waves: makeWaves(def.assetFolder || def.id, def.waves, def.reqLevel, tier),
         boss: makeBoss(def.assetFolder || def.id, def.boss, def.reqLevel, tier)
