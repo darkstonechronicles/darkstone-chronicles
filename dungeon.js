@@ -514,6 +514,12 @@
     const el = (id) => document.getElementById(id);
     const num = (v, f = 0) => (Number.isFinite(Number(v)) ? Number(v) : f);
     const clamp = (v,a,b) => Math.max(a, Math.min(b, v));
+    function calcHpMax(level){
+      return 100 + (Math.max(1, num(level, 1)) - 1) * 10;
+    }
+    function calcStaminaMax(level){
+      return 100 + (Math.max(1, num(level, 1)) - 1) * 5;
+    }
     const randInt = (min,max) => Math.floor(Math.random() * (max - min + 1)) + min;
     const POTION_ACTIONS = 100;
 
@@ -937,6 +943,14 @@
     s.heroAttack = baseAtk;
     s.heroDefense = baseDef;
     s.heroStatPoints = statPoints;
+    if (ups > 0) {
+      const hpMax = calcHpMax(heroLevel);
+      const staminaMax = calcStaminaMax(heroLevel);
+      s.heroHPMax = hpMax;
+      s.heroHP = hpMax;
+      s.staminaMax = staminaMax;
+      s.stamina = staminaMax;
+    }
 
     setSave(s);
     recomputeTotalsAndSave();
@@ -1442,6 +1456,65 @@
     showRunAgain();
   }
 
+  function applyHeroDeathPenaltyToSave(){
+    const save = loadSave();
+    const hpMax = Math.max(1, num(save.heroHPMax, calcHpMax(num(save.heroLevel, 1))));
+    const gold = Math.max(0, Math.floor(num(save.gold, 0)));
+    const lostGold = gold > 0 ? Math.ceil(gold * 0.10) : 0;
+    save.gold = Math.max(0, gold - lostGold);
+    save.heroHPMax = hpMax;
+    save.heroHP = 0;
+    save.lastActiveTs = Date.now();
+    save.hpRegenTs = Date.now();
+    setSave(save);
+    window.dispatchEvent(new Event("ds:save"));
+    window.DSUI?.refreshInventory?.();
+    Promise.resolve(window.DSAuth?.syncCloudSaveNow?.({ waitForPending: true })).catch(() => {});
+    return { lostGold };
+  }
+
+  function showHeroDeathPanel(lostGold){
+    const left = document.getElementById("leftPanel") || document.body;
+    left.innerHTML = `
+      <div style="min-height:360px;display:flex;align-items:center;justify-content:center;padding:18px;box-sizing:border-box;color:#f3ead6;">
+        <div style="width:min(520px,100%);text-align:center;border:1px solid rgba(136,52,52,.88);border-radius:12px;background:linear-gradient(180deg,rgba(58,23,26,.92),rgba(20,18,20,.94));box-shadow:0 18px 40px rgba(0,0,0,.34),inset 0 1px 0 rgba(255,228,178,.06);padding:26px 18px;">
+          <div style="font-size:30px;font-weight:900;margin-bottom:10px;color:#ffd8de;">You died</div>
+          <div style="font-size:17px;font-weight:800;line-height:1.45;">You lost 10% of your gold.</div>
+          <div style="margin-top:8px;color:#f0d326;font-weight:900;">Gold lost: ${new Intl.NumberFormat("el-GR").format(Math.max(0, lostGold))}</div>
+          <button id="dungeonDeathReviveBtn" type="button" class="townBtn" style="margin-top:18px;width:auto;min-width:0;padding:8px 14px;">Revive</button>
+        </div>
+      </div>
+    `;
+    left.querySelector("#dungeonDeathReviveBtn")?.addEventListener("click", () => {
+      if (window.DS?.deathGuard?.revive) {
+        window.DS.deathGuard.revive({ onContinue: () => { window.location.href = "dungeons.html"; } });
+        return;
+      }
+      const save = loadSave();
+      save.heroHPMax = Math.max(1, num(save.heroHPMax, calcHpMax(num(save.heroLevel, 1))));
+      save.heroHP = 1;
+      save.lastActiveTs = Date.now();
+      save.hpRegenTs = Date.now();
+      setSave(save);
+      window.dispatchEvent(new Event("ds:save"));
+      Promise.resolve(window.DSAuth?.syncCloudSaveNow?.({ waitForPending: true })).catch(() => {});
+      left.innerHTML = `<div style="min-height:300px;display:flex;align-items:center;justify-content:center;color:#f3ead6;font-size:24px;font-weight:900;text-align:center;">You came back from the dead.</div>`;
+    });
+  }
+
+  function handleHeroDeath(reason){
+    state.running = false;
+    state.phase = "end";
+    clearLoop();
+    stopCooldownUI();
+    stopRunTimer();
+    clearActive();
+    clearPending();
+    pushLog(reason || "You died.");
+    const result = applyHeroDeathPenaltyToSave();
+    showHeroDeathPanel(result.lostGold);
+  }
+
   function winDungeon(){
     state.running = false;
     state.phase = "end";
@@ -1694,6 +1767,14 @@
     hero.hp = Math.max(0, hero.hp);
     enemy.hp = Math.max(0, enemy.hp);
 
+      if(hero.hp <= 0){
+        setHeroHP(0, hero.hpMax);
+        renderVS(hero, enemy, "Wave " + (state.waveIndex + 1) + "/" + state.dungeon.waves.length);
+        setEncounterDamage(totalHeroDamageTaken, totalDamageDealt);
+        handleHeroDeath(`You were killed on Wave ${state.waveIndex + 1}.`);
+        return;
+      }
+
       setHeroHP(hero.hp, hero.hpMax);
       renderVS(hero, enemy, "Wave " + (state.waveIndex + 1) + "/" + state.dungeon.waves.length);
       setEncounterDamage(totalHeroDamageTaken, totalDamageDealt);
@@ -1723,11 +1804,6 @@
           defenseTotal: potionSave.defenseTotal
         });
       }
-      if(hero.hp <= 0){
-        failDungeon(`died on Wave ${state.waveIndex + 1}`);
-        return;
-      }
-
     if(enemy.hp > 0 && rounds >= MAX_WAVE_ROUNDS){
       failDungeon(`Wave ${state.waveIndex + 1} stalled (too tanky)`);
       return;
@@ -1787,6 +1863,15 @@
     const bossD = dmgBoss(boss.atk, hero.def);
     hero.hp = Math.max(0, hero.hp - bossD);
 
+      if(hero.hp <= 0){
+        setHeroHP(0, hero.hpMax);
+        renderVS(hero, boss, "Boss");
+        setEncounterDamage(bossD, heroD);
+        pushLog(`Round ${bossRound}`);
+        handleHeroDeath("You were killed by the boss.");
+        return;
+      }
+
       setHeroHP(hero.hp, hero.hpMax);
       renderVS(hero, boss, "Boss");
       setEncounterDamage(bossD, heroD);
@@ -1815,11 +1900,6 @@
           attackTotal: potionSave.attackTotal,
           defenseTotal: potionSave.defenseTotal
         });
-      }
-
-      if(hero.hp <= 0){
-        failDungeon("killed by boss");
-        return;
       }
 
     startCooldownUI("Next boss");
@@ -2333,6 +2413,7 @@
   }
 
   function startActiveRun(){
+    if (window.DS?.deathGuard?.requireAlive && !window.DS.deathGuard.requireAlive()) return { ok:false, msg:"You are dead." };
     if(state.running) return { ok:false, msg:"Already running." };
     if(!state.dungeon){
       const mounted = mountActiveRun();

@@ -1055,12 +1055,17 @@
     return true;
   }
 
+  function unmount() {
+    stopRun();
+  }
+
   function currentPage() {
     return String(window.location.pathname || "").split("/").pop().toLowerCase() || "index.html";
   }
 
   window.DSJewelcraftingAction = {
     mount,
+    unmount,
     getAdminItems: () => {
       const byKey = new Map();
       const add = (item) => {

@@ -682,6 +682,39 @@
     if (!keepView) state.battleView = false;
   }
 
+  function showHeroDeathPanel(result = {}) {
+    const penalty = result?.deathPenalty || {};
+    const lostGold = Math.max(0, num(penalty.lostGold, 0));
+    const left = document.getElementById("leftPanel") || document.getElementById("partyHallRoot");
+    if (!left) return;
+    left.innerHTML = `
+      <div style="min-height:360px;display:flex;align-items:center;justify-content:center;padding:18px;box-sizing:border-box;color:#f3ead6;">
+        <div style="width:min(520px,100%);text-align:center;border:1px solid rgba(136,52,52,.88);border-radius:12px;background:linear-gradient(180deg,rgba(58,23,26,.92),rgba(20,18,20,.94));box-shadow:0 18px 40px rgba(0,0,0,.34),inset 0 1px 0 rgba(255,228,178,.06);padding:26px 18px;">
+          <div style="font-size:30px;font-weight:900;margin-bottom:10px;color:#ffd8de;">You died</div>
+          <div style="font-size:17px;font-weight:800;line-height:1.45;">You lost 10% of your gold.</div>
+          <div style="margin-top:8px;color:#f0d326;font-weight:900;">Gold lost: ${new Intl.NumberFormat("el-GR").format(lostGold)}</div>
+          <button id="partyDeathReviveBtn" type="button" class="townBtn" style="margin-top:18px;width:auto;min-width:0;padding:8px 14px;">Revive</button>
+        </div>
+      </div>
+    `;
+    left.querySelector("#partyDeathReviveBtn")?.addEventListener("click", async () => {
+      if (window.DS?.deathGuard?.revive) {
+        window.DS.deathGuard.revive({ onContinue: () => { state.battleView = false; renderPartyHall(); } });
+        return;
+      }
+      const save = result?.saveSnapshot && typeof result.saveSnapshot === "object"
+        ? result.saveSnapshot
+        : JSON.parse(localStorage.getItem("darkstone_save_v1") || "{}");
+      save.heroHP = 1;
+      save.lastActiveTs = Date.now();
+      save.hpRegenTs = Date.now();
+      localStorage.setItem("darkstone_save_v1", JSON.stringify(save));
+      window.dispatchEvent(new Event("ds:save"));
+      await window.DSAuth?.syncCloudSaveNow?.({ waitForPending: true });
+      left.innerHTML = `<div style="min-height:300px;display:flex;align-items:center;justify-content:center;color:#f3ead6;font-size:24px;font-weight:900;text-align:center;">You came back from the dead.</div>`;
+    });
+  }
+
   function scheduleAutoPartyBattle(delayMs = PARTY_BATTLE_ENCOUNTER_MS) {
     clearPartyBattleLoopTimer();
     if (!state.battleAutoActive || !state.battleView) return;
@@ -715,6 +748,11 @@
     const heroHpRemaining = Math.max(0, num(result?.heroHpRemaining, 0));
     const staminaRemaining = Math.max(0, num(result?.staminaRemaining, 0));
     const outcome = String(result?.outcome || "").toLowerCase();
+    if (outcome === "death" || result?.deathPenalty) {
+      stopAutoPartyBattle({ keepView: true });
+      showHeroDeathPanel(result);
+      return;
+    }
     if (heroHpRemaining <= 0 || outcome === "defeat") {
       stopAutoPartyBattle({ keepView: true });
       setNotice("You collapsed and the Party Fight stopped.", true);
@@ -734,6 +772,7 @@
   }
 
   async function startAutoPartyBattle() {
+    if (window.DS?.deathGuard?.requireAlive && !window.DS.deathGuard.requireAlive()) return;
     if (!state.battleView) state.battleView = true;
     if (!canAutoRunPartyBattle()) {
       stopAutoPartyBattle({ keepView: true });
@@ -846,6 +885,9 @@
       if (state.lastPersonalFightResult) {
         window.DSAuth?.applyLocalPartyFightSnapshot?.(state.lastPersonalFightResult);
       }
+      const deathDetected = state.lastPersonalFightResult
+        && (String(state.lastPersonalFightResult.outcome || "").toLowerCase() === "death"
+          || state.lastPersonalFightResult.deathPenalty);
       dispatchPartyStateChanged();
       state.lastError = "";
       const nextMessage = successMessage !== undefined ? successMessage : data?.message;
@@ -856,6 +898,11 @@
       }
       publishInviteNoticeFromState();
       renderInvitePopups();
+      if (deathDetected) {
+        stopAutoPartyBattle({ keepView: true });
+        showHeroDeathPanel(state.lastPersonalFightResult);
+        return data;
+      }
       if (hasPartyPage() && !isSilentAutoFightResolve) renderPartyHall();
       window.setTimeout(() => {
         if (!document.hidden) Promise.resolve(loadPartyState({ silent: true })).catch(() => {});

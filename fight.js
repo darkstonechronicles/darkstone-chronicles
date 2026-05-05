@@ -36,6 +36,12 @@ function getCurrentSave(){ return loadSave(); }
 
 const num = (v, f=0) => (Number.isFinite(Number(v)) ? Number(v) : f);
 const clamp = (v,a,b) => Math.max(a, Math.min(b, v));
+function calcHpMax(level){
+  return 100 + (Math.max(1, num(level, 1)) - 1) * 10;
+}
+function calcStaminaMax(level){
+  return 100 + (Math.max(1, num(level, 1)) - 1) * 5;
+}
 function normalizeFightAsset(src){
   const value = String(src || "").trim();
   if (!value) return "images/heroes/hero_1.webp";
@@ -2363,7 +2369,9 @@ function saveActionLock(lock){
   localStorage.setItem(ACTION_LOCK_KEY, JSON.stringify(lock || null));
 }
 function isLockExpired(lock, now){
-  if (!lock || !lock.active) return true;
+  if (!lock) return true;
+  const nextAllowedTs = Number(lock.nextAllowedTs || 0);
+  if (!lock.active) return !(Number.isFinite(nextAllowedTs) && now < nextAllowedTs);
   const last = Number(lock.lastPing || 0);
   return (now - last) > ENCOUNTER_CD_MS * 2;
 }
@@ -2371,12 +2379,12 @@ function acquireActionLock(){
   const now = Date.now();
   const lock = loadActionLock();
   if (lock && !isLockExpired(lock, now)) {
-    if (lock.actionId && lock.actionId !== ACTION_ID) {
-      return { ok:false, msg:"You are tired. Another action is running." };
-    }
     if (now < Number(lock.nextAllowedTs || 0)) {
       const wait = Math.max(0, Number(lock.nextAllowedTs || 0) - now);
       return { ok:false, msg:`You are tired. Wait ${(wait / 1000).toFixed(1)}s.` };
+    }
+    if (lock.active && lock.actionId && lock.actionId !== ACTION_ID) {
+      return { ok:false, msg:"You are tired. Another action is running." };
     }
   }
   saveActionLock({
@@ -2476,6 +2484,61 @@ function setHeroHPToSave(hp, hpMax){
     heroHPMax: hpMax,
     lastActiveTs: Date.now()
   });
+}
+
+function applyHeroDeathPenaltyToSave(){
+  const save = loadSave();
+  const hpMax = Math.max(1, num(save.heroHPMax, calcHpMax(num(save.heroLevel, 1))));
+  const gold = Math.max(0, Math.floor(num(save.gold, 0)));
+  const lostGold = gold > 0 ? Math.ceil(gold * 0.10) : 0;
+  save.gold = Math.max(0, gold - lostGold);
+  save.heroHPMax = hpMax;
+  save.heroHP = 0;
+  save.lastActiveTs = Date.now();
+  save.hpRegenTs = Date.now();
+  localStorage.setItem(SAVE_KEY, JSON.stringify(save));
+  window.dispatchEvent(new Event("ds:save"));
+  window.DSUI?.refreshInventory?.();
+  Promise.resolve(window.DSAuth?.syncCloudSaveNow?.({ waitForPending: true })).catch(() => {});
+  return { lostGold };
+}
+
+function showHeroDeathPanel(lostGold){
+  const root = __fightRoot || document.getElementById("leftPanel");
+  if (!root) return;
+  root.innerHTML = `
+    <div style="min-height:360px;display:flex;align-items:center;justify-content:center;padding:18px;box-sizing:border-box;color:#f3ead6;">
+      <div style="width:min(520px,100%);text-align:center;border:1px solid rgba(136,52,52,.88);border-radius:12px;background:linear-gradient(180deg,rgba(58,23,26,.92),rgba(20,18,20,.94));box-shadow:0 18px 40px rgba(0,0,0,.34),inset 0 1px 0 rgba(255,228,178,.06);padding:26px 18px;">
+        <div style="font-size:30px;font-weight:900;margin-bottom:10px;color:#ffd8de;">You died</div>
+        <div style="font-size:17px;font-weight:800;line-height:1.45;">You lost 10% of your gold.</div>
+        <div style="margin-top:8px;color:#f0d326;font-weight:900;">Gold lost: ${new Intl.NumberFormat("el-GR").format(Math.max(0, lostGold))}</div>
+        <button id="fightDeathReviveBtn" type="button" class="townBtn" style="margin-top:18px;width:auto;min-width:0;padding:8px 14px;">Revive</button>
+      </div>
+    </div>
+  `;
+  root.querySelector("#fightDeathReviveBtn")?.addEventListener("click", () => {
+    if (window.DS?.deathGuard?.revive) {
+      window.DS.deathGuard.revive({ onContinue: () => { stopAutoFight(true); renderZones(); } });
+      return;
+    }
+    const save = loadSave();
+    save.heroHPMax = Math.max(1, num(save.heroHPMax, calcHpMax(num(save.heroLevel, 1))));
+    save.heroHP = 1;
+    save.lastActiveTs = Date.now();
+    save.hpRegenTs = Date.now();
+    localStorage.setItem(SAVE_KEY, JSON.stringify(save));
+    window.dispatchEvent(new Event("ds:save"));
+    Promise.resolve(window.DSAuth?.syncCloudSaveNow?.({ waitForPending: true })).catch(() => {});
+    root.innerHTML = `<div style="min-height:300px;display:flex;align-items:center;justify-content:center;color:#f3ead6;font-size:24px;font-weight:900;text-align:center;">You came back from the dead.</div>`;
+  });
+}
+
+function handleHeroDeath(){
+  stopAutoFight(true);
+  window.DS?.stats?.inc("fightsLost", 1);
+  const result = applyHeroDeathPenaltyToSave();
+  pushBattleLog("You died. You lost 10% of your gold.");
+  showHeroDeathPanel(result.lostGold);
 }
 
 function spendStamina(cost){
@@ -2731,6 +2794,14 @@ function applyHeroXpToSave(saveObj, xp, options = {}){
   s.heroAttack = baseAtk;
   s.heroDefense = baseDef;
   s.heroStatPoints = statPoints;
+  if (levelsGained > 0) {
+    const hpMax = calcHpMax(heroLevel);
+    const staminaMax = calcStaminaMax(heroLevel);
+    s.heroHPMax = hpMax;
+    s.heroHP = hpMax;
+    s.staminaMax = staminaMax;
+    s.stamina = staminaMax;
+  }
 
   return {
     heroLevel,
@@ -3154,6 +3225,7 @@ zone.mobs.forEach(m => {
 // Battle start
 // =========================
 function startBattle(mobData, autoStart=true){
+  if (window.DS?.deathGuard?.requireAlive && !window.DS.deathGuard.requireAlive()) return;
   stopAutoFight(true);
   window.DS?.resume?.();
 
@@ -3240,6 +3312,16 @@ function runEncounter(){
 
   hero.hp = Math.max(0, hero.hp);
   currentMob.hp = Math.max(0, currentMob.hp);
+
+    if(hero.hp <= 0){
+      setHeroHPToSave(0, hero.hpMax);
+      setHpBars(hero);
+      refreshHeroInfo(hero);
+      setEncounterDamage(totalHeroDamageTaken, totalDamageDealt);
+      pushBattleLog(`You were defeated by ${currentMob.name} in ${rounds} rounds.`);
+      handleHeroDeath();
+      return;
+    }
 
     const autoFish = autoUseQuickCookedFish(hero);
     if (autoFish.used > 0) {
@@ -3417,14 +3499,23 @@ function addHeroXP(xp){
     pushBattleLog(`✨ Level Up! Hero Level ${heroLevel} (+${STAT_POINTS_PER_LEVEL} Stat Points)`);
   }
 
-  savePatch({
+  const patch = {
     heroLevel,
     heroXP,
     heroXPNext: xpNextForLevel(heroLevel),
     heroAttack: baseAtk,
     heroDefense: baseDef,
     heroStatPoints: statPoints
-  });
+  };
+  if (heroLevel > num(s.heroLevel, 1)) {
+    const hpMax = calcHpMax(heroLevel);
+    const staminaMax = calcStaminaMax(heroLevel);
+    patch.heroHPMax = hpMax;
+    patch.heroHP = hpMax;
+    patch.staminaMax = staminaMax;
+    patch.stamina = staminaMax;
+  }
+  savePatch(patch);
 
   recomputeTotalsAndSave();
 }

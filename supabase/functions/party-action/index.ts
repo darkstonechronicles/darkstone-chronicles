@@ -680,10 +680,12 @@ function applyHeroRewards(saveData: unknown, xpGain: number, goldGain: number) {
   let heroXP = Math.max(0, int(save.heroXP, 0)) + Math.max(0, int(xpGain, 0));
   let heroXPNext = Math.max(1, int(save.heroXPNext, xpNextForLevel(heroLevel)));
   let heroStatPoints = Math.max(0, int(save.heroStatPoints, 0));
+  let levelsGained = 0;
 
   while (heroXP >= heroXPNext) {
     heroXP -= heroXPNext;
     heroLevel += 1;
+    levelsGained += 1;
     heroStatPoints += PARTY_FIGHT_STAT_POINTS_PER_LEVEL;
     heroXPNext = xpNextForLevel(heroLevel);
   }
@@ -696,13 +698,21 @@ function applyHeroRewards(saveData: unknown, xpGain: number, goldGain: number) {
 
   const nextHpMax = calcHpMax(heroLevel);
   save.heroHPMax = nextHpMax;
-  const currentHp = Number.isFinite(Number(save.heroHP)) ? Number(save.heroHP) : nextHpMax;
-  save.heroHP = clamp(currentHp, 0, nextHpMax);
+  if (levelsGained > 0) {
+    save.heroHP = nextHpMax;
+    const nextStaminaMax = calcStaminaMax(heroLevel);
+    save.staminaMax = nextStaminaMax;
+    save.stamina = nextStaminaMax;
+  } else {
+    const currentHp = Number.isFinite(Number(save.heroHP)) ? Number(save.heroHP) : nextHpMax;
+    save.heroHP = clamp(currentHp, 0, nextHpMax);
+  }
 
   return {
     save,
     heroLevel,
     heroXP,
+    levelsGained,
     totalGold: bigintLike(save.gold, 0),
   };
 }
@@ -997,6 +1007,18 @@ function getCurrentHeroHpState(saveData: unknown) {
     hpMax,
     hp: Math.max(0, Math.min(hpMax, Math.trunc(currentHp))),
   };
+}
+
+function applyHeroDeathPenalty(saveData: unknown) {
+  const save = asRecord(saveData);
+  const hpMax = Math.max(1, int(save.heroHPMax, calcHpMax(save.heroLevel)));
+  const gold = Math.max(0, bigintLike(save.gold, 0));
+  const lostGold = gold > 0 ? Math.ceil(gold * 0.10) : 0;
+  save.gold = Math.max(0, gold - lostGold);
+  save.heroHPMax = hpMax;
+  save.heroHP = 0;
+  save.hpRegenTs = Date.now();
+  return { save, lostGold, restoredHp: 0, hpMax };
 }
 
 async function persistTouchedUserSaves(admin: ReturnType<typeof createClient>, touchedUsers: Map<string, { save: JsonRecord; revision: number }>) {
@@ -1578,7 +1600,8 @@ async function advancePartyFightSession(
       const row = getTouchedSave(player.userId);
       row.save.heroHPMax = Math.max(1, int(player.hpMax, calcHpMax(row.save.heroLevel)));
       row.save.heroHP = Math.max(0, int(player.hpRemaining, row.save.heroHPMax));
-      const autoHp = autoUseQuickHpFood(row.save);
+      const playerDied = Math.max(0, int(row.save.heroHP, 0)) <= 0;
+      const autoHp = playerDied ? { used: 0, healed: 0, hp: int(row.save.heroHP, 0) } : autoUseQuickHpFood(row.save);
       if (autoHp.used > 0) {
         player.hpRemaining = autoHp.hp;
         (player as JsonRecord).autoFoodUsed = {
@@ -1603,6 +1626,16 @@ async function advancePartyFightSession(
         latestEncounter: encounter,
         recentEncounters: [...nextPayload.recentEncounters, encounter].slice(-6),
         lastResolvedAt: encounter.resolvedAt,
+      };
+      const deadRow = getTouchedSave(deadDuringLoop.userId);
+      const deathPenalty = applyHeroDeathPenalty(deadRow.save);
+      deadRow.save = deathPenalty.save;
+      deadRow.revision += 1;
+      deadDuringLoop.hpRemaining = deathPenalty.restoredHp;
+      (deadDuringLoop as JsonRecord).deathPenalty = {
+        lostGold: deathPenalty.lostGold,
+        restoredHp: deathPenalty.restoredHp,
+        hpMax: deathPenalty.hpMax,
       };
       await persistTouchedUserSaves(admin, touchedUsers);
 
@@ -1655,6 +1688,12 @@ async function advancePartyFightSession(
         awardPartyPoints(rewardResult.save, int(player.partyPoints, 0));
         const staminaResult = spendPartyFightStamina(rewardResult.save, PARTY_FIGHT_STAMINA_COST);
         const autoStamina = autoUseQuickStaminaFood(staminaResult.save);
+        if (int(rewardResult.levelsGained, 0) > 0) {
+          staminaResult.save.heroHPMax = calcHpMax(staminaResult.save.heroLevel);
+          staminaResult.save.heroHP = staminaResult.save.heroHPMax;
+          staminaResult.save.staminaMax = calcStaminaMax(staminaResult.save.heroLevel);
+          staminaResult.save.stamina = staminaResult.save.staminaMax;
+        }
         if (roughGemDrop) addStackableInventoryItem(staminaResult.save, roughGemDrop, 1);
         if (orbOfCreationDrop) addStackableInventoryItem(staminaResult.save, orbOfCreationDrop, 1);
         for (const item of mythicDrops) addUniqueInventoryItem(staminaResult.save, item);
@@ -2764,8 +2803,11 @@ async function resolvePartyFight(admin: ReturnType<typeof createClient>, userId:
   const hpState = getCurrentHeroHpState(actorRow.save);
   actorRow.save.heroHPMax = hpState.hpMax;
   actorRow.save.heroHP = Math.max(0, hpState.hp - encounter.personalDamageTaken);
-  const autoHp = autoUseQuickHpFood(actorRow.save);
-  const rewardResult = encounter.outcome === "victory"
+  const died = Math.max(0, int(actorRow.save.heroHP, 0)) <= 0;
+  const deathPenalty = died ? applyHeroDeathPenalty(actorRow.save) : null;
+  if (deathPenalty) actorRow.save = deathPenalty.save;
+  const autoHp = died ? { used: 0, healed: 0, hp: int(actorRow.save.heroHP, 0) } : autoUseQuickHpFood(actorRow.save);
+  const rewardResult = !died && encounter.outcome === "victory"
     ? applyHeroRewards(actorRow.save, baseRewards.xp, baseRewards.gold)
     : { save: actorRow.save };
   actorRow.save = asRecord(rewardResult.save);
@@ -2782,7 +2824,7 @@ async function resolvePartyFight(admin: ReturnType<typeof createClient>, userId:
   let orbDrop: JsonRecord | null = null;
   let mythicDrops: JsonRecord[] = [];
   let milestoneRewards: JsonRecord[] = [];
-  if (encounter.outcome === "victory") {
+  if (!died && encounter.outcome === "victory") {
     partyPointsEarned = Math.max(0, int(baseRewards.partyPoints, 0));
     awardPartyPoints(actorRow.save, partyPointsEarned);
     roughGemDrop = (selectedMonsterId === FIRST_PARTY_MONSTER_ID ? rollFirstMonsterRoughGemDrop() : rollRoughGemDrop()) as JsonRecord | null;
@@ -2812,7 +2854,7 @@ async function resolvePartyFight(admin: ReturnType<typeof createClient>, userId:
     monsterId: selectedMonsterId,
     monsterName: str(monster.name),
     monsterImg: str(monster.img),
-    outcome: encounter.outcome,
+    outcome: died ? "death" : encounter.outcome,
     rounds: encounter.rounds,
     totalAttack: encounter.totalAttack,
     totalDefense: encounter.totalDefense,
@@ -2827,8 +2869,8 @@ async function resolvePartyFight(admin: ReturnType<typeof createClient>, userId:
     staminaRemaining: getCurrentStamina(actorRow.save),
     heroHpRemaining: getCurrentHeroHpState(actorRow.save).hp,
     partyActionUsage: partyActionUsageAfter,
-    xp: baseRewards.xp,
-    gold: baseRewards.gold,
+    xp: died ? 0 : baseRewards.xp,
+    gold: died ? 0 : baseRewards.gold,
     partyPoints: partyPointsEarned,
     roughGemDrop,
     orbOfCreationDrop: orbDrop,
@@ -2836,6 +2878,7 @@ async function resolvePartyFight(admin: ReturnType<typeof createClient>, userId:
     milestoneRewards,
     autoHpFoodUsed: autoHp.used > 0 ? { used: autoHp.used, healed: autoHp.healed } : null,
     autoStaminaFoodUsed: autoStaminaAfter.used > 0 ? { used: autoStaminaAfter.used, restored: autoStaminaAfter.restored } : null,
+    deathPenalty: deathPenalty ? { lostGold: deathPenalty.lostGold, restoredHp: deathPenalty.restoredHp, hpMax: deathPenalty.hpMax } : null,
     saveSnapshot: actorRow.save,
   };
   await logPartyEvent(admin, partyId, userId, "party_fight_resolved", {

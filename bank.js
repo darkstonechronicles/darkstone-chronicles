@@ -2,6 +2,13 @@
   const SAVE_KEY = "darkstone_save_v1";
   const BANK_TEMPLATE = `
     <h1>Bank</h1>
+    <div style="display:flex;justify-content:center;margin:-4px auto 10px;">
+      <button id="bankGoldBtn" type="button" style="display:flex;align-items:center;gap:8px;padding:8px 14px;border-radius:10px;border:1px solid rgba(122,91,49,.8);background:linear-gradient(180deg,rgba(52,39,27,.78),rgba(20,18,20,.86));box-shadow:0 0 0 1px rgba(32,23,14,.82),inset 0 1px 0 rgba(255,228,178,.06);font-weight:900;color:#f3ead6;cursor:pointer;font:inherit;">
+        <span aria-hidden="true">&#128176;</span>
+        <span>Bank Gold:</span>
+        <span id="bankGoldValue" style="color:#f0d326;">0</span>
+      </button>
+    </div>
 
     <div class="bankShell" style="display:flex;justify-content:center;padding:12px 10px;border-radius:14px;border:1px solid var(--card-medieval-border);background:var(--card-medieval-bg);box-shadow:var(--card-medieval-shadow);max-width:900px;margin:0 auto 12px;">
       <div class="bankLayout" style="width:100%;max-width:700px;display:grid;grid-template-columns:120px max-content 1px 1fr;gap:14px;align-items:start;">
@@ -16,6 +23,7 @@
 
   const num = (v, f = 0) => (Number.isFinite(Number(v)) ? Number(v) : f);
   const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+  const fmt = (value) => new Intl.NumberFormat("el-GR").format(Math.max(0, Math.floor(num(value, 0))));
   const isSigilImage = (img) => /^images\/items\/sigils\//i.test(String(img || ""));
   const SIGIL_IMAGE_BY_KEY = {
     war_sigil: "images/items/sigils/war_sigil.webp",
@@ -40,8 +48,125 @@
     if (img) item.img = img;
   }
 
+  const FISH_ITEM_IDS = [
+    "mud_minnow", "bog_carp", "shiner_fish", "golden_perch", "spiny_sunfish",
+    "striped_bass", "stone_catfish", "crystal_pike", "moon_carp", "glass_eel",
+    "frost_salmon", "glacier_char", "ice_sturgeon", "spiral_horn_gar",
+    "storm_mackerel", "lantern_pike", "ghost_ray", "hammerhead_pike",
+    "void_angler", "leviathan_marlin"
+  ];
+  const MEAT_IMAGE_STEM_BY_ID = {
+    shadow_hare: "shadow_hare",
+    rotfeather_turkey: "rotfeather_turkey",
+    gloom_fox: "gloom_fox",
+    bloodtusk_boar: "bloodtusk_boar",
+    night_wolf: "night_wolf",
+    stonehorn_ram: "stonehorn_ram",
+    thorn_stag: "thorn_stag",
+    grave_bear: "bear",
+    dire_warg: "dire_warg",
+    forest_troll: "troll"
+  };
+  const RESOURCE_IMAGE_BY_KEY = {
+    arrows: "images/items/arrows.png",
+    empty_vial: "images/alchemy/items/empty_vial.webp",
+    orb_of_creation: "images/ui/orb_of_creation.webp",
+    cookedbogcard: "images/food/cooked_bog_carp.webp",
+    cookedbloodtaskboarmeat: "images/meat/bloodtusk_boar_cooked.webp"
+  };
+  const DROP_ZONE_BY_PREFIX = { ww: 1, fm: 2, rh: 3, gr: 4, ap: 5, bf: 6, bt: 7, dh: 8, ow: 9, ar: 10 };
+  ["copper", "iron", "coal", "silver", "mithril", "adamant", "obsidian", "crystal", "sulfur", "rose_quartz", "darkstone"].forEach((id) => {
+    RESOURCE_IMAGE_BY_KEY[`${id}_ore`] = `images/ores/${id}_ore.webp`;
+    RESOURCE_IMAGE_BY_KEY[`${id}_equipment`] = `images/items/forge_materials/${id}_equipment.png`;
+  });
+  ["ash", "pine", "birch", "oak", "cedar", "maple", "ironwood", "heartwood", "darkwood", "ebony"].forEach((id) => {
+    RESOURCE_IMAGE_BY_KEY[`${id}_log`] = `images/wood/logs/${id}_log.webp`;
+    RESOURCE_IMAGE_BY_KEY[`${id}_plank`] = `images/wood/planks/${id}_plank.png`;
+  });
+  ["greenleaf", "sungrass", "ironroot", "frost_bloom", "shadow_mint", "goldthorn", "ember_lotus"].forEach((id) => {
+    RESOURCE_IMAGE_BY_KEY[id] = `images/herbalism/herbs/${id}.png`;
+  });
+  ["rough_ruby", "rough_sapphire", "rough_emerald", "rough_topaz", "rough_amethyst"].forEach((id) => {
+    RESOURCE_IMAGE_BY_KEY[id] = `images/gems/${id}.webp`;
+  });
+  ["strength", "defense", "luck", "gathering_insight", "artisan_insight"].forEach((kind) => {
+    for (let tier = 1; tier <= 7; tier += 1) {
+      RESOURCE_IMAGE_BY_KEY[`${kind}_${tier}`] = `images/alchemy/potions/${kind}_${tier}.webp`;
+    }
+  });
+
+  function itemKey(value) {
+    return String(value || "").trim().toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_+|_+$/g, "");
+  }
+
+  function compactItemKey(value) {
+    return itemKey(value).replace(/_/g, "");
+  }
+
+  function slotImageName(slot) {
+    const key = String(slot || "").trim();
+    if (key === "helmet") return "helmet";
+    if (key === "chest") return "chest";
+    if (key === "mainHand") return "main_hand";
+    if (key === "offHand") return "shield";
+    return itemKey(key);
+  }
+
+  function knownItemImage(item) {
+    if (!item || typeof item !== "object") return;
+    const idKey = itemKey(item.id);
+    const nameKey = itemKey(item.name || item.baseName);
+    const compactName = compactItemKey(item.name || item.baseName);
+    const explicit = RESOURCE_IMAGE_BY_KEY[idKey] || RESOURCE_IMAGE_BY_KEY[nameKey] || RESOURCE_IMAGE_BY_KEY[compactName];
+    if (explicit) return explicit;
+    for (const key of [idKey, nameKey]) {
+      const zoneDrop = key.match(/^([a-z]{2})_(common|rare|legendary|mythic)_[a-z0-9_]+$/);
+      if (zoneDrop && DROP_ZONE_BY_PREFIX[zoneDrop[1]]) {
+        return `images/items/dropsfromzones/zone${DROP_ZONE_BY_PREFIX[zoneDrop[1]]}/${key}.png`;
+      }
+      if (FISH_ITEM_IDS.includes(key)) return `images/fish/${key}.webp`;
+      if (key.startsWith("cooked_") && FISH_ITEM_IDS.includes(key.replace(/^cooked_/, ""))) {
+        return `images/food/${key}.webp`;
+      }
+      const rawMeat = key.match(/^raw_(.+)_meat$/);
+      if (rawMeat && MEAT_IMAGE_STEM_BY_ID[rawMeat[1]]) {
+        return `images/meat/${MEAT_IMAGE_STEM_BY_ID[rawMeat[1]]}_raw.webp`;
+      }
+      const rawMeatShort = key.match(/^(.+)_raw$/);
+      if (rawMeatShort && MEAT_IMAGE_STEM_BY_ID[rawMeatShort[1]]) {
+        return `images/meat/${MEAT_IMAGE_STEM_BY_ID[rawMeatShort[1]]}_raw.webp`;
+      }
+      const cookedMeat = key.match(/^cooked_(.+)_meat$/);
+      if (cookedMeat && MEAT_IMAGE_STEM_BY_ID[cookedMeat[1]]) {
+        return `images/meat/${MEAT_IMAGE_STEM_BY_ID[cookedMeat[1]]}_cooked.webp`;
+      }
+      const cookedMeatShort = key.match(/^(.+)_cooked$/);
+      if (cookedMeatShort && MEAT_IMAGE_STEM_BY_ID[cookedMeatShort[1]]) {
+        return `images/meat/${MEAT_IMAGE_STEM_BY_ID[cookedMeatShort[1]]}_cooked.webp`;
+      }
+    }
+    if (item.setId && item.slot) {
+      const setId = itemKey(item.setId);
+      const slot = slotImageName(item.slot);
+      const setSlot = slot === "helmet" ? "helm" : slot === "chest" ? "cuirass" : slot;
+      if (setId && setSlot) return `images/items/sets/${setId}/${setId}_${setSlot}.webp`;
+    }
+    if (item.crafted && item.slot) {
+      const material = itemKey(item.material || String(item.name || "").split(/\s+/)[0]);
+      const slot = slotImageName(item.slot);
+      if (material && slot) return `images/items/forge_crafted/${material}/${material}_${slot}.webp`;
+    }
+    return "";
+  }
+
+  function normalizeKnownItemImage(item) {
+    const img = knownItemImage(item);
+    if (img) item.img = img;
+  }
+
   let selectedIndex = null;
   let activeFilter = "all";
+  let previewMode = "item";
 
   const FILTERS = [
     { id: "all", label: "All" },
@@ -68,8 +193,15 @@
     if (!Array.isArray(save.inventory)) save.inventory = [];
     if (!Array.isArray(save.bank)) save.bank = [];
     if (!Number.isFinite(Number(save.inventoryMaxSlots))) save.inventoryMaxSlots = 1000;
-    save.inventory.forEach(normalizeSigilImage);
-    save.bank.forEach(normalizeSigilImage);
+    save.bankGold = Math.max(0, num(save.bankGold, 0));
+    save.inventory.forEach((item) => {
+      normalizeSigilImage(item);
+      normalizeKnownItemImage(item);
+    });
+    save.bank.forEach((item) => {
+      normalizeSigilImage(item);
+      normalizeKnownItemImage(item);
+    });
     return save;
   }
 
@@ -220,6 +352,7 @@
       btn.addEventListener("click", () => {
         activeFilter = filter.id;
         selectedIndex = null;
+        previewMode = "item";
         renderBank();
       });
       bankFilterList.appendChild(btn);
@@ -230,6 +363,10 @@
     const bankPreview = document.getElementById("bankPreview");
     if (!bankPreview) return;
     const save = ensureSave(loadSave());
+    if (previewMode === "gold") {
+      renderGoldWithdrawInspector(save);
+      return;
+    }
     const item = Number.isFinite(selectedIndex) ? save.bank[selectedIndex] : null;
 
     if (emptyMessage) {
@@ -274,6 +411,56 @@
     });
   }
 
+  function renderGoldWithdrawInspector(save = ensureSave(loadSave()), message = ""){
+    const bankPreview = document.getElementById("bankPreview");
+    if (!bankPreview) return;
+    const bankGold = Math.max(0, Math.floor(num(save.bankGold, 0)));
+    bankPreview.innerHTML = `
+      <div style="width:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;text-align:center;color:#f3ead6;">
+        <div style="width:76px;height:76px;border-radius:14px;border:2px solid rgba(199,155,68,.72);background:linear-gradient(180deg,rgba(52,39,27,.78),rgba(20,18,20,.86));display:flex;align-items:center;justify-content:center;font-size:34px;box-shadow:0 0 0 1px rgba(32,23,14,.82),inset 0 1px 0 rgba(255,228,178,.06);">&#128176;</div>
+        <div style="font-weight:900;font-size:16px;line-height:1.2;">Bank Gold</div>
+        <div style="font-weight:900;color:#f0d326;font-size:18px;">${fmt(bankGold)}</div>
+        <div style="display:flex;align-items:center;justify-content:center;gap:6px;flex-wrap:nowrap;width:100%;max-width:190px;">
+          <button id="bankGoldWithdrawBtn" class="townBtn" type="button" ${bankGold <= 0 ? "disabled" : ""} style="min-width:96px;padding:8px 10px;font-size:12px;">Withdraw</button>
+          <input id="bankGoldWithdrawQty" type="number" min="1" max="${bankGold}" value="${bankGold || ""}" ${bankGold <= 0 ? "disabled" : ""} style="width:76px;min-width:76px;padding:7px 6px;border-radius:10px;border:1px solid rgba(126,94,50,.88);background:linear-gradient(180deg, rgba(46,35,23,.96) 0%, rgba(24,20,19,.98) 100%);color:#f3ead6;outline:none;text-align:center;box-shadow:0 0 0 1px rgba(28,20,12,.84), inset 0 1px 0 rgba(255,228,178,.08), inset 0 -10px 16px rgba(0,0,0,.14);">
+        </div>
+        <div id="bankGoldMsg" style="margin-top:4px;text-align:center;opacity:.9;font-size:12px;color:#d9ccb0;min-height:16px;">${message || (bankGold <= 0 ? "No gold in bank." : "No withdraw fee.")}</div>
+      </div>
+    `;
+    const msgEl = document.getElementById("bankGoldMsg");
+    const qtyInput = document.getElementById("bankGoldWithdrawQty");
+    const getQty = () => {
+      let v = Math.floor(Number(qtyInput?.value));
+      if (!Number.isFinite(v)) v = bankGold;
+      v = clamp(v, 1, bankGold);
+      if (qtyInput) qtyInput.value = String(v);
+      return v;
+    };
+    document.getElementById("bankGoldWithdrawBtn")?.addEventListener("click", async () => {
+      await withdrawGold(getQty(), (t) => { if (msgEl) msgEl.textContent = t || ""; });
+    });
+  }
+
+  async function withdrawGold(qty, setMsg){
+    const save = ensureSave(loadSave());
+    const bankGold = Math.max(0, Math.floor(num(save.bankGold, 0)));
+    if (bankGold <= 0) {
+      setMsg?.("No gold in bank.");
+      renderBank();
+      return;
+    }
+    const amount = clamp(Math.floor(num(qty, 0)), 1, bankGold);
+    save.bankGold = bankGold - amount;
+    save.gold = Math.max(0, Math.floor(num(save.gold, 0))) + amount;
+    setSave(save);
+    window.DSUI?.refreshInventory?.();
+    const synced = await window.DSAuth?.syncCloudSaveNow?.({ waitForPending: true });
+    if (synced === false) window.DSAuth?.prioritizeCloudSaveSync?.();
+    previewMode = "gold";
+    renderBank();
+    renderGoldWithdrawInspector(ensureSave(loadSave()), `Withdrew ${fmt(amount)} gold.`);
+  }
+
   async function withdrawSelected(qty, setMsg){
     const save = ensureSave(loadSave());
     const item = Number.isFinite(selectedIndex) ? save.bank[selectedIndex] : null;
@@ -313,6 +500,22 @@
     if (!bankGrid) return;
     const save = ensureSave(loadSave());
     const bank = Array.isArray(save.bank) ? save.bank : [];
+    const bankGoldValue = document.getElementById("bankGoldValue");
+    if (bankGoldValue) bankGoldValue.textContent = fmt(save.bankGold);
+    const bankGoldBtn = document.getElementById("bankGoldBtn");
+    if (bankGoldBtn && bankGoldBtn.dataset.dsBound !== "1") {
+      bankGoldBtn.dataset.dsBound = "1";
+      bankGoldBtn.addEventListener("click", () => {
+        selectedIndex = null;
+        previewMode = "gold";
+        renderBank();
+      });
+    }
+    if (bankGoldBtn) {
+      const label = fmt(save.bankGold);
+      bankGoldBtn.title = `Bank Gold: ${label}`;
+      bankGoldBtn.setAttribute("aria-label", `Bank Gold: ${label}`);
+    }
     renderFilters(save);
 
     bankGrid.innerHTML = "";
@@ -376,6 +579,7 @@
 
       slot.addEventListener("click", () => {
         selectedIndex = idx;
+        previewMode = "item";
         renderBank();
       });
       bankGrid.appendChild(slot);

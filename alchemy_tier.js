@@ -215,9 +215,11 @@ window.DSAlchemyTier = {
     }));
     const potionItems = HERBS.flatMap((herb) => POTION_TYPES.map((potion) => ({
       type: "consumable",
-      id: `${potion.id}_${herb.tier}`,
+      subType: "potion",
+      id: `${potion.id}_potion_${herb.tier}`,
       name: `${potion.label} ${ROMAN[herb.tier - 1]}`,
       img: `images/alchemy/potions/${potion.id}_${herb.tier}.webp`,
+      rarity: "uncommon",
       quantity: 1
     })));
     return [

@@ -45,6 +45,12 @@
         <div class="hubLabel">Challenges</div>
       </div>
       <div class="hubNav">
+        <button class="hubNavBtn" id="goQuests" type="button" aria-label="Quests">
+          <span class="hubIconFrame" aria-hidden="true"><span style="font-size:28px;line-height:1;">Q</span></span>
+        </button>
+        <div class="hubLabel">Quests</div>
+      </div>
+      <div class="hubNav">
         <button class="hubNavBtn" id="goEquip" type="button" aria-label="Equipment" data-open-tab-href="equipment.html">
           <span class="hubIconFrame" aria-hidden="true"><img class="hubIconImg hubIconImgEquip" src="images/ui/equipment.webp" alt=""></span>
         </button>
@@ -130,6 +136,174 @@
   const el = (id, scope = document) => scope.getElementById(id);
   const num = (v, f = 0) => (Number.isFinite(Number(v)) ? Number(v) : f);
   const fmt = (v) => new Intl.NumberFormat("el-GR").format(num(v, 0));
+  const QUEST_LIMIT = 500;
+  const QUEST_PROFESSIONS = [
+    { id: "fighting", label: "Fighting", statKey: "fightsWon", unit: "fights won", levelKey: "heroLevel", xpKey: "heroXP", xpNextKey: "heroXPNext", href: "fight.html" },
+    { id: "mining", label: "Mining", statKey: "miningTicks", unit: "mining actions", levelKey: "miningLevel", xpKey: "miningXP", xpNextKey: "miningXPNext", href: "mining.html" },
+    { id: "woodcutting", label: "Woodcutting", statKey: "woodGatherTicks", unit: "woodcutting actions", levelKey: "woodcuttingLevel", xpKey: "woodcuttingXP", xpNextKey: "woodcuttingXPNext", href: "woodcutting.html" },
+    { id: "hunting", label: "Hunting", statKey: "huntingTicks", unit: "hunting actions", levelKey: "huntingLevel", xpKey: "huntingXP", xpNextKey: "huntingXPNext", href: "hunting.html" },
+    { id: "fishing", label: "Fishing", statKey: "fishingTicks", unit: "fishing actions", levelKey: "fishingLevel", xpKey: "fishingXP", xpNextKey: "fishingXPNext", href: "fishing.html" },
+    { id: "cooking", label: "Cooking", statKey: "cookingCrafts", unit: "cooking actions", levelKey: "cookingLevel", xpKey: "cookingXP", xpNextKey: "cookingXPNext", href: "cooking.html" },
+    { id: "herbalism", label: "Herbalism", statKey: "herbalismTicks", unit: "herbalism actions", levelKey: "herbalismLevel", xpKey: "herbalismXP", xpNextKey: "herbalismXPNext", href: "herbalism.html" },
+    { id: "forge", label: "Forge", statKey: "barsCrafted", unit: "forge actions", levelKey: "blacksmithLevel", xpKey: "blacksmithXP", xpNextKey: "blacksmithXPNext", divisor: 4, href: "forge.html" },
+    { id: "carpentry", label: "Carpentry", statKey: "planksCrafted", unit: "carpentry actions", levelKey: "carpentryLevel", xpKey: "carpentryXP", xpNextKey: "carpentryXPNext", divisor: 4, href: "carpentry.html" },
+    { id: "alchemy", label: "Alchemy", statKey: "alchemyTicks", unit: "alchemy actions", levelKey: "alchemyLevel", xpKey: "alchemyXP", xpNextKey: "alchemyXPNext", divisor: 3, href: "alchemy.html" },
+    { id: "dungeon", label: "Dungeon", statKey: "dungeonsCompleted", unit: "dungeons completed", levelKey: "heroLevel", xpKey: "heroXP", xpNextKey: "heroXPNext", divisor: 8, href: "dungeons.html" }
+  ];
+  const QUEST_RESOURCE_POOLS = {
+    mining: [
+      { id: "copper_ore", name: "Copper Ore", req: 1, img: "images/ores/copper_ore.webp", href: "mining_action.html?ore=copper_ore" },
+      { id: "silver_ore", name: "Silver Ore", req: 10, img: "images/ores/silver_ore.webp", href: "mining_action.html?ore=silver_ore" },
+      { id: "iron_ore", name: "Iron Ore", req: 20, img: "images/ores/iron_ore.webp", href: "mining_action.html?ore=iron_ore" },
+      { id: "mithril_ore", name: "Mithril Ore", req: 30, img: "images/ores/mithril_ore.webp", href: "mining_action.html?ore=mithril_ore" },
+      { id: "adamant_ore", name: "Adamant Ore", req: 40, img: "images/ores/adamant_ore.webp", href: "mining_action.html?ore=adamant_ore" },
+      { id: "obsidian_ore", name: "Obsidian Ore", req: 50, img: "images/ores/obsidian_ore.webp", href: "mining_action.html?ore=obsidian_ore" },
+      { id: "crystal_ore", name: "Crystal Ore", req: 60, img: "images/ores/crystal_ore.webp", href: "mining_action.html?ore=crystal_ore" },
+      { id: "sulfur_ore", name: "Sulfur Ore", req: 70, img: "images/ores/sulfur_ore.webp", href: "mining_action.html?ore=sulfur_ore" },
+      { id: "rose_quartz_ore", name: "Rose Quartz Ore", req: 80, img: "images/ores/rose_quartz_ore.webp", href: "mining_action.html?ore=rose_quartz_ore" },
+      { id: "darkstone_ore", name: "Darkstone Ore", req: 90, img: "images/ores/darkstone_ore.webp", href: "mining_action.html?ore=darkstone_ore" }
+    ],
+    woodcutting: [
+      { id: "ash_log", name: "Ash Log", req: 1, img: "images/wood/logs/ash_log.webp", href: "wood_gather_action.html?wood=ash" },
+      { id: "pine_log", name: "Pine Log", req: 10, img: "images/wood/logs/pine_log.webp", href: "wood_gather_action.html?wood=pine" },
+      { id: "birch_log", name: "Birch Log", req: 20, img: "images/wood/logs/birch_log.webp", href: "wood_gather_action.html?wood=birch" },
+      { id: "oak_log", name: "Oak Log", req: 30, img: "images/wood/logs/oak_log.webp", href: "wood_gather_action.html?wood=oak" },
+      { id: "cedar_log", name: "Cedar Log", req: 40, img: "images/wood/logs/cedar_log.webp", href: "wood_gather_action.html?wood=cedar" },
+      { id: "maple_log", name: "Maple Log", req: 50, img: "images/wood/logs/maple_log.webp", href: "wood_gather_action.html?wood=maple" },
+      { id: "ironwood_log", name: "Ironwood Log", req: 60, img: "images/wood/logs/ironwood_log.webp", href: "wood_gather_action.html?wood=ironwood" },
+      { id: "heartwood_log", name: "Heartwood Log", req: 70, img: "images/wood/logs/heartwood_log.webp", href: "wood_gather_action.html?wood=heartwood" },
+      { id: "darkwood_log", name: "Darkwood Log", req: 80, img: "images/wood/logs/darkwood_log.webp", href: "wood_gather_action.html?wood=darkwood" },
+      { id: "ebony_log", name: "Ebony Log", req: 90, img: "images/wood/logs/ebony_log.webp", href: "wood_gather_action.html?wood=ebony" }
+    ],
+    hunting: [
+      { id: "raw_shadow_hare_meat", name: "Raw Shadow Hare Meat", req: 1, img: "images/meat/shadow_hare_raw.webp", href: "hunting_action.html?target=shadow_hare" },
+      { id: "raw_rotfeather_turkey_meat", name: "Raw Rotfeather Turkey Meat", req: 10, img: "images/meat/rotfeather_turkey_raw.webp", href: "hunting_action.html?target=rotfeather_turkey" },
+      { id: "raw_gloom_fox_meat", name: "Raw Gloom Fox Meat", req: 20, img: "images/meat/gloom_fox_raw.webp", href: "hunting_action.html?target=gloom_fox" },
+      { id: "raw_bloodtusk_boar_meat", name: "Raw Bloodtusk Boar Meat", req: 30, img: "images/meat/bloodtusk_boar_raw.webp", href: "hunting_action.html?target=bloodtusk_boar" },
+      { id: "raw_night_wolf_meat", name: "Raw Night Wolf Meat", req: 40, img: "images/meat/night_wolf_raw.webp", href: "hunting_action.html?target=night_wolf" },
+      { id: "raw_stonehorn_ram_meat", name: "Raw Stonehorn Ram Meat", req: 50, img: "images/meat/stonehorn_ram_raw.webp", href: "hunting_action.html?target=stonehorn_ram" },
+      { id: "raw_thorn_stag_meat", name: "Raw Thorn Stag Meat", req: 60, img: "images/meat/thorn_stag_raw.webp", href: "hunting_action.html?target=thorn_stag" },
+      { id: "raw_grave_bear_meat", name: "Raw Grave Bear Meat", req: 70, img: "images/meat/bear_raw.webp", href: "hunting_action.html?target=grave_bear" },
+      { id: "raw_dire_warg_meat", name: "Raw Dire Warg Meat", req: 80, img: "images/meat/dire_warg_raw.webp", href: "hunting_action.html?target=dire_warg" },
+      { id: "raw_forest_troll_meat", name: "Raw Forest Troll Meat", req: 90, img: "images/meat/troll_raw.webp", href: "hunting_action.html?target=forest_troll" }
+    ],
+    herbalism: [
+      { id: "greenleaf", name: "Greenleaf", req: 1, img: "images/herbalism/herbs/greenleaf.png", href: "herbalism_action.html?zone=verdant_hollow" },
+      { id: "sungrass", name: "Sungrass", req: 15, img: "images/herbalism/herbs/sungrass.png", href: "herbalism_action.html?zone=sunspire_plains" },
+      { id: "ironroot", name: "Ironroot", req: 30, img: "images/herbalism/herbs/ironroot.png", href: "herbalism_action.html?zone=ironwood_depths" },
+      { id: "frost_bloom", name: "Frost Bloom", req: 45, img: "images/herbalism/herbs/frost_bloom.png", href: "herbalism_action.html?zone=frostpetal_vale" },
+      { id: "shadow_mint", name: "Shadow Mint", req: 60, img: "images/herbalism/herbs/shadow_mint.png", href: "herbalism_action.html?zone=duskmire_thicket" },
+      { id: "goldthorn", name: "Goldthorn", req: 75, img: "images/herbalism/herbs/goldthorn.png", href: "herbalism_action.html?zone=aurathorn_expanse" },
+      { id: "ember_lotus", name: "Ember Lotus", req: 90, img: "images/herbalism/herbs/ember_lotus.png", href: "herbalism_action.html?zone=emberfall_sanctuary" }
+    ]
+  };
+  const QUEST_FISHING_SPOTS = [
+    { id: "Mangrove_Spirit_Swamp", req: 1, title: "Mangrove Spirit Swamp", fish: [
+      { id: "mud_minnow", name: "Mud Minnow", img: "images/fish/mud_minnow.webp", chance: 0.70 },
+      { id: "bog_carp", name: "Bog Carp", img: "images/fish/bog_carp.webp", chance: 0.30 }
+    ] },
+    { id: "Crystal_Stream", req: 10, title: "Crystal Stream", fish: [
+      { id: "shiner_fish", name: "Shiner Fish", img: "images/fish/shiner_fish.webp", chance: 0.70 },
+      { id: "golden_perch", name: "Golden Perch", img: "images/fish/golden_perch.webp", chance: 0.30 }
+    ] },
+    { id: "Emerald_Forest_Lake", req: 20, title: "Emerald Forest Lake", fish: [
+      { id: "spiny_sunfish", name: "Spiny Sunfish", img: "images/fish/spiny_sunfish.webp", chance: 0.70 },
+      { id: "striped_bass", name: "Striped Bass", img: "images/fish/striped_bass.webp", chance: 0.30 }
+    ] },
+    { id: "Canyon_Thunder_River", req: 30, title: "Canyon Thunder River", fish: [
+      { id: "stone_catfish", name: "Stone Catfish", img: "images/fish/stone_catfish.webp", chance: 0.70 },
+      { id: "crystal_pike", name: "Crystal Pike", img: "images/fish/crystal_pike.webp", chance: 0.30 }
+    ] },
+    { id: "Moon_Lotus_Pond", req: 40, title: "Moon Lotus Pond", fish: [
+      { id: "moon_carp", name: "Moon Carp", img: "images/fish/moon_carp.webp", chance: 0.70 },
+      { id: "glass_eel", name: "Glass Eel", img: "images/fish/glass_eel.webp", chance: 0.30 }
+    ] },
+    { id: "Frozen_Aurora_River", req: 50, title: "Frozen Aurora River", fish: [
+      { id: "frost_salmon", name: "Frost Salmon", img: "images/fish/frost_salmon.webp", chance: 0.70 },
+      { id: "glacier_char", name: "Glacier Char", img: "images/fish/glacier_char.webp", chance: 0.30 }
+    ] },
+    { id: "Glacier_Mirror_Lake", req: 60, title: "Glacier Mirror Lake", fish: [
+      { id: "ice_sturgeon", name: "Ice Sturgeon", img: "images/fish/ice_sturgeon.webp", chance: 0.70 },
+      { id: "spiral_horn_gar", name: "Spiral Horn Gar", img: "images/fish/spiral_horn_gar.webp", chance: 0.30 }
+    ] },
+    { id: "Sunken_Coral_Sea", req: 70, title: "Sunken Coral Sea", fish: [
+      { id: "storm_mackerel", name: "Storm Mackerel", img: "images/fish/storm_mackerel.webp", chance: 0.70 },
+      { id: "lantern_pike", name: "Lantern Pike", img: "images/fish/lantern_pike.webp", chance: 0.30 }
+    ] },
+    { id: "Abyssal_Glow_Depths", req: 80, title: "Abyssal Glow Depths", fish: [
+      { id: "ghost_ray", name: "Ghost Ray", img: "images/fish/ghost_ray.webp", chance: 0.70 },
+      { id: "hammerhead_pike", name: "Hammerhead Pike", img: "images/fish/hammerhead_pike.webp", chance: 0.30 }
+    ] },
+    { id: "Leviathan_Rift_Trench", req: 90, title: "Leviathan Rift Trench", fish: [
+      { id: "void_angler", name: "Void Angler", img: "images/fish/void_angler.webp", chance: 0.70 },
+      { id: "leviathan_marlin", name: "Leviathan Marlin", img: "images/fish/leviathan_marlin.webp", chance: 0.30 }
+    ] }
+  ];
+  const QUEST_FORGE_MATERIALS = [
+    { id: "copper", name: "Copper", req: 1 },
+    { id: "silver", name: "Silver", req: 10 },
+    { id: "iron", name: "Iron", req: 20 },
+    { id: "mithril", name: "Mithril", req: 30 },
+    { id: "adamant", name: "Adamant", req: 40 },
+    { id: "obsidian", name: "Obsidian", req: 50 },
+    { id: "crystal", name: "Crystal", req: 60 },
+    { id: "sulfur", name: "Sulfur", req: 70 },
+    { id: "rose_quartz", name: "Rose Quartz", req: 80 },
+    { id: "darkstone", name: "Darkstone", req: 90 }
+  ];
+  const QUEST_FORGE_MAIN_HAND_NAMES = {
+    copper: "Sword",
+    silver: "Mace",
+    iron: "Axe",
+    mithril: "Sword",
+    adamant: "Axe",
+    obsidian: "Sword",
+    crystal: "Sword",
+    sulfur: "Sword",
+    rose_quartz: "Sword",
+    darkstone: "Mace"
+  };
+  const QUEST_FORGE_SLOTS = [
+    { id: "helmet", label: "Helmet" },
+    { id: "chest", label: "Chest" },
+    { id: "belt", label: "Belt" },
+    { id: "pants", label: "Pants" },
+    { id: "gloves", label: "Gloves" },
+    { id: "boots", label: "Boots" },
+    { id: "main_hand", label: "Main Hand" },
+    { id: "shield", label: "Shield" },
+    { id: "bracers", label: "Bracers" },
+    { id: "shoulders", label: "Shoulders" }
+  ];
+  const QUEST_CARPENTRY_PLANKS = [
+    { id: "ash_plank", name: "Ash Plank", req: 1, img: "images/wood/planks/ash_plank.png", href: "wood_sawmill_action.html?recipe=ash_plank" },
+    { id: "pine_plank", name: "Pine Plank", req: 10, img: "images/wood/planks/pine_plank.png", href: "wood_sawmill_action.html?recipe=pine_plank" },
+    { id: "birch_plank", name: "Birch Plank", req: 20, img: "images/wood/planks/birch_plank.png", href: "wood_sawmill_action.html?recipe=birch_plank" },
+    { id: "oak_plank", name: "Oak Plank", req: 30, img: "images/wood/planks/oak_plank.png", href: "wood_sawmill_action.html?recipe=oak_plank" },
+    { id: "cedar_plank", name: "Cedar Plank", req: 40, img: "images/wood/planks/cedar_plank.png", href: "wood_sawmill_action.html?recipe=cedar_plank" },
+    { id: "maple_plank", name: "Maple Plank", req: 50, img: "images/wood/planks/maple_plank.png", href: "wood_sawmill_action.html?recipe=maple_plank" },
+    { id: "ironwood_plank", name: "Ironwood Plank", req: 60, img: "images/wood/planks/ironwood_plank.png", href: "wood_sawmill_action.html?recipe=ironwood_plank" },
+    { id: "heartwood_plank", name: "Heartwood Plank", req: 70, img: "images/wood/planks/heartwood_plank.png", href: "wood_sawmill_action.html?recipe=heartwood_plank" },
+    { id: "darkwood_plank", name: "Darkwood Plank", req: 80, img: "images/wood/planks/darkwood_plank.png", href: "wood_sawmill_action.html?recipe=darkwood_plank" },
+    { id: "ebony_plank", name: "Ebony Plank", req: 90, img: "images/wood/planks/ebony_plank.png", href: "wood_sawmill_action.html?recipe=ebony_plank" }
+  ];
+  const QUEST_ALCHEMY_ROMAN = ["I", "II", "III", "IV", "V", "VI", "VII"];
+  const QUEST_ALCHEMY_TIERS = [
+    { tier: 1, req: 1 },
+    { tier: 2, req: 15 },
+    { tier: 3, req: 30 },
+    { tier: 4, req: 45 },
+    { tier: 5, req: 60 },
+    { tier: 6, req: 75 },
+    { tier: 7, req: 90 }
+  ];
+  const QUEST_ALCHEMY_POTIONS = [
+    { id: "strength", label: "Strength Potion" },
+    { id: "defense", label: "Defense Potion" },
+    { id: "gathering_insight", label: "Gathering Insight" },
+    { id: "artisan_insight", label: "Artisan Insight" },
+    { id: "luck", label: "Luck Potion" }
+  ];
   const PLAYER_EQUIP_SLOTS = [
     "helmet", "shoulders", "chest", "bracers",
     "mainHand", "offHand", "gloves", "belt",
@@ -164,6 +338,398 @@
   function loadSave() {
     try { return JSON.parse(localStorage.getItem("darkstone_save_v1") || "{}") || {}; }
     catch { return {}; }
+  }
+
+  function setSave(save) {
+    localStorage.setItem("darkstone_save_v1", JSON.stringify(save && typeof save === "object" ? save : {}));
+    window.dispatchEvent(new Event("ds:save"));
+    Promise.resolve(window.DSAuth?.syncCloudSaveNow?.({ waitForPending: true })).catch(() => {});
+  }
+
+  function roundXPNext(value) {
+    value = Math.max(1, Math.round(Number(value) || 1));
+    if (value >= 10000000) return Math.ceil(value / 50000) * 50000;
+    if (value >= 1000000) return Math.ceil(value / 10000) * 10000;
+    if (value >= 100000) return Math.ceil(value / 5000) * 5000;
+    if (value >= 10000) return Math.ceil(value / 500) * 500;
+    if (value >= 1000) return Math.ceil(value / 100) * 100;
+    return Math.round(value);
+  }
+
+  function xpNextForLevel(level) {
+    const L = Math.max(1, Math.floor(Number(level) || 1));
+    let xp = 100;
+    for (let cur = 2; cur <= L; cur += 1) {
+      const prev = cur - 1;
+      let rate = 1.01;
+      if (prev <= 3) rate = 2.0;
+      else if (prev <= 6) rate = 1.5;
+      else if (prev <= 10) rate = 1.3;
+      else if (prev <= 20) rate = 1.18;
+      else if (prev <= 35) rate = 1.12;
+      else if (prev <= 50) rate = 1.10;
+      else if (prev <= 70) rate = 1.075;
+      else if (prev <= 85) rate = 1.06;
+      else if (prev <= 99) rate = 1.05;
+      else if (prev <= 105) rate = 1.05 - 0.002 * (prev - 100);
+      else if (prev <= 200) rate = 1.04 - 0.03 * ((prev - 105) / 95);
+      xp *= rate;
+    }
+    return roundXPNext(xp);
+  }
+
+  function getQuestProfession(id) {
+    return QUEST_PROFESSIONS.find((entry) => entry.id === id) || QUEST_PROFESSIONS[0];
+  }
+
+  function ensureQuests(save) {
+    save = save && typeof save === "object" ? save : {};
+    if (!save.quests || typeof save.quests !== "object") save.quests = {};
+    save.quests.completed = Math.max(0, Math.min(QUEST_LIMIT, Math.floor(num(save.quests.completed, 0))));
+    if (save.quests.active && typeof save.quests.active !== "object") save.quests.active = null;
+    if (save.quests.completed >= QUEST_LIMIT) save.quests.active = null;
+    return save;
+  }
+
+  function getStatsTotal(save) {
+    return save?.stats?.total && typeof save.stats.total === "object" ? save.stats.total : {};
+  }
+
+  function questActionRange(questNo, profession) {
+    const tier = Math.floor((Math.max(1, questNo) - 1) / 20);
+    let min = 80 + tier * 50;
+    let max = 100 + tier * 50;
+    const divisor = Math.max(1, num(profession?.divisor, 1));
+    if (divisor > 1) {
+      min = Math.max(1, Math.ceil(min / divisor));
+      max = Math.max(min, Math.ceil(max / divisor));
+    }
+    return { min, max };
+  }
+
+  function randomInt(min, max) {
+    min = Math.ceil(num(min, 0));
+    max = Math.floor(num(max, min));
+    return Math.floor(Math.random() * (max - min + 1)) + min;
+  }
+
+  function randomQuestProfession() {
+    return QUEST_PROFESSIONS[randomInt(0, QUEST_PROFESSIONS.length - 1)] || QUEST_PROFESSIONS[0];
+  }
+
+  function randomQuestTarget(questNo, profession) {
+    const range = questActionRange(questNo, profession);
+    return randomInt(range.min, range.max);
+  }
+
+  function forgeEquipmentName(material, slot) {
+    const suffix = slot.id === "main_hand" ? (QUEST_FORGE_MAIN_HAND_NAMES[material.id] || slot.label) : slot.label;
+    return `${material.name} ${suffix}`;
+  }
+
+  function forgeQuestResourcePool() {
+    const bars = QUEST_FORGE_MATERIALS.map((material) => ({
+      id: `${material.id}_bar`,
+      name: `${material.name} Bar`,
+      req: material.req,
+      img: `images/bars/${material.id}_bar.png`,
+      href: `forge_action.html?recipe=${encodeURIComponent(`${material.id}_bar`)}`
+    }));
+    const equipment = QUEST_FORGE_MATERIALS.flatMap((material) => QUEST_FORGE_SLOTS.map((slot) => ({
+      id: `${material.id}_${slot.id}`,
+      name: forgeEquipmentName(material, slot),
+      req: material.req,
+      img: `images/items/forge_crafted/${material.id}/${material.id}_${slot.id}.webp`,
+      href: `forge_action.html?recipe=${encodeURIComponent(`${material.id}_${slot.id}`)}`
+    })));
+    return bars.concat(equipment);
+  }
+
+  function cookingQuestResourcePool() {
+    const meats = (QUEST_RESOURCE_POOLS.hunting || []).map((meat) => {
+      const cookedId = String(meat.id || "").replace(/^raw_/, "cooked_");
+      return {
+        id: cookedId,
+        name: String(meat.name || "").replace(/^Raw\b/, "Cooked"),
+        req: meat.req,
+        levelKey: "huntingLevel",
+        img: String(meat.img || "").replace("_raw.webp", "_cooked.webp"),
+        href: `cooking_action.html?recipe=${encodeURIComponent(cookedId)}`
+      };
+    });
+    const fish = QUEST_FISHING_SPOTS.flatMap((spot) => (Array.isArray(spot.fish) ? spot.fish : []).map((entry) => {
+      const cookedId = `cooked_${entry.id}`;
+      return {
+        id: cookedId,
+        name: `Cooked ${entry.name}`,
+        req: spot.req,
+        levelKey: "fishingLevel",
+        img: `images/food/${cookedId}.webp`,
+        href: `cooking_action.html?recipe=${encodeURIComponent(cookedId)}`
+      };
+    }));
+    return meats.concat(fish);
+  }
+
+  function alchemyQuestResourcePool() {
+    return QUEST_ALCHEMY_TIERS.flatMap((tier) => QUEST_ALCHEMY_POTIONS.map((potion) => ({
+      id: `${potion.id}_potion_${tier.tier}`,
+      name: `${potion.label} ${QUEST_ALCHEMY_ROMAN[tier.tier - 1] || tier.tier}`,
+      req: tier.req,
+      img: `images/alchemy/potions/${potion.id}_${tier.tier}.webp`,
+      href: `alchemy_action.html?recipe=${encodeURIComponent(`${potion.id}_${tier.tier}`)}`
+    })));
+  }
+
+  function questResourcePoolForProfession(profession) {
+    if (profession?.id === "forge") return forgeQuestResourcePool();
+    if (profession?.id === "carpentry") return QUEST_CARPENTRY_PLANKS;
+    if (profession?.id === "cooking") return cookingQuestResourcePool();
+    if (profession?.id === "alchemy") return alchemyQuestResourcePool();
+    return QUEST_RESOURCE_POOLS[profession?.id];
+  }
+
+  function itemMatchKey(value) {
+    return String(value || "").trim().toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_+|_+$/g, "");
+  }
+
+  function inventoryCount(save, targetItem) {
+    if (!targetItem) return 0;
+    const targetId = itemMatchKey(targetItem.id);
+    const targetName = itemMatchKey(targetItem.name);
+    const inventory = Array.isArray(save?.inventory) ? save.inventory : [];
+    return inventory.reduce((sum, item) => {
+      const itemId = itemMatchKey(item?.id);
+      const itemName = itemMatchKey(item?.name);
+      if ((targetId && itemId === targetId) || (targetName && itemName === targetName)) {
+        return sum + Math.max(1, num(item.quantity ?? item.qty, 1));
+      }
+      return sum;
+    }, 0);
+  }
+
+  function removeQuestItemsFromInventory(save, targetItem, qtyNeeded) {
+    if (!targetItem) return true;
+    let remaining = Math.max(1, Math.floor(num(qtyNeeded, 1)));
+    const inventory = Array.isArray(save?.inventory) ? save.inventory : [];
+    const targetId = itemMatchKey(targetItem.id);
+    const targetName = itemMatchKey(targetItem.name);
+    for (let i = inventory.length - 1; i >= 0 && remaining > 0; i -= 1) {
+      const item = inventory[i];
+      const itemId = itemMatchKey(item?.id);
+      const itemName = itemMatchKey(item?.name);
+      if (!((targetId && itemId === targetId) || (targetName && itemName === targetName))) continue;
+      const qty = Math.max(1, Math.floor(num(item.quantity ?? item.qty, 1)));
+      if (qty <= remaining) {
+        remaining -= qty;
+        inventory.splice(i, 1);
+      } else {
+        item.quantity = qty - remaining;
+        if ("qty" in item) item.qty = item.quantity;
+        remaining = 0;
+      }
+    }
+    return remaining <= 0;
+  }
+
+  function randomUnlockedQuestItem(save, profession) {
+    const pool = questResourcePoolForProfession(profession);
+    if (!Array.isArray(pool) || !pool.length) return null;
+    const unlocked = pool.filter((item) => {
+      const levelKey = item.levelKey || profession.levelKey;
+      const level = Math.max(1, Math.floor(num(save?.[levelKey], 1)));
+      return level >= num(item.req, 1);
+    });
+    return unlocked.length ? unlocked[randomInt(0, unlocked.length - 1)] : pool[0];
+  }
+
+  function randomFishingQuestItem(save, range) {
+    const level = Math.max(1, Math.floor(num(save?.fishingLevel, 1)));
+    const spots = QUEST_FISHING_SPOTS.filter((spot) => level >= num(spot.req, 1));
+    const spot = (spots.length ? spots : [QUEST_FISHING_SPOTS[0]])[randomInt(0, Math.max(0, (spots.length || 1) - 1))];
+    const fishList = Array.isArray(spot?.fish) ? spot.fish : [];
+    const common = fishList.find((fish) => num(fish.chance, 0) >= 0.7) || fishList[0];
+    const rare = fishList.find((fish) => num(fish.chance, 0) < 0.7) || fishList[1] || common;
+    const fish = Math.random() < 0.70 ? common : rare;
+    const ratio = num(fish?.chance, 0.70) >= 0.7 ? 0.70 : 0.30;
+    const baseTarget = randomInt(range.min, range.max);
+    return {
+      id: fish.id,
+      name: fish.name,
+      img: fish.img,
+      href: `fishing_action.html?spot=${encodeURIComponent(spot.id)}`,
+      zoneId: spot.id,
+      zoneName: spot.title,
+      chance: num(fish.chance, ratio),
+      target: Math.max(1, Math.ceil(baseTarget * ratio))
+    };
+  }
+
+  function questProgress(save) {
+    const active = save?.quests?.active;
+    if (!active) return 0;
+    if (active.kind === "resource" && active.item) {
+      return Math.max(0, Math.min(num(active.target, 0), inventoryCount(save, active.item)));
+    }
+    const total = getStatsTotal(save);
+    return Math.max(0, Math.min(num(active.target, 0), num(total[active.statKey], 0) - num(active.startValue, 0)));
+  }
+
+  function startRandomQuest(save = ensureQuests(loadSave())) {
+    if (save.quests.completed >= QUEST_LIMIT || save.quests.active) return save;
+    save.quests.pendingNext = null;
+    const questNo = save.quests.completed + 1;
+    const profession = randomQuestProfession();
+    const range = questActionRange(questNo, profession);
+    const stats = getStatsTotal(save);
+    const item = profession.id === "fishing"
+      ? randomFishingQuestItem(save, range)
+      : randomUnlockedQuestItem(save, profession);
+    const target = item?.target || randomInt(range.min, range.max);
+    save.quests.active = {
+      questNo,
+      professionId: profession.id,
+      label: profession.label,
+      statKey: profession.statKey,
+      unit: item ? item.name : profession.unit,
+      target,
+      startValue: item ? inventoryCount(save, item) : num(stats[profession.statKey], 0),
+      kind: item ? "resource" : "actions",
+      item: item ? {
+        id: item.id,
+        name: item.name,
+        img: item.img,
+        href: item.href
+      } : null
+    };
+    setSave(save);
+    return save;
+  }
+
+  function addQuestRewardXP(save, profession) {
+    const levelKey = profession.levelKey;
+    const xpKey = profession.xpKey;
+    const xpNextKey = profession.xpNextKey;
+    save[levelKey] = Math.max(1, Math.floor(num(save[levelKey], 1)));
+    save[xpKey] = Math.max(0, Math.floor(num(save[xpKey], 0)));
+    save[xpNextKey] = Math.max(1, Math.floor(num(save[xpNextKey], xpNextForLevel(save[levelKey]))));
+    const rewardXp = Math.max(1, Math.ceil(save[xpNextKey] * 0.20));
+    save[xpKey] += rewardXp;
+    while (save[xpKey] >= save[xpNextKey]) {
+      save[xpKey] -= save[xpNextKey];
+      save[levelKey] += 1;
+      save[xpNextKey] = xpNextForLevel(save[levelKey]);
+      if (profession.id === "fighting" || profession.id === "dungeon") {
+        save.heroStatPoints = Math.max(0, num(save.heroStatPoints, 0)) + 5;
+        window.DS?.announcements?.combatLevel?.(save, save.heroLevel);
+      } else {
+        window.DS?.announcements?.professionLevel?.(save, profession.label, save[levelKey]);
+      }
+    }
+    return rewardXp;
+  }
+
+  function claimQuestReward() {
+    const save = ensureQuests(loadSave());
+    const active = save.quests.active;
+    if (!active || questProgress(save) < num(active.target, 0)) return;
+    const profession = getQuestProfession(active.professionId);
+    if (active.kind === "resource" && active.item && !removeQuestItemsFromInventory(save, active.item, active.target)) return;
+    const rewardXp = addQuestRewardXP(save, profession);
+    const reward = {
+      questNo: active.questNo,
+      professionId: profession.id,
+      label: profession.label,
+      xp: rewardXp,
+      claimedAt: Date.now()
+    };
+    save.quests.lastReward = reward;
+    save.quests.pendingNext = reward;
+    save.quests.completed = Math.min(QUEST_LIMIT, Math.max(num(save.quests.completed, 0), num(active.questNo, 1)));
+    save.quests.active = null;
+    setSave(save);
+    renderQuestsPanel();
+  }
+
+  function startNextQuestFromHome() {
+    const save = ensureQuests(loadSave());
+    if (save.quests.completed >= QUEST_LIMIT) {
+      save.quests.pendingNext = null;
+      save.quests.active = null;
+      setSave(save);
+      renderQuestsPanel();
+      return;
+    }
+    save.quests.pendingNext = null;
+    save.quests.active = null;
+    startRandomQuest(save);
+    renderQuestsPanel();
+  }
+
+  function renderQuestsPanel(root = null) {
+    const left = root || el("leftPanel");
+    if (!left) return;
+    let save = ensureQuests(loadSave());
+    const pending = save.quests.pendingNext && typeof save.quests.pendingNext === "object" ? save.quests.pendingNext : null;
+    if (!pending && !save.quests.active && save.quests.completed < QUEST_LIMIT) {
+      save = startRandomQuest(save);
+    }
+    const active = save.quests.active;
+    const completed = Math.max(0, Math.min(QUEST_LIMIT, num(save.quests.completed, 0)));
+    const questNo = Math.min(QUEST_LIMIT, completed + 1);
+    const last = save.quests.lastReward || null;
+    const done = completed >= QUEST_LIMIT;
+    const progress = active ? questProgress(save) : 0;
+    const ready = active && progress >= num(active.target, 0);
+    left.innerHTML = `
+      <div id="questsPanel" style="max-width:920px;margin:0 auto;">
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:12px;">
+          <div>
+            <h1 style="margin-bottom:6px;">Quests</h1>
+            <div style="opacity:.86;">Quest ${fmt(Math.min(completed + 1, QUEST_LIMIT))} / ${fmt(QUEST_LIMIT)}</div>
+          </div>
+          <button id="questsBackHome" type="button" style="min-width:0;padding:8px 12px;border-radius:10px;border:1px solid rgba(166,124,64,.82);background:linear-gradient(180deg,#4e3a22,#2b2015);color:#fff3d7;font-weight:800;cursor:pointer;">Back</button>
+        </div>
+        ${pending ? `
+          <div style="padding:16px;border-radius:14px;border:1px solid rgba(80,142,91,.74);background:rgba(25,66,38,.42);">
+            <div style="font-size:22px;font-weight:900;color:#b9ffc8;">Quest ${fmt(pending.questNo)} completed</div>
+            <div style="margin-top:8px;opacity:.9;">You obtained:</div>
+            <div style="margin-top:4px;font-weight:900;color:#b9ffc8;">${fmt(pending.xp)} ${esc(pending.label)} XP</div>
+            ${done ? `<div style="margin-top:12px;font-weight:800;">All 500 quests completed.</div>` : `
+              <button id="questNextBtn" type="button" style="margin-top:12px;min-width:0;padding:8px 12px;border-radius:10px;border:1px solid rgba(80,142,91,.86);background:linear-gradient(180deg,#2f7f5c,#1d513b);color:#eaffef;font-weight:900;cursor:pointer;">Next Quest</button>
+            `}
+          </div>
+        ` : last && !last.skipped ? `<div style="margin-bottom:12px;padding:10px 12px;border-radius:10px;border:1px solid rgba(80,142,91,.74);background:rgba(25,66,38,.42);color:#b9ffc8;font-weight:800;">Quest ${fmt(last.questNo)} reward claimed: ${esc(last.label)} XP +${fmt(last.xp)}</div>` : ""}
+        ${!pending && done ? `
+          <div style="padding:18px;border-radius:14px;border:1px solid rgba(166,124,64,.72);background:rgba(255,255,255,.04);text-align:center;font-weight:900;">All 500 quests completed.</div>
+        ` : !pending && active ? `
+          <div style="padding:16px;border-radius:14px;border:1px solid rgba(166,124,64,.72);background:linear-gradient(180deg,rgba(56,42,24,.52),rgba(22,18,20,.94));">
+            <div style="font-size:22px;font-weight:900;">Quest ${fmt(active.questNo)} - ${esc(active.label)}</div>
+            <div style="margin-top:8px;opacity:.9;">${active.kind === "resource" ? "Give" : "Complete"} ${fmt(active.target)} ${esc(active.unit)}.</div>
+            <div style="margin-top:12px;height:14px;border-radius:8px;border:1px solid rgba(122,91,49,.82);background:#15151c;overflow:hidden;">
+              <div style="height:100%;width:${Math.max(0, Math.min(100, (progress / Math.max(1, num(active.target, 1))) * 100)).toFixed(2)}%;background:linear-gradient(90deg,#2f7f5c,#8ee2a3);"></div>
+            </div>
+            <div style="margin-top:8px;font-weight:800;">${fmt(progress)} / ${fmt(active.target)}</div>
+            <div style="margin-top:12px;display:flex;gap:10px;flex-wrap:wrap;">
+              <button id="questGoActionBtn" type="button" style="min-width:0;padding:8px 12px;border-radius:10px;border:1px solid rgba(166,124,64,.82);background:linear-gradient(180deg,#6c4a24,#3b2814);color:#fff3d7;font-weight:900;cursor:pointer;">Go</button>
+              ${ready ? `<button id="questClaimBtn" type="button" style="min-width:0;padding:8px 12px;border-radius:10px;border:1px solid rgba(80,142,91,.86);background:linear-gradient(180deg,#2f7f5c,#1d513b);color:#eaffef;font-weight:900;cursor:pointer;">Claim Rewards</button>` : ""}
+            </div>
+          </div>
+        ` : !pending ? `
+          <div style="padding:16px;border-radius:14px;border:1px solid rgba(166,124,64,.72);background:linear-gradient(180deg,rgba(56,42,24,.52),rgba(22,18,20,.94));">
+            <div style="font-size:22px;font-weight:900;">Quest ${fmt(questNo)}</div>
+            <div style="margin-top:8px;opacity:.9;">A random quest will appear here.</div>
+          </div>
+        ` : ""}
+      </div>
+    `;
+    document.getElementById("questsBackHome")?.addEventListener("click", () => mountHome());
+    document.getElementById("questNextBtn")?.addEventListener("click", startNextQuestFromHome);
+    document.getElementById("questClaimBtn")?.addEventListener("click", claimQuestReward);
+    document.getElementById("questGoActionBtn")?.addEventListener("click", () => {
+      const profession = getQuestProfession(active?.professionId);
+      navigateHomeTarget(active?.item?.href || profession.href);
+    });
   }
 
   function esc(value) {
@@ -1165,6 +1731,12 @@
     if (playersBtn && playersBtn.dataset.dsHomeBound !== "1") {
       playersBtn.dataset.dsHomeBound = "1";
       playersBtn.addEventListener("click", () => mountPlayersView());
+    }
+
+    const questsBtn = el("goQuests", scope);
+    if (questsBtn && questsBtn.dataset.dsHomeBound !== "1") {
+      questsBtn.dataset.dsHomeBound = "1";
+      questsBtn.addEventListener("click", () => renderQuestsPanel());
     }
   }
 
