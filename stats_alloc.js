@@ -3,7 +3,7 @@
   const BASE_ATK = 10;
   const BASE_DEF = 10;
   const STATS_ALLOC_TEMPLATE = `
-    <h1>Allocate Stats</h1>
+    <h1>Stat Points</h1>
 
     <div style="width:90%;max-width:700px;margin:0 auto 12px;display:flex;gap:10px;justify-content:center;">
       <button id="backBtn">Back</button>
@@ -61,7 +61,7 @@
     wrap.innerHTML = `
       <div style="background:#151520;border:2px solid #333;border-radius:12px;padding:12px;display:flex;flex-direction:column;gap:10px;">
         <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;">
-          <div style="font-weight:900;">Level Up: Allocate Stat Points</div>
+          <div style="font-weight:900;">Spend Stat Points</div>
           <div style="opacity:.9;">Points left: <b id="statPointsLeft">0</b></div>
         </div>
 
@@ -84,7 +84,7 @@
         <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
           <button id="statApplyBtn">Apply</button>
           <button id="statResetBtn" style="background:#2a1b1b;">Reset All Stats</button>
-          <div style="opacity:.85;">Allocate any split (e.g., 3 ATK / 2 DEF).</div>
+          <div style="opacity:.85;">Spend any split (e.g., 3 ATK / 2 DEF).</div>
         </div>
       </div>
     `;
@@ -189,14 +189,14 @@
     const left = root || document.getElementById("leftPanel");
     if (!left) return false;
     left.innerHTML = STATS_ALLOC_TEMPLATE;
-    document.title = "Darkstone Chronicles - Allocate Stats";
+    document.title = "Darkstone Chronicles - Stat Points";
     initStatsAllocRoute();
     return true;
   }
 
   function boot(){
     if (!document.getElementById("allocWrap")) return false;
-    document.title = "Darkstone Chronicles - Allocate Stats";
+    document.title = "Darkstone Chronicles - Stat Points";
     initStatsAllocRoute();
     return true;
   }

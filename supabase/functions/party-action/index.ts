@@ -342,52 +342,56 @@ const ROUGH_GEM_POOL = [
   { type: "material", id: "rough_topaz", name: "Rough Topaz", img: "images/gems/rough_topaz.webp" },
   { type: "material", id: "rough_amethyst", name: "Rough Amethyst", img: "images/gems/rough_amethyst.webp" },
 ] as const;
-const FIRST_MONSTER_MYTHIC_DROPS = [
-  {
-    type: "gear",
-    id: "party_placeholder_mythic_ring",
-    slot: "ring",
-    name: "Party Mythic Ring Placeholder",
-    atk: 8,
-    def: 4,
-    reqLevel: 20,
-    rarity: "mythic",
-    img: "images/items/dropsfromzones/zone3/rh_legendary_ring.png",
-  },
-  {
-    type: "gear",
-    id: "party_placeholder_mythic_amulet",
-    slot: "amulet",
-    name: "Party Mythic Amulet Placeholder",
-    atk: 8,
-    def: 4,
-    reqLevel: 20,
-    rarity: "mythic",
-    img: "images/items/dropsfromzones/zone3/rh_legendary_amulet.png",
-  },
-  {
-    type: "gear",
-    id: "party_placeholder_mythic_bracers",
-    slot: "bracers",
-    name: "Party Mythic Bracers Placeholder",
-    atk: 0,
-    def: 20,
-    reqLevel: 20,
-    rarity: "mythic",
-    img: "images/items/dropsfromzones/zone3/rh_legendary_bracers.png",
-  },
-  {
-    type: "gear",
-    id: "party_placeholder_mythic_shoulders",
-    slot: "shoulders",
-    name: "Party Mythic Shoulders Placeholder",
-    atk: 0,
-    def: 16,
-    reqLevel: 20,
-    rarity: "mythic",
-    img: "images/items/dropsfromzones/zone3/rh_legendary_shoulders.png",
-  },
-] as const;
+function partyMonsterMythicDrops(monsterId: string) {
+  const normalizedMonsterId = normalizeMonsterId(monsterId) || FIRST_PARTY_MONSTER_ID;
+  const basePath = `images/items/party/${normalizedMonsterId}`;
+  return [
+    {
+      type: "gear",
+      id: `party_${normalizedMonsterId}_mythic_ring`,
+      slot: "ring",
+      name: "Party Mythic Ring Placeholder",
+      atk: 8,
+      def: 4,
+      reqLevel: 20,
+      rarity: "mythic",
+      img: `${basePath}/mythic_ring.png`,
+    },
+    {
+      type: "gear",
+      id: `party_${normalizedMonsterId}_mythic_amulet`,
+      slot: "amulet",
+      name: "Party Mythic Amulet Placeholder",
+      atk: 8,
+      def: 4,
+      reqLevel: 20,
+      rarity: "mythic",
+      img: `${basePath}/mythic_amulet.png`,
+    },
+    {
+      type: "gear",
+      id: `party_${normalizedMonsterId}_mythic_bracers`,
+      slot: "bracers",
+      name: "Party Mythic Bracers Placeholder",
+      atk: 0,
+      def: 20,
+      reqLevel: 20,
+      rarity: "mythic",
+      img: `${basePath}/mythic_bracers.png`,
+    },
+    {
+      type: "gear",
+      id: `party_${normalizedMonsterId}_mythic_shoulders`,
+      slot: "shoulders",
+      name: "Party Mythic Shoulders Placeholder",
+      atk: 0,
+      def: 16,
+      reqLevel: 20,
+      rarity: "mythic",
+      img: `${basePath}/mythic_shoulders.png`,
+    },
+  ] as const;
+}
 const PARTY_FIGHT_STANDALONE_STAMINA_COST = 5;
 const PARTY_FIGHT_MIN_DAMAGE = 3;
 const PARTY_FIGHT_LOW_DAMAGE_MAX = 10;
@@ -400,6 +404,40 @@ const FIRST_MONSTER_MILESTONES = [
   { kills: 100000, rewardType: "placeholder", rewardLabel: "Reward TBD" },
   { kills: 500000, rewardType: "placeholder", rewardLabel: "Reward TBD" },
 ] as const;
+
+function partyMonsterRewardMultiplier(monsterId: string) {
+  const index = PARTY_MONSTER_ORDER.indexOf(normalizeMonsterId(monsterId));
+  return index >= 0 ? index + 1 : 1;
+}
+
+function partyMonsterMilestoneRows(monsterId: string) {
+  const normalizedMonsterId = normalizeMonsterId(monsterId);
+  const multiplier = partyMonsterRewardMultiplier(normalizedMonsterId);
+  const index = PARTY_MONSTER_ORDER.indexOf(normalizedMonsterId);
+  return FIRST_MONSTER_MILESTONES.map((milestone) => {
+    const row = { ...milestone } as JsonRecord;
+    if (milestone.rewardType === "unlock") {
+      row.rewardLabel = index >= 0 && index < PARTY_MONSTER_ORDER.length - 1
+        ? `Unlock Mob ${index + 2}`
+        : "Unlock Chain Complete";
+    } else if (milestone.rewardType === "party_points") {
+      const amount = int(milestone.amount, 0) * multiplier;
+      row.amount = amount;
+      row.rewardLabel = `+${amount.toLocaleString("en-US")} PP`;
+    } else if (milestone.rewardType === "orb_of_creation") {
+      const amount = int(milestone.amount, 0) * multiplier;
+      row.amount = amount;
+      row.rewardLabel = `+${amount.toLocaleString("en-US")} Orb of Creation`;
+    } else if (milestone.rewardType === "party_fight_buff") {
+      const atkPct = num(milestone.atkPct, 0) * multiplier;
+      const defPct = num(milestone.defPct, 0) * multiplier;
+      row.atkPct = atkPct;
+      row.defPct = defPct;
+      row.rewardLabel = `+${(atkPct * 100).toFixed(0)}% Party Fight ATK/DEF`;
+    }
+    return row;
+  });
+}
 
 function rollRoughGemDrop() {
   if (Math.random() >= ROUGH_GEM_DROP_CHANCE) return null;
@@ -419,8 +457,8 @@ function rollFirstMonsterOrbDrop() {
   return Math.random() < FIRST_MONSTER_ORB_OF_CREATION_DROP_CHANCE ? ORB_OF_CREATION_ITEM : null;
 }
 
-function rollFirstMonsterMythicDrops() {
-  return FIRST_MONSTER_MYTHIC_DROPS.filter(() => Math.random() < FIRST_MONSTER_MYTHIC_DROP_CHANCE)
+function rollPartyMonsterMythicDrops(monsterId: string) {
+  return partyMonsterMythicDrops(monsterId).filter(() => Math.random() < FIRST_MONSTER_MYTHIC_DROP_CHANCE)
     .map((item) => ({ ...item }));
 }
 
@@ -544,11 +582,13 @@ function spendPartyActionUsage(saveData: unknown, amount = 1) {
   };
 }
 
-function applyFirstMonsterMilestoneRewards(saveData: unknown, killCount: number) {
+function applyMonsterMilestoneRewards(saveData: unknown, monsterId: string, killCount: number) {
+  const normalizedMonsterId = normalizeMonsterId(monsterId);
   const granted: JsonRecord[] = [];
-  for (const milestone of FIRST_MONSTER_MILESTONES) {
-    if (killCount < milestone.kills) continue;
-    if (hasPartyFightMilestoneClaim(saveData, FIRST_PARTY_MONSTER_ID, milestone.kills)) continue;
+  for (const milestone of partyMonsterMilestoneRows(normalizedMonsterId)) {
+    const milestoneKills = int(milestone.kills, 0);
+    if (killCount < milestoneKills) continue;
+    if (hasPartyFightMilestoneClaim(saveData, normalizedMonsterId, milestoneKills)) continue;
     if (milestone.rewardType === "party_points") {
       awardPartyPoints(saveData, int(milestone.amount, 0));
     } else if (milestone.rewardType === "orb_of_creation") {
@@ -558,10 +598,10 @@ function applyFirstMonsterMilestoneRewards(saveData: unknown, killCount: number)
       bonuses.atkPct = Math.max(0, num(bonuses.atkPct, 0)) + Math.max(0, num(milestone.atkPct, 0));
       bonuses.defPct = Math.max(0, num(bonuses.defPct, 0)) + Math.max(0, num(milestone.defPct, 0));
     }
-    markPartyFightMilestoneClaimed(saveData, FIRST_PARTY_MONSTER_ID, milestone.kills);
+    markPartyFightMilestoneClaimed(saveData, normalizedMonsterId, milestoneKills);
     granted.push({
-      monsterId: FIRST_PARTY_MONSTER_ID,
-      kills: milestone.kills,
+      monsterId: normalizedMonsterId,
+      kills: milestoneKills,
       rewardType: milestone.rewardType,
       rewardLabel: milestone.rewardLabel,
     });
@@ -571,21 +611,27 @@ function applyFirstMonsterMilestoneRewards(saveData: unknown, killCount: number)
 
 function buildMonsterMilestones(saveData: unknown, monsterId: string) {
   const normalizedMonsterId = normalizeMonsterId(monsterId);
-  if (normalizedMonsterId !== FIRST_PARTY_MONSTER_ID) return [];
   const killCount = getMonsterKillCount(saveData, normalizedMonsterId);
   const bonuses = getPartyFightBonuses(saveData);
-  return FIRST_MONSTER_MILESTONES.map((milestone) => ({
-    kills: milestone.kills,
+  return partyMonsterMilestoneRows(normalizedMonsterId).map((milestone) => ({
+    kills: int(milestone.kills, 0),
     rewardType: milestone.rewardType,
     rewardLabel: milestone.rewardLabel,
-    reached: killCount >= milestone.kills,
-    claimed: hasPartyFightMilestoneClaim(saveData, normalizedMonsterId, milestone.kills),
-    progress: Math.min(milestone.kills, killCount),
+    reached: killCount >= int(milestone.kills, 0),
+    claimed: hasPartyFightMilestoneClaim(saveData, normalizedMonsterId, int(milestone.kills, 0)),
+    progress: Math.min(int(milestone.kills, 0), killCount),
     atkPct: milestone.rewardType === "party_fight_buff" ? Math.max(0, num(milestone.atkPct, 0)) : 0,
     defPct: milestone.rewardType === "party_fight_buff" ? Math.max(0, num(milestone.defPct, 0)) : 0,
     currentBonusAtkPct: bonuses.atkPct,
     currentBonusDefPct: bonuses.defPct,
   }));
+}
+
+function buildAllMonsterMilestones(saveData: unknown) {
+  return PARTY_MONSTER_ORDER.reduce((result, monsterId) => {
+    result[monsterId] = buildMonsterMilestones(saveData, monsterId);
+    return result;
+  }, {} as JsonRecord);
 }
 
 function addStackableInventoryItem(saveData: unknown, itemData: unknown, quantity: number) {
@@ -1313,9 +1359,7 @@ async function getUserSummaries(admin: ReturnType<typeof createClient>, userIds:
       partyMonsterProgress: buildMonsterProgress(saveData),
       selectedPartyMonsterId: getSelectedPartyMonsterIdFromSave(saveData),
       partyFightBonuses: getPartyFightBonuses(saveData),
-      partyMonsterMilestones: {
-        [FIRST_PARTY_MONSTER_ID]: buildMonsterMilestones(saveData, FIRST_PARTY_MONSTER_ID),
-      },
+      partyMonsterMilestones: buildAllMonsterMilestones(saveData),
       lastSeenAt: row.last_seen_at || null,
       lastSeenPage: str(row.last_seen_page),
     });
@@ -1339,9 +1383,7 @@ async function getUserSummaries(admin: ReturnType<typeof createClient>, userIds:
         partyMonsterProgress: buildMonsterProgress({}),
         selectedPartyMonsterId: "",
         partyFightBonuses: getPartyFightBonuses({}),
-        partyMonsterMilestones: {
-          [FIRST_PARTY_MONSTER_ID]: buildMonsterMilestones({}, FIRST_PARTY_MONSTER_ID),
-        },
+        partyMonsterMilestones: buildAllMonsterMilestones({}),
         lastSeenAt: null,
         lastSeenPage: "",
       });
@@ -1681,8 +1723,9 @@ async function advancePartyFightSession(
       const isFirstMonster = normalizeMonsterId(monsterId) === FIRST_PARTY_MONSTER_ID;
       const roughGemDrop = isFirstMonster ? rollFirstMonsterRoughGemDrop() : rollRoughGemDrop();
       const orbOfCreationDrop = isFirstMonster ? rollFirstMonsterOrbDrop() : rollOrbOfCreationDrop();
-      const mythicDrops = isFirstMonster ? rollFirstMonsterMythicDrops() : [];
+      const mythicDrops = rollPartyMonsterMythicDrops(monsterId);
       for (const player of encounter.players) {
+        let milestoneRewards: JsonRecord[] = [];
         const row = getTouchedSave(player.userId);
         const rewardResult = applyHeroRewards(row.save, int(player.xp, 0), int(player.gold, 0));
         awardPartyPoints(rewardResult.save, int(player.partyPoints, 0));
@@ -1701,6 +1744,7 @@ async function advancePartyFightSession(
           const monsterData = ensurePartyMonsterKills(staminaResult.save);
           monsterData.monsterKills[monsterId] = getMonsterKillCount(monsterData.save, monsterId) + 1;
           row.save = monsterData.save;
+          milestoneRewards = applyMonsterMilestoneRewards(row.save, monsterId, getMonsterKillCount(row.save, monsterId));
         } else {
           row.save = staminaResult.save;
         }
@@ -1722,6 +1766,7 @@ async function advancePartyFightSession(
           if (roughGemDrop) (playerResult as JsonRecord).roughGemDrop = roughGemDrop;
           if (orbOfCreationDrop) (playerResult as JsonRecord).orbOfCreationDrop = orbOfCreationDrop;
           if (mythicDrops.length) (playerResult as JsonRecord).mythicDrops = mythicDrops.map((item) => ({ ...item }));
+          if (milestoneRewards.length) (playerResult as JsonRecord).milestoneRewards = milestoneRewards;
         }
         row.revision += 1;
         touchedUsers.set(player.userId, row);
@@ -2829,15 +2874,13 @@ async function resolvePartyFight(admin: ReturnType<typeof createClient>, userId:
     awardPartyPoints(actorRow.save, partyPointsEarned);
     roughGemDrop = (selectedMonsterId === FIRST_PARTY_MONSTER_ID ? rollFirstMonsterRoughGemDrop() : rollRoughGemDrop()) as JsonRecord | null;
     orbDrop = (selectedMonsterId === FIRST_PARTY_MONSTER_ID ? rollFirstMonsterOrbDrop() : rollOrbOfCreationDrop()) as JsonRecord | null;
-    mythicDrops = selectedMonsterId === FIRST_PARTY_MONSTER_ID ? rollFirstMonsterMythicDrops().map((item) => ({ ...item })) as JsonRecord[] : [];
+    mythicDrops = rollPartyMonsterMythicDrops(selectedMonsterId).map((item) => ({ ...item })) as JsonRecord[];
     if (roughGemDrop) addStackableInventoryItem(actorRow.save, roughGemDrop, 1);
     if (orbDrop) addStackableInventoryItem(actorRow.save, orbDrop, 1);
     mythicDrops.forEach((item) => addUniqueInventoryItem(actorRow.save, item));
     const monsterData = ensurePartyMonsterKills(actorRow.save);
     monsterData.monsterKills[selectedMonsterId] = getMonsterKillCount(monsterData.save, selectedMonsterId) + 1;
-    if (selectedMonsterId === FIRST_PARTY_MONSTER_ID) {
-      milestoneRewards = applyFirstMonsterMilestoneRewards(actorRow.save, getMonsterKillCount(actorRow.save, selectedMonsterId));
-    }
+    milestoneRewards = applyMonsterMilestoneRewards(actorRow.save, selectedMonsterId, getMonsterKillCount(actorRow.save, selectedMonsterId));
   }
 
   actorRow.revision += 1;
@@ -2894,9 +2937,7 @@ async function resolvePartyFight(admin: ReturnType<typeof createClient>, userId:
         ? `${str(monster.name)} fled after ${PARTY_FIGHT_MAX_ROUNDS} rounds.`
         : `Defeat against ${str(monster.name)}.`,
     personalFightResult: encounterResult,
-    partyMonsterMilestones: {
-      [FIRST_PARTY_MONSTER_ID]: buildMonsterMilestones(actorRow.save, FIRST_PARTY_MONSTER_ID),
-    },
+    partyMonsterMilestones: buildAllMonsterMilestones(actorRow.save),
     partyFightBonuses: getPartyFightBonuses(actorRow.save),
   };
 }

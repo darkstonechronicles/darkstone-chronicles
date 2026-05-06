@@ -81,6 +81,12 @@
         <div class="hubLabel">My Stats</div>
       </div>
       <div class="hubNav">
+        <button class="hubNavBtn" id="goStatPoints" type="button" aria-label="Stat Points" data-open-tab-href="stats_alloc.html">
+          <span class="hubIconFrame" aria-hidden="true"><img class="hubIconImg" src="images/ui/stats.webp" alt=""></span>
+        </button>
+        <div class="hubLabel">Stat Points</div>
+      </div>
+      <div class="hubNav">
         <button class="hubNavBtn" id="goSendItem" type="button" aria-label="Send Item">
           <span class="hubIconFrame" aria-hidden="true"><img class="hubIconImg" src="images/ui/party.webp" alt=""></span>
         </button>
@@ -1711,7 +1717,8 @@
       ["goMarket", "market.html"],
       ["goShop", "shop.html"],
       ["goBank", "bank.html"],
-      ["goStats", "stats.html"]
+      ["goStats", "stats.html"],
+      ["goStatPoints", "stats_alloc.html"]
     ];
 
     bindings.forEach(([id, href]) => {

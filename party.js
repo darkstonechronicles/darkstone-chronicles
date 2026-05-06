@@ -109,6 +109,7 @@
     battleView: false,
     createDraft: null,
     inviteDraft: "",
+    selectedMonsterDetailId: "",
   };
 
   const esc = (v) => String(v ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
@@ -279,43 +280,61 @@
     return Array.isArray(state.data?.myJoinRequests) ? state.data.myJoinRequests : [];
   }
 
-  function selectedMonsterRewardPreview(monster) {
-    if (!monster) return null;
-    if (String(monster.id || "") === "gravefang-hydra") {
-      return {
-        partyPoints: "2-5 PP each",
-        xp: "132 XP each",
-        gold: "124-200 Gold each",
-        extras: [
-          "Orb of Creation: 1/100",
-          "Rough Gem: 1/75",
-          "Mythic Ring Placeholder: 1/10000",
-          "Mythic Amulet Placeholder: 1/10000",
-          "Mythic Bracers Placeholder: 1/10000",
-          "Mythic Shoulders Placeholder: 1/10000",
-        ],
-      };
-    }
-    return null;
+  function partyMonsterDropPreview(monster) {
+    const monsterId = partyMonsterId(monster?.id || "gravefang-hydra") || "gravefang-hydra";
+    const basePath = `images/items/party/${monsterId}`;
+    return [
+      { name: "Mythic Ring Placeholder", img: `${basePath}/mythic_ring.png` },
+      { name: "Mythic Amulet Placeholder", img: `${basePath}/mythic_amulet.png` },
+      { name: "Mythic Bracers Placeholder", img: `${basePath}/mythic_bracers.png` },
+      { name: "Mythic Shoulders Placeholder", img: `${basePath}/mythic_shoulders.png` },
+    ];
+  }
+
+  function partyMonsterDropsMarkup(monster) {
+    const drops = partyMonsterDropPreview(monster);
+    return `
+      <div style="border:1px solid rgba(199,155,68,.28);border-radius:14px;background:linear-gradient(180deg,rgba(255,255,255,.045),rgba(255,255,255,.018));box-shadow:0 12px 28px rgba(0,0,0,.22);overflow:hidden;">
+        <div style="padding:10px 12px;border-bottom:1px solid rgba(199,155,68,.22);background:rgba(199,155,68,.10);font-size:15px;font-weight:900;color:#f0d58b;text-align:center;">Mythic Drops</div>
+        <div style="padding:10px;display:grid;gap:8px;">
+          ${drops.length ? drops.map((drop) => `
+            <div style="display:grid;grid-template-columns:34px 1fr;gap:9px;align-items:center;padding:7px 8px;border:1px solid rgba(255,255,255,.08);border-radius:10px;background:rgba(255,255,255,.025);">
+              <img src="${esc(drop.img)}" alt="${esc(drop.name)}" style="width:34px;height:34px;border-radius:8px;object-fit:cover;background:linear-gradient(180deg,#4d267f,#24123f);border:1px solid rgba(210,172,255,.24);">
+              <div style="min-width:0;font-size:12px;font-weight:900;color:#f3ead6;line-height:1.15;">${esc(drop.name)}</div>
+            </div>
+          `).join("") : ``}
+        </div>
+      </div>
+    `;
+  }
+
+  function partyMonsterNextRewardMarkup(monster) {
+    const milestones = partyMonsterMilestones(monster?.id || "");
+    const nextReward = milestones.find((entry) => !entry?.claimed) || null;
+    return `
+      <div style="min-height:90px;padding:14px;border:1px solid rgba(255,255,255,.10);border-radius:14px;background:rgba(255,255,255,.025);display:grid;align-content:center;justify-items:center;text-align:center;gap:8px;">
+        ${nextReward
+          ? `
+            <div style="font-size:14px;font-weight:900;color:#f0d58b;">Next Reward At ${num(nextReward.kills, 0).toLocaleString("en-US")} Kills</div>
+            <div style="font-size:13px;font-weight:900;color:#f3ead6;">${esc(nextReward.rewardLabel || "Reward")}</div>
+          `
+          : `
+            <div style="font-size:14px;font-weight:900;color:#f0d58b;">Next Reward At - Kills</div>
+            <div style="font-size:13px;font-weight:900;color:#f3ead6;">All rewards claimed</div>
+          `}
+      </div>
+    `;
   }
 
   function hallSummaryMarkup() {
-    const me = profile();
     const usage = partyActionUsage();
     return `
-      <section style="margin-bottom:14px;padding:14px;border:1px solid rgba(255,255,255,.10);border-radius:12px;background:rgba(255,255,255,.03);display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;align-items:center;">
-        <div>
-          <div style="font-size:12px;opacity:.74;">Party Hall Hero</div>
-          <div style="font-size:18px;font-weight:900;">${esc(me.heroName || "Hero")}</div>
-        </div>
-        <div>
-          <div style="font-size:12px;opacity:.74;">Hero Level</div>
-          <div style="font-size:18px;font-weight:900;">${num(me.heroLevel, 1)}</div>
-          <div style="margin-top:8px;font-size:12px;opacity:.74;">Party Actions</div>
+      <section style="margin-bottom:14px;display:flex;justify-content:center;align-items:stretch;gap:12px;flex-wrap:wrap;">
+        <div style="min-width:180px;padding:12px 16px;border:1px solid rgba(143,231,177,.28);border-radius:10px;background:linear-gradient(180deg,rgba(143,231,177,.10),rgba(255,255,255,.025));box-shadow:0 10px 22px rgba(0,0,0,.22),inset 0 1px 0 rgba(255,255,255,.08);text-align:center;">
+          <div style="font-size:12px;opacity:.74;">Party Actions</div>
           <div style="font-size:16px;font-weight:900;color:#8fe7b1;">${usage.used}/${usage.limit}</div>
-          <div style="font-size:11px;opacity:.7;">Resets at 00:00 Greece time</div>
         </div>
-        <div>
+        <div style="min-width:180px;padding:12px 16px;border:1px solid rgba(240,213,139,.30);border-radius:10px;background:linear-gradient(180deg,rgba(240,213,139,.11),rgba(255,255,255,.025));box-shadow:0 10px 22px rgba(0,0,0,.22),inset 0 1px 0 rgba(255,255,255,.08);text-align:center;">
           <div style="font-size:12px;opacity:.74;">Party Points</div>
           <div style="font-size:18px;font-weight:900;color:#f0d58b;">${partyPoints()} PP</div>
         </div>
@@ -922,6 +941,7 @@
     state.selectedPartyId = null;
     state.monsterSelectionOpen = false;
     state.monsterInfoOpen = false;
+    state.selectedMonsterDetailId = "";
     state.inviteModalOpen = false;
     const onPartyPage = /(^|\/)party_hall\.html$/i.test(String(window.location.pathname || ""));
     if (onPartyPage && hasPartyPage()) {
@@ -1117,6 +1137,54 @@
             `;
           }).join("")}
         </div>
+      </section>
+    `;
+  }
+
+  function partyMonstersPageMarkup() {
+    return `
+      <section style="display:grid;gap:14px;">
+        <div style="display:grid;grid-template-columns:repeat(4,minmax(0,120px));gap:10px;justify-content:center;">
+          ${PARTY_FIGHT_MONSTERS.map((monster) => {
+            const progress = monsterProgressEntry(monster.id);
+            const unlocked = !!progress?.unlocked;
+            return `
+              <button type="button" ${unlocked ? `data-party-monster-detail="${esc(monster.id)}"` : "disabled"} style="display:block;width:100%;padding:0;text-align:initial;overflow:hidden;border:1px solid rgba(199,155,68,.30);border-radius:12px;background:linear-gradient(180deg,rgba(255,255,255,.045),rgba(255,255,255,.018));box-shadow:0 10px 20px rgba(0,0,0,.20);cursor:${unlocked ? "pointer" : "default"};opacity:${unlocked ? "1" : ".72"};">
+                <img src="${esc(monster.img)}" alt="${esc(monster.name)}" style="display:block;width:100%;aspect-ratio:1 / 1;object-fit:cover;background:#0f121a;">
+                <div style="padding:9px;text-align:center;display:grid;gap:5px;">
+                  <div style="min-height:28px;font-size:12px;font-weight:900;color:#f3ead6;line-height:1.15;display:flex;align-items:center;justify-content:center;text-align:center;">${esc(monster.name)}</div>
+                  <div style="margin-top:2px;padding:6px 8px;border:1px solid rgba(240,213,139,.24);border-radius:9px;background:rgba(240,213,139,.08);font-size:12px;font-weight:900;color:#f0d58b;">
+                    ${unlocked ? "Details" : "Locked"}
+                  </div>
+                </div>
+              </button>
+            `;
+          }).join("")}
+        </div>
+      </section>
+    `;
+  }
+
+  function partyMonsterDetailPageMarkup() {
+    const monster = PARTY_FIGHT_MONSTERS.find((entry) => entry.id === partyMonsterId(state.selectedMonsterDetailId)) || PARTY_FIGHT_MONSTERS[0];
+    const progress = monster ? monsterProgressEntry(monster.id) : null;
+    if (!monster) return partyMonstersPageMarkup();
+    return `
+      <section style="display:grid;gap:16px;">
+        <div style="display:flex;justify-content:flex-start;">
+          <button id="partyMonsterDetailBackBtn" type="button">Back</button>
+        </div>
+        <div style="display:grid;grid-template-columns:minmax(180px,240px) minmax(260px,360px);gap:18px;align-items:start;justify-content:center;">
+          <div style="display:grid;justify-items:center;text-align:center;gap:12px;">
+            <img src="${esc(monster.img)}" alt="${esc(monster.name)}" style="width:156px;height:156px;border-radius:18px;border:3px solid #c79b44;object-fit:cover;box-shadow:0 16px 36px rgba(0,0,0,.32),0 0 0 1px rgba(0,0,0,.28);">
+            <div style="font-size:20px;font-weight:900;color:#f3ead6;line-height:1.1;">${esc(monster.name)}</div>
+            <div style="padding:8px 14px;border:1px solid rgba(240,213,139,.26);border-radius:12px;background:rgba(240,213,139,.08);font-size:14px;font-weight:900;color:#f0d58b;">
+              Kills: ${num(progress?.kills, 0)}
+            </div>
+          </div>
+          ${partyMonsterDropsMarkup(monster)}
+        </div>
+        ${partyMonsterNextRewardMarkup(monster)}
       </section>
     `;
   }
@@ -1558,11 +1626,13 @@
     const tabs = party
       ? [
           ["my_party", "My Party"],
+          ["monsters", "Monsters"],
           ["pending_invites", "Pending Invites"]
         ]
       : [
           ["my_party", "Create Party"],
           ["find_party", "Find Party"],
+          ["monsters", "Monsters"],
           ["invites", "Invites"]
         ];
     return `
@@ -1596,6 +1666,7 @@
       if (!party) return createPartyMarkup();
       return isLeader() ? leaderPartyMarkup(party) : memberPartyMarkup(party);
     }
+    if (state.tab === "monsters") return state.selectedMonsterDetailId ? partyMonsterDetailPageMarkup() : partyMonstersPageMarkup();
     if (party && state.tab === "pending_invites") return pendingInvitesPageMarkup(party);
     if (state.tab === "find_party") return findPartyMarkup();
     return invitesMarkup();
@@ -1604,12 +1675,12 @@
   function normalizePartyTab() {
     const party = myParty();
     if (!party) {
-      if (!["my_party", "find_party", "invites"].includes(String(state.tab || ""))) {
+      if (!["my_party", "find_party", "monsters", "invites"].includes(String(state.tab || ""))) {
         state.tab = "my_party";
       }
       return;
     }
-    if (state.tab === "pending_invites") return;
+    if (state.tab === "pending_invites" || state.tab === "monsters") return;
     state.tab = "my_party";
     state.selectedPartyId = null;
   }
@@ -1639,8 +1710,19 @@
       state.selectedPartyId = null;
       state.monsterSelectionOpen = false;
       state.monsterInfoOpen = false;
+      state.selectedMonsterDetailId = "";
       renderPartyHall();
     }));
+
+    document.querySelectorAll("[data-party-monster-detail]").forEach((btn) => btn.addEventListener("click", () => {
+      state.selectedMonsterDetailId = btn.dataset.partyMonsterDetail || "";
+      renderPartyHall();
+    }));
+
+    document.getElementById("partyMonsterDetailBackBtn")?.addEventListener("click", () => {
+      state.selectedMonsterDetailId = "";
+      renderPartyHall();
+    });
 
     document.getElementById("partyCreateBtn")?.addEventListener("click", async () => {
       syncCreateDraftFromDom();

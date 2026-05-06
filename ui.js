@@ -3894,7 +3894,7 @@
       market: "Market",
       bank: "Bank",
       stats: "Stats",
-      stats_alloc: "Allocate Stats",
+      stats_alloc: "Stat Points",
       equipment: "Equipment",
       professions_overview: "Overview"
     };
