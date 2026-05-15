@@ -6180,7 +6180,7 @@ function ensureAdminToolsModal() {
         <button id="dsAdminSetLv50" type="button" class="townBtn" style="width:100%;">Set Level 50</button>
         <button id="dsAdminSetLv100" type="button" class="townBtn" style="width:100%;">Set Level 100</button>
         <button id="dsAdminRefill" type="button" class="townBtn" style="width:100%;">Refill HP / ST</button>
-        <button id="dsAdminNextQuest" type="button" class="townBtn" style="width:100%;grid-column:1 / -1;border-color:#4a8b68;background:linear-gradient(180deg,#24533b,#173627);color:#ecfff3;">Next Quest</button>
+        <button id="dsAdminNextQuest" type="button" class="townBtn" style="width:100%;grid-column:1 / -1;border-color:#4b76b8;background:linear-gradient(180deg,#24538f,#17345f);color:#eef5ff;">Next Quest</button>
         <button id="dsAdminClearGlobalChat" type="button" class="townBtn" style="width:100%;grid-column:1 / -1;border-color:#8a4d5e;background:linear-gradient(180deg,#5a2431,#3d1620);color:#fff0f3;">Clear Global Chat</button>
       </div>
 
